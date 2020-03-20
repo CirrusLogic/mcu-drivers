@@ -1,0 +1,120 @@
+\hypertarget{f__queue_8c}{}\doxysection{E\+:/jenkins/workspace/prince\+\_\+alt\+\_\+os\+\_\+nightly@2/common/f\+\_\+queue.c File Reference}
+\label{f__queue_8c}\index{E:/jenkins/workspace/prince\_alt\_os\_nightly"@2/common/f\_queue.c@{E:/jenkins/workspace/prince\_alt\_os\_nightly"@2/common/f\_queue.c}}
+
+
+Generic fixed-\/size queue implementation.  
+
+
+{\ttfamily \#include $<$stddef.\+h$>$}\newline
+{\ttfamily \#include \char`\"{}f\+\_\+queue.\+h\char`\"{}}\newline
+\doxysubsection*{Macros}
+\begin{DoxyCompactItemize}
+\item 
+\#define \mbox{\hyperlink{f__queue_8c_a707290294705d2a77c41311fdb597a08}{f\+\_\+queue\+\_\+wrap}}(q,  index)
+\begin{DoxyCompactList}\small\item\em Macro to wrap the insert or remove indices once reaching the end of the queue. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+static uint32\+\_\+t \mbox{\hyperlink{f__queue_8c_ab1e139eddd72d225e6d44f7c2451d2b6}{f\+\_\+queue\+\_\+initialize}} (\mbox{\hyperlink{structf__queue__t}{f\+\_\+queue\+\_\+t}} $\ast$q, uint32\+\_\+t size, void $\ast$elements, uint8\+\_\+t element\+\_\+size\+\_\+bytes, \mbox{\hyperlink{f__queue_8h_abedd0d023ee1ed717ab173baae6a2d3b}{f\+\_\+queue\+\_\+copy}} cp)
+\begin{DoxyCompactList}\small\item\em Initialize the Queue. \end{DoxyCompactList}\item 
+static uint32\+\_\+t \mbox{\hyperlink{f__queue_8c_a5e90e4e2ef9ec55fd2b8cfd3b6d8a694}{f\+\_\+queue\+\_\+insert}} (\mbox{\hyperlink{structf__queue__t}{f\+\_\+queue\+\_\+t}} $\ast$q, void $\ast$new\+\_\+element\+\_\+ptr)
+\begin{DoxyCompactList}\small\item\em Insert an element into the Queue. \end{DoxyCompactList}\item 
+static uint32\+\_\+t \mbox{\hyperlink{f__queue_8c_a98f7b022bb6a9e057b2995bdc2b89914}{f\+\_\+queue\+\_\+remove}} (\mbox{\hyperlink{structf__queue__t}{f\+\_\+queue\+\_\+t}} $\ast$q, void $\ast$element\+\_\+ptr)
+\begin{DoxyCompactList}\small\item\em Remove an element from the Queue. \end{DoxyCompactList}\item 
+static uint32\+\_\+t \mbox{\hyperlink{f__queue_8c_ae82a3e7d9caceff4f4725c87f4fe4efc}{f\+\_\+queue\+\_\+flush}} (\mbox{\hyperlink{structf__queue__t}{f\+\_\+queue\+\_\+t}} $\ast$q)
+\begin{DoxyCompactList}\small\item\em Flush (delete all elements) from the Queue. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Variables}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{structf__queue__if__t}{f\+\_\+queue\+\_\+if\+\_\+t}} \mbox{\hyperlink{f__queue_8c_a43e30e9e32fdc7f0cf108820c96f08f4}{f\+\_\+queue\+\_\+if\+\_\+s}}
+\begin{DoxyCompactList}\small\item\em Function pointer table for Public A\+PI. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{f__queue_8c_a6e330cc86418c2a1f232a13e02204720}\label{f__queue_8c_a6e330cc86418c2a1f232a13e02204720}} 
+\mbox{\hyperlink{structf__queue__if__t}{f\+\_\+queue\+\_\+if\+\_\+t}} $\ast$ \mbox{\hyperlink{f__queue_8c_a6e330cc86418c2a1f232a13e02204720}{f\+\_\+queue\+\_\+if\+\_\+g}}
+\begin{DoxyCompactList}\small\item\em Pointer to Public A\+PI implementation. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+Generic fixed-\/size queue implementation. 
+
+\begin{DoxyCopyright}{Copyright}
+Copyright (c) Cirrus Logic 2019 All Rights Reserved, \href{http://www.cirrus.com/}{\texttt{ http\+://www.\+cirrus.\+com/}}
+\end{DoxyCopyright}
+This code and information are provided \textquotesingle{}as-\/is\textquotesingle{} without warranty of any kind, either expressed or implied, including but not limited to the implied warranties of merchantability and/or fitness for a particular purpose. 
+
+\doxysubsection{Macro Definition Documentation}
+\mbox{\Hypertarget{f__queue_8c_a707290294705d2a77c41311fdb597a08}\label{f__queue_8c_a707290294705d2a77c41311fdb597a08}} 
+\index{f\_queue.c@{f\_queue.c}!f\_queue\_wrap@{f\_queue\_wrap}}
+\index{f\_queue\_wrap@{f\_queue\_wrap}!f\_queue.c@{f\_queue.c}}
+\doxysubsubsection{\texorpdfstring{f\_queue\_wrap}{f\_queue\_wrap}}
+{\footnotesize\ttfamily \#define f\+\_\+queue\+\_\+wrap(\begin{DoxyParamCaption}\item[{}]{q,  }\item[{}]{index }\end{DoxyParamCaption})}
+
+
+
+Macro to wrap the insert or remove indices once reaching the end of the queue. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em q} & pointer to queue handling structure \\
+\hline
+\mbox{\texttt{ in,out}}  & {\em index} & index (either insert or remove) to be wrapped \\
+\hline
+\end{DoxyParams}
+
+
+\doxysubsection{Function Documentation}
+\mbox{\Hypertarget{f__queue_8c_ae82a3e7d9caceff4f4725c87f4fe4efc}\label{f__queue_8c_ae82a3e7d9caceff4f4725c87f4fe4efc}} 
+\index{f\_queue.c@{f\_queue.c}!f\_queue\_flush@{f\_queue\_flush}}
+\index{f\_queue\_flush@{f\_queue\_flush}!f\_queue.c@{f\_queue.c}}
+\doxysubsubsection{\texorpdfstring{f\_queue\_flush()}{f\_queue\_flush()}}
+{\footnotesize\ttfamily static uint32\+\_\+t f\+\_\+queue\+\_\+flush (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{structf__queue__t}{f\+\_\+queue\+\_\+t}} $\ast$}]{q }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [static]}}
+
+
+
+Flush (delete all elements) from the Queue. 
+
+Implementation of \mbox{\hyperlink{structf__queue__if__t_abb5e70c97a5af1db096a1b3749ca21db}{f\+\_\+queue\+\_\+if\+\_\+t.\+flush}} \mbox{\Hypertarget{f__queue_8c_ab1e139eddd72d225e6d44f7c2451d2b6}\label{f__queue_8c_ab1e139eddd72d225e6d44f7c2451d2b6}} 
+\index{f\_queue.c@{f\_queue.c}!f\_queue\_initialize@{f\_queue\_initialize}}
+\index{f\_queue\_initialize@{f\_queue\_initialize}!f\_queue.c@{f\_queue.c}}
+\doxysubsubsection{\texorpdfstring{f\_queue\_initialize()}{f\_queue\_initialize()}}
+{\footnotesize\ttfamily static uint32\+\_\+t f\+\_\+queue\+\_\+initialize (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{structf__queue__t}{f\+\_\+queue\+\_\+t}} $\ast$}]{q,  }\item[{uint32\+\_\+t}]{size,  }\item[{void $\ast$}]{elements,  }\item[{uint8\+\_\+t}]{element\+\_\+size\+\_\+bytes,  }\item[{\mbox{\hyperlink{f__queue_8h_abedd0d023ee1ed717ab173baae6a2d3b}{f\+\_\+queue\+\_\+copy}}}]{cp }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [static]}}
+
+
+
+Initialize the Queue. 
+
+Implementation of \mbox{\hyperlink{structf__queue__if__t_a941a78ae6215814210f01685d2672f9f}{f\+\_\+queue\+\_\+if\+\_\+t.\+initialize}} \mbox{\Hypertarget{f__queue_8c_a5e90e4e2ef9ec55fd2b8cfd3b6d8a694}\label{f__queue_8c_a5e90e4e2ef9ec55fd2b8cfd3b6d8a694}} 
+\index{f\_queue.c@{f\_queue.c}!f\_queue\_insert@{f\_queue\_insert}}
+\index{f\_queue\_insert@{f\_queue\_insert}!f\_queue.c@{f\_queue.c}}
+\doxysubsubsection{\texorpdfstring{f\_queue\_insert()}{f\_queue\_insert()}}
+{\footnotesize\ttfamily static uint32\+\_\+t f\+\_\+queue\+\_\+insert (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{structf__queue__t}{f\+\_\+queue\+\_\+t}} $\ast$}]{q,  }\item[{void $\ast$}]{new\+\_\+element\+\_\+ptr }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [static]}}
+
+
+
+Insert an element into the Queue. 
+
+Implementation of \mbox{\hyperlink{structf__queue__if__t_a107b58df7a3ebb51c863cf1800d8f750}{f\+\_\+queue\+\_\+if\+\_\+t.\+insert}} \mbox{\Hypertarget{f__queue_8c_a98f7b022bb6a9e057b2995bdc2b89914}\label{f__queue_8c_a98f7b022bb6a9e057b2995bdc2b89914}} 
+\index{f\_queue.c@{f\_queue.c}!f\_queue\_remove@{f\_queue\_remove}}
+\index{f\_queue\_remove@{f\_queue\_remove}!f\_queue.c@{f\_queue.c}}
+\doxysubsubsection{\texorpdfstring{f\_queue\_remove()}{f\_queue\_remove()}}
+{\footnotesize\ttfamily static uint32\+\_\+t f\+\_\+queue\+\_\+remove (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{structf__queue__t}{f\+\_\+queue\+\_\+t}} $\ast$}]{q,  }\item[{void $\ast$}]{element\+\_\+ptr }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [static]}}
+
+
+
+Remove an element from the Queue. 
+
+Implementation of \mbox{\hyperlink{structf__queue__if__t_a5ce5a57d50530c185a3e610237c7b64e}{f\+\_\+queue\+\_\+if\+\_\+t.\+remove}} 
+
+\doxysubsection{Variable Documentation}
+\mbox{\Hypertarget{f__queue_8c_a43e30e9e32fdc7f0cf108820c96f08f4}\label{f__queue_8c_a43e30e9e32fdc7f0cf108820c96f08f4}} 
+\index{f\_queue.c@{f\_queue.c}!f\_queue\_if\_s@{f\_queue\_if\_s}}
+\index{f\_queue\_if\_s@{f\_queue\_if\_s}!f\_queue.c@{f\_queue.c}}
+\doxysubsubsection{\texorpdfstring{f\_queue\_if\_s}{f\_queue\_if\_s}}
+{\footnotesize\ttfamily \mbox{\hyperlink{structf__queue__if__t}{f\+\_\+queue\+\_\+if\+\_\+t}} f\+\_\+queue\+\_\+if\+\_\+s}
+
+
+
+Function pointer table for Public A\+PI. 
+
+\begin{DoxyAttention}{Attention}
+Although not const, this should never be changed run-\/time in an end-\/product. It is implemented this way to facilitate unit testing. 
+\end{DoxyAttention}

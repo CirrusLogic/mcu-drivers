@@ -1,0 +1,30 @@
+Artifact Info:
+Artifact           : CS35L41 Alt-OS Driver: 1.0.0
+Test Target MCU SDK: STM32Cube_FW_F4: 1.24.1
+Target toolchain   : GNU Arm Embedded Toolchain: arm-none-eabi-gcc (GNU Tools for Arm Embedded Processors 8-2019-q3-update) 8.3.1 20190703 (release) [gcc-8-branch revision 273027]
+Build system       : make: GNU Make 4.2.1
+OS                 : Windows: 10
+Shell              : MSYS2: msys2-runtime 3.0.7-2
+Host toolchain     : MinGW GCC: gcc (Rev2, Built by MSYS2 project) 8.3.0
+Build Job          : prince_alt_os_nightly: 221
+Git SHA            : bb93bf9a8258ae28567a168d85ae3e4a4a0f2e20
+
+System resources:
+Library TEXT    : 11360 bytes
+Library BSS     : 32 bytes
+Library DATA    : 164 bytes
+BSP RAM         : 536 bytes
+Compiler flags:
+    -mcpu=cortex-m4
+    -mthumb
+    -mfloat-abi=soft
+    -march=armv7e-m
+    -Os
+    -fno-strict-aliasing
+    -ffreestanding
+    -fno-diagnostics-show-caret
+    -fdata-sections
+    -ffunction-sections
+    -funsigned-char
+    -funsigned-bitfields
+    -frecord-gcc-switches

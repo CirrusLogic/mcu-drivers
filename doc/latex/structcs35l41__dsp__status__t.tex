@@ -1,0 +1,61 @@
+\hypertarget{structcs35l41__dsp__status__t}{}\doxysection{cs35l41\+\_\+dsp\+\_\+status\+\_\+t Struct Reference}
+\label{structcs35l41__dsp__status__t}\index{cs35l41\_dsp\_status\_t@{cs35l41\_dsp\_status\_t}}
+
+
+Status of H\+A\+LO FW.  
+
+
+
+
+{\ttfamily \#include $<$cs35l41.\+h$>$}
+
+\doxysubsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{structcs35l41__dsp__status__t_a151f96a6f37dc2074a67a3e9b021fcfd}\label{structcs35l41__dsp__status__t_a151f96a6f37dc2074a67a3e9b021fcfd}} 
+\begin{tabbing}
+xx\=xx\=xx\=xx\=xx\=xx\=xx\=xx\=xx\=\kill
+union \{\\
+\>uint32\_t {\bfseries words} \mbox{[}\mbox{\hyperlink{cs35l41_8h_a1196a694803be40d4177f6fec416195d}{CS35L41\_DSP\_STATUS\_WORDS\_TOTAL}}\mbox{]}\\
+\mbox{\Hypertarget{unioncs35l41__dsp__status__t_1_1_0d2_a7659d9ecc97a0f21e6392c93f1d5d0c9}\label{unioncs35l41__dsp__status__t_1_1_0d2_a7659d9ecc97a0f21e6392c93f1d5d0c9}} 
+\>struct \{\\
+\>\>uint32\_t {\bfseries halo\_state}\\
+\>\>uint32\_t {\bfseries halo\_heartbeat}\\
+\>\>uint32\_t {\bfseries cspl\_state}\\
+\>\>uint32\_t {\bfseries cal\_set\_status}\\
+\>\>uint32\_t {\bfseries cal\_r\_selected}\\
+\>\>uint32\_t {\bfseries cal\_r}\\
+\>\>uint32\_t {\bfseries cal\_status}\\
+\>\>uint32\_t {\bfseries cal\_checksum}\\
+\>\>uint32\_t {\bfseries cspl\_temperature}\\
+\>\} \\
+\} \mbox{\hyperlink{structcs35l41__dsp__status__t_a151f96a6f37dc2074a67a3e9b021fcfd}{data}}\\
+
+\end{tabbing}\begin{DoxyCompactList}\small\item\em Data read from Control Port. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{structcs35l41__dsp__status__t_a88758da6453fa5b4fcdcce5095a1fc2f}\label{structcs35l41__dsp__status__t_a88758da6453fa5b4fcdcce5095a1fc2f}} 
+bool \mbox{\hyperlink{structcs35l41__dsp__status__t_a88758da6453fa5b4fcdcce5095a1fc2f}{is\+\_\+hb\+\_\+inc}}
+\begin{DoxyCompactList}\small\item\em (True) The H\+A\+LO H\+E\+A\+R\+T\+B\+E\+AT is incrementing \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{structcs35l41__dsp__status__t_a7ec43b2bc8ad2eec814c4eb2c0b84a95}\label{structcs35l41__dsp__status__t_a7ec43b2bc8ad2eec814c4eb2c0b84a95}} 
+bool \mbox{\hyperlink{structcs35l41__dsp__status__t_a7ec43b2bc8ad2eec814c4eb2c0b84a95}{is\+\_\+calibration\+\_\+applied}}
+\begin{DoxyCompactList}\small\item\em (True) Calibration values are applied \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{structcs35l41__dsp__status__t_a90111451c76ae4084065d81df1cbe684}\label{structcs35l41__dsp__status__t_a90111451c76ae4084065d81df1cbe684}} 
+bool \mbox{\hyperlink{structcs35l41__dsp__status__t_a90111451c76ae4084065d81df1cbe684}{is\+\_\+temp\+\_\+changed}}
+\begin{DoxyCompactList}\small\item\em (True) Monitored temperature is varying. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+Status of H\+A\+LO FW. 
+
+List of registers can be accessed via status values, or indexed via words (when reading via Control Port). These fields are read multiple times to determine statuses such as is\+\_\+hb\+\_\+inc and is\+\_\+temp\+\_\+changed.
+
+\begin{DoxyWarning}{Warning}
+The list of registers M\+U\+ST correspond to the addresses in cs35l41\+\_\+dsp\+\_\+status\+\_\+addresses.
+\end{DoxyWarning}
+\begin{DoxySeeAlso}{See also}
+\mbox{\hyperlink{cs35l41_8c_a852e72d23608767f4636edfc4d2ee852}{cs35l41\+\_\+dsp\+\_\+status\+\_\+addresses}} 
+\end{DoxySeeAlso}
+
+
+The documentation for this struct was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{cs35l41_8h}{cs35l41.\+h}}\end{DoxyCompactItemize}

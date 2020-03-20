@@ -1,0 +1,138 @@
+\hypertarget{structcs35l41__t}{}\doxysection{cs35l41\+\_\+t Struct Reference}
+\label{structcs35l41__t}\index{cs35l41\_t@{cs35l41\_t}}
+
+
+Driver state data structure.  
+
+
+
+
+{\ttfamily \#include $<$cs35l41.\+h$>$}
+
+\doxysubsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+uint32\+\_\+t \mbox{\hyperlink{structcs35l41__t_aca3de20e44ac0ee9d1f0932a1114c655}{state}}
+\begin{DoxyCompactList}\small\item\em General driver state -\/. \end{DoxyCompactList}\item 
+uint32\+\_\+t \mbox{\hyperlink{structcs35l41__t_ae94e82fd78495467312915c89cbde1e2}{mode}}
+\begin{DoxyCompactList}\small\item\em General driver mode -\/. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{structcs35l41__t_aaae3199c10d27ac51b6d253f2eb36f06}\label{structcs35l41__t_aaae3199c10d27ac51b6d253f2eb36f06}} 
+\mbox{\hyperlink{structcs35l41__sm__t}{cs35l41\+\_\+sm\+\_\+t}} \mbox{\hyperlink{structcs35l41__t_aaae3199c10d27ac51b6d253f2eb36f06}{control\+\_\+sm}}
+\begin{DoxyCompactList}\small\item\em Control State Machine for current Control Request. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{structcs35l41__t_a81535fdddda7ff674005dbcacc53a6a4}\label{structcs35l41__t_a81535fdddda7ff674005dbcacc53a6a4}} 
+\mbox{\hyperlink{structcs35l41__sm__t}{cs35l41\+\_\+sm\+\_\+t}} \mbox{\hyperlink{structcs35l41__t_a81535fdddda7ff674005dbcacc53a6a4}{event\+\_\+sm}}
+\begin{DoxyCompactList}\small\item\em Event Handler State Machine. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{structcs35l41__t_a7fe59687f70edce19d21f8ca6542360a}\label{structcs35l41__t_a7fe59687f70edce19d21f8ca6542360a}} 
+\mbox{\hyperlink{structf__queue__t}{f\+\_\+queue\+\_\+t}} \mbox{\hyperlink{structcs35l41__t_a7fe59687f70edce19d21f8ca6542360a}{control\+\_\+q}}
+\begin{DoxyCompactList}\small\item\em Queue of Control Requests. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{structcs35l41__t_a43061a183c19ac78d0dc92ff09ad5c88}\label{structcs35l41__t_a43061a183c19ac78d0dc92ff09ad5c88}} 
+\mbox{\hyperlink{structcs35l41__control__request__t}{cs35l41\+\_\+control\+\_\+request\+\_\+t}} \mbox{\hyperlink{structcs35l41__t_a43061a183c19ac78d0dc92ff09ad5c88}{control\+\_\+requests}} \mbox{[}\mbox{\hyperlink{cs35l41_8h_a125644061b27c409d128b06db67835e0}{C\+S35\+L41\+\_\+\+C\+O\+N\+T\+R\+O\+L\+\_\+\+R\+E\+Q\+U\+E\+S\+T\+S\+\_\+\+S\+I\+ZE}}\mbox{]}
+\begin{DoxyCompactList}\small\item\em Buffered Control Requests. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{structcs35l41__t_ac4fb253378d3011d5c9fc2c985b8a343}\label{structcs35l41__t_ac4fb253378d3011d5c9fc2c985b8a343}} 
+\mbox{\hyperlink{structcs35l41__control__request__t}{cs35l41\+\_\+control\+\_\+request\+\_\+t}} \mbox{\hyperlink{structcs35l41__t_ac4fb253378d3011d5c9fc2c985b8a343}{current\+\_\+request}}
+\begin{DoxyCompactList}\small\item\em Current Control Request. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{structcs35l41__t_afbabd33c38c4ba767f827164e1a21e57}\label{structcs35l41__t_afbabd33c38c4ba767f827164e1a21e57}} 
+uint32\+\_\+t \mbox{\hyperlink{structcs35l41__t_afbabd33c38c4ba767f827164e1a21e57}{register\+\_\+buffer}}
+\begin{DoxyCompactList}\small\item\em buffer for reading Control Port registers \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{structcs35l41__t_a0388edec69af15368578960ab50d0642}\label{structcs35l41__t_a0388edec69af15368578960ab50d0642}} 
+uint32\+\_\+t \mbox{\hyperlink{structcs35l41__t_a0388edec69af15368578960ab50d0642}{devid}}
+\begin{DoxyCompactList}\small\item\em C\+S35\+L41 D\+E\+V\+ID of current device. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{structcs35l41__t_a097b777543982e6e31d242406499bd36}\label{structcs35l41__t_a097b777543982e6e31d242406499bd36}} 
+uint32\+\_\+t \mbox{\hyperlink{structcs35l41__t_a097b777543982e6e31d242406499bd36}{revid}}
+\begin{DoxyCompactList}\small\item\em C\+S35\+L41 R\+E\+V\+ID of current device. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{structcs35l41__t_ad2700637f633e2c4119dadcf5c8c91b6}\label{structcs35l41__t_ad2700637f633e2c4119dadcf5c8c91b6}} 
+uint16\+\_\+t \mbox{\hyperlink{structcs35l41__t_ad2700637f633e2c4119dadcf5c8c91b6}{otp\+\_\+bit\+\_\+count}}
+\begin{DoxyCompactList}\small\item\em Current bit position when processing O\+TP. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{structcs35l41__t_a515a933795b6196c6c7bc4a381fb23e8}\label{structcs35l41__t_a515a933795b6196c6c7bc4a381fb23e8}} 
+const uint32\+\_\+t $\ast$ \mbox{\hyperlink{structcs35l41__t_a515a933795b6196c6c7bc4a381fb23e8}{errata}}
+\begin{DoxyCompactList}\small\item\em Pointer to relevant errata for the current device. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{structcs35l41__t_a648cd32a2ec9ee74387496eaf7de3305}\label{structcs35l41__t_a648cd32a2ec9ee74387496eaf7de3305}} 
+const \mbox{\hyperlink{structcs35l41__otp__map__t}{cs35l41\+\_\+otp\+\_\+map\+\_\+t}} $\ast$ \mbox{\hyperlink{structcs35l41__t_a648cd32a2ec9ee74387496eaf7de3305}{otp\+\_\+map}}
+\begin{DoxyCompactList}\small\item\em Pointer to relevant O\+TP Map for the current device. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{structcs35l41__t_a59a48d3053a9b6a8d68f1373c96dd7ec}\label{structcs35l41__t_a59a48d3053a9b6a8d68f1373c96dd7ec}} 
+uint32\+\_\+t \mbox{\hyperlink{structcs35l41__t_a59a48d3053a9b6a8d68f1373c96dd7ec}{mbox\+\_\+cmd}}
+\begin{DoxyCompactList}\small\item\em H\+A\+LO FW Mailbox command to be sent. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{structcs35l41__t_a21c6e39474577474ea6af71c94d06e24}\label{structcs35l41__t_a21c6e39474577474ea6af71c94d06e24}} 
+\mbox{\hyperlink{unioncs35l41__config__registers__t}{cs35l41\+\_\+config\+\_\+registers\+\_\+t}} \mbox{\hyperlink{structcs35l41__t_a21c6e39474577474ea6af71c94d06e24}{config\+\_\+regs}}
+\begin{DoxyCompactList}\small\item\em Contents of Control Port registers to configure. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{structcs35l41__t_a898c6b442907be2b338a6ff8471de021}\label{structcs35l41__t_a898c6b442907be2b338a6ff8471de021}} 
+uint32\+\_\+t \mbox{\hyperlink{structcs35l41__t_a898c6b442907be2b338a6ff8471de021}{ambient\+\_\+temp\+\_\+deg\+\_\+c}}
+\begin{DoxyCompactList}\small\item\em Ambient Temperature (in degrees C) to use for Calibration. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{structcs35l41__t_a4d1da2985fd7217a3d866f7c32279cdc}\label{structcs35l41__t_a4d1da2985fd7217a3d866f7c32279cdc}} 
+\mbox{\hyperlink{structcs35l41__field__accessor__t}{cs35l41\+\_\+field\+\_\+accessor\+\_\+t}} \mbox{\hyperlink{structcs35l41__t_a4d1da2985fd7217a3d866f7c32279cdc}{field\+\_\+accessor}}
+\begin{DoxyCompactList}\small\item\em Current Control Port field to access. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{structcs35l41__t_abc8d52bf28225055e49139d3726e077e}\label{structcs35l41__t_abc8d52bf28225055e49139d3726e077e}} 
+uint8\+\_\+t {\bfseries bsp\+\_\+dev\+\_\+id}
+\item 
+\mbox{\Hypertarget{structcs35l41__t_af96c78a0326291320961e1710a596784}\label{structcs35l41__t_af96c78a0326291320961e1710a596784}} 
+uint32\+\_\+t {\bfseries bsp\+\_\+reset\+\_\+gpio\+\_\+id}
+\item 
+\mbox{\Hypertarget{structcs35l41__t_a64cae8aff567feb85baf602b3320b93c}\label{structcs35l41__t_a64cae8aff567feb85baf602b3320b93c}} 
+uint32\+\_\+t {\bfseries bsp\+\_\+int\+\_\+gpio\+\_\+id}
+\item 
+\mbox{\Hypertarget{structcs35l41__t_ab8fe6b92b0ad520446c8bbfddd2afa82}\label{structcs35l41__t_ab8fe6b92b0ad520446c8bbfddd2afa82}} 
+uint8\+\_\+t {\bfseries bus\+\_\+type}
+\item 
+\mbox{\Hypertarget{structcs35l41__t_a3b428537196c53fe27ca8b90f9d788b1}\label{structcs35l41__t_a3b428537196c53fe27ca8b90f9d788b1}} 
+uint8\+\_\+t $\ast$ {\bfseries cp\+\_\+write\+\_\+buffer}
+\item 
+\mbox{\Hypertarget{structcs35l41__t_ae85d6726b17895c3de3e9b0159e407c7}\label{structcs35l41__t_ae85d6726b17895c3de3e9b0159e407c7}} 
+uint8\+\_\+t $\ast$ {\bfseries cp\+\_\+read\+\_\+buffer}
+\item 
+\mbox{\Hypertarget{structcs35l41__t_ad363b9622d083fd179c67ec1e16d6d31}\label{structcs35l41__t_ad363b9622d083fd179c67ec1e16d6d31}} 
+\mbox{\hyperlink{cs35l41_8h_a342b87a54a7c071cdd662fe43506d6a8}{cs35l41\+\_\+notification\+\_\+callback\+\_\+t}} {\bfseries notification\+\_\+cb}
+\item 
+\mbox{\Hypertarget{structcs35l41__t_a171abe176faace6c19af91ec785d7e6c}\label{structcs35l41__t_a171abe176faace6c19af91ec785d7e6c}} 
+void $\ast$ {\bfseries notification\+\_\+cb\+\_\+arg}
+\item 
+\mbox{\Hypertarget{structcs35l41__t_a10853c8563d3f918a4d796c69b6dfd6a}\label{structcs35l41__t_a10853c8563d3f918a4d796c69b6dfd6a}} 
+\mbox{\hyperlink{structcs35l41__audio__config__t}{cs35l41\+\_\+audio\+\_\+config\+\_\+t}} {\bfseries audio\+\_\+config}
+\item 
+\mbox{\Hypertarget{structcs35l41__t_a0d814d9beb027e5702b339d59f8380a2}\label{structcs35l41__t_a0d814d9beb027e5702b339d59f8380a2}} 
+\mbox{\hyperlink{structcs35l41__amp__config__t}{cs35l41\+\_\+amp\+\_\+config\+\_\+t}} {\bfseries amp\+\_\+config}
+\item 
+\mbox{\Hypertarget{structcs35l41__t_a178bc298fc1f3b6f7aa92ad96af9f50a}\label{structcs35l41__t_a178bc298fc1f3b6f7aa92ad96af9f50a}} 
+\mbox{\hyperlink{structcs35l41__calibration__t}{cs35l41\+\_\+calibration\+\_\+t}} {\bfseries cal\+\_\+data}
+\item 
+\mbox{\Hypertarget{structcs35l41__t_a27d11978ea5d158b8255cf7053d9e3e7}\label{structcs35l41__t_a27d11978ea5d158b8255cf7053d9e3e7}} 
+\mbox{\hyperlink{structcs35l41__boot__config__t}{cs35l41\+\_\+boot\+\_\+config\+\_\+t}} $\ast$ \mbox{\hyperlink{structcs35l41__t_a27d11978ea5d158b8255cf7053d9e3e7}{boot\+\_\+config}}
+\begin{DoxyCompactList}\small\item\em Current H\+A\+LO F\+W/\+Coefficient boot configuration. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+Driver state data structure. 
+
+This is the type used for the handle to the driver for all driver public A\+PI calls. This structure must be instantiated outside the scope of the driver source and initialized by the initialize() public A\+PI. 
+
+\doxysubsection{Member Data Documentation}
+\mbox{\Hypertarget{structcs35l41__t_ae94e82fd78495467312915c89cbde1e2}\label{structcs35l41__t_ae94e82fd78495467312915c89cbde1e2}} 
+\index{cs35l41\_t@{cs35l41\_t}!mode@{mode}}
+\index{mode@{mode}!cs35l41\_t@{cs35l41\_t}}
+\doxysubsubsection{\texorpdfstring{mode}{mode}}
+{\footnotesize\ttfamily uint32\+\_\+t cs35l41\+\_\+t\+::mode}
+
+
+
+General driver mode -\/. 
+
+\begin{DoxySeeAlso}{See also}
+\mbox{\hyperlink{group___c_s35_l41___m_o_d_e__}{C\+S35\+L41\+\_\+\+M\+O\+D\+E\+\_\+}} 
+\end{DoxySeeAlso}
+\mbox{\Hypertarget{structcs35l41__t_aca3de20e44ac0ee9d1f0932a1114c655}\label{structcs35l41__t_aca3de20e44ac0ee9d1f0932a1114c655}} 
+\index{cs35l41\_t@{cs35l41\_t}!state@{state}}
+\index{state@{state}!cs35l41\_t@{cs35l41\_t}}
+\doxysubsubsection{\texorpdfstring{state}{state}}
+{\footnotesize\ttfamily uint32\+\_\+t cs35l41\+\_\+t\+::state}
+
+
+
+General driver state -\/. 
+
+\begin{DoxySeeAlso}{See also}
+\mbox{\hyperlink{group___c_s35_l41___s_t_a_t_e__}{C\+S35\+L41\+\_\+\+S\+T\+A\+T\+E\+\_\+}} 
+\end{DoxySeeAlso}
+
+
+The documentation for this struct was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{cs35l41_8h}{cs35l41.\+h}}\end{DoxyCompactItemize}

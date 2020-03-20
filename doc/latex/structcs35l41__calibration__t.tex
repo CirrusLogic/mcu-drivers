@@ -1,0 +1,33 @@
+\hypertarget{structcs35l41__calibration__t}{}\doxysection{cs35l41\+\_\+calibration\+\_\+t Struct Reference}
+\label{structcs35l41__calibration__t}\index{cs35l41\_calibration\_t@{cs35l41\_calibration\_t}}
+
+
+State of H\+A\+LO FW Calibration.  
+
+
+
+
+{\ttfamily \#include $<$cs35l41.\+h$>$}
+
+\doxysubsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{structcs35l41__calibration__t_a6efa919cf3e1f3122182a736a836f85c}\label{structcs35l41__calibration__t_a6efa919cf3e1f3122182a736a836f85c}} 
+bool \mbox{\hyperlink{structcs35l41__calibration__t_a6efa919cf3e1f3122182a736a836f85c}{is\+\_\+valid}}
+\begin{DoxyCompactList}\small\item\em (True) Calibration state is valid \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{structcs35l41__calibration__t_ad7203729bdb96c122b52958348c30773}\label{structcs35l41__calibration__t_ad7203729bdb96c122b52958348c30773}} 
+uint32\+\_\+t \mbox{\hyperlink{structcs35l41__calibration__t_ad7203729bdb96c122b52958348c30773}{r}}
+\begin{DoxyCompactList}\small\item\em Encoded Load Impedance determined by Calibration procedure. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+State of H\+A\+LO FW Calibration. 
+
+To convert from encoded impedance \textquotesingle{}r\textquotesingle{} to Ohms, the following formula can be used\+:
+\begin{DoxyItemize}
+\item rdc\+\_\+ohms = ( \textquotesingle{}r\textquotesingle{} / 213 ) $\ast$ 5.\+8571434021 
+\end{DoxyItemize}
+
+The documentation for this struct was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{cs35l41_8h}{cs35l41.\+h}}\end{DoxyCompactItemize}

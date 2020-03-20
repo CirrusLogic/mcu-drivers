@@ -1,0 +1,877 @@
+\hypertarget{structcs35l41__private__functions__t}{}\doxysection{cs35l41\+\_\+private\+\_\+functions\+\_\+t Struct Reference}
+\label{structcs35l41__private__functions__t}\index{cs35l41\_private\_functions\_t@{cs35l41\_private\_functions\_t}}
+
+
+Driver private A\+PI.  
+
+
+
+
+{\ttfamily \#include $<$cs35l41.\+h$>$}
+
+\doxysubsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+void($\ast$ \mbox{\hyperlink{structcs35l41__private__functions__t_ae7ab34f9a1b2f9e40a0ebca901f54e20}{timer\+\_\+callback}} )(uint32\+\_\+t status, void $\ast$cb\+\_\+arg)
+\begin{DoxyCompactList}\small\item\em Notify the driver when the B\+SP Timer expires. \end{DoxyCompactList}\item 
+void($\ast$ \mbox{\hyperlink{structcs35l41__private__functions__t_ad3bf56df199d403c8089a887ea7f15cb}{cp\+\_\+read\+\_\+callback}} )(uint32\+\_\+t status, void $\ast$cb\+\_\+arg)
+\begin{DoxyCompactList}\small\item\em Notify the driver when the B\+SP Control Port (cp) read transaction completes. \end{DoxyCompactList}\item 
+void($\ast$ \mbox{\hyperlink{structcs35l41__private__functions__t_ab26ee752fa42934fe64e1c41de78fcd2}{cp\+\_\+write\+\_\+callback}} )(uint32\+\_\+t status, void $\ast$cb\+\_\+arg)
+\begin{DoxyCompactList}\small\item\em Notify the driver when the B\+SP Control Port (cp) write transaction completes. \end{DoxyCompactList}\item 
+void($\ast$ \mbox{\hyperlink{structcs35l41__private__functions__t_a00a86ca59f74869cb7d706000231b316}{irq\+\_\+callback}} )(uint32\+\_\+t status, void $\ast$cb\+\_\+arg)
+\begin{DoxyCompactList}\small\item\em Notify the driver when the C\+S35\+L41 I\+N\+Tb G\+P\+IO drops low. \end{DoxyCompactList}\item 
+uint32\+\_\+t($\ast$ \mbox{\hyperlink{structcs35l41__private__functions__t_ae6ae1e868279c613f34736c20a45d4f5}{read\+\_\+reg}} )(\mbox{\hyperlink{structcs35l41__t}{cs35l41\+\_\+t}} $\ast$driver, uint32\+\_\+t addr, uint32\+\_\+t $\ast$val, bool is\+\_\+blocking)
+\begin{DoxyCompactList}\small\item\em Reads the contents of a single register/memory address. \end{DoxyCompactList}\item 
+uint32\+\_\+t($\ast$ \mbox{\hyperlink{structcs35l41__private__functions__t_a4410e22074eeece6f37c48f8369067dd}{write\+\_\+reg}} )(\mbox{\hyperlink{structcs35l41__t}{cs35l41\+\_\+t}} $\ast$driver, uint32\+\_\+t addr, uint32\+\_\+t val, bool is\+\_\+blocking)
+\begin{DoxyCompactList}\small\item\em Writes the contents of a single register/memory address. \end{DoxyCompactList}\item 
+uint32\+\_\+t($\ast$ \mbox{\hyperlink{structcs35l41__private__functions__t_a515d10603ab119e901e6f821c726363e}{reset\+\_\+sm}} )(\mbox{\hyperlink{structcs35l41__t}{cs35l41\+\_\+t}} $\ast$driver)
+\begin{DoxyCompactList}\small\item\em Reset State Machine. \end{DoxyCompactList}\item 
+uint32\+\_\+t($\ast$ \mbox{\hyperlink{structcs35l41__private__functions__t_ae268af039a2d1efe43d7d02f79a55aef}{boot\+\_\+sm}} )(\mbox{\hyperlink{structcs35l41__t}{cs35l41\+\_\+t}} $\ast$driver)
+\begin{DoxyCompactList}\small\item\em Boot State Machine. \end{DoxyCompactList}\item 
+uint32\+\_\+t($\ast$ \mbox{\hyperlink{structcs35l41__private__functions__t_ad5d36b513f6e33a55fa8806cd85f7e17}{power\+\_\+up\+\_\+sm}} )(\mbox{\hyperlink{structcs35l41__t}{cs35l41\+\_\+t}} $\ast$driver)
+\begin{DoxyCompactList}\small\item\em Power Up State Machine. \end{DoxyCompactList}\item 
+uint32\+\_\+t($\ast$ \mbox{\hyperlink{structcs35l41__private__functions__t_aa11935704b9da56c6e6fc2e79858ac41}{power\+\_\+down\+\_\+sm}} )(\mbox{\hyperlink{structcs35l41__t}{cs35l41\+\_\+t}} $\ast$driver)
+\begin{DoxyCompactList}\small\item\em Power Down State Machine. \end{DoxyCompactList}\item 
+uint32\+\_\+t($\ast$ \mbox{\hyperlink{structcs35l41__private__functions__t_a7deba30ac02db83cb86450d42b7afb02}{configure\+\_\+sm}} )(\mbox{\hyperlink{structcs35l41__t}{cs35l41\+\_\+t}} $\ast$driver)
+\begin{DoxyCompactList}\small\item\em Configure State Machine. \end{DoxyCompactList}\item 
+uint32\+\_\+t($\ast$ \mbox{\hyperlink{structcs35l41__private__functions__t_adf5875bc5a1914e54b4eb326ea9190bb}{field\+\_\+access\+\_\+sm}} )(\mbox{\hyperlink{structcs35l41__t}{cs35l41\+\_\+t}} $\ast$driver)
+\begin{DoxyCompactList}\small\item\em Field Access State Machine. \end{DoxyCompactList}\item 
+uint32\+\_\+t($\ast$ \mbox{\hyperlink{structcs35l41__private__functions__t_a7a64f0be724b6bfc6231d9086db14035}{calibration\+\_\+sm}} )(\mbox{\hyperlink{structcs35l41__t}{cs35l41\+\_\+t}} $\ast$driver)
+\begin{DoxyCompactList}\small\item\em Calibration State Machine. \end{DoxyCompactList}\item 
+uint32\+\_\+t($\ast$ \mbox{\hyperlink{structcs35l41__private__functions__t_a5e4b69bda2f1c574d0901b1120030a1a}{get\+\_\+dsp\+\_\+status\+\_\+sm}} )(\mbox{\hyperlink{structcs35l41__t}{cs35l41\+\_\+t}} $\ast$driver)
+\begin{DoxyCompactList}\small\item\em Get D\+SP Status State Machine. \end{DoxyCompactList}\item 
+uint32\+\_\+t($\ast$ \mbox{\hyperlink{structcs35l41__private__functions__t_a408ac75036fa1520638b85416fafd87e}{event\+\_\+sm}} )(void $\ast$driver)
+\begin{DoxyCompactList}\small\item\em Event Handler State Machine. \end{DoxyCompactList}\item 
+uint32\+\_\+t($\ast$ \mbox{\hyperlink{structcs35l41__private__functions__t_afaea1ee93a697281e0de22c40f67c61f}{get\+\_\+errata}} )(uint32\+\_\+t devid, uint32\+\_\+t revid, const uint32\+\_\+t $\ast$$\ast$errata)
+\begin{DoxyCompactList}\small\item\em Gets pointer to correct errata based on D\+E\+V\+I\+D/\+R\+E\+V\+ID. \end{DoxyCompactList}\item 
+uint32\+\_\+t($\ast$ \mbox{\hyperlink{structcs35l41__private__functions__t_a6ef244557503ba25c60a8c55efab9143}{cp\+\_\+bulk\+\_\+read}} )(\mbox{\hyperlink{structcs35l41__t}{cs35l41\+\_\+t}} $\ast$driver, uint32\+\_\+t addr, uint32\+\_\+t length)
+\begin{DoxyCompactList}\small\item\em Reads contents from a consecutive number of memory addresses. \end{DoxyCompactList}\item 
+uint32\+\_\+t($\ast$ \mbox{\hyperlink{structcs35l41__private__functions__t_aed22cf9c3bbf114381a09ff71ce3e83f}{cp\+\_\+bulk\+\_\+write}} )(\mbox{\hyperlink{structcs35l41__t}{cs35l41\+\_\+t}} $\ast$driver, uint32\+\_\+t addr, uint8\+\_\+t $\ast$bytes, uint32\+\_\+t length)
+\begin{DoxyCompactList}\small\item\em Writes from byte array to consecutive number of Control Port memory addresses. \end{DoxyCompactList}\item 
+uint32\+\_\+t($\ast$ \mbox{\hyperlink{structcs35l41__private__functions__t_a28ee2745d3513222d4681c7d5009569a}{apply\+\_\+trim\+\_\+word}} )(uint8\+\_\+t $\ast$otp\+\_\+mem, uint32\+\_\+t bit\+\_\+count, uint32\+\_\+t $\ast$reg\+\_\+val, uint32\+\_\+t shift, uint32\+\_\+t size)
+\begin{DoxyCompactList}\small\item\em Applies O\+TP trim bit-\/field to current register word value. \end{DoxyCompactList}\item 
+bool($\ast$ \mbox{\hyperlink{structcs35l41__private__functions__t_aacffd3273ff8f45695820f102fd75c72}{is\+\_\+mbox\+\_\+status\+\_\+correct}} )(uint32\+\_\+t cmd, uint32\+\_\+t status)
+\begin{DoxyCompactList}\small\item\em Check H\+A\+LO M\+B\+OX Status against the M\+B\+OX Command sent. \end{DoxyCompactList}\item 
+uint32\+\_\+t($\ast$ \mbox{\hyperlink{structcs35l41__private__functions__t_a3a9fe55eb9babd92801872db7df24b8f}{validate\+\_\+boot\+\_\+config}} )(\mbox{\hyperlink{structcs35l41__boot__config__t}{cs35l41\+\_\+boot\+\_\+config\+\_\+t}} $\ast$config, bool is\+\_\+fw\+\_\+boot, bool is\+\_\+coeff\+\_\+boot)
+\begin{DoxyCompactList}\small\item\em Validates the boot configuration provided by the B\+SP. \end{DoxyCompactList}\item 
+bool($\ast$ \mbox{\hyperlink{structcs35l41__private__functions__t_ae73dfdbfb9c0ba6a983e7614dc80ecce}{control\+\_\+q\+\_\+copy}} )(void $\ast$from, void $\ast$to)
+\begin{DoxyCompactList}\small\item\em Implements \textquotesingle{}copy\textquotesingle{} method for Control Request Queue contents. \end{DoxyCompactList}\item 
+uint32\+\_\+t($\ast$ \mbox{\hyperlink{structcs35l41__private__functions__t_a1d8fe12fe7a6b0720da627aaa36cf4fa}{is\+\_\+control\+\_\+valid}} )(\mbox{\hyperlink{structcs35l41__t}{cs35l41\+\_\+t}} $\ast$driver)
+\begin{DoxyCompactList}\small\item\em Check that the currently processed Control Request is valid for the current state of the driver. \end{DoxyCompactList}\item 
+uint32\+\_\+t($\ast$ \mbox{\hyperlink{structcs35l41__private__functions__t_aa07eeca75abaca69acc316d0591527a0}{load\+\_\+control}} )(\mbox{\hyperlink{structcs35l41__t}{cs35l41\+\_\+t}} $\ast$driver)
+\begin{DoxyCompactList}\small\item\em Load new Control Request to be processed. \end{DoxyCompactList}\item 
+uint32\+\_\+t($\ast$ \mbox{\hyperlink{structcs35l41__private__functions__t_a90c9558d529a5b92507dda7f770e8941}{irq\+\_\+to\+\_\+event\+\_\+id}} )(uint32\+\_\+t $\ast$\mbox{\hyperlink{cs35l41_8c_a93ed7ca914fe1948b5d02bdf1b1c0083}{irq\+\_\+statuses}})
+\begin{DoxyCompactList}\small\item\em Maps I\+RQ Flag to Event ID passed to B\+SP. \end{DoxyCompactList}\item 
+uint32\+\_\+t($\ast$ \mbox{\hyperlink{structcs35l41__private__functions__t_ad70a8fb4d21e55478f1b1bcb2708ef8b}{apply\+\_\+configs}} )(\mbox{\hyperlink{structcs35l41__t}{cs35l41\+\_\+t}} $\ast$driver)
+\begin{DoxyCompactList}\small\item\em Apply all driver one-\/time configurations to corresponding Control Port register/memory addresses. \end{DoxyCompactList}\item 
+bool($\ast$ \mbox{\hyperlink{structcs35l41__private__functions__t_a87a23b8eb3c811aba012b87508006b93}{is\+\_\+mixer\+\_\+source\+\_\+used}} )(\mbox{\hyperlink{structcs35l41__t}{cs35l41\+\_\+t}} $\ast$driver, uint8\+\_\+t source)
+\begin{DoxyCompactList}\small\item\em Checks all hardware mixer source selections for a specific source. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+Driver private A\+PI. 
+
+
+
+\doxysubsection{Member Data Documentation}
+\mbox{\Hypertarget{structcs35l41__private__functions__t_ad70a8fb4d21e55478f1b1bcb2708ef8b}\label{structcs35l41__private__functions__t_ad70a8fb4d21e55478f1b1bcb2708ef8b}} 
+\index{cs35l41\_private\_functions\_t@{cs35l41\_private\_functions\_t}!apply\_configs@{apply\_configs}}
+\index{apply\_configs@{apply\_configs}!cs35l41\_private\_functions\_t@{cs35l41\_private\_functions\_t}}
+\doxysubsubsection{\texorpdfstring{apply\_configs}{apply\_configs}}
+{\footnotesize\ttfamily uint32\+\_\+t($\ast$ cs35l41\+\_\+private\+\_\+functions\+\_\+t\+::apply\+\_\+configs) (\mbox{\hyperlink{structcs35l41__t}{cs35l41\+\_\+t}} $\ast$driver)}
+
+
+
+Apply all driver one-\/time configurations to corresponding Control Port register/memory addresses. 
+
+Performs the following\+:
+\begin{DoxyItemize}
+\item applies all configurations from \mbox{\hyperlink{structcs35l41__audio__config__t}{cs35l41\+\_\+audio\+\_\+config\+\_\+t}}
+\item applies all configurations from \mbox{\hyperlink{structcs35l41__amp__config__t}{cs35l41\+\_\+amp\+\_\+config\+\_\+t}}
+\item based on configurations, sets/clears hardware block enables
+\end{DoxyItemize}
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em driver} & Pointer to the driver state\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+
+\begin{DoxyItemize}
+\item C\+S35\+L41\+\_\+\+S\+T\+A\+T\+U\+S\+\_\+\+F\+A\+IL if any configuration parameters are outside bounds or do not result in proper register bit-\/field encoding
+\item C\+S35\+L41\+\_\+\+S\+T\+A\+T\+U\+S\+\_\+\+OK otherwise 
+\end{DoxyItemize}
+\end{DoxyReturn}
+\mbox{\Hypertarget{structcs35l41__private__functions__t_a28ee2745d3513222d4681c7d5009569a}\label{structcs35l41__private__functions__t_a28ee2745d3513222d4681c7d5009569a}} 
+\index{cs35l41\_private\_functions\_t@{cs35l41\_private\_functions\_t}!apply\_trim\_word@{apply\_trim\_word}}
+\index{apply\_trim\_word@{apply\_trim\_word}!cs35l41\_private\_functions\_t@{cs35l41\_private\_functions\_t}}
+\doxysubsubsection{\texorpdfstring{apply\_trim\_word}{apply\_trim\_word}}
+{\footnotesize\ttfamily uint32\+\_\+t($\ast$ cs35l41\+\_\+private\+\_\+functions\+\_\+t\+::apply\+\_\+trim\+\_\+word) (uint8\+\_\+t $\ast$otp\+\_\+mem, uint32\+\_\+t bit\+\_\+count, uint32\+\_\+t $\ast$reg\+\_\+val, uint32\+\_\+t shift, uint32\+\_\+t size)}
+
+
+
+Applies O\+TP trim bit-\/field to current register word value. 
+
+During the Reset SM, trim bit-\/fields must be tweezed from O\+TP and applied to corresponding Control Port register contents.
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em otp\+\_\+mem} & pointer byte array consisting of entire contents of O\+TP \\
+\hline
+\mbox{\texttt{ in}}  & {\em bit\+\_\+count} & current bit index into otp\+\_\+mem, i.\+e. location of bit-\/field in O\+TP memory \\
+\hline
+\mbox{\texttt{ in,out}}  & {\em reg\+\_\+val} & contents of register to modify with trim bit-\/field \\
+\hline
+\mbox{\texttt{ in}}  & {\em shift} & location of bit-\/field in control port register in terms of bits from bit 0 \\
+\hline
+\mbox{\texttt{ in}}  & {\em size} & size of bit-\/field in bits\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+
+\begin{DoxyItemize}
+\item C\+S35\+L41\+\_\+\+S\+T\+A\+T\+U\+S\+\_\+\+F\+A\+IL if any pointers are N\+U\+LL or if the bit-\/field size is 0
+\item C\+S35\+L41\+\_\+\+S\+T\+A\+T\+U\+S\+\_\+\+OK otherwise 
+\end{DoxyItemize}
+\end{DoxyReturn}
+\mbox{\Hypertarget{structcs35l41__private__functions__t_ae268af039a2d1efe43d7d02f79a55aef}\label{structcs35l41__private__functions__t_ae268af039a2d1efe43d7d02f79a55aef}} 
+\index{cs35l41\_private\_functions\_t@{cs35l41\_private\_functions\_t}!boot\_sm@{boot\_sm}}
+\index{boot\_sm@{boot\_sm}!cs35l41\_private\_functions\_t@{cs35l41\_private\_functions\_t}}
+\doxysubsubsection{\texorpdfstring{boot\_sm}{boot\_sm}}
+{\footnotesize\ttfamily uint32\+\_\+t($\ast$ cs35l41\+\_\+private\+\_\+functions\+\_\+t\+::boot\+\_\+sm) (\mbox{\hyperlink{structcs35l41__t}{cs35l41\+\_\+t}} $\ast$driver)}
+
+
+
+Boot State Machine. 
+
+This state machine loads FW and C\+O\+E\+FF images into the C\+S35\+L41 H\+A\+LO D\+SP memory regions. Completing the state machine results in the driver transition to D\+S\+P\+\_\+\+S\+T\+A\+N\+D\+BY state. The state machine design is documented in the Boot State Diagram found in the Driver Tech Note.
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em driver} & Pointer to the driver state\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+
+\begin{DoxyItemize}
+\item C\+S35\+L41\+\_\+\+S\+T\+A\+T\+U\+S\+\_\+\+F\+A\+IL if state machine transitioned to E\+R\+R\+OR state for any reason
+\item C\+S35\+L41\+\_\+\+S\+T\+A\+T\+U\+S\+\_\+\+OK otherwise
+\end{DoxyItemize}
+\end{DoxyReturn}
+\begin{DoxySeeAlso}{See also}
+Driver Tech Note, Boot State Diagram 
+\end{DoxySeeAlso}
+\mbox{\Hypertarget{structcs35l41__private__functions__t_a7a64f0be724b6bfc6231d9086db14035}\label{structcs35l41__private__functions__t_a7a64f0be724b6bfc6231d9086db14035}} 
+\index{cs35l41\_private\_functions\_t@{cs35l41\_private\_functions\_t}!calibration\_sm@{calibration\_sm}}
+\index{calibration\_sm@{calibration\_sm}!cs35l41\_private\_functions\_t@{cs35l41\_private\_functions\_t}}
+\doxysubsubsection{\texorpdfstring{calibration\_sm}{calibration\_sm}}
+{\footnotesize\ttfamily uint32\+\_\+t($\ast$ cs35l41\+\_\+private\+\_\+functions\+\_\+t\+::calibration\+\_\+sm) (\mbox{\hyperlink{structcs35l41__t}{cs35l41\+\_\+t}} $\ast$driver)}
+
+
+
+Calibration State Machine. 
+
+This state machine performs the Calibration sequence required for C\+S\+PL H\+A\+LO D\+SP firmware Protect Algorithm. Completing the state machine does not result in any driver state change. The state machine design is documented in the Calibration State Diagram found in the Driver Tech Note.
+
+\begin{DoxyAttention}{Attention}
+The Calibration sequence can only be successfully performed under the following conditions\+:
+\begin{DoxyItemize}
+\item while the driver is in P\+O\+W\+E\+R\+\_\+\+UP state
+\item after H\+A\+LO D\+SP FW and Calibration C\+O\+E\+FF has been loaded
+\item while the A\+SP is clocked with valid I2S clocks
+\item while the A\+SP is being sourced with Silence
+\end{DoxyItemize}
+\end{DoxyAttention}
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em driver} & Pointer to the driver state\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+
+\begin{DoxyItemize}
+\item C\+S35\+L41\+\_\+\+S\+T\+A\+T\+U\+S\+\_\+\+F\+A\+IL if state machine transitioned to E\+R\+R\+OR state for any reason
+\item C\+S35\+L41\+\_\+\+S\+T\+A\+T\+U\+S\+\_\+\+OK otherwise
+\end{DoxyItemize}
+\end{DoxyReturn}
+\begin{DoxySeeAlso}{See also}
+Driver Tech Note, Calibration State Diagram 
+
+\mbox{\hyperlink{structcs35l41__calibration__t}{cs35l41\+\_\+calibration\+\_\+t}} 
+\end{DoxySeeAlso}
+\mbox{\Hypertarget{structcs35l41__private__functions__t_a7deba30ac02db83cb86450d42b7afb02}\label{structcs35l41__private__functions__t_a7deba30ac02db83cb86450d42b7afb02}} 
+\index{cs35l41\_private\_functions\_t@{cs35l41\_private\_functions\_t}!configure\_sm@{configure\_sm}}
+\index{configure\_sm@{configure\_sm}!cs35l41\_private\_functions\_t@{cs35l41\_private\_functions\_t}}
+\doxysubsubsection{\texorpdfstring{configure\_sm}{configure\_sm}}
+{\footnotesize\ttfamily uint32\+\_\+t($\ast$ cs35l41\+\_\+private\+\_\+functions\+\_\+t\+::configure\+\_\+sm) (\mbox{\hyperlink{structcs35l41__t}{cs35l41\+\_\+t}} $\ast$driver)}
+
+
+
+Configure State Machine. 
+
+This state machine performs all C\+S35\+L41 configuration required after Reset (and D\+SP Boot, if required). Completing the state machine does not result in any driver state change. Although the configuration should almost always be performed when the driver is in S\+T\+A\+N\+D\+BY or D\+S\+P\+\_\+\+S\+T\+A\+N\+D\+BY state, it is not prohibited. The state machine design is documented in the Configure State Diagram found in the Driver Tech Note.
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em driver} & Pointer to the driver state\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+
+\begin{DoxyItemize}
+\item C\+S35\+L41\+\_\+\+S\+T\+A\+T\+U\+S\+\_\+\+F\+A\+IL if state machine transitioned to E\+R\+R\+OR state for any reason
+\item C\+S35\+L41\+\_\+\+S\+T\+A\+T\+U\+S\+\_\+\+OK otherwise
+\end{DoxyItemize}
+\end{DoxyReturn}
+\begin{DoxySeeAlso}{See also}
+Driver Tech Note, Configure State Diagram 
+
+\mbox{\hyperlink{cs35l41_8c_a4d0b0b678346b30ba3f1d06bddf4c52a}{cs35l41\+\_\+apply\+\_\+configs()}} 
+\end{DoxySeeAlso}
+\mbox{\Hypertarget{structcs35l41__private__functions__t_ae73dfdbfb9c0ba6a983e7614dc80ecce}\label{structcs35l41__private__functions__t_ae73dfdbfb9c0ba6a983e7614dc80ecce}} 
+\index{cs35l41\_private\_functions\_t@{cs35l41\_private\_functions\_t}!control\_q\_copy@{control\_q\_copy}}
+\index{control\_q\_copy@{control\_q\_copy}!cs35l41\_private\_functions\_t@{cs35l41\_private\_functions\_t}}
+\doxysubsubsection{\texorpdfstring{control\_q\_copy}{control\_q\_copy}}
+{\footnotesize\ttfamily bool($\ast$ cs35l41\+\_\+private\+\_\+functions\+\_\+t\+::control\+\_\+q\+\_\+copy) (void $\ast$from, void $\ast$to)}
+
+
+
+Implements \textquotesingle{}copy\textquotesingle{} method for Control Request Queue contents. 
+
+Initialization of \mbox{\hyperlink{structf__queue__t}{f\+\_\+queue\+\_\+t}} requires a \textquotesingle{}copy\textquotesingle{} method for copying the data type that comprises the elements of the queue. This implements the method for the queue used for Control Requests.
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em from} & pointer to element to copy contents from \\
+\hline
+\mbox{\texttt{ in}}  & {\em to} & pointer of empty element to which the contents should be copied\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+
+\begin{DoxyItemize}
+\item false if either pointers are null
+\item true otherwise
+\end{DoxyItemize}
+\end{DoxyReturn}
+\begin{DoxySeeAlso}{See also}
+\mbox{\hyperlink{f__queue_8h_abedd0d023ee1ed717ab173baae6a2d3b}{f\+\_\+queue\+\_\+copy}} 
+
+\mbox{\hyperlink{structf__queue__if__t}{f\+\_\+queue\+\_\+if\+\_\+t}} member initialize 
+\end{DoxySeeAlso}
+\mbox{\Hypertarget{structcs35l41__private__functions__t_a6ef244557503ba25c60a8c55efab9143}\label{structcs35l41__private__functions__t_a6ef244557503ba25c60a8c55efab9143}} 
+\index{cs35l41\_private\_functions\_t@{cs35l41\_private\_functions\_t}!cp\_bulk\_read@{cp\_bulk\_read}}
+\index{cp\_bulk\_read@{cp\_bulk\_read}!cs35l41\_private\_functions\_t@{cs35l41\_private\_functions\_t}}
+\doxysubsubsection{\texorpdfstring{cp\_bulk\_read}{cp\_bulk\_read}}
+{\footnotesize\ttfamily uint32\+\_\+t($\ast$ cs35l41\+\_\+private\+\_\+functions\+\_\+t\+::cp\+\_\+bulk\+\_\+read) (\mbox{\hyperlink{structcs35l41__t}{cs35l41\+\_\+t}} $\ast$driver, uint32\+\_\+t addr, uint32\+\_\+t length)}
+
+
+
+Reads contents from a consecutive number of memory addresses. 
+
+Starting at \textquotesingle{}addr\textquotesingle{}, this will read \textquotesingle{}length\textquotesingle{} number of 32-\/bit values into the B\+S\+P-\/allocated buffer from the control port. This bulk read will place contents into the B\+SP buffer starting at the 4th byte address. Bytes 0-\/3 in the buffer are reserved for non-\/bulk reads (i.\+e. calls to cs35l41\+\_\+read\+\_\+reg). This control port call only supports non-\/blocking calls. This function also only supports I2C transactions.
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em driver} & Pointer to the driver state \\
+\hline
+\mbox{\texttt{ in}}  & {\em addr} & 32-\/bit address to be read \\
+\hline
+\mbox{\texttt{ in}}  & {\em length} & number of memory addresses (i.\+e. 32-\/bit words) to read\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+
+\begin{DoxyItemize}
+\item C\+S35\+L41\+\_\+\+S\+T\+A\+T\+U\+S\+\_\+\+F\+A\+IL if the call to B\+SP failed, or if \textquotesingle{}length\textquotesingle{} exceeds the size of B\+SP buffer
+\item C\+S35\+L41\+\_\+\+S\+T\+A\+T\+U\+S\+\_\+\+OK otherwise
+\end{DoxyItemize}
+\end{DoxyReturn}
+\begin{DoxyWarning}{Warning}
+Contains platform-\/dependent code. 
+\end{DoxyWarning}
+\mbox{\Hypertarget{structcs35l41__private__functions__t_aed22cf9c3bbf114381a09ff71ce3e83f}\label{structcs35l41__private__functions__t_aed22cf9c3bbf114381a09ff71ce3e83f}} 
+\index{cs35l41\_private\_functions\_t@{cs35l41\_private\_functions\_t}!cp\_bulk\_write@{cp\_bulk\_write}}
+\index{cp\_bulk\_write@{cp\_bulk\_write}!cs35l41\_private\_functions\_t@{cs35l41\_private\_functions\_t}}
+\doxysubsubsection{\texorpdfstring{cp\_bulk\_write}{cp\_bulk\_write}}
+{\footnotesize\ttfamily uint32\+\_\+t($\ast$ cs35l41\+\_\+private\+\_\+functions\+\_\+t\+::cp\+\_\+bulk\+\_\+write) (\mbox{\hyperlink{structcs35l41__t}{cs35l41\+\_\+t}} $\ast$driver, uint32\+\_\+t addr, uint8\+\_\+t $\ast$bytes, uint32\+\_\+t length)}
+
+
+
+Writes from byte array to consecutive number of Control Port memory addresses. 
+
+This control port call only supports non-\/blocking calls. This function also only supports I2C transactions.
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em driver} & Pointer to the driver state \\
+\hline
+\mbox{\texttt{ in}}  & {\em addr} & 32-\/bit address to be read \\
+\hline
+\mbox{\texttt{ in}}  & {\em bytes} & pointer to array of bytes to write via Control Port bus \\
+\hline
+\mbox{\texttt{ in}}  & {\em length} & number of bytes to write\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+
+\begin{DoxyItemize}
+\item C\+S35\+L41\+\_\+\+S\+T\+A\+T\+U\+S\+\_\+\+F\+A\+IL if the call to B\+SP failed
+\item C\+S35\+L41\+\_\+\+S\+T\+A\+T\+U\+S\+\_\+\+OK otherwise
+\end{DoxyItemize}
+\end{DoxyReturn}
+\begin{DoxyWarning}{Warning}
+Contains platform-\/dependent code. 
+\end{DoxyWarning}
+\mbox{\Hypertarget{structcs35l41__private__functions__t_ad3bf56df199d403c8089a887ea7f15cb}\label{structcs35l41__private__functions__t_ad3bf56df199d403c8089a887ea7f15cb}} 
+\index{cs35l41\_private\_functions\_t@{cs35l41\_private\_functions\_t}!cp\_read\_callback@{cp\_read\_callback}}
+\index{cp\_read\_callback@{cp\_read\_callback}!cs35l41\_private\_functions\_t@{cs35l41\_private\_functions\_t}}
+\doxysubsubsection{\texorpdfstring{cp\_read\_callback}{cp\_read\_callback}}
+{\footnotesize\ttfamily void($\ast$ cs35l41\+\_\+private\+\_\+functions\+\_\+t\+::cp\+\_\+read\+\_\+callback) (uint32\+\_\+t status, void $\ast$cb\+\_\+arg)}
+
+
+
+Notify the driver when the B\+SP Control Port (cp) read transaction completes. 
+
+This callback is given as a parameter for all non-\/blocking calls to the following A\+PI in \mbox{\hyperlink{structbsp__driver__if__t}{bsp\+\_\+driver\+\_\+if\+\_\+t}}.
+\begin{DoxyItemize}
+\item i2c\+\_\+read\+\_\+repeated\+\_\+start
+\end{DoxyItemize}
+
+\begin{DoxyNote}{Note}
+Currently, the B\+SP and driver only support I2C transactions.
+\end{DoxyNote}
+The primary task of this callback is to set flags in either the flag cache for the currently processed Control Request state machine, or the Event Handler state machine.
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em status} & Status of the asynchronous call to B\+SP Control Port read \\
+\hline
+\mbox{\texttt{ in}}  & {\em cb\+\_\+arg} & A pointer to callback argument registered. For the driver, this arg is used for a pointer to the driver state \mbox{\hyperlink{structcs35l41__t}{cs35l41\+\_\+t}}.\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+none
+\end{DoxyReturn}
+\begin{DoxySeeAlso}{See also}
+\mbox{\hyperlink{structbsp__driver__if__t}{bsp\+\_\+driver\+\_\+if\+\_\+t}} member i2c\+\_\+read\+\_\+repeated\+\_\+start. 
+
+\mbox{\hyperlink{bsp__driver__if_8h_a9da53d6fb2687f1afc4fe77a6d1a101f}{bsp\+\_\+callback\+\_\+t}}
+\end{DoxySeeAlso}
+\begin{DoxyWarning}{Warning}
+Contains platform-\/dependent code. 
+\end{DoxyWarning}
+\mbox{\Hypertarget{structcs35l41__private__functions__t_ab26ee752fa42934fe64e1c41de78fcd2}\label{structcs35l41__private__functions__t_ab26ee752fa42934fe64e1c41de78fcd2}} 
+\index{cs35l41\_private\_functions\_t@{cs35l41\_private\_functions\_t}!cp\_write\_callback@{cp\_write\_callback}}
+\index{cp\_write\_callback@{cp\_write\_callback}!cs35l41\_private\_functions\_t@{cs35l41\_private\_functions\_t}}
+\doxysubsubsection{\texorpdfstring{cp\_write\_callback}{cp\_write\_callback}}
+{\footnotesize\ttfamily void($\ast$ cs35l41\+\_\+private\+\_\+functions\+\_\+t\+::cp\+\_\+write\+\_\+callback) (uint32\+\_\+t status, void $\ast$cb\+\_\+arg)}
+
+
+
+Notify the driver when the B\+SP Control Port (cp) write transaction completes. 
+
+This callback is given as a parameter for all non-\/blocking calls to the following A\+PI in \mbox{\hyperlink{structbsp__driver__if__t}{bsp\+\_\+driver\+\_\+if\+\_\+t}}.
+\begin{DoxyItemize}
+\item i2c\+\_\+write
+\item i2c\+\_\+db\+\_\+write
+\end{DoxyItemize}
+
+\begin{DoxyNote}{Note}
+Currently, the B\+SP and driver only support I2C transactions.
+\end{DoxyNote}
+The primary task of this callback is to set flags in either the flag cache for the currently processed Control Request state machine, or the Event Handler state machine.
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em status} & Status of the asynchronous call to B\+SP Control Port write \\
+\hline
+\mbox{\texttt{ in}}  & {\em cb\+\_\+arg} & A pointer to callback argument registered. For the driver, this arg is used for a pointer to the driver state \mbox{\hyperlink{structcs35l41__t}{cs35l41\+\_\+t}}.\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+none
+\end{DoxyReturn}
+\begin{DoxySeeAlso}{See also}
+\mbox{\hyperlink{structbsp__driver__if__t}{bsp\+\_\+driver\+\_\+if\+\_\+t}} member i2c\+\_\+write, i2c\+\_\+db\+\_\+write. 
+
+\mbox{\hyperlink{bsp__driver__if_8h_a9da53d6fb2687f1afc4fe77a6d1a101f}{bsp\+\_\+callback\+\_\+t}} 
+\end{DoxySeeAlso}
+\mbox{\Hypertarget{structcs35l41__private__functions__t_a408ac75036fa1520638b85416fafd87e}\label{structcs35l41__private__functions__t_a408ac75036fa1520638b85416fafd87e}} 
+\index{cs35l41\_private\_functions\_t@{cs35l41\_private\_functions\_t}!event\_sm@{event\_sm}}
+\index{event\_sm@{event\_sm}!cs35l41\_private\_functions\_t@{cs35l41\_private\_functions\_t}}
+\doxysubsubsection{\texorpdfstring{event\_sm}{event\_sm}}
+{\footnotesize\ttfamily uint32\+\_\+t($\ast$ cs35l41\+\_\+private\+\_\+functions\+\_\+t\+::event\+\_\+sm) (void $\ast$driver)}
+
+
+
+Event Handler State Machine. 
+
+This state machine performs all steps to handle I\+RQ and other asynchronous events the driver is aware of, resulting in calling of the notification callback (cs35l41\+\_\+notification\+\_\+callback\+\_\+t).
+
+Beginning the state machine results in transition of driver {\bfseries{mode}} from H\+A\+N\+D\+L\+I\+N\+G\+\_\+\+C\+O\+N\+T\+R\+O\+LS to H\+A\+N\+D\+L\+I\+N\+G\+\_\+\+E\+V\+E\+N\+TS, while completing the state machine will result in transition of driver {\bfseries{mode}} from H\+A\+N\+D\+L\+I\+N\+G\+\_\+\+E\+V\+E\+N\+TS to H\+A\+N\+D\+L\+I\+N\+G\+\_\+\+C\+O\+N\+T\+R\+O\+LS in \mbox{\hyperlink{cs35l41_8c_a9035b122e866a3ee7ae60c00fd1cebb1}{cs35l41\+\_\+process()}}. The state machine design is documented in the Event Handler State Diagram found in the Driver Tech Note.
+
+If there are any I\+RQ events that include Speaker-\/\+Safe Mode Errors or Boost-\/related events, then the procedure outlined in the Datasheet Section 4.\+16.\+1.\+1 is implemented here.
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em driver} & Pointer to the driver state\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+
+\begin{DoxyItemize}
+\item C\+S35\+L41\+\_\+\+S\+T\+A\+T\+U\+S\+\_\+\+F\+A\+IL if state machine transitioned to E\+R\+R\+OR state for any reason
+\item C\+S35\+L41\+\_\+\+S\+T\+A\+T\+U\+S\+\_\+\+OK otherwise
+\end{DoxyItemize}
+\end{DoxyReturn}
+\begin{DoxySeeAlso}{See also}
+Driver Tech Note, Event Handler State Diagram 
+
+\mbox{\hyperlink{cs35l41_8h_a342b87a54a7c071cdd662fe43506d6a8}{cs35l41\+\_\+notification\+\_\+callback\+\_\+t}} 
+\end{DoxySeeAlso}
+\mbox{\Hypertarget{structcs35l41__private__functions__t_adf5875bc5a1914e54b4eb326ea9190bb}\label{structcs35l41__private__functions__t_adf5875bc5a1914e54b4eb326ea9190bb}} 
+\index{cs35l41\_private\_functions\_t@{cs35l41\_private\_functions\_t}!field\_access\_sm@{field\_access\_sm}}
+\index{field\_access\_sm@{field\_access\_sm}!cs35l41\_private\_functions\_t@{cs35l41\_private\_functions\_t}}
+\doxysubsubsection{\texorpdfstring{field\_access\_sm}{field\_access\_sm}}
+{\footnotesize\ttfamily uint32\+\_\+t($\ast$ cs35l41\+\_\+private\+\_\+functions\+\_\+t\+::field\+\_\+access\+\_\+sm) (\mbox{\hyperlink{structcs35l41__t}{cs35l41\+\_\+t}} $\ast$driver)}
+
+
+
+Field Access State Machine. 
+
+This state machine performs actions required to do a Get/\+Set of a Control Port register or H\+A\+LO D\+SP Memory bit-\/field. Completing the state machine does not result in any driver state change. The state machine design is documented in the Field Access State Diagram found in the Driver Tech Note.
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em driver} & Pointer to the driver state\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+
+\begin{DoxyItemize}
+\item C\+S35\+L41\+\_\+\+S\+T\+A\+T\+U\+S\+\_\+\+F\+A\+IL if state machine transitioned to E\+R\+R\+OR state for any reason
+\item C\+S35\+L41\+\_\+\+S\+T\+A\+T\+U\+S\+\_\+\+OK otherwise
+\end{DoxyItemize}
+\end{DoxyReturn}
+\begin{DoxySeeAlso}{See also}
+Driver Tech Note, Field Access State Diagram 
+
+\mbox{\hyperlink{structcs35l41__field__accessor__t}{cs35l41\+\_\+field\+\_\+accessor\+\_\+t}} 
+\end{DoxySeeAlso}
+\mbox{\Hypertarget{structcs35l41__private__functions__t_a5e4b69bda2f1c574d0901b1120030a1a}\label{structcs35l41__private__functions__t_a5e4b69bda2f1c574d0901b1120030a1a}} 
+\index{cs35l41\_private\_functions\_t@{cs35l41\_private\_functions\_t}!get\_dsp\_status\_sm@{get\_dsp\_status\_sm}}
+\index{get\_dsp\_status\_sm@{get\_dsp\_status\_sm}!cs35l41\_private\_functions\_t@{cs35l41\_private\_functions\_t}}
+\doxysubsubsection{\texorpdfstring{get\_dsp\_status\_sm}{get\_dsp\_status\_sm}}
+{\footnotesize\ttfamily uint32\+\_\+t($\ast$ cs35l41\+\_\+private\+\_\+functions\+\_\+t\+::get\+\_\+dsp\+\_\+status\+\_\+sm) (\mbox{\hyperlink{structcs35l41__t}{cs35l41\+\_\+t}} $\ast$driver)}
+
+
+
+Get D\+SP Status State Machine. 
+
+This state machine performs all register/memory field address reads to get the current H\+A\+LO D\+SP status. Since some statuses are only determined by observing changes in values of a given field, the fields are read once, then after a delay of 10 milliseconds, are read a second time to observe changes. Completing the state machine does not result in any driver state change. The state machine design is documented in the Get D\+SP Status State Diagram found in the Driver Tech Note.
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em driver} & Pointer to the driver state\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+
+\begin{DoxyItemize}
+\item C\+S35\+L41\+\_\+\+S\+T\+A\+T\+U\+S\+\_\+\+F\+A\+IL if state machine transitioned to E\+R\+R\+OR state for any reason
+\item C\+S35\+L41\+\_\+\+S\+T\+A\+T\+U\+S\+\_\+\+OK otherwise
+\end{DoxyItemize}
+\end{DoxyReturn}
+\begin{DoxySeeAlso}{See also}
+Driver Tech Note, Get D\+SP Status State Diagram 
+
+\mbox{\hyperlink{structcs35l41__dsp__status__t}{cs35l41\+\_\+dsp\+\_\+status\+\_\+t}} 
+\end{DoxySeeAlso}
+\mbox{\Hypertarget{structcs35l41__private__functions__t_afaea1ee93a697281e0de22c40f67c61f}\label{structcs35l41__private__functions__t_afaea1ee93a697281e0de22c40f67c61f}} 
+\index{cs35l41\_private\_functions\_t@{cs35l41\_private\_functions\_t}!get\_errata@{get\_errata}}
+\index{get\_errata@{get\_errata}!cs35l41\_private\_functions\_t@{cs35l41\_private\_functions\_t}}
+\doxysubsubsection{\texorpdfstring{get\_errata}{get\_errata}}
+{\footnotesize\ttfamily uint32\+\_\+t($\ast$ cs35l41\+\_\+private\+\_\+functions\+\_\+t\+::get\+\_\+errata) (uint32\+\_\+t devid, uint32\+\_\+t revid, const uint32\+\_\+t $\ast$$\ast$errata)}
+
+
+
+Gets pointer to correct errata based on D\+E\+V\+I\+D/\+R\+E\+V\+ID. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em devid} & D\+E\+V\+ID read from C\+S35\+L41\+\_\+\+S\+W\+\_\+\+R\+E\+S\+E\+T\+\_\+\+D\+E\+V\+I\+D\+\_\+\+R\+EG \\
+\hline
+\mbox{\texttt{ in}}  & {\em revid} & R\+E\+V\+ID read from C\+S35\+L41\+\_\+\+S\+W\+\_\+\+R\+E\+S\+E\+T\+\_\+\+R\+E\+V\+I\+D\+\_\+\+R\+EG \\
+\hline
+\mbox{\texttt{ out}}  & {\em errata} & Pointer to array of uint32\+\_\+t implementing errata\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+
+\begin{DoxyItemize}
+\item C\+S35\+L41\+\_\+\+S\+T\+A\+T\+U\+S\+\_\+\+F\+A\+IL corresponding errata not found
+\item C\+S35\+L41\+\_\+\+S\+T\+A\+T\+U\+S\+\_\+\+OK otherwise 
+\end{DoxyItemize}
+\end{DoxyReturn}
+\mbox{\Hypertarget{structcs35l41__private__functions__t_a00a86ca59f74869cb7d706000231b316}\label{structcs35l41__private__functions__t_a00a86ca59f74869cb7d706000231b316}} 
+\index{cs35l41\_private\_functions\_t@{cs35l41\_private\_functions\_t}!irq\_callback@{irq\_callback}}
+\index{irq\_callback@{irq\_callback}!cs35l41\_private\_functions\_t@{cs35l41\_private\_functions\_t}}
+\doxysubsubsection{\texorpdfstring{irq\_callback}{irq\_callback}}
+{\footnotesize\ttfamily void($\ast$ cs35l41\+\_\+private\+\_\+functions\+\_\+t\+::irq\+\_\+callback) (uint32\+\_\+t status, void $\ast$cb\+\_\+arg)}
+
+
+
+Notify the driver when the C\+S35\+L41 I\+N\+Tb G\+P\+IO drops low. 
+
+This callback is registered with the B\+SP in the register\+\_\+gpio\+\_\+cb() A\+PI call.
+
+The primary task of this callback is to transition the driver mode from C\+S35\+L41\+\_\+\+M\+O\+D\+E\+\_\+\+H\+A\+N\+D\+L\+I\+N\+G\+\_\+\+C\+O\+N\+T\+R\+O\+LS to C\+S35\+L41\+\_\+\+M\+O\+D\+E\+\_\+\+H\+A\+N\+D\+L\+I\+N\+G\+\_\+\+E\+V\+E\+N\+TS, in order to start processing the Event Handler state machine. It also resets the Event Handler state machine, if it was not currently being processed.
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em status} & Status of the asynchronous call to B\+SP Control Port write \\
+\hline
+\mbox{\texttt{ in}}  & {\em cb\+\_\+arg} & A pointer to callback argument registered. For the driver, this arg is used for a pointer to the driver state \mbox{\hyperlink{structcs35l41__t}{cs35l41\+\_\+t}}.\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+none
+\end{DoxyReturn}
+\begin{DoxySeeAlso}{See also}
+\mbox{\hyperlink{structbsp__driver__if__t}{bsp\+\_\+driver\+\_\+if\+\_\+t}} member register\+\_\+gpio\+\_\+cb. 
+
+\mbox{\hyperlink{bsp__driver__if_8h_a9da53d6fb2687f1afc4fe77a6d1a101f}{bsp\+\_\+callback\+\_\+t}} 
+\end{DoxySeeAlso}
+\mbox{\Hypertarget{structcs35l41__private__functions__t_a90c9558d529a5b92507dda7f770e8941}\label{structcs35l41__private__functions__t_a90c9558d529a5b92507dda7f770e8941}} 
+\index{cs35l41\_private\_functions\_t@{cs35l41\_private\_functions\_t}!irq\_to\_event\_id@{irq\_to\_event\_id}}
+\index{irq\_to\_event\_id@{irq\_to\_event\_id}!cs35l41\_private\_functions\_t@{cs35l41\_private\_functions\_t}}
+\doxysubsubsection{\texorpdfstring{irq\_to\_event\_id}{irq\_to\_event\_id}}
+{\footnotesize\ttfamily uint32\+\_\+t($\ast$ cs35l41\+\_\+private\+\_\+functions\+\_\+t\+::irq\+\_\+to\+\_\+event\+\_\+id) (uint32\+\_\+t $\ast$\mbox{\hyperlink{cs35l41_8c_a93ed7ca914fe1948b5d02bdf1b1c0083}{irq\+\_\+statuses}})}
+
+
+
+Maps I\+RQ Flag to Event ID passed to B\+SP. 
+
+Allows for abstracting driver events relayed to B\+SP away from I\+RQ flags, to allow the possibility that multiple I\+RQ flags correspond to a single event to relay.
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em irq\+\_\+statuses} & pointer to array of 32-\/bit words from I\+R\+Q1\+\_\+\+I\+R\+Q1\+\_\+\+E\+I\+N\+T\+\_\+$\ast$\+\_\+\+R\+EG registers\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+32-\/bit word with C\+S35\+L41\+\_\+\+E\+V\+E\+N\+T\+\_\+\+F\+L\+A\+G\+\_\+$\ast$ set for each event detected
+\end{DoxyReturn}
+\begin{DoxySeeAlso}{See also}
+\mbox{\hyperlink{group___c_s35_l41___e_v_e_n_t___f_l_a_g__}{C\+S35\+L41\+\_\+\+E\+V\+E\+N\+T\+\_\+\+F\+L\+A\+G\+\_\+}} 
+\end{DoxySeeAlso}
+\mbox{\Hypertarget{structcs35l41__private__functions__t_a1d8fe12fe7a6b0720da627aaa36cf4fa}\label{structcs35l41__private__functions__t_a1d8fe12fe7a6b0720da627aaa36cf4fa}} 
+\index{cs35l41\_private\_functions\_t@{cs35l41\_private\_functions\_t}!is\_control\_valid@{is\_control\_valid}}
+\index{is\_control\_valid@{is\_control\_valid}!cs35l41\_private\_functions\_t@{cs35l41\_private\_functions\_t}}
+\doxysubsubsection{\texorpdfstring{is\_control\_valid}{is\_control\_valid}}
+{\footnotesize\ttfamily uint32\+\_\+t($\ast$ cs35l41\+\_\+private\+\_\+functions\+\_\+t\+::is\+\_\+control\+\_\+valid) (\mbox{\hyperlink{structcs35l41__t}{cs35l41\+\_\+t}} $\ast$driver)}
+
+
+
+Check that the currently processed Control Request is valid for the current state of the driver. 
+
+Since the state of the driver is asynchronous to the Control Request currently being processed, cs35l41\+\_\+process needs to check whether the request is valid for the current state.
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em driver} & Pointer to the driver state\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+
+\begin{DoxyItemize}
+\item C\+S35\+L41\+\_\+\+S\+T\+A\+T\+U\+S\+\_\+\+F\+A\+IL if no request is being processed, or if current request is invalid
+\item C\+S35\+L41\+\_\+\+S\+T\+A\+T\+U\+S\+\_\+\+OK otherwise 
+\end{DoxyItemize}
+\end{DoxyReturn}
+\mbox{\Hypertarget{structcs35l41__private__functions__t_aacffd3273ff8f45695820f102fd75c72}\label{structcs35l41__private__functions__t_aacffd3273ff8f45695820f102fd75c72}} 
+\index{cs35l41\_private\_functions\_t@{cs35l41\_private\_functions\_t}!is\_mbox\_status\_correct@{is\_mbox\_status\_correct}}
+\index{is\_mbox\_status\_correct@{is\_mbox\_status\_correct}!cs35l41\_private\_functions\_t@{cs35l41\_private\_functions\_t}}
+\doxysubsubsection{\texorpdfstring{is\_mbox\_status\_correct}{is\_mbox\_status\_correct}}
+{\footnotesize\ttfamily bool($\ast$ cs35l41\+\_\+private\+\_\+functions\+\_\+t\+::is\+\_\+mbox\+\_\+status\+\_\+correct) (uint32\+\_\+t cmd, uint32\+\_\+t status)}
+
+
+
+Check H\+A\+LO M\+B\+OX Status against the M\+B\+OX Command sent. 
+
+Only some states of H\+A\+LO M\+B\+OX Status are valid for each H\+A\+LO M\+B\+OX Command
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em cmd} & which H\+A\+LO M\+B\+OX Command was most recently sent \\
+\hline
+\mbox{\texttt{ in}}  & {\em status} & what is the H\+A\+LO M\+B\+OX Status read\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+
+\begin{DoxyItemize}
+\item true Status is correct/valid
+\item false Status is incorrect/invalid 
+\end{DoxyItemize}
+\end{DoxyReturn}
+\mbox{\Hypertarget{structcs35l41__private__functions__t_a87a23b8eb3c811aba012b87508006b93}\label{structcs35l41__private__functions__t_a87a23b8eb3c811aba012b87508006b93}} 
+\index{cs35l41\_private\_functions\_t@{cs35l41\_private\_functions\_t}!is\_mixer\_source\_used@{is\_mixer\_source\_used}}
+\index{is\_mixer\_source\_used@{is\_mixer\_source\_used}!cs35l41\_private\_functions\_t@{cs35l41\_private\_functions\_t}}
+\doxysubsubsection{\texorpdfstring{is\_mixer\_source\_used}{is\_mixer\_source\_used}}
+{\footnotesize\ttfamily bool($\ast$ cs35l41\+\_\+private\+\_\+functions\+\_\+t\+::is\+\_\+mixer\+\_\+source\+\_\+used) (\mbox{\hyperlink{structcs35l41__t}{cs35l41\+\_\+t}} $\ast$driver, uint8\+\_\+t source)}
+
+
+
+Checks all hardware mixer source selections for a specific source. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em driver} & Pointer to the driver state \\
+\hline
+\mbox{\texttt{ in}}  & {\em source} & Mixer source to search for\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+
+\begin{DoxyItemize}
+\item true Mixer source \textquotesingle{}source\textquotesingle{} is used
+\item false Mixer source \textquotesingle{}source\textquotesingle{} is not used
+\end{DoxyItemize}
+\end{DoxyReturn}
+\begin{DoxySeeAlso}{See also}
+\mbox{\hyperlink{group___c_s35_l41___i_n_p_u_t___s_r_c__}{C\+S35\+L41\+\_\+\+I\+N\+P\+U\+T\+\_\+\+S\+R\+C\+\_\+}} 
+\end{DoxySeeAlso}
+\mbox{\Hypertarget{structcs35l41__private__functions__t_aa07eeca75abaca69acc316d0591527a0}\label{structcs35l41__private__functions__t_aa07eeca75abaca69acc316d0591527a0}} 
+\index{cs35l41\_private\_functions\_t@{cs35l41\_private\_functions\_t}!load\_control@{load\_control}}
+\index{load\_control@{load\_control}!cs35l41\_private\_functions\_t@{cs35l41\_private\_functions\_t}}
+\doxysubsubsection{\texorpdfstring{load\_control}{load\_control}}
+{\footnotesize\ttfamily uint32\+\_\+t($\ast$ cs35l41\+\_\+private\+\_\+functions\+\_\+t\+::load\+\_\+control) (\mbox{\hyperlink{structcs35l41__t}{cs35l41\+\_\+t}} $\ast$driver)}
+
+
+
+Load new Control Request to be processed. 
+
+Removes next element from Control Request Queue and initializes the corresponding state machine.
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em driver} & Pointer to the driver state\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+
+\begin{DoxyItemize}
+\item C\+S35\+L41\+\_\+\+S\+T\+A\+T\+U\+S\+\_\+\+F\+A\+IL if ID for new Control Request is not valid
+\item C\+S35\+L41\+\_\+\+S\+T\+A\+T\+U\+S\+\_\+\+OK otherwise 
+\end{DoxyItemize}
+\end{DoxyReturn}
+\mbox{\Hypertarget{structcs35l41__private__functions__t_aa11935704b9da56c6e6fc2e79858ac41}\label{structcs35l41__private__functions__t_aa11935704b9da56c6e6fc2e79858ac41}} 
+\index{cs35l41\_private\_functions\_t@{cs35l41\_private\_functions\_t}!power\_down\_sm@{power\_down\_sm}}
+\index{power\_down\_sm@{power\_down\_sm}!cs35l41\_private\_functions\_t@{cs35l41\_private\_functions\_t}}
+\doxysubsubsection{\texorpdfstring{power\_down\_sm}{power\_down\_sm}}
+{\footnotesize\ttfamily uint32\+\_\+t($\ast$ cs35l41\+\_\+private\+\_\+functions\+\_\+t\+::power\+\_\+down\+\_\+sm) (\mbox{\hyperlink{structcs35l41__t}{cs35l41\+\_\+t}} $\ast$driver)}
+
+
+
+Power Down State Machine. 
+
+This state machine performs all necessary steps to transition the C\+S35\+L41 to be in Standby power mode. Completing the state machine results in the driver transition to S\+T\+A\+N\+D\+BY or D\+S\+P\+\_\+\+S\+T\+A\+N\+D\+BY state. The state machine design is documented in the Power Down State Diagram found in the Driver Tech Note.
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em driver} & Pointer to the driver state\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+
+\begin{DoxyItemize}
+\item C\+S35\+L41\+\_\+\+S\+T\+A\+T\+U\+S\+\_\+\+F\+A\+IL if state machine transitioned to E\+R\+R\+OR state for any reason
+\item C\+S35\+L41\+\_\+\+S\+T\+A\+T\+U\+S\+\_\+\+OK otherwise
+\end{DoxyItemize}
+\end{DoxyReturn}
+\begin{DoxySeeAlso}{See also}
+Driver Tech Note, Power Down State Diagram 
+\end{DoxySeeAlso}
+\mbox{\Hypertarget{structcs35l41__private__functions__t_ad5d36b513f6e33a55fa8806cd85f7e17}\label{structcs35l41__private__functions__t_ad5d36b513f6e33a55fa8806cd85f7e17}} 
+\index{cs35l41\_private\_functions\_t@{cs35l41\_private\_functions\_t}!power\_up\_sm@{power\_up\_sm}}
+\index{power\_up\_sm@{power\_up\_sm}!cs35l41\_private\_functions\_t@{cs35l41\_private\_functions\_t}}
+\doxysubsubsection{\texorpdfstring{power\_up\_sm}{power\_up\_sm}}
+{\footnotesize\ttfamily uint32\+\_\+t($\ast$ cs35l41\+\_\+private\+\_\+functions\+\_\+t\+::power\+\_\+up\+\_\+sm) (\mbox{\hyperlink{structcs35l41__t}{cs35l41\+\_\+t}} $\ast$driver)}
+
+
+
+Power Up State Machine. 
+
+This state machine performs all necessary steps to transition the C\+S35\+L41 to be ready to pass audio through the amplifier D\+AC. Completing the state machine results in the driver transition to P\+O\+W\+E\+R\+\_\+\+UP state. The state machine design is documented in the Power Up State Diagram found in the Driver Tech Note.
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em driver} & Pointer to the driver state\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+
+\begin{DoxyItemize}
+\item C\+S35\+L41\+\_\+\+S\+T\+A\+T\+U\+S\+\_\+\+F\+A\+IL if state machine transitioned to E\+R\+R\+OR state for any reason
+\item C\+S35\+L41\+\_\+\+S\+T\+A\+T\+U\+S\+\_\+\+OK otherwise
+\end{DoxyItemize}
+\end{DoxyReturn}
+\begin{DoxySeeAlso}{See also}
+Driver Tech Note, Power Up State Diagram 
+\end{DoxySeeAlso}
+\mbox{\Hypertarget{structcs35l41__private__functions__t_ae6ae1e868279c613f34736c20a45d4f5}\label{structcs35l41__private__functions__t_ae6ae1e868279c613f34736c20a45d4f5}} 
+\index{cs35l41\_private\_functions\_t@{cs35l41\_private\_functions\_t}!read\_reg@{read\_reg}}
+\index{read\_reg@{read\_reg}!cs35l41\_private\_functions\_t@{cs35l41\_private\_functions\_t}}
+\doxysubsubsection{\texorpdfstring{read\_reg}{read\_reg}}
+{\footnotesize\ttfamily uint32\+\_\+t($\ast$ cs35l41\+\_\+private\+\_\+functions\+\_\+t\+::read\+\_\+reg) (\mbox{\hyperlink{structcs35l41__t}{cs35l41\+\_\+t}} $\ast$driver, uint32\+\_\+t addr, uint32\+\_\+t $\ast$val, bool is\+\_\+blocking)}
+
+
+
+Reads the contents of a single register/memory address. 
+
+The main purpose is to handle buffering and B\+SP calls required for reading a single memory address.
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em driver} & Pointer to the driver state \\
+\hline
+\mbox{\texttt{ in}}  & {\em addr} & 32-\/bit address to be read \\
+\hline
+\mbox{\texttt{ out}}  & {\em val} & Pointer to register value read (only used for non-\/blocking calls) \\
+\hline
+\mbox{\texttt{ in}}  & {\em is\+\_\+blocking} & Indicates whether request is for blocking (true) or non-\/blocking (false) call\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+
+\begin{DoxyItemize}
+\item C\+S35\+L41\+\_\+\+S\+T\+A\+T\+U\+S\+\_\+\+F\+A\+IL if the call to B\+SP failed
+\item C\+S35\+L41\+\_\+\+S\+T\+A\+T\+U\+S\+\_\+\+OK otherwise
+\end{DoxyItemize}
+\end{DoxyReturn}
+\begin{DoxyWarning}{Warning}
+Contains platform-\/dependent code. 
+\end{DoxyWarning}
+\mbox{\Hypertarget{structcs35l41__private__functions__t_a515d10603ab119e901e6f821c726363e}\label{structcs35l41__private__functions__t_a515d10603ab119e901e6f821c726363e}} 
+\index{cs35l41\_private\_functions\_t@{cs35l41\_private\_functions\_t}!reset\_sm@{reset\_sm}}
+\index{reset\_sm@{reset\_sm}!cs35l41\_private\_functions\_t@{cs35l41\_private\_functions\_t}}
+\doxysubsubsection{\texorpdfstring{reset\_sm}{reset\_sm}}
+{\footnotesize\ttfamily uint32\+\_\+t($\ast$ cs35l41\+\_\+private\+\_\+functions\+\_\+t\+::reset\+\_\+sm) (\mbox{\hyperlink{structcs35l41__t}{cs35l41\+\_\+t}} $\ast$driver)}
+
+
+
+Reset State Machine. 
+
+This state machine performs all necessary steps to reset the C\+S35\+L41 and put it into S\+T\+A\+N\+D\+BY state. The state machine design is documented in the Reset State Diagram found in the Driver Tech Note.
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em driver} & Pointer to the driver state\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+
+\begin{DoxyItemize}
+\item C\+S35\+L41\+\_\+\+S\+T\+A\+T\+U\+S\+\_\+\+F\+A\+IL if state machine transitioned to E\+R\+R\+OR state for any reason
+\item C\+S35\+L41\+\_\+\+S\+T\+A\+T\+U\+S\+\_\+\+OK otherwise
+\end{DoxyItemize}
+\end{DoxyReturn}
+\begin{DoxySeeAlso}{See also}
+Driver Tech Note, Reset State Diagram 
+\end{DoxySeeAlso}
+\mbox{\Hypertarget{structcs35l41__private__functions__t_ae7ab34f9a1b2f9e40a0ebca901f54e20}\label{structcs35l41__private__functions__t_ae7ab34f9a1b2f9e40a0ebca901f54e20}} 
+\index{cs35l41\_private\_functions\_t@{cs35l41\_private\_functions\_t}!timer\_callback@{timer\_callback}}
+\index{timer\_callback@{timer\_callback}!cs35l41\_private\_functions\_t@{cs35l41\_private\_functions\_t}}
+\doxysubsubsection{\texorpdfstring{timer\_callback}{timer\_callback}}
+{\footnotesize\ttfamily void($\ast$ cs35l41\+\_\+private\+\_\+functions\+\_\+t\+::timer\+\_\+callback) (uint32\+\_\+t status, void $\ast$cb\+\_\+arg)}
+
+
+
+Notify the driver when the B\+SP Timer expires. 
+
+This callback is given as a parameter for all non-\/blocking calls to the set\+\_\+timer() A\+PI in \mbox{\hyperlink{structbsp__driver__if__t}{bsp\+\_\+driver\+\_\+if\+\_\+t}}. Currently, the timer is only used for state machines handling Control Requests, so the only action required is to set the C\+S35\+L41\+\_\+\+F\+L\+A\+G\+S\+\_\+\+T\+I\+M\+E\+O\+UT for the state machine being currently processed.
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em status} & Status of the asynchronous call to set\+\_\+timer() \\
+\hline
+\mbox{\texttt{ in}}  & {\em cb\+\_\+arg} & A pointer to callback argument registered for set\+\_\+timer(). For the driver, this arg is used for a pointer to the driver state \mbox{\hyperlink{structcs35l41__t}{cs35l41\+\_\+t}}.\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+none
+\end{DoxyReturn}
+\begin{DoxySeeAlso}{See also}
+\mbox{\hyperlink{structbsp__driver__if__t}{bsp\+\_\+driver\+\_\+if\+\_\+t}} member set\+\_\+timer. 
+
+\mbox{\hyperlink{bsp__driver__if_8h_a9da53d6fb2687f1afc4fe77a6d1a101f}{bsp\+\_\+callback\+\_\+t}} 
+\end{DoxySeeAlso}
+\mbox{\Hypertarget{structcs35l41__private__functions__t_a3a9fe55eb9babd92801872db7df24b8f}\label{structcs35l41__private__functions__t_a3a9fe55eb9babd92801872db7df24b8f}} 
+\index{cs35l41\_private\_functions\_t@{cs35l41\_private\_functions\_t}!validate\_boot\_config@{validate\_boot\_config}}
+\index{validate\_boot\_config@{validate\_boot\_config}!cs35l41\_private\_functions\_t@{cs35l41\_private\_functions\_t}}
+\doxysubsubsection{\texorpdfstring{validate\_boot\_config}{validate\_boot\_config}}
+{\footnotesize\ttfamily uint32\+\_\+t($\ast$ cs35l41\+\_\+private\+\_\+functions\+\_\+t\+::validate\+\_\+boot\+\_\+config) (\mbox{\hyperlink{structcs35l41__boot__config__t}{cs35l41\+\_\+boot\+\_\+config\+\_\+t}} $\ast$config, bool is\+\_\+fw\+\_\+boot, bool is\+\_\+coeff\+\_\+boot)}
+
+
+
+Validates the boot configuration provided by the B\+SP. 
+
+According to \textquotesingle{}is\+\_\+fw\+\_\+boot\textquotesingle{} and \textquotesingle{}is\+\_\+coeff\+\_\+boot\textquotesingle{} flags, checks that all required pointers to boot/coeff images are not N\+U\+LL.
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em config} & pointer to boot configuration \\
+\hline
+\mbox{\texttt{ in}}  & {\em is\+\_\+fw\+\_\+boot} & whether current action is booting FW; (true) is a FW boot action, (false) is N\+OT a FW boot action \\
+\hline
+\mbox{\texttt{ in}}  & {\em is\+\_\+coeff\+\_\+boot} & whether current action is booting C\+O\+E\+FF; (true) is a C\+O\+E\+FF boot action, (false) is N\+OT a C\+O\+E\+FF boot action\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+
+\begin{DoxyItemize}
+\item C\+S35\+L41\+\_\+\+S\+T\+A\+T\+U\+S\+\_\+\+F\+A\+IL if \textquotesingle{}config\textquotesingle{} is N\+U\+LL, if any required block pointers are N\+U\+LL
+\item C\+S35\+L41\+\_\+\+S\+T\+A\+T\+U\+S\+\_\+\+OK otherwise 
+\end{DoxyItemize}
+\end{DoxyReturn}
+\mbox{\Hypertarget{structcs35l41__private__functions__t_a4410e22074eeece6f37c48f8369067dd}\label{structcs35l41__private__functions__t_a4410e22074eeece6f37c48f8369067dd}} 
+\index{cs35l41\_private\_functions\_t@{cs35l41\_private\_functions\_t}!write\_reg@{write\_reg}}
+\index{write\_reg@{write\_reg}!cs35l41\_private\_functions\_t@{cs35l41\_private\_functions\_t}}
+\doxysubsubsection{\texorpdfstring{write\_reg}{write\_reg}}
+{\footnotesize\ttfamily uint32\+\_\+t($\ast$ cs35l41\+\_\+private\+\_\+functions\+\_\+t\+::write\+\_\+reg) (\mbox{\hyperlink{structcs35l41__t}{cs35l41\+\_\+t}} $\ast$driver, uint32\+\_\+t addr, uint32\+\_\+t val, bool is\+\_\+blocking)}
+
+
+
+Writes the contents of a single register/memory address. 
+
+The main purpose is to handle buffering and B\+SP calls required for writing a single memory address.
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em driver} & Pointer to the driver state \\
+\hline
+\mbox{\texttt{ in}}  & {\em addr} & 32-\/bit address to be written \\
+\hline
+\mbox{\texttt{ in}}  & {\em val} & 32-\/bit value to be written \\
+\hline
+\mbox{\texttt{ in}}  & {\em is\+\_\+blocking} & Indicates whether request is for blocking (true) or non-\/blocking (false) call\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+
+\begin{DoxyItemize}
+\item C\+S35\+L41\+\_\+\+S\+T\+A\+T\+U\+S\+\_\+\+F\+A\+IL if the call to B\+SP failed
+\item C\+S35\+L41\+\_\+\+S\+T\+A\+T\+U\+S\+\_\+\+OK otherwise
+\end{DoxyItemize}
+\end{DoxyReturn}
+\begin{DoxyWarning}{Warning}
+Contains platform-\/dependent code. 
+\end{DoxyWarning}
+
+
+The documentation for this struct was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{cs35l41_8h}{cs35l41.\+h}}\end{DoxyCompactItemize}

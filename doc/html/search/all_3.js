@@ -1,0 +1,20 @@
+var searchData=
+[
+  ['dac_5fsrc_305',['dac_src',['../structcs35l41__routing__config__t.html#a92b75e1d8731468e466a348165b9e9ee',1,'cs35l41_routing_config_t']]],
+  ['data_306',['data',['../structcs35l41__dsp__status__t.html#a151f96a6f37dc2074a67a3e9b021fcfd',1,'cs35l41_dsp_status_t']]],
+  ['dataif_5fasp_5fcontrol1_5freg_307',['DATAIF_ASP_CONTROL1_REG',['../group___s_e_c_t_i_o_n__7__15___d_a_t_a_i_f.html#ga61f706993a742f8d36b8197e5bddae59',1,'cs35l41_spec.h']]],
+  ['dataif_5fasp_5fcontrol2_5freg_308',['DATAIF_ASP_CONTROL2_REG',['../group___s_e_c_t_i_o_n__7__15___d_a_t_a_i_f.html#gaf893c84c2f8ab87601391d28b930a19e',1,'cs35l41_spec.h']]],
+  ['dataif_5fasp_5fcontrol3_5freg_309',['DATAIF_ASP_CONTROL3_REG',['../group___s_e_c_t_i_o_n__7__15___d_a_t_a_i_f.html#gaf79d69f57ca452b90c7645424a6a6817',1,'cs35l41_spec.h']]],
+  ['dataif_5fasp_5fcontrol4_5freg_310',['DATAIF_ASP_CONTROL4_REG',['../group___s_e_c_t_i_o_n__7__15___d_a_t_a_i_f.html#ga000e815c9779ab15a970aee57b742731',1,'cs35l41_spec.h']]],
+  ['dataif_5fasp_5fdata_5fcontrol1_5freg_311',['DATAIF_ASP_DATA_CONTROL1_REG',['../group___s_e_c_t_i_o_n__7__15___d_a_t_a_i_f.html#gad5397deac0c4b92a4c1fd75716595761',1,'cs35l41_spec.h']]],
+  ['dataif_5fasp_5fdata_5fcontrol5_5freg_312',['DATAIF_ASP_DATA_CONTROL5_REG',['../group___s_e_c_t_i_o_n__7__15___d_a_t_a_i_f.html#ga0d3f859268e1e0e166294daa7e645548',1,'cs35l41_spec.h']]],
+  ['dataif_5fasp_5fenables1_5freg_313',['DATAIF_ASP_ENABLES1_REG',['../group___s_e_c_t_i_o_n__7__15___d_a_t_a_i_f.html#ga2ba348d1c599504cf7f375f367060773',1,'cs35l41_spec.h']]],
+  ['dataif_5fasp_5fframe_5fcontrol1_5freg_314',['DATAIF_ASP_FRAME_CONTROL1_REG',['../group___s_e_c_t_i_o_n__7__15___d_a_t_a_i_f.html#ga13238096ad1b0ab56635b52de656337b',1,'cs35l41_spec.h']]],
+  ['dataif_5fasp_5fframe_5fcontrol5_5freg_315',['DATAIF_ASP_FRAME_CONTROL5_REG',['../group___s_e_c_t_i_o_n__7__15___d_a_t_a_i_f.html#ga4b66bfa908de550effe58c598f7b53f7',1,'cs35l41_spec.h']]],
+  ['devid_316',['devid',['../structcs35l41__t.html#a0388edec69af15368578960ab50d0642',1,'cs35l41_t']]],
+  ['dout_5fhiz_5fctrl_317',['dout_hiz_ctrl',['../structcs35l41__audio__hw__config__t.html#a6240e6c36bc6eb25c6ad2432747b80a8',1,'cs35l41_audio_hw_config_t']]],
+  ['dsp_5fmbox_5fdsp_5fmbox_5f2_5freg_318',['DSP_MBOX_DSP_MBOX_2_REG',['../group___s_e_c_t_i_o_n__7__27___d_s_p___m_b_o_x.html#ga89287ed0f1a52d5fe19d3a33b0499fb6',1,'cs35l41_spec.h']]],
+  ['dsp_5frx1_5fsrc_319',['dsp_rx1_src',['../structcs35l41__routing__config__t.html#adaf017cfa4c6577ad0208ac81b1d7f85',1,'cs35l41_routing_config_t']]],
+  ['dsp_5frx2_5fsrc_320',['dsp_rx2_src',['../structcs35l41__routing__config__t.html#afb9ddc54bc6b483d816835cbc2c36c19',1,'cs35l41_routing_config_t']]],
+  ['dsp_5fvirtual1_5fmbox_5fdsp_5fvirtual1_5fmbox_5f1_5freg_321',['DSP_VIRTUAL1_MBOX_DSP_VIRTUAL1_MBOX_1_REG',['../group___s_e_c_t_i_o_n__7__28___d_s_p___v_i_r_t_u_a_l1___m_b_o_x.html#ga7a3b978f9360bd2a70634ecaa74af594',1,'cs35l41_spec.h']]]
+];
