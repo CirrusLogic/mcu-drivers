@@ -1,0 +1,80 @@
+\hypertarget{structcs40l25__t}{}\doxysection{cs40l25\+\_\+t Struct Reference}
+\label{structcs40l25__t}\index{cs40l25\_t@{cs40l25\_t}}
+
+
+Driver state data structure.  
+
+
+
+
+{\ttfamily \#include $<$cs40l25.\+h$>$}
+
+\doxysubsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+uint32\+\_\+t \mbox{\hyperlink{group___c_s40_l25___s_m___s_t_a_t_e___ga6ad303e9a6f79190e69c869fa07a3a3a}{state}}
+\begin{DoxyCompactList}\small\item\em General driver state -\/. \end{DoxyCompactList}\item 
+uint32\+\_\+t \mbox{\hyperlink{group___c_s40_l25___s_m___s_t_a_t_e___ga233b14740e59b9641955a68ee76f5470}{mode}}
+\begin{DoxyCompactList}\small\item\em General driver mode -\/. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{structcs40l25__sm__t}{cs40l25\+\_\+sm\+\_\+t}} \mbox{\hyperlink{group___c_s40_l25___s_m___s_t_a_t_e___ga8ec19760a1f321f6c2fcc56ae88ba94c}{control\+\_\+sm}}
+\begin{DoxyCompactList}\small\item\em Control State Machine for current Control Request. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{structcs40l25__sm__t}{cs40l25\+\_\+sm\+\_\+t}} \mbox{\hyperlink{group___c_s40_l25___s_m___s_t_a_t_e___ga35cf6264b4e4b81c1b9e771a95379d94}{event\+\_\+sm}}
+\begin{DoxyCompactList}\small\item\em Event Handler State Machine. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{structf__queue__t}{f\+\_\+queue\+\_\+t}} \mbox{\hyperlink{group___c_s40_l25___s_m___s_t_a_t_e___ga5bb8a07e72536c908a54c5101f12527f}{control\+\_\+q}}
+\begin{DoxyCompactList}\small\item\em Queue of Control Requests. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{structcs40l25__control__request__t}{cs40l25\+\_\+control\+\_\+request\+\_\+t}} \mbox{\hyperlink{group___c_s40_l25___s_m___s_t_a_t_e___gaa36213bc93e7d0aeedbc9a7c0e9cb227}{control\+\_\+requests}} \mbox{[}\mbox{\hyperlink{group___c_s40_l25___s_m___s_t_a_t_e___gaf636142b8de71f4a24a729bd9c2c9081}{C\+S40\+L25\+\_\+\+C\+O\+N\+T\+R\+O\+L\+\_\+\+R\+E\+Q\+U\+E\+S\+T\+S\+\_\+\+S\+I\+ZE}}\mbox{]}
+\begin{DoxyCompactList}\small\item\em Buffered Control Requests. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{structcs40l25__control__request__t}{cs40l25\+\_\+control\+\_\+request\+\_\+t}} \mbox{\hyperlink{group___c_s40_l25___s_m___s_t_a_t_e___ga7c16f1ba502d46a7d986b4d3589c253f}{current\+\_\+request}}
+\begin{DoxyCompactList}\small\item\em Current Control Request. \end{DoxyCompactList}\item 
+uint32\+\_\+t \mbox{\hyperlink{group___c_s40_l25___s_m___s_t_a_t_e___ga0a9a4aa1781c239b1c2e7d00c255950e}{register\+\_\+buffer}}
+\begin{DoxyCompactList}\small\item\em buffer for reading Control Port registers \end{DoxyCompactList}\item 
+uint32\+\_\+t \mbox{\hyperlink{group___c_s40_l25___s_m___s_t_a_t_e___gade9fdb65c8601ec85914d910e28720b3}{devid}}
+\begin{DoxyCompactList}\small\item\em C\+S40\+L25 D\+E\+V\+ID of current device. \end{DoxyCompactList}\item 
+uint32\+\_\+t \mbox{\hyperlink{group___c_s40_l25___s_m___s_t_a_t_e___ga27bfdd3f0ced1f19b7091e60b12c9aff}{revid}}
+\begin{DoxyCompactList}\small\item\em C\+S40\+L25 R\+E\+V\+ID of current device. \end{DoxyCompactList}\item 
+const uint32\+\_\+t $\ast$ \mbox{\hyperlink{group___c_s40_l25___s_m___s_t_a_t_e___ga31da27317673c3bf2bcea8d322f767e2}{errata}}
+\begin{DoxyCompactList}\small\item\em Pointer to relevant errata for the current device. \end{DoxyCompactList}\item 
+uint32\+\_\+t \mbox{\hyperlink{group___c_s40_l25___s_m___s_t_a_t_e___ga9952290d7e7e393c20a50a5600c1336b}{mbox\+\_\+cmd}}
+\begin{DoxyCompactList}\small\item\em H\+A\+LO FW Mailbox command to be sent. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{unioncs40l25__config__registers__t}{cs40l25\+\_\+config\+\_\+registers\+\_\+t}} \mbox{\hyperlink{group___c_s40_l25___s_m___s_t_a_t_e___gab7b416bb1af6c6ce89dd067d25db4762}{config\+\_\+regs}}
+\begin{DoxyCompactList}\small\item\em Contents of Control Port registers to configure. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{structcs40l25__dsp__config__controls__t}{cs40l25\+\_\+dsp\+\_\+config\+\_\+controls\+\_\+t}} \mbox{\hyperlink{group___c_s40_l25___s_m___s_t_a_t_e___ga3ac8afb33e2959dedc6c626784f07a53}{dsp\+\_\+config\+\_\+ctrls}}
+\begin{DoxyCompactList}\small\item\em Configurable D\+SP controls. \end{DoxyCompactList}\item 
+uint32\+\_\+t {\bfseries calib\+\_\+pcm\+\_\+vol}
+\item 
+\mbox{\hyperlink{structcs40l25__field__accessor__t}{cs40l25\+\_\+field\+\_\+accessor\+\_\+t}} \mbox{\hyperlink{group___c_s40_l25___s_m___s_t_a_t_e___ga2db06660a8f4a54e9b259666f8080c38}{field\+\_\+accessor}}
+\begin{DoxyCompactList}\small\item\em Current Control Port field to access. \end{DoxyCompactList}\item 
+uint8\+\_\+t {\bfseries bsp\+\_\+dev\+\_\+id}
+\item 
+uint32\+\_\+t {\bfseries bsp\+\_\+reset\+\_\+gpio\+\_\+id}
+\item 
+uint32\+\_\+t {\bfseries bsp\+\_\+int\+\_\+gpio\+\_\+id}
+\item 
+uint8\+\_\+t {\bfseries bus\+\_\+type}
+\item 
+uint8\+\_\+t $\ast$ {\bfseries cp\+\_\+write\+\_\+buffer}
+\item 
+uint8\+\_\+t $\ast$ {\bfseries cp\+\_\+read\+\_\+buffer}
+\item 
+\mbox{\hyperlink{group___c_s40_l25___s_m___s_t_a_t_e___ga0b78156f6addb3f1db4918f59f2ac6c9}{cs40l25\+\_\+notification\+\_\+callback\+\_\+t}} {\bfseries notification\+\_\+cb}
+\item 
+void $\ast$ {\bfseries notification\+\_\+cb\+\_\+arg}
+\item 
+\mbox{\hyperlink{structcs40l25__audio__config__t}{cs40l25\+\_\+audio\+\_\+config\+\_\+t}} {\bfseries audio\+\_\+config}
+\item 
+\mbox{\hyperlink{structcs40l25__amp__config__t}{cs40l25\+\_\+amp\+\_\+config\+\_\+t}} {\bfseries amp\+\_\+config}
+\item 
+\mbox{\hyperlink{structcs40l25__calibration__t}{cs40l25\+\_\+calibration\+\_\+t}} {\bfseries cal\+\_\+data}
+\item 
+\mbox{\hyperlink{structcs40l25__boot__config__t}{cs40l25\+\_\+boot\+\_\+config\+\_\+t}} $\ast$ \mbox{\hyperlink{group___c_s40_l25___s_m___s_t_a_t_e___ga023a0a9ede69dffb8a2d1d2ae9eb688b}{boot\+\_\+config}}
+\begin{DoxyCompactList}\small\item\em Current H\+A\+LO F\+W/\+Coefficient boot configuration. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+Driver state data structure. 
+
+This is the type used for the handle to the driver for all driver public A\+PI calls. This structure must be instantiated outside the scope of the driver source and initialized by the initialize() public A\+PI. 
+
+The documentation for this struct was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{cs40l25_8h}{cs40l25.\+h}}\end{DoxyCompactItemize}

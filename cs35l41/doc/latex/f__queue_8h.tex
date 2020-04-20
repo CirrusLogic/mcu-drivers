@@ -1,0 +1,67 @@
+\hypertarget{f__queue_8h}{}\doxysection{E\+:/jenkins/workspace/prince\+\_\+alt\+\_\+os\+\_\+merge@2/common/f\+\_\+queue.h File Reference}
+\label{f__queue_8h}\index{E:/jenkins/workspace/prince\_alt\_os\_merge"@2/common/f\_queue.h@{E:/jenkins/workspace/prince\_alt\_os\_merge"@2/common/f\_queue.h}}
+
+
+Generic fixed-\/size queue interface.  
+
+
+{\ttfamily \#include $<$stdint.\+h$>$}\newline
+{\ttfamily \#include $<$stdbool.\+h$>$}\newline
+\doxysubsection*{Classes}
+\begin{DoxyCompactItemize}
+\item 
+struct \mbox{\hyperlink{structf__queue__t}{f\+\_\+queue\+\_\+t}}
+\begin{DoxyCompactList}\small\item\em Queue handling data structure. \end{DoxyCompactList}\item 
+struct \mbox{\hyperlink{structf__queue__if__t}{f\+\_\+queue\+\_\+if\+\_\+t}}
+\begin{DoxyCompactList}\small\item\em Fixed Queue public A\+PI. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Macros}
+\begin{DoxyCompactItemize}
+\item 
+\#define {\bfseries F\+\_\+\+Q\+U\+E\+U\+E\+\_\+\+S\+T\+A\+T\+U\+S\+\_\+\+OK}
+\item 
+\#define {\bfseries F\+\_\+\+Q\+U\+E\+U\+E\+\_\+\+S\+T\+A\+T\+U\+S\+\_\+\+F\+A\+IL}
+\end{DoxyCompactItemize}
+\doxysubsection*{Typedefs}
+\begin{DoxyCompactItemize}
+\item 
+typedef bool($\ast$ \mbox{\hyperlink{f__queue_8h_abedd0d023ee1ed717ab173baae6a2d3b}{f\+\_\+queue\+\_\+copy}}) (void $\ast$from, void $\ast$to)
+\begin{DoxyCompactList}\small\item\em Abstract method for copying from one queue element type to another. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Variables}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{f__queue_8h_a6e330cc86418c2a1f232a13e02204720}\label{f__queue_8h_a6e330cc86418c2a1f232a13e02204720}} 
+\mbox{\hyperlink{structf__queue__if__t}{f\+\_\+queue\+\_\+if\+\_\+t}} $\ast$ \mbox{\hyperlink{f__queue_8h_a6e330cc86418c2a1f232a13e02204720}{f\+\_\+queue\+\_\+if\+\_\+g}}
+\begin{DoxyCompactList}\small\item\em Pointer to Public A\+PI implementation. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+Generic fixed-\/size queue interface. 
+
+\begin{DoxyCopyright}{Copyright}
+Copyright (c) Cirrus Logic 2019 All Rights Reserved, \href{http://www.cirrus.com/}{\texttt{ http\+://www.\+cirrus.\+com/}}
+\end{DoxyCopyright}
+This code and information are provided \textquotesingle{}as-\/is\textquotesingle{} without warranty of any kind, either expressed or implied, including but not limited to the implied warranties of merchantability and/or fitness for a particular purpose. 
+
+\doxysubsection{Typedef Documentation}
+\mbox{\Hypertarget{f__queue_8h_abedd0d023ee1ed717ab173baae6a2d3b}\label{f__queue_8h_abedd0d023ee1ed717ab173baae6a2d3b}} 
+\index{f\_queue.h@{f\_queue.h}!f\_queue\_copy@{f\_queue\_copy}}
+\index{f\_queue\_copy@{f\_queue\_copy}!f\_queue.h@{f\_queue.h}}
+\doxysubsubsection{\texorpdfstring{f\_queue\_copy}{f\_queue\_copy}}
+{\footnotesize\ttfamily typedef bool($\ast$ f\+\_\+queue\+\_\+copy) (void $\ast$from, void $\ast$to)}
+
+
+
+Abstract method for copying from one queue element type to another. 
+
+Since the queue copies contents into/out of the queue when inserting/removing, the initializer of the queue needs to provide the implementation for copying contents.
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em from} & pointer to element to copy contents from \\
+\hline
+\mbox{\texttt{ in}}  & {\em to} & pointer of empty element to which the contents should be copied\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+success of copy (true = successful, false = failed) 
+\end{DoxyReturn}

@@ -30,6 +30,7 @@
 #==========================================================================
 import os
 import sys
+import argparse
 from wmfw_parser import wmfw_parser, get_memory_region_from_type
 from wmdr_parser import wmdr_parser
 from c_h_file_templates import header_file, source_file
@@ -37,12 +38,12 @@ from c_h_file_templates import header_file, source_file
 #==========================================================================
 # VERSION
 #==========================================================================
-VERSION_STRING = "1.0.0"
+VERSION_STRING = "1.1.0"
 
 #==========================================================================
 # CONSTANTS/GLOBALS
 #==========================================================================
-supported_part_numbers = ['cs35l41']
+supported_part_numbers = ['cs35l41', 'cs40l25']
 supported_commands = ['print', 'export']
 
 supported_mem = {
@@ -60,7 +61,22 @@ supported_mem = {
         'pm': {
             'p32': 0x3800000,
         }
-    }
+    },
+    'cs40l25': {
+        'xm': {
+            'u24': 0x2800000,
+            'p32': 0x2000000,
+            'u32': 0x2400000,
+        },
+        'ym': {
+            'u24': 0x3400000,
+            'p32': 0x2C00000,
+            'u32': 0x3000000,
+        },
+        'pm': {
+            'p32': 0x3800000,
+        }
+    }    
 }
 
 block_size_limit = 4140
@@ -155,28 +171,36 @@ def validate_environment():
 
     return result
 
+def get_args():
+    """Parse arguments"""
+    parser = argparse.ArgumentParser(description='Parse command line arguments')
+    parser.add_argument('-s', '--suffix', type=str, default='',
+                        dest='suffix', help='Add a suffix to filenames, variables and defines.')
+    parser.add_argument('command', type=str, choices=supported_commands,
+                        help='The command you wish to execute.')
+    parser.add_argument('part_number', type=str, choices=supported_part_numbers,
+                        help='The part number that the wmfw is targeted at.')
+    parser.add_argument('wmfw', type=str, help='The wmfw (or \'firmware\') file to be parsed.')
+    parser.add_argument('wmdrs', type=str, nargs='*', help='The wmdr (or \'bin\') file(s) to be '\
+                        'parsed.')
+
+    args = parser.parse_args()
+    return args
+
 def validate_args(args):
-    result = False
+    # Check that WMFW path exists
+    if (not os.path.exists(args.wmfw)):
+        print("Invalid wmfw path: " + args.wmfw)
+        return False
+    if (len(args.wmdrs) == 0):
+        return True
+    # Check that WMDR path(s) exists
+    for wmdr in args.wmdrs:
+        if (not os.path.exists(wmdr)):
+            print("Invalid wmdr path: " + wmdr)
+            return False
 
-    if (len(args) >= 4):
-        if (args[1] in supported_commands):
-            # Check that part number is supported
-            if (args[2] in supported_part_numbers):
-                # Check that WMFW path exists
-                if (os.path.exists(args[3])):
-                    if (len(args) == 4):
-                        result = True
-                    elif (len(args) > 4):
-                        # Check that WMDR path(s) exists
-                        wmdr_filename_list = args[4:]
-                        one_file_does_not_exist = False
-                        for wmdr_filename in wmdr_filename_list:
-                            if (not os.path.exists(wmdr_filename)):
-                                one_file_does_not_exist = True
-                        if (not one_file_does_not_exist):
-                            result = True
-
-    return result
+    return True
 
 def print_start():
     print("")
@@ -186,33 +210,19 @@ def print_start():
 
     return
 
-def print_usage():
-    print("")
-    print("Usage:")
-    print("    python firmware_converter.py <command> <part_number> <wmfw_path> <wmdr_path>")
-    print("")
-    print("Examples:")
-    print("    python firmware_converter.py print cs35l41 firmware.wmfw")
-    print("    python firmware_converter.py print cs35l41 firmware.wmfw tuning.bin")
-    print("    python firmware_converter.py export cs35l41 firmware.wmfw tuning.bin")
-    print("    python firmware_converter.py export cs35l41 firmware.wmfw tuning0.bin tuning1.bin")
-    print("")
-    print("Commands:")
-    print("    'print' - parses the WMFW and BIN files and prints contents to standard output")
-    print("    'export' - parses the WMFW and BIN files and exports their contents to '<part_number>_firmware.c' and ")
-    print("               '<part_number>_firmware.h'")
-
-    return
-
 def print_args(args):
     print("")
-    print("Command: " + args[1])
-    print("Part Number: " + args[2])
-    print("WMFW Path: " + args[3])
-    if (len(args) > 4):
-        wmdr_filename_list = args[4:]
-        for wmdr_filename in wmdr_filename_list:
-            print("WMDR Path: " + wmdr_filename)
+    print("Command: " + args.command)
+    print("Part Number: " + args.part_number)
+    print("WMFW Path: " + args.wmfw)
+    if (len(args.wmdrs) > 0):
+        for wmdr in args.wmdrs:
+            print("WMDR Path: " + wmdr)
+
+    if (args.suffix):
+        print("Suffix: " + args.suffix)
+    else:
+        print("No suffix")
 
     return
 
@@ -240,36 +250,35 @@ def main(argv):
     if (not (validate_environment())):
         error_exit("Invalid Environment")
 
-    # validate arguments
-    if (not (validate_args(argv))):
-        print_usage()
-        error_exit("Invalid Arguments")
-    else:
-        print_args(argv)
+    args = get_args()
 
-    if (len(argv) > 4):
+    # validate arguments
+    print_args(args)
+    if (not (validate_args(args))):
+        error_exit("Invalid Arguments")
+
+    if (len(args.wmdrs) > 0):
         process_wmdr = True
     else:
         process_wmdr = False
 
-    command = argv[1]
-    part_number = argv[2]
-
     # Parse WMFW and WMDR files
-    wmfw_filename = argv[3]
-    wmfw = wmfw_parser(wmfw_filename)
+    wmfw = wmfw_parser(args.wmfw)
     wmfw.parse()
 
     if (process_wmdr):
-        wmdr_filenames = argv[4:]
         wmdrs = []
-        for wmdr_filename in wmdr_filenames:
+        for wmdr_filename in args.wmdrs:
             wmdr = wmdr_parser(wmdr_filename)
             wmdr.parse()
             wmdrs.append(wmdr)
 
+    suffix = ""
+    if (args.suffix):
+        suffix = "_" + args.suffix
+
     # Create address resolver
-    res = address_resolver(part_number)
+    res = address_resolver(args.part_number)
 
     # Create firmware data blocks - size according to 'block_size_limit'
     fw_data_block_list = fw_block_list(wmfw.get_data_blocks(), block_size_limit, res)
@@ -288,7 +297,7 @@ def main(argv):
 
 
     # Create C Header
-    hf = header_file(part_number)
+    hf = header_file(args.part_number + suffix)
     if (not process_wmdr):
         hf.update_block_info(len(fw_data_block_list.blocks), None)
     else:
@@ -316,7 +325,7 @@ def main(argv):
             hf.add_control(algorithm_name, coeff_desc.fields['coefficient_name'], temp_coeff_address)
 
     # Create C Source
-    cf = source_file(part_number)
+    cf = source_file(args.part_number + suffix)
     # Add FW Blocks
     for block in fw_data_block_list.blocks:
         block_bytes = []
@@ -337,27 +346,27 @@ def main(argv):
             coeff_block_list_count = coeff_block_list_count + 1
 
     results_str = ''
-    if (command == 'print'):
+    if (args.command == 'print'):
         results_str = '\n'
-        results_str = results_str + 'WMFW File: ' + wmfw_filename + '\n'
+        results_str = results_str + 'WMFW File: ' + args.wmfw + '\n'
         results_str = results_str + str(wmfw) + "\n"
         if (process_wmdr):
             wmdr_count = 0
             for wmdr in wmdrs:
-                results_str = results_str + 'WMDR File: ' + wmdr_filenames[wmdr_count] + '\n'
+                results_str = results_str + 'WMDR File: ' + args.wmdrs[wmdr_count] + '\n'
                 results_str = results_str + str(wmdr)
                 wmdr_count = wmdr_count + 1
-    elif (command == 'export'):
+    elif (args.command == 'export'):
         results_str = 'Exported to files:\n'
 
         # Write output to filesystem
-        temp_filename = part_number + "_firmware.h"
+        temp_filename = args.part_number + suffix + "_firmware.h"
         f = open(temp_filename, 'w')
         f.write(str(hf))
         f.close()
         results_str = results_str + temp_filename + '\n'
 
-        temp_filename = part_number + "_firmware.c"
+        temp_filename = args.part_number + suffix + "_firmware.c"
         f = open(temp_filename, 'w')
         f.write(str(cf))
         f.close()

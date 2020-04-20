@@ -1,0 +1,152 @@
+\hypertarget{bsp__driver__if_8h}{}\doxysection{E\+:/jenkins/workspace/princeh\+\_\+alt\+\_\+os\+\_\+merge/common/bsp\+\_\+driver\+\_\+if.h File Reference}
+\label{bsp__driver__if_8h}\index{E:/jenkins/workspace/princeh\_alt\_os\_merge/common/bsp\_driver\_if.h@{E:/jenkins/workspace/princeh\_alt\_os\_merge/common/bsp\_driver\_if.h}}
+
+
+Functions and prototypes that define the B\+S\+P-\/to-\/\+Device Driver Interface.  
+
+
+{\ttfamily \#include $<$stdint.\+h$>$}\newline
+\doxysubsection*{Classes}
+\begin{DoxyCompactItemize}
+\item 
+struct \mbox{\hyperlink{structbsp__driver__if__t}{bsp\+\_\+driver\+\_\+if\+\_\+t}}
+\begin{DoxyCompactList}\small\item\em B\+S\+P-\/to-\/\+Driver public A\+PI. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Macros}
+\begin{DoxyCompactItemize}
+\item 
+\#define {\bfseries B\+S\+P\+\_\+\+S\+T\+A\+T\+U\+S\+\_\+\+OK}
+\item 
+\#define {\bfseries B\+S\+P\+\_\+\+S\+T\+A\+T\+U\+S\+\_\+\+F\+A\+IL}
+\item 
+\#define {\bfseries B\+S\+P\+\_\+\+T\+I\+M\+E\+R\+\_\+\+D\+U\+R\+A\+T\+I\+O\+N\+\_\+1\+MS}
+\item 
+\#define {\bfseries B\+S\+P\+\_\+\+T\+I\+M\+E\+R\+\_\+\+D\+U\+R\+A\+T\+I\+O\+N\+\_\+2\+MS}
+\item 
+\#define {\bfseries B\+S\+P\+\_\+\+T\+I\+M\+E\+R\+\_\+\+D\+U\+R\+A\+T\+I\+O\+N\+\_\+10\+MS}
+\item 
+\#define {\bfseries B\+S\+P\+\_\+\+T\+I\+M\+E\+R\+\_\+\+D\+U\+R\+A\+T\+I\+O\+N\+\_\+2S}
+\item 
+\#define \mbox{\hyperlink{bsp__driver__if_8h_ab0dd3a70af7cb92d6dffd13230f278d9}{B\+S\+P\+\_\+\+G\+P\+I\+O\+\_\+\+L\+OW}}
+\begin{DoxyCompactList}\small\item\em Value to indicate driving a G\+P\+IO low. \end{DoxyCompactList}\item 
+\#define \mbox{\hyperlink{bsp__driver__if_8h_a282ffbba493d738a7b65cbea6d54eb8d}{B\+S\+P\+\_\+\+G\+P\+I\+O\+\_\+\+H\+I\+GH}}
+\begin{DoxyCompactList}\small\item\em Value to indicate driving a G\+P\+IO high. \end{DoxyCompactList}\item 
+\#define \mbox{\hyperlink{bsp__driver__if_8h_a1ab9f1379ee4174ce98b053475fc24ec}{G\+E\+T\+\_\+\+B\+Y\+T\+E\+\_\+\+F\+R\+O\+M\+\_\+\+W\+O\+RD}}(A,  B)
+\begin{DoxyCompactList}\small\item\em Macro to extract byte from multi-\/byte word. \end{DoxyCompactList}\item 
+\#define \mbox{\hyperlink{bsp__driver__if_8h_aee1903c13244accb102ec46aca7d39ee}{A\+D\+D\+\_\+\+B\+Y\+T\+E\+\_\+\+T\+O\+\_\+\+W\+O\+RD}}(A,  B,  C)
+\begin{DoxyCompactList}\small\item\em Macro to insert byte into multi-\/byte word. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Typedefs}
+\begin{DoxyCompactItemize}
+\item 
+typedef void($\ast$ \mbox{\hyperlink{bsp__driver__if_8h_a9da53d6fb2687f1afc4fe77a6d1a101f}{bsp\+\_\+callback\+\_\+t}}) (uint32\+\_\+t status, void $\ast$arg)
+\begin{DoxyCompactList}\small\item\em Callback type for B\+S\+P-\/to-\/\+Driver callbacks. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Variables}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{bsp__driver__if_8h_af9eab00f5b6129ff32f07ba0697df57d}\label{bsp__driver__if_8h_af9eab00f5b6129ff32f07ba0697df57d}} 
+\mbox{\hyperlink{structbsp__driver__if__t}{bsp\+\_\+driver\+\_\+if\+\_\+t}} $\ast$ \mbox{\hyperlink{bsp__driver__if_8h_af9eab00f5b6129ff32f07ba0697df57d}{bsp\+\_\+driver\+\_\+if\+\_\+g}}
+\begin{DoxyCompactList}\small\item\em Pointer to B\+S\+P-\/to-\/\+Driver A\+PI implementation. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+Functions and prototypes that define the B\+S\+P-\/to-\/\+Device Driver Interface. 
+
+\begin{DoxyCopyright}{Copyright}
+Copyright (c) Cirrus Logic 2019 All Rights Reserved, \href{http://www.cirrus.com/}{\texttt{ http\+://www.\+cirrus.\+com/}}
+\end{DoxyCopyright}
+This code and information are provided \textquotesingle{}as-\/is\textquotesingle{} without warranty of any kind, either expressed or implied, including but not limited to the implied warranties of merchantability and/or fitness for a particular purpose. 
+
+\doxysubsection{Macro Definition Documentation}
+\mbox{\Hypertarget{bsp__driver__if_8h_aee1903c13244accb102ec46aca7d39ee}\label{bsp__driver__if_8h_aee1903c13244accb102ec46aca7d39ee}} 
+\index{bsp\_driver\_if.h@{bsp\_driver\_if.h}!ADD\_BYTE\_TO\_WORD@{ADD\_BYTE\_TO\_WORD}}
+\index{ADD\_BYTE\_TO\_WORD@{ADD\_BYTE\_TO\_WORD}!bsp\_driver\_if.h@{bsp\_driver\_if.h}}
+\doxysubsubsection{\texorpdfstring{ADD\_BYTE\_TO\_WORD}{ADD\_BYTE\_TO\_WORD}}
+{\footnotesize\ttfamily \#define A\+D\+D\+\_\+\+B\+Y\+T\+E\+\_\+\+T\+O\+\_\+\+W\+O\+RD(\begin{DoxyParamCaption}\item[{}]{A,  }\item[{}]{B,  }\item[{}]{C }\end{DoxyParamCaption})}
+
+
+
+Macro to insert byte into multi-\/byte word. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in,out}}  & {\em A} & multi-\/byte word \\
+\hline
+\mbox{\texttt{ in}}  & {\em B} & byte value \\
+\hline
+\mbox{\texttt{ in}}  & {\em C} & zero-\/indexed byte position\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+none 
+\end{DoxyReturn}
+\mbox{\Hypertarget{bsp__driver__if_8h_a282ffbba493d738a7b65cbea6d54eb8d}\label{bsp__driver__if_8h_a282ffbba493d738a7b65cbea6d54eb8d}} 
+\index{bsp\_driver\_if.h@{bsp\_driver\_if.h}!BSP\_GPIO\_HIGH@{BSP\_GPIO\_HIGH}}
+\index{BSP\_GPIO\_HIGH@{BSP\_GPIO\_HIGH}!bsp\_driver\_if.h@{bsp\_driver\_if.h}}
+\doxysubsubsection{\texorpdfstring{BSP\_GPIO\_HIGH}{BSP\_GPIO\_HIGH}}
+{\footnotesize\ttfamily \#define B\+S\+P\+\_\+\+G\+P\+I\+O\+\_\+\+H\+I\+GH}
+
+
+
+Value to indicate driving a G\+P\+IO high. 
+
+\begin{DoxySeeAlso}{See also}
+\mbox{\hyperlink{structbsp__driver__if__t_a70afcf1a76958fba2a8f85dbd220dd83}{bsp\+\_\+driver\+\_\+if\+\_\+t.\+set\+\_\+gpio}} 
+\end{DoxySeeAlso}
+\mbox{\Hypertarget{bsp__driver__if_8h_ab0dd3a70af7cb92d6dffd13230f278d9}\label{bsp__driver__if_8h_ab0dd3a70af7cb92d6dffd13230f278d9}} 
+\index{bsp\_driver\_if.h@{bsp\_driver\_if.h}!BSP\_GPIO\_LOW@{BSP\_GPIO\_LOW}}
+\index{BSP\_GPIO\_LOW@{BSP\_GPIO\_LOW}!bsp\_driver\_if.h@{bsp\_driver\_if.h}}
+\doxysubsubsection{\texorpdfstring{BSP\_GPIO\_LOW}{BSP\_GPIO\_LOW}}
+{\footnotesize\ttfamily \#define B\+S\+P\+\_\+\+G\+P\+I\+O\+\_\+\+L\+OW}
+
+
+
+Value to indicate driving a G\+P\+IO low. 
+
+\begin{DoxySeeAlso}{See also}
+\mbox{\hyperlink{structbsp__driver__if__t_a70afcf1a76958fba2a8f85dbd220dd83}{bsp\+\_\+driver\+\_\+if\+\_\+t.\+set\+\_\+gpio}} 
+\end{DoxySeeAlso}
+\mbox{\Hypertarget{bsp__driver__if_8h_a1ab9f1379ee4174ce98b053475fc24ec}\label{bsp__driver__if_8h_a1ab9f1379ee4174ce98b053475fc24ec}} 
+\index{bsp\_driver\_if.h@{bsp\_driver\_if.h}!GET\_BYTE\_FROM\_WORD@{GET\_BYTE\_FROM\_WORD}}
+\index{GET\_BYTE\_FROM\_WORD@{GET\_BYTE\_FROM\_WORD}!bsp\_driver\_if.h@{bsp\_driver\_if.h}}
+\doxysubsubsection{\texorpdfstring{GET\_BYTE\_FROM\_WORD}{GET\_BYTE\_FROM\_WORD}}
+{\footnotesize\ttfamily \#define G\+E\+T\+\_\+\+B\+Y\+T\+E\+\_\+\+F\+R\+O\+M\+\_\+\+W\+O\+RD(\begin{DoxyParamCaption}\item[{}]{A,  }\item[{}]{B }\end{DoxyParamCaption})}
+
+
+
+Macro to extract byte from multi-\/byte word. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em A} & multi-\/byte word \\
+\hline
+\mbox{\texttt{ in}}  & {\em B} & zero-\/indexed byte position\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+byte at position B in word A 
+\end{DoxyReturn}
+
+
+\doxysubsection{Typedef Documentation}
+\mbox{\Hypertarget{bsp__driver__if_8h_a9da53d6fb2687f1afc4fe77a6d1a101f}\label{bsp__driver__if_8h_a9da53d6fb2687f1afc4fe77a6d1a101f}} 
+\index{bsp\_driver\_if.h@{bsp\_driver\_if.h}!bsp\_callback\_t@{bsp\_callback\_t}}
+\index{bsp\_callback\_t@{bsp\_callback\_t}!bsp\_driver\_if.h@{bsp\_driver\_if.h}}
+\doxysubsubsection{\texorpdfstring{bsp\_callback\_t}{bsp\_callback\_t}}
+{\footnotesize\ttfamily typedef void($\ast$ bsp\+\_\+callback\+\_\+t) (uint32\+\_\+t status, void $\ast$arg)}
+
+
+
+Callback type for B\+S\+P-\/to-\/\+Driver callbacks. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em status} & Result of B\+SP call \\
+\hline
+\mbox{\texttt{ in}}  & {\em arg} & Argument registered when B\+SP call was issued\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+none
+\end{DoxyReturn}
+\begin{DoxySeeAlso}{See also}
+\mbox{\hyperlink{group___b_s_p___s_t_a_t_u_s__}{B\+S\+P\+\_\+\+S\+T\+A\+T\+U\+S\+\_\+}} 
+\end{DoxySeeAlso}

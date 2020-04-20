@@ -1,0 +1,51 @@
+\hypertarget{structcs40l25__config__t}{}\doxysection{cs40l25\+\_\+config\+\_\+t Struct Reference}
+\label{structcs40l25__config__t}\index{cs40l25\_config\_t@{cs40l25\_config\_t}}
+
+
+Driver configuration data structure.  
+
+
+
+
+{\ttfamily \#include $<$cs40l25.\+h$>$}
+
+\doxysubsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+uint8\+\_\+t \mbox{\hyperlink{group___c_s40_l25___s_m___s_t_a_t_e___ga8a815c197f89f59bd7eb8ffaa583ddd7}{bsp\+\_\+dev\+\_\+id}}
+\begin{DoxyCompactList}\small\item\em Used to ID C\+S40\+L25 in bsp\+\_\+driver\+\_\+if calls. \end{DoxyCompactList}\item 
+uint32\+\_\+t \mbox{\hyperlink{group___c_s40_l25___s_m___s_t_a_t_e___ga7ff9e0b40979c892a288e78bddb2c93c}{bsp\+\_\+reset\+\_\+gpio\+\_\+id}}
+\begin{DoxyCompactList}\small\item\em Used to ID C\+S40\+L25 Reset pin in bsp\+\_\+driver\+\_\+if calls. \end{DoxyCompactList}\item 
+uint32\+\_\+t \mbox{\hyperlink{group___c_s40_l25___s_m___s_t_a_t_e___gac6b54c751a88e8e08d22422094bb5f56}{bsp\+\_\+int\+\_\+gpio\+\_\+id}}
+\begin{DoxyCompactList}\small\item\em Used to ID C\+S40\+L25 I\+NT pin in bsp\+\_\+driver\+\_\+if calls. \end{DoxyCompactList}\item 
+uint8\+\_\+t \mbox{\hyperlink{group___c_s40_l25___s_m___s_t_a_t_e___gaf7b8053600a6fc8f2197637660d08918}{bus\+\_\+type}}
+\begin{DoxyCompactList}\small\item\em Control Port type -\/ I2C or S\+PI. \end{DoxyCompactList}\item 
+uint8\+\_\+t $\ast$ \mbox{\hyperlink{group___c_s40_l25___s_m___s_t_a_t_e___ga7f2f90bb5a8261b2581e39009cda182c}{cp\+\_\+write\+\_\+buffer}}
+\begin{DoxyCompactList}\small\item\em Pointer to Control Port write byte buffer. \end{DoxyCompactList}\item 
+uint8\+\_\+t $\ast$ \mbox{\hyperlink{group___c_s40_l25___s_m___s_t_a_t_e___ga08413d0be1f16a66d646b83569b5b531}{cp\+\_\+read\+\_\+buffer}}
+\begin{DoxyCompactList}\small\item\em Pointer to Control Port read byte buffer. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{group___c_s40_l25___s_m___s_t_a_t_e___ga0b78156f6addb3f1db4918f59f2ac6c9}{cs40l25\+\_\+notification\+\_\+callback\+\_\+t}} \mbox{\hyperlink{group___c_s40_l25___s_m___s_t_a_t_e___ga5a60d7aa7688c330b39cb3cd8ea21d50}{notification\+\_\+cb}}
+\begin{DoxyCompactList}\small\item\em Notification callback registered for detected events. \end{DoxyCompactList}\item 
+void $\ast$ \mbox{\hyperlink{group___c_s40_l25___s_m___s_t_a_t_e___gaa5868ae1db251f8092120dc07ede2106}{notification\+\_\+cb\+\_\+arg}}
+\begin{DoxyCompactList}\small\item\em Notification callback argument. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{structcs40l25__audio__config__t}{cs40l25\+\_\+audio\+\_\+config\+\_\+t}} \mbox{\hyperlink{group___c_s40_l25___s_m___s_t_a_t_e___gacdc9da17e3486c3baab7d62ef79a8434}{audio\+\_\+config}}
+\begin{DoxyCompactList}\small\item\em Amplifier audio-\/related configuration. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{structcs40l25__amp__config__t}{cs40l25\+\_\+amp\+\_\+config\+\_\+t}} \mbox{\hyperlink{group___c_s40_l25___s_m___s_t_a_t_e___gac713190ea2e056727332d0d953f31554}{amp\+\_\+config}}
+\begin{DoxyCompactList}\small\item\em Amplifier amp-\/related configuration. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{structcs40l25__calibration__t}{cs40l25\+\_\+calibration\+\_\+t}} \mbox{\hyperlink{group___c_s40_l25___s_m___s_t_a_t_e___gaeba1c450b26f08a7fe025e24b8275b1c}{cal\+\_\+data}}
+\begin{DoxyCompactList}\small\item\em Calibration data from previous calibration sequence. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{structcs40l25__dsp__config__controls__t}{cs40l25\+\_\+dsp\+\_\+config\+\_\+controls\+\_\+t}} \mbox{\hyperlink{group___c_s40_l25___s_m___s_t_a_t_e___ga884328d21f7aae33a3b48aecc6ae1c5b}{dsp\+\_\+config\+\_\+ctrls}}
+\begin{DoxyCompactList}\small\item\em Configurable D\+SP controls. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+Driver configuration data structure. 
+
+\begin{DoxySeeAlso}{See also}
+\mbox{\hyperlink{structcs40l25__functions__t}{cs40l25\+\_\+functions\+\_\+t}} member configure 
+\end{DoxySeeAlso}
+
+
+The documentation for this struct was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{cs40l25_8h}{cs40l25.\+h}}\end{DoxyCompactItemize}

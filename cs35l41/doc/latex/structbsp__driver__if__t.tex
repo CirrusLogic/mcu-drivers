@@ -1,0 +1,288 @@
+\hypertarget{structbsp__driver__if__t}{}\doxysection{bsp\+\_\+driver\+\_\+if\+\_\+t Struct Reference}
+\label{structbsp__driver__if__t}\index{bsp\_driver\_if\_t@{bsp\_driver\_if\_t}}
+
+
+B\+S\+P-\/to-\/\+Driver public A\+PI.  
+
+
+
+
+{\ttfamily \#include $<$bsp\+\_\+driver\+\_\+if.\+h$>$}
+
+\doxysubsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+uint32\+\_\+t($\ast$ \mbox{\hyperlink{structbsp__driver__if__t_a70afcf1a76958fba2a8f85dbd220dd83}{set\+\_\+gpio}} )(uint32\+\_\+t gpio\+\_\+id, uint8\+\_\+t gpio\+\_\+state)
+\begin{DoxyCompactList}\small\item\em Set G\+P\+IO to L\+O\+W/\+H\+I\+GH. \end{DoxyCompactList}\item 
+uint32\+\_\+t($\ast$ \mbox{\hyperlink{structbsp__driver__if__t_a7216df97ff03731de9982edcfcbb6f2d}{toggle\+\_\+gpio}} )(uint32\+\_\+t gpio\+\_\+id)
+\begin{DoxyCompactList}\small\item\em Toggle G\+P\+IO state. \end{DoxyCompactList}\item 
+uint32\+\_\+t($\ast$ \mbox{\hyperlink{structbsp__driver__if__t_a11e60a843ba9d408cdb6c781af0b9705}{register\+\_\+gpio\+\_\+cb}} )(uint32\+\_\+t gpio\+\_\+id, \mbox{\hyperlink{bsp__driver__if_8h_a9da53d6fb2687f1afc4fe77a6d1a101f}{bsp\+\_\+callback\+\_\+t}} cb, void $\ast$cb\+\_\+arg)
+\begin{DoxyCompactList}\small\item\em Register G\+P\+IO Callback. \end{DoxyCompactList}\item 
+uint32\+\_\+t($\ast$ \mbox{\hyperlink{structbsp__driver__if__t_a1586994324a4a49f60a116dc6f6d59de}{set\+\_\+timer}} )(uint32\+\_\+t duration\+\_\+ms, \mbox{\hyperlink{bsp__driver__if_8h_a9da53d6fb2687f1afc4fe77a6d1a101f}{bsp\+\_\+callback\+\_\+t}} cb, void $\ast$cb\+\_\+arg)
+\begin{DoxyCompactList}\small\item\em Set a timer to expire. \end{DoxyCompactList}\item 
+uint32\+\_\+t($\ast$ \mbox{\hyperlink{structbsp__driver__if__t_a2582c8d24b24d595f80d7412955318b9}{i2c\+\_\+reset}} )(uint32\+\_\+t bsp\+\_\+dev\+\_\+id)
+\begin{DoxyCompactList}\small\item\em Reset I2C Port used for a specific device. \end{DoxyCompactList}\item 
+uint32\+\_\+t($\ast$ \mbox{\hyperlink{structbsp__driver__if__t_ae5aaff18522fa62a4e95f77460a819e5}{i2c\+\_\+read\+\_\+repeated\+\_\+start}} )(uint32\+\_\+t bsp\+\_\+dev\+\_\+id, uint8\+\_\+t $\ast$write\+\_\+buffer, uint32\+\_\+t write\+\_\+length, uint8\+\_\+t $\ast$read\+\_\+buffer, uint32\+\_\+t read\+\_\+length, \mbox{\hyperlink{bsp__driver__if_8h_a9da53d6fb2687f1afc4fe77a6d1a101f}{bsp\+\_\+callback\+\_\+t}} cb, void $\ast$cb\+\_\+arg)
+\begin{DoxyCompactList}\small\item\em Perform an I2C Write-\/\+Repeated Start-\/\+Read transaction. \end{DoxyCompactList}\item 
+uint32\+\_\+t($\ast$ \mbox{\hyperlink{structbsp__driver__if__t_a7e1b68f4df465cdfc9ca4e638a3270db}{i2c\+\_\+write}} )(uint32\+\_\+t bsp\+\_\+dev\+\_\+id, uint8\+\_\+t $\ast$write\+\_\+buffer, uint32\+\_\+t write\+\_\+length, \mbox{\hyperlink{bsp__driver__if_8h_a9da53d6fb2687f1afc4fe77a6d1a101f}{bsp\+\_\+callback\+\_\+t}} cb, void $\ast$cb\+\_\+arg)
+\begin{DoxyCompactList}\small\item\em Perform I2C Write. \end{DoxyCompactList}\item 
+uint32\+\_\+t($\ast$ \mbox{\hyperlink{structbsp__driver__if__t_aa73b0b4e59163f16fa0ef4521a027908}{i2c\+\_\+db\+\_\+write}} )(uint32\+\_\+t bsp\+\_\+dev\+\_\+id, uint8\+\_\+t $\ast$write\+\_\+buffer\+\_\+0, uint32\+\_\+t write\+\_\+length\+\_\+0, uint8\+\_\+t $\ast$write\+\_\+buffer\+\_\+1, uint32\+\_\+t write\+\_\+length\+\_\+1, \mbox{\hyperlink{bsp__driver__if_8h_a9da53d6fb2687f1afc4fe77a6d1a101f}{bsp\+\_\+callback\+\_\+t}} cb, void $\ast$cb\+\_\+arg)
+\begin{DoxyCompactList}\small\item\em Perform a Double-\/\+Buffered (\char`\"{}db\char`\"{}) I2C Write. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+B\+S\+P-\/to-\/\+Driver public A\+PI. 
+
+All A\+PI calls return a status \begin{DoxySeeAlso}{See also}
+\mbox{\hyperlink{group___c_s35_l41___s_t_a_t_u_s__}{C\+S35\+L41\+\_\+\+S\+T\+A\+T\+U\+S\+\_\+}} 
+\end{DoxySeeAlso}
+
+
+\doxysubsection{Member Data Documentation}
+\mbox{\Hypertarget{structbsp__driver__if__t_aa73b0b4e59163f16fa0ef4521a027908}\label{structbsp__driver__if__t_aa73b0b4e59163f16fa0ef4521a027908}} 
+\index{bsp\_driver\_if\_t@{bsp\_driver\_if\_t}!i2c\_db\_write@{i2c\_db\_write}}
+\index{i2c\_db\_write@{i2c\_db\_write}!bsp\_driver\_if\_t@{bsp\_driver\_if\_t}}
+\doxysubsubsection{\texorpdfstring{i2c\_db\_write}{i2c\_db\_write}}
+{\footnotesize\ttfamily uint32\+\_\+t($\ast$ bsp\+\_\+driver\+\_\+if\+\_\+t\+::i2c\+\_\+db\+\_\+write) (uint32\+\_\+t bsp\+\_\+dev\+\_\+id, uint8\+\_\+t $\ast$write\+\_\+buffer\+\_\+0, uint32\+\_\+t write\+\_\+length\+\_\+0, uint8\+\_\+t $\ast$write\+\_\+buffer\+\_\+1, uint32\+\_\+t write\+\_\+length\+\_\+1, \mbox{\hyperlink{bsp__driver__if_8h_a9da53d6fb2687f1afc4fe77a6d1a101f}{bsp\+\_\+callback\+\_\+t}} cb, void $\ast$cb\+\_\+arg)}
+
+
+
+Perform a Double-\/\+Buffered (\char`\"{}db\char`\"{}) I2C Write. 
+
+This will first write the contents of {\bfseries{write\+\_\+buffer\+\_\+0}} to the I2C device, and then write the contents of {\bfseries{write\+\_\+buffer\+\_\+1}}.
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em bsp\+\_\+dev\+\_\+id} & ID of the I2C device corresponding to the I2C peripheral to reset \\
+\hline
+\mbox{\texttt{ in}}  & {\em write\+\_\+buffer\+\_\+0} & pointer to array of first batch of bytes to write \\
+\hline
+\mbox{\texttt{ in}}  & {\em write\+\_\+length\+\_\+0} & total number of bytes in {\bfseries{write\+\_\+buffer\+\_\+0}} \\
+\hline
+\mbox{\texttt{ in}}  & {\em write\+\_\+buffer\+\_\+1} & pointer to array of second batch of bytes to write \\
+\hline
+\mbox{\texttt{ in}}  & {\em write\+\_\+length\+\_\+1} & total number of bytes in {\bfseries{write\+\_\+buffer\+\_\+1}} \\
+\hline
+\mbox{\texttt{ in}}  & {\em cb} & pointer to callback function \\
+\hline
+\mbox{\texttt{ in}}  & {\em cb\+\_\+arg} & pointer to argument to use when calling callback\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+
+\begin{DoxyItemize}
+\item B\+S\+P\+\_\+\+S\+T\+A\+T\+U\+S\+\_\+\+F\+A\+IL if bsp\+\_\+dev\+\_\+id is invalid, if any portion of I2C transaction failed
+\item B\+S\+P\+\_\+\+S\+T\+A\+T\+U\+S\+\_\+\+OK otherwise 
+\end{DoxyItemize}
+\end{DoxyReturn}
+\mbox{\Hypertarget{structbsp__driver__if__t_ae5aaff18522fa62a4e95f77460a819e5}\label{structbsp__driver__if__t_ae5aaff18522fa62a4e95f77460a819e5}} 
+\index{bsp\_driver\_if\_t@{bsp\_driver\_if\_t}!i2c\_read\_repeated\_start@{i2c\_read\_repeated\_start}}
+\index{i2c\_read\_repeated\_start@{i2c\_read\_repeated\_start}!bsp\_driver\_if\_t@{bsp\_driver\_if\_t}}
+\doxysubsubsection{\texorpdfstring{i2c\_read\_repeated\_start}{i2c\_read\_repeated\_start}}
+{\footnotesize\ttfamily uint32\+\_\+t($\ast$ bsp\+\_\+driver\+\_\+if\+\_\+t\+::i2c\+\_\+read\+\_\+repeated\+\_\+start) (uint32\+\_\+t bsp\+\_\+dev\+\_\+id, uint8\+\_\+t $\ast$write\+\_\+buffer, uint32\+\_\+t write\+\_\+length, uint8\+\_\+t $\ast$read\+\_\+buffer, uint32\+\_\+t read\+\_\+length, \mbox{\hyperlink{bsp__driver__if_8h_a9da53d6fb2687f1afc4fe77a6d1a101f}{bsp\+\_\+callback\+\_\+t}} cb, void $\ast$cb\+\_\+arg)}
+
+
+
+Perform an I2C Write-\/\+Repeated Start-\/\+Read transaction. 
+
+This is the common way to read data from an I2C device with a register file, since the address of the register to read must first be written to the device before reading any contents.
+
+Perform transaction in the order\+:
+\begin{DoxyEnumerate}
+\item I2C Start
+\item I2C write of {\bfseries{write\+\_\+length}} bytes from {\bfseries{write\+\_\+buffer}} 
+\item I2C Repeated Start
+\item I2C read of {\bfseries{read\+\_\+length}} bytes into {\bfseries{read\+\_\+buffer}} 
+\item I2C Stop
+\end{DoxyEnumerate}
+
+B\+SP will decode {\bfseries{bsp\+\_\+dev\+\_\+id}} to the correct I2C bus and I2C address.
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em bsp\+\_\+dev\+\_\+id} & ID of the I2C device corresponding to the I2C peripheral to reset \\
+\hline
+\mbox{\texttt{ in}}  & {\em write\+\_\+buffer} & pointer to array of bytes to write \\
+\hline
+\mbox{\texttt{ in}}  & {\em write\+\_\+length} & total number of bytes in {\bfseries{write\+\_\+buffer}} \\
+\hline
+\mbox{\texttt{ in}}  & {\em read\+\_\+buffer} & pointer to array of bytes to load with I2C bytes read \\
+\hline
+\mbox{\texttt{ in}}  & {\em read\+\_\+length} & total number of bytes to read into {\bfseries{read\+\_\+buffer}} \\
+\hline
+\mbox{\texttt{ in}}  & {\em cb} & pointer to callback function \\
+\hline
+\mbox{\texttt{ in}}  & {\em cb\+\_\+arg} & pointer to argument to use when calling callback\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+
+\begin{DoxyItemize}
+\item B\+S\+P\+\_\+\+S\+T\+A\+T\+U\+S\+\_\+\+F\+A\+IL if bsp\+\_\+dev\+\_\+id is invalid, if any portion of I2C transaction failed
+\item B\+S\+P\+\_\+\+S\+T\+A\+T\+U\+S\+\_\+\+OK otherwise 
+\end{DoxyItemize}
+\end{DoxyReturn}
+\mbox{\Hypertarget{structbsp__driver__if__t_a2582c8d24b24d595f80d7412955318b9}\label{structbsp__driver__if__t_a2582c8d24b24d595f80d7412955318b9}} 
+\index{bsp\_driver\_if\_t@{bsp\_driver\_if\_t}!i2c\_reset@{i2c\_reset}}
+\index{i2c\_reset@{i2c\_reset}!bsp\_driver\_if\_t@{bsp\_driver\_if\_t}}
+\doxysubsubsection{\texorpdfstring{i2c\_reset}{i2c\_reset}}
+{\footnotesize\ttfamily uint32\+\_\+t($\ast$ bsp\+\_\+driver\+\_\+if\+\_\+t\+::i2c\+\_\+reset) (uint32\+\_\+t bsp\+\_\+dev\+\_\+id)}
+
+
+
+Reset I2C Port used for a specific device. 
+
+Abort the current I2C transaction and reset the I2C peripheral. This is required for quickly handling of C\+S35\+L41 I\+RQ events.
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em bsp\+\_\+dev\+\_\+id} & ID of the I2C device corresponding to the I2C peripheral to reset\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+
+\begin{DoxyItemize}
+\item B\+S\+P\+\_\+\+S\+T\+A\+T\+U\+S\+\_\+\+F\+A\+IL if bsp\+\_\+dev\+\_\+id is invalid
+\item B\+S\+P\+\_\+\+S\+T\+A\+T\+U\+S\+\_\+\+OK otherwise 
+\end{DoxyItemize}
+\end{DoxyReturn}
+\mbox{\Hypertarget{structbsp__driver__if__t_a7e1b68f4df465cdfc9ca4e638a3270db}\label{structbsp__driver__if__t_a7e1b68f4df465cdfc9ca4e638a3270db}} 
+\index{bsp\_driver\_if\_t@{bsp\_driver\_if\_t}!i2c\_write@{i2c\_write}}
+\index{i2c\_write@{i2c\_write}!bsp\_driver\_if\_t@{bsp\_driver\_if\_t}}
+\doxysubsubsection{\texorpdfstring{i2c\_write}{i2c\_write}}
+{\footnotesize\ttfamily uint32\+\_\+t($\ast$ bsp\+\_\+driver\+\_\+if\+\_\+t\+::i2c\+\_\+write) (uint32\+\_\+t bsp\+\_\+dev\+\_\+id, uint8\+\_\+t $\ast$write\+\_\+buffer, uint32\+\_\+t write\+\_\+length, \mbox{\hyperlink{bsp__driver__if_8h_a9da53d6fb2687f1afc4fe77a6d1a101f}{bsp\+\_\+callback\+\_\+t}} cb, void $\ast$cb\+\_\+arg)}
+
+
+
+Perform I2C Write. 
+
+B\+SP will decode {\bfseries{bsp\+\_\+dev\+\_\+id}} to the correct I2C bus and I2C address.
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em bsp\+\_\+dev\+\_\+id} & ID of the I2C device corresponding to the I2C peripheral to reset \\
+\hline
+\mbox{\texttt{ in}}  & {\em write\+\_\+buffer} & pointer to array of bytes to write \\
+\hline
+\mbox{\texttt{ in}}  & {\em write\+\_\+length} & total number of bytes in {\bfseries{write\+\_\+buffer}} \\
+\hline
+\mbox{\texttt{ in}}  & {\em cb} & pointer to callback function \\
+\hline
+\mbox{\texttt{ in}}  & {\em cb\+\_\+arg} & pointer to argument to use when calling callback\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+
+\begin{DoxyItemize}
+\item B\+S\+P\+\_\+\+S\+T\+A\+T\+U\+S\+\_\+\+F\+A\+IL if bsp\+\_\+dev\+\_\+id is invalid, if any portion of I2C transaction failed
+\item B\+S\+P\+\_\+\+S\+T\+A\+T\+U\+S\+\_\+\+OK otherwise 
+\end{DoxyItemize}
+\end{DoxyReturn}
+\mbox{\Hypertarget{structbsp__driver__if__t_a11e60a843ba9d408cdb6c781af0b9705}\label{structbsp__driver__if__t_a11e60a843ba9d408cdb6c781af0b9705}} 
+\index{bsp\_driver\_if\_t@{bsp\_driver\_if\_t}!register\_gpio\_cb@{register\_gpio\_cb}}
+\index{register\_gpio\_cb@{register\_gpio\_cb}!bsp\_driver\_if\_t@{bsp\_driver\_if\_t}}
+\doxysubsubsection{\texorpdfstring{register\_gpio\_cb}{register\_gpio\_cb}}
+{\footnotesize\ttfamily uint32\+\_\+t($\ast$ bsp\+\_\+driver\+\_\+if\+\_\+t\+::register\+\_\+gpio\+\_\+cb) (uint32\+\_\+t gpio\+\_\+id, \mbox{\hyperlink{bsp__driver__if_8h_a9da53d6fb2687f1afc4fe77a6d1a101f}{bsp\+\_\+callback\+\_\+t}} cb, void $\ast$cb\+\_\+arg)}
+
+
+
+Register G\+P\+IO Callback. 
+
+Register a callback for when a G\+P\+IO changes state.
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em gpio\+\_\+id} & ID for G\+P\+IO to change -\/ can be defined in implementation header \\
+\hline
+\mbox{\texttt{ in}}  & {\em cb} & pointer to callback function \\
+\hline
+\mbox{\texttt{ in}}  & {\em cb\+\_\+arg} & pointer to argument to use when calling callback\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+
+\begin{DoxyItemize}
+\item B\+S\+P\+\_\+\+S\+T\+A\+T\+U\+S\+\_\+\+F\+A\+IL if gpio\+\_\+id is invalid, if any pointers are N\+U\+LL
+\item B\+S\+P\+\_\+\+S\+T\+A\+T\+U\+S\+\_\+\+OK otherwise 
+\end{DoxyItemize}
+\end{DoxyReturn}
+\mbox{\Hypertarget{structbsp__driver__if__t_a70afcf1a76958fba2a8f85dbd220dd83}\label{structbsp__driver__if__t_a70afcf1a76958fba2a8f85dbd220dd83}} 
+\index{bsp\_driver\_if\_t@{bsp\_driver\_if\_t}!set\_gpio@{set\_gpio}}
+\index{set\_gpio@{set\_gpio}!bsp\_driver\_if\_t@{bsp\_driver\_if\_t}}
+\doxysubsubsection{\texorpdfstring{set\_gpio}{set\_gpio}}
+{\footnotesize\ttfamily uint32\+\_\+t($\ast$ bsp\+\_\+driver\+\_\+if\+\_\+t\+::set\+\_\+gpio) (uint32\+\_\+t gpio\+\_\+id, uint8\+\_\+t gpio\+\_\+state)}
+
+
+
+Set G\+P\+IO to L\+O\+W/\+H\+I\+GH. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em gpio\+\_\+id} & ID for G\+P\+IO to change -\/ can be defined in implementation header \\
+\hline
+\mbox{\texttt{ in}}  & {\em gpio\+\_\+state} & L\+OW or H\+I\+GH\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+
+\begin{DoxyItemize}
+\item B\+S\+P\+\_\+\+S\+T\+A\+T\+U\+S\+\_\+\+F\+A\+IL if gpio\+\_\+id is invalid, or call to M\+CU H\+AL fails
+\item B\+S\+P\+\_\+\+S\+T\+A\+T\+U\+S\+\_\+\+OK otherwise
+\end{DoxyItemize}
+\end{DoxyReturn}
+\begin{DoxySeeAlso}{See also}
+\mbox{\hyperlink{bsp__driver__if_8h_ab0dd3a70af7cb92d6dffd13230f278d9}{B\+S\+P\+\_\+\+G\+P\+I\+O\+\_\+\+L\+OW}} \mbox{\hyperlink{bsp__driver__if_8h_a282ffbba493d738a7b65cbea6d54eb8d}{B\+S\+P\+\_\+\+G\+P\+I\+O\+\_\+\+H\+I\+GH}} 
+\end{DoxySeeAlso}
+\mbox{\Hypertarget{structbsp__driver__if__t_a1586994324a4a49f60a116dc6f6d59de}\label{structbsp__driver__if__t_a1586994324a4a49f60a116dc6f6d59de}} 
+\index{bsp\_driver\_if\_t@{bsp\_driver\_if\_t}!set\_timer@{set\_timer}}
+\index{set\_timer@{set\_timer}!bsp\_driver\_if\_t@{bsp\_driver\_if\_t}}
+\doxysubsubsection{\texorpdfstring{set\_timer}{set\_timer}}
+{\footnotesize\ttfamily uint32\+\_\+t($\ast$ bsp\+\_\+driver\+\_\+if\+\_\+t\+::set\+\_\+timer) (uint32\+\_\+t duration\+\_\+ms, \mbox{\hyperlink{bsp__driver__if_8h_a9da53d6fb2687f1afc4fe77a6d1a101f}{bsp\+\_\+callback\+\_\+t}} cb, void $\ast$cb\+\_\+arg)}
+
+
+
+Set a timer to expire. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em duration\+\_\+ms} & Duration of timer in milliseconds \\
+\hline
+\mbox{\texttt{ in}}  & {\em cb} & pointer to callback function \\
+\hline
+\mbox{\texttt{ in}}  & {\em cb\+\_\+arg} & pointer to argument to use when calling callback\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+
+\begin{DoxyItemize}
+\item B\+S\+P\+\_\+\+S\+T\+A\+T\+U\+S\+\_\+\+F\+A\+IL if duration\+\_\+ms is invalid, if any pointers are N\+U\+LL
+\item B\+S\+P\+\_\+\+S\+T\+A\+T\+U\+S\+\_\+\+OK otherwise 
+\end{DoxyItemize}
+\end{DoxyReturn}
+\mbox{\Hypertarget{structbsp__driver__if__t_a7216df97ff03731de9982edcfcbb6f2d}\label{structbsp__driver__if__t_a7216df97ff03731de9982edcfcbb6f2d}} 
+\index{bsp\_driver\_if\_t@{bsp\_driver\_if\_t}!toggle\_gpio@{toggle\_gpio}}
+\index{toggle\_gpio@{toggle\_gpio}!bsp\_driver\_if\_t@{bsp\_driver\_if\_t}}
+\doxysubsubsection{\texorpdfstring{toggle\_gpio}{toggle\_gpio}}
+{\footnotesize\ttfamily uint32\+\_\+t($\ast$ bsp\+\_\+driver\+\_\+if\+\_\+t\+::toggle\+\_\+gpio) (uint32\+\_\+t gpio\+\_\+id)}
+
+
+
+Toggle G\+P\+IO state. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em gpio\+\_\+id} & ID for G\+P\+IO to change -\/ can be defined in implementation header\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+
+\begin{DoxyItemize}
+\item B\+S\+P\+\_\+\+S\+T\+A\+T\+U\+S\+\_\+\+F\+A\+IL if gpio\+\_\+id is invalid, or call to M\+CU H\+AL fails
+\item B\+S\+P\+\_\+\+S\+T\+A\+T\+U\+S\+\_\+\+OK otherwise 
+\end{DoxyItemize}
+\end{DoxyReturn}
+
+
+The documentation for this struct was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+E\+:/jenkins/workspace/prince\+\_\+alt\+\_\+os\+\_\+merge@2/common/\mbox{\hyperlink{bsp__driver__if_8h}{bsp\+\_\+driver\+\_\+if.\+h}}\end{DoxyCompactItemize}

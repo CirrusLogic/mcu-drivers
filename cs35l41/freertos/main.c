@@ -76,11 +76,11 @@ void app_init(void)
 
 #ifdef INCLUDE_CALIBRATION
     bsp_audio_play_record(BSP_PLAY_SILENCE);
-    bsp_amp_boot(BOOT_TYPE_CALIBRATION_TUNE);
+    bsp_amp_boot(BOOT_AMP_TYPE_CALIBRATION_TUNE);
     is_calibrated = false;
 #else
     bsp_audio_play_record(BSP_PLAY_STEREO_1KHZ_20DBFS);
-    bsp_amp_boot(BOOT_TYPE_NORMAL_TUNE);
+    bsp_amp_boot(BOOT_AMP_TYPE_NORMAL_TUNE);
     is_calibrated = true;
 #endif
     app_audio_state = APP_AUDIO_STATE_PDN;
@@ -129,7 +129,7 @@ static void AppAmpAudioThread(void *argument)
                     is_calibrated = true;
                     bsp_audio_stop();
                     bsp_audio_play_record(BSP_PLAY_STEREO_1KHZ_20DBFS);
-                    bsp_amp_boot(BOOT_TYPE_NORMAL_TUNE);
+                    bsp_amp_boot(BOOT_AMP_TYPE_NORMAL_TUNE);
                     app_audio_state = APP_AUDIO_STATE_BOOTING;
                 }
                 break;

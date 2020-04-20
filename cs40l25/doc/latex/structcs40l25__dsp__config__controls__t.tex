@@ -1,0 +1,63 @@
+\hypertarget{structcs40l25__dsp__config__controls__t}{}\doxysection{cs40l25\+\_\+dsp\+\_\+config\+\_\+controls\+\_\+t Struct Reference}
+\label{structcs40l25__dsp__config__controls__t}\index{cs40l25\_dsp\_config\_controls\_t@{cs40l25\_dsp\_config\_controls\_t}}
+
+
+List of firmware controls configured through \mbox{\hyperlink{structcs40l25__config__t}{cs40l25\+\_\+config\+\_\+t}}.  
+
+
+
+
+{\ttfamily \#include $<$cs40l25.\+h$>$}
+
+\doxysubsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+bool {\bfseries dsp\+\_\+gpio1\+\_\+button\+\_\+detect\+\_\+enable}
+\item 
+bool {\bfseries dsp\+\_\+gpio2\+\_\+button\+\_\+detect\+\_\+enable}
+\item 
+bool {\bfseries dsp\+\_\+gpio3\+\_\+button\+\_\+detect\+\_\+enable}
+\item 
+bool {\bfseries dsp\+\_\+gpio4\+\_\+button\+\_\+detect\+\_\+enable}
+\item 
+bool {\bfseries dsp\+\_\+gpio\+\_\+enable}
+\item 
+uint16\+\_\+t {\bfseries dsp\+\_\+gpi\+\_\+gain\+\_\+control}
+\item 
+uint16\+\_\+t {\bfseries dsp\+\_\+ctrl\+\_\+gain\+\_\+control}
+\item 
+uint32\+\_\+t {\bfseries dsp\+\_\+gpio1\+\_\+index\+\_\+button\+\_\+press}
+\item 
+uint32\+\_\+t {\bfseries dsp\+\_\+gpio2\+\_\+index\+\_\+button\+\_\+press}
+\item 
+uint32\+\_\+t {\bfseries dsp\+\_\+gpio3\+\_\+index\+\_\+button\+\_\+press}
+\item 
+uint32\+\_\+t {\bfseries dsp\+\_\+gpio4\+\_\+index\+\_\+button\+\_\+press}
+\item 
+uint32\+\_\+t {\bfseries dsp\+\_\+gpio1\+\_\+index\+\_\+button\+\_\+release}
+\item 
+uint32\+\_\+t {\bfseries dsp\+\_\+gpio2\+\_\+index\+\_\+button\+\_\+release}
+\item 
+uint32\+\_\+t {\bfseries dsp\+\_\+gpio3\+\_\+index\+\_\+button\+\_\+release}
+\item 
+uint32\+\_\+t {\bfseries dsp\+\_\+gpio4\+\_\+index\+\_\+button\+\_\+release}
+\item 
+bool \mbox{\hyperlink{group___c_s40_l25___s_m___s_t_a_t_e___ga58ffc4afcd6a851ffc637de288570fcb}{clab\+\_\+enable}}
+\begin{DoxyCompactList}\small\item\em Whether Closed-\/loop Active Braking shoud be enabled. \end{DoxyCompactList}\item 
+uint32\+\_\+t \mbox{\hyperlink{group___c_s40_l25___s_m___s_t_a_t_e___gaee64b2011e609e854ac070b22155be57}{peak\+\_\+amplitude}}
+\begin{DoxyCompactList}\small\item\em Clab braking pulses are scaled down if they exceed this amplitude. Q2.\+22. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+List of firmware controls configured through \mbox{\hyperlink{structcs40l25__config__t}{cs40l25\+\_\+config\+\_\+t}}. 
+
+These values will be mapped to a register in \mbox{\hyperlink{unioncs40l25__config__registers__t}{cs40l25\+\_\+config\+\_\+registers\+\_\+t}};
+
+\begin{DoxySeeAlso}{See also}
+\mbox{\hyperlink{unioncs40l25__config__registers__t}{cs40l25\+\_\+config\+\_\+registers\+\_\+t}} 
+\end{DoxySeeAlso}
+
+
+The documentation for this struct was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{cs40l25_8h}{cs40l25.\+h}}\end{DoxyCompactItemize}

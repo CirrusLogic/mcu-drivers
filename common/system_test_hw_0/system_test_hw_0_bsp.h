@@ -61,10 +61,39 @@ extern "C" {
 #define BSP_PLAY_STEREO_100HZ_20DBFS    (2)
 #define BSP_PLAY_STEREO_PATTERN         (3)
 
-#define BOOT_TYPE_NO_FW                 (0)
-#define BOOT_TYPE_NO_TUNE               (1)
-#define BOOT_TYPE_CALIBRATION_TUNE      (2)
-#define BOOT_TYPE_NORMAL_TUNE           (3)
+#define BOOT_AMP_TYPE_NO_FW             (0)
+#define BOOT_AMP_TYPE_NO_TUNE           (1)
+#define BOOT_AMP_TYPE_CALIBRATION_TUNE  (2)
+#define BOOT_AMP_TYPE_NORMAL_TUNE       (3)
+
+#define BOOT_HAPTIC_TYPE_NO_BIN         (1 << 0)
+#define BOOT_HAPTIC_TYPE_WT             (1 << 1)
+#define BOOT_HAPTIC_TYPE_CLAB           (1 << 2)
+#define BOOT_HAPTIC_TYPE_CAL            (1 << 3)
+
+#ifdef TARGET_CS40L25
+#define BSP_HAPTIC_CONTROL_GET_HALO_HEARTBEAT (8)
+#define BSP_HAPTIC_CONTROL_SET_BHM_BUZZ_TRIGGER (9)
+#define BSP_HAPTIC_CONTROL_SET_TRIGGER_INDEX (12)
+#define BSP_HAPTIC_CONTROL_SET_TRIGGER_MS (13)
+#define BSP_HAPTIC_CONTROL_SET_TIMEOUT_MS (14)
+#define BSP_HAPTIC_CONTROL_SET_GPIO_ENABLE (15)
+#define BSP_HAPTIC_CONTROL_SET_GPIO1_BUTTON_DETECT (16)
+#define BSP_HAPTIC_CONTROL_SET_GPIO2_BUTTON_DETECT (17)
+#define BSP_HAPTIC_CONTROL_SET_GPIO3_BUTTON_DETECT (18)
+#define BSP_HAPTIC_CONTROL_SET_GPIO4_BUTTON_DETECT (19)
+#define BSP_HAPTIC_CONTROL_SET_GPI_GAIN_CONTROL (20)
+#define BSP_HAPTIC_CONTROL_SET_CTRL_PORT_GAIN_CONTROL (21)
+#define BSP_HAPTIC_CONTROL_SET_GPIO1_INDEX_BUTTON_PRESS (22)
+#define BSP_HAPTIC_CONTROL_SET_GPIO2_INDEX_BUTTON_PRESS (23)
+#define BSP_HAPTIC_CONTROL_SET_GPIO3_INDEX_BUTTON_PRESS (24)
+#define BSP_HAPTIC_CONTROL_SET_GPIO4_INDEX_BUTTON_PRESS (25)
+#define BSP_HAPTIC_CONTROL_SET_GPIO1_INDEX_BUTTON_RELEASE (26)
+#define BSP_HAPTIC_CONTROL_SET_GPIO2_INDEX_BUTTON_RELEASE (27)
+#define BSP_HAPTIC_CONTROL_SET_GPIO3_INDEX_BUTTON_RELEASE (28)
+#define BSP_HAPTIC_CONTROL_SET_GPIO4_INDEX_BUTTON_RELEASE (29)
+#define BSP_HAPTIC_CONTROL_SET_CLAB_ENABLED (30)
+#endif
 
 /***********************************************************************************************************************
  * MACROS
@@ -95,7 +124,16 @@ uint32_t bsp_amp_is_processing(bool *is_processing);
 uint32_t bsp_amp_process(void);
 #endif
 #ifdef TARGET_CS40L25
-// Add bsp_haptic_*() API here
+uint32_t bsp_haptic_initialize(uint8_t boot_type);
+uint32_t bsp_haptic_reset();
+uint32_t bsp_haptic_boot(bool cal_boot);
+uint32_t bsp_haptic_calibrate(void);
+uint32_t bsp_haptic_power_up(void);
+uint32_t bsp_haptic_power_down(void);
+uint32_t bsp_haptic_mute(bool is_mute);
+uint32_t bsp_haptic_is_processing(bool *is_processing);
+uint32_t bsp_haptic_process(void);
+uint32_t bsp_haptic_control(uint32_t id, uint32_t arg);
 #endif
 uint32_t bsp_audio_play(uint8_t content);
 uint32_t bsp_audio_play_record(uint8_t content);

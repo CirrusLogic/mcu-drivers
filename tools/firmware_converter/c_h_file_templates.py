@@ -77,6 +77,8 @@ header_file_template_str = """/**
  *
  * @{
  */
+#define {part_number_uc}_FIRMWARE_REVISION 0x2800010
+
 {control_defines}
 /** @} */
 
@@ -97,12 +99,15 @@ header_file_template_str = """/**
 /**
  * Block of HALO P/X/Y Memory contents for either firmware or coefficient download.
  */
+#ifndef HALO_BOOT_BLOCK_T_DEFINED
+#define HALO_BOOT_BLOCK_T_DEFINED
 typedef struct
 {
     uint32_t block_size;    ///< Size of block in bytes
     uint32_t address;       ///< Control Port register address at which to begin loading
     const uint8_t *bytes;   ///< Pointer to array of bytes consisting of block payload
 } halo_boot_block_t;
+#endif
 
 /***********************************************************************************************************************
  * GLOBAL VARIABLES

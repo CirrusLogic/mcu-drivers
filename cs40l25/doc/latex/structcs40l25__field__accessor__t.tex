@@ -1,0 +1,39 @@
+\hypertarget{structcs40l25__field__accessor__t}{}\doxysection{cs40l25\+\_\+field\+\_\+accessor\+\_\+t Struct Reference}
+\label{structcs40l25__field__accessor__t}\index{cs40l25\_field\_accessor\_t@{cs40l25\_field\_accessor\_t}}
+
+
+Data structure to describe a field to read via the Field Access SM.  
+
+
+
+
+{\ttfamily \#include $<$cs40l25.\+h$>$}
+
+\doxysubsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+uint32\+\_\+t \mbox{\hyperlink{group___c_s40_l25___s_m___s_t_a_t_e___gab96283e90d9b71a34ca87ffcb40bc66c}{address}}
+\begin{DoxyCompactList}\small\item\em Control Port address of field to access. \end{DoxyCompactList}\item 
+uint32\+\_\+t \mbox{\hyperlink{group___c_s40_l25___s_m___s_t_a_t_e___ga79ec325cdaa1e05060cb39d010063613}{value}}
+\begin{DoxyCompactList}\small\item\em Value to write/value read. \end{DoxyCompactList}\item 
+uint8\+\_\+t \mbox{\hyperlink{group___c_s40_l25___s_m___s_t_a_t_e___ga99ce4cfbd9abd23311d12de5e40d0827}{size}}
+\begin{DoxyCompactList}\small\item\em Bitwise size of field to access in register. \end{DoxyCompactList}\item 
+uint8\+\_\+t \mbox{\hyperlink{group___c_s40_l25___s_m___s_t_a_t_e___ga77db3d5aff675e6354134edac403edec}{shift}}
+\begin{DoxyCompactList}\small\item\em Bitwise shift of field to access in register. \end{DoxyCompactList}\item 
+bool \mbox{\hyperlink{group___c_s40_l25___s_m___s_t_a_t_e___gaf3f2f44e0425f1dea3fcf66a75d860ae}{ack\+\_\+ctrl}}
+\begin{DoxyCompactList}\small\item\em (True) Signal field is an acknowledge control \end{DoxyCompactList}\item 
+uint32\+\_\+t \mbox{\hyperlink{group___c_s40_l25___s_m___s_t_a_t_e___ga392ea6b5d94569eadf357751e9d1bb44}{ack\+\_\+reset}}
+\begin{DoxyCompactList}\small\item\em The value the field should reset to on ack (only valid for ack ctrls) \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+Data structure to describe a field to read via the Field Access SM. 
+
+\begin{DoxySeeAlso}{See also}
+\mbox{\hyperlink{cs40l25_8c_a284a728e4a1f1b4167be81e14557d464}{cs40l25\+\_\+load\+\_\+control}} 
+\end{DoxySeeAlso}
+
+
+The documentation for this struct was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{cs40l25_8h}{cs40l25.\+h}}\end{DoxyCompactItemize}

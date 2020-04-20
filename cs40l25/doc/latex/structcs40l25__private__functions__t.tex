@@ -1,0 +1,74 @@
+\hypertarget{structcs40l25__private__functions__t}{}\doxysection{cs40l25\+\_\+private\+\_\+functions\+\_\+t Struct Reference}
+\label{structcs40l25__private__functions__t}\index{cs40l25\_private\_functions\_t@{cs40l25\_private\_functions\_t}}
+
+
+Driver private A\+PI.  
+
+
+
+
+{\ttfamily \#include $<$cs40l25.\+h$>$}
+
+\doxysubsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+void($\ast$ \mbox{\hyperlink{group___c_s40_l25___s_m___s_t_a_t_e___ga9507f9288e1030310c30486d45c52547}{timer\+\_\+callback}} )(uint32\+\_\+t status, void $\ast$cb\+\_\+arg)
+\begin{DoxyCompactList}\small\item\em Notify the driver when the B\+SP Timer expires. \end{DoxyCompactList}\item 
+void($\ast$ \mbox{\hyperlink{group___c_s40_l25___s_m___s_t_a_t_e___gaaf971a22da1b6145717662b82e91a8cf}{cp\+\_\+read\+\_\+callback}} )(uint32\+\_\+t status, void $\ast$cb\+\_\+arg)
+\begin{DoxyCompactList}\small\item\em Notify the driver when the B\+SP Control Port (cp) read transaction completes. \end{DoxyCompactList}\item 
+void($\ast$ \mbox{\hyperlink{group___c_s40_l25___s_m___s_t_a_t_e___ga3729e80758b35ee2a2224a62a43c99f8}{cp\+\_\+write\+\_\+callback}} )(uint32\+\_\+t status, void $\ast$cb\+\_\+arg)
+\begin{DoxyCompactList}\small\item\em Notify the driver when the B\+SP Control Port (cp) write transaction completes. \end{DoxyCompactList}\item 
+void($\ast$ \mbox{\hyperlink{group___c_s40_l25___s_m___s_t_a_t_e___ga9ecb0de55d96200881e7c30999b3aee4}{irq\+\_\+callback}} )(uint32\+\_\+t status, void $\ast$cb\+\_\+arg)
+\begin{DoxyCompactList}\small\item\em Notify the driver when the C\+S40\+L25 I\+N\+Tb G\+P\+IO drops low. \end{DoxyCompactList}\item 
+uint32\+\_\+t($\ast$ \mbox{\hyperlink{group___c_s40_l25___s_m___s_t_a_t_e___ga7bde41f4c248d03a08ed8882e7031659}{read\+\_\+reg}} )(\mbox{\hyperlink{structcs40l25__t}{cs40l25\+\_\+t}} $\ast$driver, uint32\+\_\+t addr, uint32\+\_\+t $\ast$val, bool is\+\_\+blocking)
+\begin{DoxyCompactList}\small\item\em Reads the contents of a single register/memory address. \end{DoxyCompactList}\item 
+uint32\+\_\+t($\ast$ \mbox{\hyperlink{group___c_s40_l25___s_m___s_t_a_t_e___ga0c6a4e5a9344c10243f78eb07cf59e6f}{write\+\_\+reg}} )(\mbox{\hyperlink{structcs40l25__t}{cs40l25\+\_\+t}} $\ast$driver, uint32\+\_\+t addr, uint32\+\_\+t val, bool is\+\_\+blocking)
+\begin{DoxyCompactList}\small\item\em Writes the contents of a single register/memory address. \end{DoxyCompactList}\item 
+uint32\+\_\+t($\ast$ \mbox{\hyperlink{group___c_s40_l25___s_m___s_t_a_t_e___ga02bce945e25f52164a2ec1d956755c12}{reset\+\_\+sm}} )(\mbox{\hyperlink{structcs40l25__t}{cs40l25\+\_\+t}} $\ast$driver)
+\begin{DoxyCompactList}\small\item\em Reset State Machine. \end{DoxyCompactList}\item 
+uint32\+\_\+t($\ast$ \mbox{\hyperlink{group___c_s40_l25___s_m___s_t_a_t_e___gad398817f3d0a2fe76784fefe707d7d98}{boot\+\_\+sm}} )(\mbox{\hyperlink{structcs40l25__t}{cs40l25\+\_\+t}} $\ast$driver)
+\begin{DoxyCompactList}\small\item\em Boot State Machine. \end{DoxyCompactList}\item 
+uint32\+\_\+t($\ast$ \mbox{\hyperlink{group___c_s40_l25___s_m___s_t_a_t_e___gad1cd49b58c58500e76bc60dac3c8091b}{power\+\_\+up\+\_\+sm}} )(\mbox{\hyperlink{structcs40l25__t}{cs40l25\+\_\+t}} $\ast$driver)
+\begin{DoxyCompactList}\small\item\em Power Up State Machine. \end{DoxyCompactList}\item 
+uint32\+\_\+t($\ast$ \mbox{\hyperlink{group___c_s40_l25___s_m___s_t_a_t_e___gafb4e736ee4fe8a367b0e856a6e1f44b7}{power\+\_\+down\+\_\+sm}} )(\mbox{\hyperlink{structcs40l25__t}{cs40l25\+\_\+t}} $\ast$driver)
+\begin{DoxyCompactList}\small\item\em Power Down State Machine. \end{DoxyCompactList}\item 
+uint32\+\_\+t($\ast$ \mbox{\hyperlink{group___c_s40_l25___s_m___s_t_a_t_e___gabdc204ba869f6d3704a03bcc889c9ad2}{configure\+\_\+sm}} )(\mbox{\hyperlink{structcs40l25__t}{cs40l25\+\_\+t}} $\ast$driver)
+\begin{DoxyCompactList}\small\item\em Configure State Machine. \end{DoxyCompactList}\item 
+uint32\+\_\+t($\ast$ \mbox{\hyperlink{group___c_s40_l25___s_m___s_t_a_t_e___gaece73e35801079d40049a54f5f6e4cfb}{field\+\_\+access\+\_\+sm}} )(\mbox{\hyperlink{structcs40l25__t}{cs40l25\+\_\+t}} $\ast$driver)
+\begin{DoxyCompactList}\small\item\em Field Access State Machine. \end{DoxyCompactList}\item 
+uint32\+\_\+t($\ast$ \mbox{\hyperlink{group___c_s40_l25___s_m___s_t_a_t_e___gacb339b75e75d9ebc71ff38a5e57f9df1}{calibration\+\_\+sm}} )(\mbox{\hyperlink{structcs40l25__t}{cs40l25\+\_\+t}} $\ast$driver)
+\begin{DoxyCompactList}\small\item\em Calibration State Machine. \end{DoxyCompactList}\item 
+uint32\+\_\+t($\ast$ \mbox{\hyperlink{group___c_s40_l25___s_m___s_t_a_t_e___ga6c9d85d7b5700cb6edb7664f172486cc}{get\+\_\+dsp\+\_\+status\+\_\+sm}} )(\mbox{\hyperlink{structcs40l25__t}{cs40l25\+\_\+t}} $\ast$driver)
+\begin{DoxyCompactList}\small\item\em Get D\+SP Status State Machine. \end{DoxyCompactList}\item 
+uint32\+\_\+t($\ast$ \mbox{\hyperlink{group___c_s40_l25___s_m___s_t_a_t_e___gaad4520b12543853d586c7b11436044c9}{event\+\_\+sm}} )(void $\ast$driver)
+\begin{DoxyCompactList}\small\item\em Event Handler State Machine. \end{DoxyCompactList}\item 
+uint32\+\_\+t($\ast$ \mbox{\hyperlink{group___c_s40_l25___s_m___s_t_a_t_e___ga48729a8fb53697de8a3b2901449e5181}{get\+\_\+errata}} )(uint32\+\_\+t devid, uint32\+\_\+t revid, const uint32\+\_\+t $\ast$$\ast$errata)
+\begin{DoxyCompactList}\small\item\em Gets pointer to correct errata based on D\+E\+V\+I\+D/\+R\+E\+V\+ID. \end{DoxyCompactList}\item 
+uint32\+\_\+t($\ast$ \mbox{\hyperlink{group___c_s40_l25___s_m___s_t_a_t_e___gaa8cfaf2f3974a4e7e40f9506bbefff5b}{cp\+\_\+bulk\+\_\+read}} )(\mbox{\hyperlink{structcs40l25__t}{cs40l25\+\_\+t}} $\ast$driver, uint32\+\_\+t addr, uint32\+\_\+t length)
+\begin{DoxyCompactList}\small\item\em Reads contents from a consecutive number of memory addresses. \end{DoxyCompactList}\item 
+uint32\+\_\+t($\ast$ \mbox{\hyperlink{group___c_s40_l25___s_m___s_t_a_t_e___ga3787ab6aede0d1ea32755b2aacb45bff}{cp\+\_\+bulk\+\_\+write}} )(\mbox{\hyperlink{structcs40l25__t}{cs40l25\+\_\+t}} $\ast$driver, uint32\+\_\+t addr, uint8\+\_\+t $\ast$bytes, uint32\+\_\+t length)
+\begin{DoxyCompactList}\small\item\em Writes from byte array to consecutive number of Control Port memory addresses. \end{DoxyCompactList}\item 
+uint32\+\_\+t($\ast$ \mbox{\hyperlink{group___c_s40_l25___s_m___s_t_a_t_e___gaac55bb0ebae20fb002fc8858ee80be8f}{validate\+\_\+boot\+\_\+config}} )(\mbox{\hyperlink{structcs40l25__boot__config__t}{cs40l25\+\_\+boot\+\_\+config\+\_\+t}} $\ast$config, bool is\+\_\+fw\+\_\+boot, bool is\+\_\+coeff\+\_\+boot, bool is\+\_\+cal\+\_\+boot)
+\begin{DoxyCompactList}\small\item\em Validates the boot configuration provided by the B\+SP. \end{DoxyCompactList}\item 
+bool($\ast$ \mbox{\hyperlink{group___c_s40_l25___s_m___s_t_a_t_e___ga7aeda5eada72b4d3e59872505543f706}{control\+\_\+q\+\_\+copy}} )(void $\ast$from, void $\ast$to)
+\begin{DoxyCompactList}\small\item\em Implements \textquotesingle{}copy\textquotesingle{} method for Control Request Queue contents. \end{DoxyCompactList}\item 
+uint32\+\_\+t($\ast$ \mbox{\hyperlink{group___c_s40_l25___s_m___s_t_a_t_e___gadf841d40a07cb97ab15037ff964226bd}{is\+\_\+control\+\_\+valid}} )(\mbox{\hyperlink{structcs40l25__t}{cs40l25\+\_\+t}} $\ast$driver)
+\begin{DoxyCompactList}\small\item\em Check that the currently processed Control Request is valid for the current state of the driver. \end{DoxyCompactList}\item 
+uint32\+\_\+t($\ast$ \mbox{\hyperlink{group___c_s40_l25___s_m___s_t_a_t_e___ga7e3821dab7d2277e65e7fda6b452b9a7}{load\+\_\+control}} )(\mbox{\hyperlink{structcs40l25__t}{cs40l25\+\_\+t}} $\ast$driver)
+\begin{DoxyCompactList}\small\item\em Load new Control Request to be processed. \end{DoxyCompactList}\item 
+uint32\+\_\+t($\ast$ \mbox{\hyperlink{group___c_s40_l25___s_m___s_t_a_t_e___gafd4b833b750e811a9da3add8d9e10cc0}{irq\+\_\+to\+\_\+event\+\_\+id}} )(uint32\+\_\+t $\ast$\mbox{\hyperlink{cs40l25_8c_a93ed7ca914fe1948b5d02bdf1b1c0083}{irq\+\_\+statuses}})
+\begin{DoxyCompactList}\small\item\em Maps I\+RQ Flag to Event ID passed to B\+SP. \end{DoxyCompactList}\item 
+uint32\+\_\+t($\ast$ \mbox{\hyperlink{group___c_s40_l25___s_m___s_t_a_t_e___ga44c55755dadfd90ef7290ee04867b336}{apply\+\_\+configs}} )(\mbox{\hyperlink{structcs40l25__t}{cs40l25\+\_\+t}} $\ast$driver)
+\begin{DoxyCompactList}\small\item\em Apply all driver one-\/time configurations to corresponding Control Port register/memory addresses. \end{DoxyCompactList}\item 
+bool($\ast$ \mbox{\hyperlink{group___c_s40_l25___s_m___s_t_a_t_e___gacdea562b30695ece7ea7ad2283b034c4}{is\+\_\+mixer\+\_\+source\+\_\+used}} )(\mbox{\hyperlink{structcs40l25__t}{cs40l25\+\_\+t}} $\ast$driver, uint8\+\_\+t source)
+\begin{DoxyCompactList}\small\item\em Checks all hardware mixer source selections for a specific source. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+Driver private A\+PI. 
+
+
+
+The documentation for this struct was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{cs40l25_8h}{cs40l25.\+h}}\end{DoxyCompactItemize}
