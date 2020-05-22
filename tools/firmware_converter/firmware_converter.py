@@ -34,17 +34,18 @@ import argparse
 from wmfw_parser import wmfw_parser, get_memory_region_from_type
 from wmdr_parser import wmdr_parser
 from c_h_file_templates import header_file, source_file
+from wisce_file_templates import wisce_script_file
 
 #==========================================================================
 # VERSION
 #==========================================================================
-VERSION_STRING = "1.1.0"
+VERSION_STRING = "2.0.0"
 
 #==========================================================================
 # CONSTANTS/GLOBALS
 #==========================================================================
-supported_part_numbers = ['cs35l41', 'cs40l25']
-supported_commands = ['print', 'export']
+supported_part_numbers = ['cs35l41', 'cs40l25', 'cs48l32']
+supported_commands = ['print', 'export', 'wisce']
 
 supported_mem = {
     'cs35l41': {
@@ -76,10 +77,24 @@ supported_mem = {
         'pm': {
             'p32': 0x3800000,
         }
-    }    
-}
+    },
+    'cs48l32': {
+        'xm': {
+            'u24': 0x2800000,
+            'p32': 0x2000000,
+            'u32': 0x2400000,
+        },
+        'ym': {
+            'u24': 0x3400000,
+            'p32': 0x2C00000,
+            'u32': 0x3000000,
 
-block_size_limit = 4140
+        },
+        'pm': {
+            'p32': 0x3800000
+        }
+    }
+}
 
 #==========================================================================
 # CLASSES
@@ -183,6 +198,8 @@ def get_args():
     parser.add_argument('wmfw', type=str, help='The wmfw (or \'firmware\') file to be parsed.')
     parser.add_argument('wmdrs', type=str, nargs='*', help='The wmdr (or \'bin\') file(s) to be '\
                         'parsed.')
+    parser.add_argument('-i', '--i2c-address', type=str, default='0x80', dest='i2c_address', help='Specify I2C address for WISCE script output.')
+    parser.add_argument('-b', '--block-size-limit', type=int, default='4140', dest='block_size_limit', help='Specify maximum byte size of block per control port transaction.')
 
     args = parser.parse_args()
     return args
@@ -199,6 +216,12 @@ def validate_args(args):
         if (not os.path.exists(wmdr)):
             print("Invalid wmdr path: " + wmdr)
             return False
+
+    # Check that block_size_limit <= 4140
+    if (args.block_size_limit > 4140):
+        print("Invalid block_size_limit: " + str(args.block_size_limit))
+        print("Must be 4140 bytes or less.")
+        return False
 
     return True
 
@@ -281,7 +304,7 @@ def main(argv):
     res = address_resolver(args.part_number)
 
     # Create firmware data blocks - size according to 'block_size_limit'
-    fw_data_block_list = fw_block_list(wmfw.get_data_blocks(), block_size_limit, res)
+    fw_data_block_list = fw_block_list(wmfw.get_data_blocks(), args.block_size_limit, res)
     fw_data_block_list.rehash_blocks()
 
     # Create coeff data blocks - size according to 'block_size_limit'
@@ -289,7 +312,7 @@ def main(argv):
     if (process_wmdr):
         for wmdr in wmdrs:
             coeff_data_block_list = coeff_block_list(wmdr.coefficient_value_data_blocks,
-                                                     block_size_limit,
+                                                     args.block_size_limit,
                                                      res,
                                                      wmfw.fw_id_block)
             coeff_data_block_list.rehash_blocks()
@@ -297,7 +320,7 @@ def main(argv):
 
 
     # Create C Header
-    hf = header_file(args.part_number + suffix)
+    hf = header_file((args.part_number + suffix), dict(fw_id = wmfw.fw_id_block.fields['firmware_id']))
     if (not process_wmdr):
         hf.update_block_info(len(fw_data_block_list.blocks), None)
     else:
@@ -326,12 +349,14 @@ def main(argv):
 
     # Create C Source
     cf = source_file(args.part_number + suffix)
+    wf = wisce_script_file(args.part_number, args.i2c_address)
     # Add FW Blocks
     for block in fw_data_block_list.blocks:
         block_bytes = []
         for byte_str in block[1]:
             block_bytes.append(int.from_bytes(byte_str, 'little', signed=False))
         cf.add_fw_block(block[0], block_bytes)
+        wf.add_data_block(block[0], block_bytes)
     # Add Coeff Blocks
     if (process_wmdr):
         coeff_block_list_count = 0
@@ -343,6 +368,7 @@ def main(argv):
                     block_bytes.append(int.from_bytes(byte_str, 'little', signed=False))
 
                 cf.add_coeff_block(coeff_block_list_count, block[0], block_bytes)
+                wf.add_data_block(block[0], block_bytes)
             coeff_block_list_count = coeff_block_list_count + 1
 
     results_str = ''
@@ -371,6 +397,12 @@ def main(argv):
         f.write(str(cf))
         f.close()
         results_str = results_str + temp_filename + '\n'
+    elif (args.command == 'wisce'):
+        results_str = "Exported to WISCE Script.\n"
+        
+        f = open('wisce_script_output.txt', 'w')
+        f.write(str(wf))
+        f.close()
 
     print_results(results_str)
 

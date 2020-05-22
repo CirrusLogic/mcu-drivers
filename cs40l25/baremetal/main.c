@@ -34,7 +34,10 @@
 #define APP_STATE_BOOTED          (8)
 #define APP_STATE_POWER_UP        (9)
 #define APP_STATE_POWER_UP_NO_GPI (10)
-#define APP_STATE_POWER_UP_GPI    (11)
+#define APP_STATE_DYNAMIC_F0      (11)
+#define APP_STATE_POWER_UP_GPI    (12)
+#define APP_STATE_HIBERNATE       (13)
+#define APP_STATE_WAKE            (14)
 
 /***********************************************************************************************************************
  * LOCAL VARIABLES
@@ -192,7 +195,31 @@ int main(void)
                 }
                 break;
 
+            case APP_STATE_DYNAMIC_F0:
+                if (bsp_pb_pressed)
+                {
+                    bsp_haptic_dynamic_calibrate();
+                    app_state++;
+                }
+                break;
+
             case APP_STATE_POWER_UP_GPI:
+                if (bsp_pb_pressed)
+                {
+                    bsp_haptic_hibernate();
+                    app_state++;
+                }
+                break;
+
+           case APP_STATE_HIBERNATE:
+                if (bsp_pb_pressed)
+                {
+                    bsp_haptic_wake();
+                    app_state++;
+                }
+                break;
+
+          case APP_STATE_WAKE:
                 if (bsp_pb_pressed)
                 {
                     bsp_haptic_power_down();

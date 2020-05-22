@@ -1,10 +1,10 @@
 /**
  * @file cs40l25_spec.h
  *
- * @brief Constants and Types from CS40L25 datasheet DS1215F2
+ * @brief Constants and Types from CS40L25 datasheet
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2019 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2019, 2020 All Rights Reserved, http://www.cirrus.com/
  *
  * This code and information are provided 'as-is' without warranty of any
  * kind, either expressed or implied, including but not limited to the
@@ -55,9 +55,9 @@ struct cs40l25_register_encoding
  *
  * @{
  */
-#define CS40L25_T_AMP_PUP_MS                                                (1)             ///< @see Table 3-4
-#define CS40L25_T_RLPW_MS                                                   (2)             ///< @see Table 3-17
-#define CS40L25_T_IRS_MS                                                    (1)             ///< @see Table 3-17
+#define CS40L25_T_BST_PUP_MS                                                (1)             ///< @see Table 3-5
+#define CS40L25_T_RLPW_MS                                                   (2)             ///< @see Table 3-14
+#define CS40L25_T_IRS_MS                                                    (1)             ///< @see Table 3-14
 /** @} */
 
 /**
@@ -69,6 +69,28 @@ struct cs40l25_register_encoding
  * @{
  */
 /**
+ * @defgroup SECTION_4_4_BHM
+ * @brief Register descriptions from datasheet
+ *
+ * @see Datasheet Section 4.4.2
+ *
+ * @{
+ */
+#define DSP_BHM_HALO_HEARTBEAT_REG                                          (0x02800158)    ///< @see Section 4.4.2
+#define DSP_BHM_STATEMACHINE_REG                                            (0X0280015C)    ///< @see Section 4.4.2
+#define DSP_BHM_STATEMACHINE_SHUTDOWN                                       (0x4)           ///< @see Section 4.4.2
+#define DSP_BHM_BUZZ_TRIGGER_REG                                            (0x02800188)    ///< @see Section 4.4.2
+#define DSP_BHM_AMP_STATUS_REG                                              (0x0280018C)    ///< @see Section 4.4.2
+#define DSP_BHM_AMP_STATUS_BOOT_DONE_BITMASK                                (0x1)           ///< @see Section 4.4.2
+#define DSP_BHM_AMP_STATUS_OTP_ERROR_BITMASK                                (0x2)           ///< @see Section 4.4.2
+#define DSP_BHM_AMP_STATUS_AMP_ERROR_BITMASK                                (0x4)           ///< @see Section 4.4.2
+#define DSP_BHM_AMP_STATUS_TEMP_RISE_WARN_BITMASK                           (0x8)           ///< @see Section 4.4.2
+#define DSP_BHM_AMP_STATUS_TEMP_ERROR_BITMASK                               (0x10)          ///< @see Section 4.4.2
+#define DSP_BHM_AMP_SHUTDOWNREQUEST_REG                                     (0x02800190)    ///< @see Section 4.4.2
+#define DSP_BHM_AMP_SHUTDOWNREQUEST_BITMASK                                 (0x1)           ///< @see Section 4.4.2
+/** @} */
+
+/**
  * Table for BST_K1 values based on L_BST and C_BST values
  *
  * Table is arranged as:
@@ -76,7 +98,7 @@ struct cs40l25_register_encoding
  * - index1 - C_BST value, in increasing order
  *
  * @see BOOST_BST_LOOP_COEFF_REG
- * @see Section 4.4.6, Table 4-15
+ * @see Section 4.6.3, Table 4-10
  *
  */
 extern const uint8_t cs40l25_bst_k1_table[4][5];
@@ -89,7 +111,7 @@ extern const uint8_t cs40l25_bst_k1_table[4][5];
  * - index1 - C_BST value, in increasing order
  *
  * @see BOOST_BST_LOOP_COEFF_REG
- * @see Section 4.4.6, Table 4-15
+ * @see Section 4.6.3, Table 4-10
  *
  */
 extern const uint8_t cs40l25_bst_k2_table[4][5];
@@ -100,7 +122,7 @@ extern const uint8_t cs40l25_bst_k2_table[4][5];
  * Table is indexed by L_BST value, in increasing order
  *
  * @see BOOST_LBST_SLOPE_REG
- * @see Section 4.4.6, Table 4-15
+ * @see Section 4.6.3, Table 4-10
  *
  */
 extern const uint8_t cs40l25_bst_slope_table[4];
@@ -116,13 +138,9 @@ extern const uint8_t cs40l25_bst_slope_table[4];
  */
 #define CS40L25_SW_RESET_DEVID_REG                                          (0x0)           ///< @see Section 7.1.1
 #define CS40L25_SW_RESET_REVID_REG                                          (0x4)           ///< @see Section 7.1.2
-#define CS40L25_SW_RESET_REVID_MTLREVID_BITMASK                             (0xF)           ///< @see Section 7.1.2
-#define CS40L25_SW_RESET_REVID_AREVID_BITOFFSET                             (0x4)           ///< @see Section 7.1.2
-#define CS40L25_SW_RESET_REVID_AREVID_BITMASK                               (0xF0)          ///< @see Section 7.1.2
-#define CS40L25_SW_RESET_OTPID_REG                                          (0x10)          ///< @see Section 7.1.5
-#define CS40L25_SW_RESET_OTPID_OTPID_BITMASK                                (0xF)           ///< @see Section 7.1.5
 
-#define CS40L25_DEVID                                                       (0x40a25a)       ///< @see Section 7.1.1
+#define CS40L25_DEVID                                                       (0x40a25a)      ///< @see Section 7.1.1
+#define CS40L25B_DEVID                                                      (0x40a25b)      ///< @see Section 7.1.1
 #define CS40L25_REVID_B1                                                    (0xB1)          ///< @see Section 7.1.2
 /** @} */
 
@@ -143,17 +161,6 @@ extern const uint8_t cs40l25_bst_slope_table[4];
 /** @} */
 
 /**
- * @defgroup SECTION_7_3_OTP_IF
- * @brief Register descriptions from datasheet
- *
- * @see Datasheet Section 7.3
- *
- * @{
- */
-#define CS40L25_OTP_IF_OTP_MEM0_REG                                         (0x400)         ///< @see Section 7.3.1
-/** @} */
-
-/**
  * @defgroup SECTION_7_5_MSM
  * @brief Register descriptions from datasheet
  *
@@ -161,8 +168,6 @@ extern const uint8_t cs40l25_bst_slope_table[4];
  *
  * @{
  */
-#define MSM_GLOBAL_ENABLES_REG                                              (0x2014)        ///< @see Section 7.5.1
-#define MSM_GLOBAL_ENABLES_GLOBAL_EN_BITMASK                                (0x1)           ///< @see Section 7.5.1
 #define MSM_BLOCK_ENABLES_REG                                               (0x2018)        ///< @see Section 7.5.2
 #define MSM_BLOCK_ENABLES_BST_EN_BITMASK                                    (0x30)          ///< @see Section 7.5.2
 /**
@@ -225,14 +230,31 @@ typedef union
 /** @} */
 
 /**
- * @defgroup SECTION_7_6_PAD_INTF
+ * @defgroup SECTION_7_8_PWRMGT
  * @brief Register descriptions from datasheet
  *
- * @see Datasheet Section 7.6
+ * @see Datasheet Section 7.8
  *
  * @{
  */
-#define PAD_INTF_GPIO_PAD_CONTROL_REG                                       (0x242C)        ///< @see Section 7.6.3
+#define CS40L25_PWRMGT_CTL_REG                                              (0x2900)        ///< @see Section 7.8.1
+
+#define CS40L25_PWRMGT_CTL_MEM_RDY_TRIG_HIBER                               (3)             ///< @see Section 7.8.1
+
+#define CS40L25_WAKESRC_CTL_REG                                             (0x2904)        ///< @see Section 7.8.2
+
+typedef union
+{
+    uint32_t word;
+
+    struct
+    {
+        uint32_t wksrc_pol                  : 4;
+        uint32_t wksrc_en                   : 4;
+        uint32_t updt_wkctl                 : 1;
+        uint32_t reserved                   : 23;
+    };
+} cs40l25_wakesrc_ctl_t;
 /** @} */
 
 /**
@@ -247,7 +269,7 @@ typedef union
 
 #define CS40L25_PLL_REFLCLK_SEL_BCLK                                        (0x0)           ///< @see Section 7.9.1
 #define CS40L25_PLL_REFLCLK_SEL_FSYNC                                       (0x1)           ///< @see Section 7.9.1
-#define CS40L25_PLL_REFLCLK_SEL_MCLK                                        (0x3)           ///< @see Section 7.9.1
+#define CS40L25_PLL_REFLCLK_SEL_MCLK                                        (0x5)           ///< @see Section 7.9.1
 /**
  * Register definition for CCM_REFCLK_INPUT_REG
  *
@@ -392,30 +414,6 @@ typedef union
         uint32_t reserved_1                 : 16;
     };
 } cs40l25_boost_lbst_slope_t;
-
-#define BOOST_BST_DCM_CTL_REG                                               (0x381C)        ///< @see Section 7.11.8
-/** @} */
-
-/**
- * @defgroup SECTION_7_12_VIMON
- * @brief Register descriptions from datasheet
- *
- * @see Datasheet Section 7.12
- *
- * @{
- */
-#define VIMON_SPKMON_RESYNC_REG                                             (0x4100)        ///< Reserved
-/** @} */
-
-/**
- * @defgroup SECTION_7_14_SARADC
- * @brief Register descriptions from datasheet
- *
- * @see Datasheet Section 7.14
- *
- * @{
- */
-#define SARADC_SAR_FS_SEL_REG                                               (0x4400)        ///< @see Section 7.14.1
 /** @} */
 
 /**
@@ -597,8 +595,6 @@ typedef union
         uint32_t reserved                   : 26;
     };
 } cs40l25_dataif_asp_data_control5_t;
-
-#define DATAIF_ASP_CONTROL4_REG                                             (0x4854)        ///< Reserved
 /** @} */
 
 /**
@@ -709,7 +705,6 @@ typedef union
 } cs40l25_intp_amp_ctrl_t;
 /** @} */
 
-
 /**
  * @defgroup SECTION_7_23_IRQ1
  * @brief Register descriptions from datasheet
@@ -718,21 +713,10 @@ typedef union
  *
  * @{
  */
-#define IRQ1_IRQ1_EINT_1_REG                                                (0x10010)       ///< @see Section 7.23.3
-#define IRQ1_IRQ1_EINT_1_BST_OVP_ERR_EINT1_BITMASK                          (0x40)          ///< @see Section 7.23.3
-#define IRQ1_IRQ1_EINT_1_BST_DCM_UVP_ERR_EINT1_BITMASK                      (0x80)          ///< @see Section 7.23.3
-#define IRQ1_IRQ1_EINT_1_BST_SHORT_ERR_EINT1_BITMASK                        (0x100)         ///< @see Section 7.23.3
-#define IRQ1_IRQ1_EINT_1_TEMP_WARN_RISE_EINT1_BITMASK                       (0x8000)        ///< @see Section 7.23.3
-#define IRQ1_IRQ1_EINT_1_TEMP_ERR_EINT1_BITMASK                             (0x20000)       ///< @see Section 7.23.3
-#define IRQ1_IRQ1_EINT_1_MSM_PDN_DONE_EINT1_BITMASK                         (0x800000)      ///< @see Section 7.23.3
-#define IRQ1_IRQ1_EINT_1_AMP_ERR_EINT1_BITMASK                              (0x80000000)    ///< @see Section 7.23.3
-#define IRQ1_IRQ1_EINT_2_REG                                                (0x10014)       ///< @see Section 7.23.4
-#define IRQ1_IRQ1_EINT_2_DSP_VIRTUAL2_MBOX_WR_EINT1_BITMASK                 (0x200000)      ///< @see Section 7.23.4
 #define IRQ1_IRQ1_EINT_3_REG                                                (0x10018)       ///< @see Section 7.23.5
 #define IRQ1_IRQ1_EINT_3_OTP_BOOT_ERR_BITMASK                               (0x80000000)    ///< @see Section 7.23.5
 #define IRQ1_IRQ1_EINT_4_REG                                                (0x1001C)       ///< @see Section 7.23.6
 #define IRQ1_IRQ1_EINT_4_BOOT_DONE_BITMASK                                  (0x2)           ///< @see Section 7.23.6
-#define IRQ1_IRQ1_MASK_1_REG                                                (0x10110)       ///< @see Section 7.23.11
 /** @} */
 
 /**
@@ -743,32 +727,13 @@ typedef union
  *
  * @{
  */
-#define IRQ2_IRQ2_EINT_2_REG                                                (0x10814)       ///< @see Section 7.24.4
-#define IRQ2_IRQ2_EINT_2_DSP_VIRTUAL1_MBOX_WR_EINT2_BITMASK                 (0x100000)      ///< @see Section 7.24.4
-#define IRQ2_IRQ2_MASK_2_REG                                                (0x10914)       ///< @see Section 7.24.12
-#define IRQ2_IRQ2_MASK_2_DSP_VIRTUAL1_MBOX_WR_MASK2_BITMASK                 (0x100000)      ///< @see Section 7.24.12
-/** @} */
-
-/**
- * @defgroup SECTION_7_25_GPIO
- * @brief Register descriptions from datasheet
- *
- * @see Datasheet Section 7.25
- *
- * @{
- */
-#define GPIO_GPIO2_CTRL1_REG                                                (0x1100C)       ///< @see Section 7.25.3
-/** @} */
-
-/**
- * @defgroup SECTION_7_27_DSP_MBOX
- * @brief Register descriptions from datasheet
- *
- * @see Datasheet Section 7.27
- *
- * @{
- */
-#define DSP_MBOX_DSP_MBOX_2_REG                                             (0x13004)       ///< @see Section 7.27.2
+#define IRQ2_IRQ2_EINT_1_REG                                                (0x10810)       ///< @see Section 7.24.3
+#define IRQ2_IRQ2_EINT_1_BST_OVP_ERR_EINT2_BITMASK                          (0x40)          ///< @see Section 7.24.3
+#define IRQ2_IRQ2_EINT_1_BST_DCM_UVP_ERR_EINT2_BITMASK                      (0x80)          ///< @see Section 7.24.3
+#define IRQ2_IRQ2_EINT_1_BST_SHORT_ERR_EINT2_BITMASK                        (0x100)         ///< @see Section 7.24.3
+#define IRQ2_IRQ2_EINT_1_TEMP_WARN_RISE_EINT2_BITMASK                       (0x8000)        ///< @see Section 7.24.3
+#define IRQ2_IRQ2_EINT_1_TEMP_ERR_EINT2_BITMASK                             (0x20000)       ///< @see Section 7.24.3
+#define IRQ2_IRQ2_EINT_1_AMP_ERR_EINT2_BITMASK                              (0x80000000)    ///< @see Section 7.24.3
 /** @} */
 
 /**
@@ -780,32 +745,8 @@ typedef union
  * @{
  */
 #define DSP_VIRTUAL1_MBOX_DSP_VIRTUAL1_MBOX_1_REG                           (0x13020)       ///< @see Section 7.28.1
-#define DSP_VIRTUAL1_MBOX_DSP_VIRTUAL1_MBOX_2_REG                           (0x13024)       ///< @see Section 7.28.1
-#define DSP_VIRTUAL1_MBOX_DSP_VIRTUAL1_MBOX_4_REG                           (0x1302C)       ///< @see Section 7.28.1
-#define DSP_VIRTUAL1_MBOX_DSP_VIRTUAL1_MBOX_4_NONE                          (0x0)           ///< @see Section 7.28.1
-#define DSP_VIRTUAL1_MBOX_DSP_VIRTUAL1_MBOX_4_FORCE_STANDBY                 (0x3)           ///< @see Section 7.28.1
-/** @} */
-
-/**
- * @defgroup SECTION_4_4_BHM
- * @brief Register descriptions from datasheet
- *
- * @see Datasheet Section 4.4.2
- *
- * @{
- */
-#define DSP_BHM_HALO_HEARTBEAT_REG                                          (0x02800158)    ///< @see Section 4.4.2
-#define DSP_BHM_STATEMACHINE_REG                                            (0X0280015C)    ///< @see Section 4.4.2
-#define DSP_BHM_STATEMACHINE_SHUTDOWN                                       (0x4)           ///< @see Section 4.4.2
-#define DSP_BHM_BUZZ_TRIGGER_REG                                            (0x02800188)    ///< @see Section 4.4.2
-#define DSP_BHM_AMP_STATUS_REG                                              (0x0280018C)    ///< @see Section 4.4.2
-#define DSP_BHM_AMP_STATUS_BOOT_DONE_BITMASK                                (0x1)           ///< @see Section 4.4.2
-#define DSP_BHM_AMP_STATUS_OTP_ERROR_BITMASK                                (0x2)           ///< @see Section 4.4.2
-#define DSP_BHM_AMP_STATUS_AMP_ERROR_BITMASK                                (0x4)           ///< @see Section 4.4.2
-#define DSP_BHM_AMP_STATUS_TEMP_RISE_WARN_BITMASK                           (0x8)           ///< @see Section 4.4.2
-#define DSP_BHM_AMP_STATUS_TEMP_ERROR_BITMASK                               (0x10)          ///< @see Section 4.4.2
-#define DSP_BHM_AMP_SHUTDOWNREQUEST_REG                                     (0x02800190)    ///< @see Section 4.4.2
-#define DSP_BHM_AMP_SHUTDOWNREQUEST_BITMASK                                 (0x1)           ///< @see Section 4.4.2
+#define DSP_VIRTUAL1_MBOX_DSP_VIRTUAL1_MBOX_2_REG                           (0x13024)       ///< @see Section 7.28.2
+#define DSP_VIRTUAL1_MBOX_DSP_VIRTUAL1_MBOX_4_REG                           (0x1302C)       ///< @see Section 7.28.4
 /** @} */
 
 /**
@@ -855,8 +796,6 @@ typedef union
  *
  * @{
  */
-#define XM_UNPACKED24_DSP1_CORE_SOFT_RESET_REG                              (0x2B80010)     ///< @see Section 7.36.9
-#define XM_UNPACKED24_DSP1_CORE_SOFT_RESET_DSP1_CORE_SOFT_RESET_BITMASK     (0x1)           ///< @see Section 7.36.9
 #define XM_UNPACKED24_DSP1_SAMPLE_RATE_RX1_REG                              (0x2B80080)     ///< @see Section 7.36.12
 #define XM_UNPACKED24_DSP1_SAMPLE_RATE_RX2_REG                              (0x2B80088)     ///< @see Section 7.36.13
 #define XM_UNPACKED24_DSP1_SAMPLE_RATE_RX3_REG                              (0x2B80090)     ///< @see Section 7.36.14
@@ -877,31 +816,6 @@ typedef union
 #define XM_UNPACKED24_DSP1_CCM_CORE_CONTROL_REG                             (0x2BC1000)     ///< @see Section 7.36.64
 #define XM_UNPACKED24_DSP1_CCM_CORE_CONTROL_DSP1_CCM_CORE_EN_BITMASK        (0x1)           ///< @see Section 7.36.64
 #define XM_UNPACKED24_DSP1_CCM_CORE_CONTROL_DSP1_CCM_CORE_RESET_BITMASK     (0x200)         ///< @see Section 7.36.64
-#define XM_UNPACKED24_DSP1_MEM_CTRL_XM_ACCEL_PL0_PRIO_REG                   (0x2BC2020)     ///< @see Section 7.36.70
-#define XM_UNPACKED24_DSP1_MEM_CTRL_YM_ACCEL_PL0_PRIO_REG                   (0x2BC20E0)     ///< @see Section 7.36.76
-#define XM_UNPACKED24_DSP1_MPU_XMEM_ACCESS_0_REG                            (0x2BC3000)     ///< @see Section 7.36.111
-#define XM_UNPACKED24_DSP1_MPU_YMEM_ACCESS_0_REG                            (0x2BC3004)     ///< @see Section 7.36.112
-#define XM_UNPACKED24_DSP1_MPU_WINDOW_ACCESS_0_REG                          (0x2BC3008)     ///< @see Section 7.36.113
-#define XM_UNPACKED24_DSP1_MPU_XREG_ACCESS_0_REG                            (0x2BC300C)     ///< @see Section 7.36.114
-#define XM_UNPACKED24_DSP1_MPU_YREG_ACCESS_0_REG                            (0x2BC3014)     ///< @see Section 7.36.115
-#define XM_UNPACKED24_DSP1_MPU_XMEM_ACCESS_1_REG                            (0x2BC3018)     ///< Reserved
-#define XM_UNPACKED24_DSP1_MPU_YMEM_ACCESS_1_REG                            (0x2BC301C)     ///< Reserved
-#define XM_UNPACKED24_DSP1_MPU_WINDOW_ACCESS_1_REG                          (0x2BC3020)     ///< @see Section 7.36.116
-#define XM_UNPACKED24_DSP1_MPU_XREG_ACCESS_1_REG                            (0x2BC3024)     ///< @see Section 7.36.117
-#define XM_UNPACKED24_DSP1_MPU_YREG_ACCESS_1_REG                            (0x2BC302C)     ///< @see Section 7.36.118
-#define XM_UNPACKED24_DSP1_MPU_XMEM_ACCESS_2_REG                            (0x2BC3030)     ///< Reserved
-#define XM_UNPACKED24_DSP1_MPU_YMEM_ACCESS_2_REG                            (0x2BC3034)     ///< Reserved
-#define XM_UNPACKED24_DSP1_MPU_WINDOW_ACCESS_2_REG                          (0x2BC3038)     ///< @see Section 7.36.119
-#define XM_UNPACKED24_DSP1_MPU_XREG_ACCESS_2_REG                            (0x2BC303C)     ///< @see Section 7.36.120
-#define XM_UNPACKED24_DSP1_MPU_YREG_ACCESS_2_REG                            (0x2BC3044)     ///< @see Section 7.36.121
-#define XM_UNPACKED24_DSP1_MPU_XMEM_ACCESS_3_REG                            (0x2BC3048)     ///< Reserved
-#define XM_UNPACKED24_DSP1_MPU_YMEM_ACCESS_3_REG                            (0x2BC304C)     ///< Reserved
-#define XM_UNPACKED24_DSP1_MPU_WINDOW_ACCESS_3_REG                          (0x2BC3050)     ///< @see Section 7.36.122
-#define XM_UNPACKED24_DSP1_MPU_XREG_ACCESS_3_REG                            (0x2BC3054)     ///< @see Section 7.36.123
-#define XM_UNPACKED24_DSP1_MPU_YREG_ACCESS_3_REG                            (0x2BC305C)     ///< @see Section 7.36.124
-#define XM_UNPACKED24_DSP1_MPU_LOCK_CONFIG_REG                              (0x2BC3140)     ///< @see Section 7.36.131
-#define XM_UNPACKED24_DSP1_WDT_CONTROL_REG                                  (0x2BC7000)     ///< @see Section 7.36.230
-#define XM_UNPACKED24_DSP1_WDT_CONTROL_DSP1_WDT_EN_BITMASK                  (0x1)           ///< @see Section 7.36.230
 
 #define CS40L25_DSP1_SAMPLE_RATE_G1R2                                       (0x00000001)    ///< @see Section 7.36.12
 /** @} */

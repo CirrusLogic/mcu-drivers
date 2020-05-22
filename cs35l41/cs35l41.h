@@ -307,6 +307,7 @@ extern "C" {
 #define CS35L41_FLAGS_REQUEST_COEFF_BOOT                (4) ///< Flag to indicate a request to boot coeff
 #endif // INCLUDE_FW
 #define CS35L41_FLAGS_IS_GET_REQUEST                    (5) ///< Flag to indicate Field Access GET request
+#define CS35L41_FLAGS_REQUEST_RESTART                   (6) ///< Flag to indicate a need to restart the state machine
 /** @} */
 
 

@@ -112,6 +112,7 @@
 #define RECORD_BUFFER_SIZE_2BYTES               (PLAYBACK_BUFFER_SIZE_2BYTES)
 #define RECORD_BUFFER_DEFAULT_VALUE             (0xEEEE)
 
+#ifdef TARGET_CS35L41
 #define BSP_AMP_RESET_CLK_ENABLE                __HAL_RCC_GPIOC_CLK_ENABLE
 #define BSP_AMP_RESET_CLK_DISABLE               __HAL_RCC_GPIOC_CLK_DISABLE
 #define BSP_AMP_RESET_PIN                       GPIO_PIN_0
@@ -120,12 +121,19 @@
 #define BSP_AMP_INT_CLK_DISABLE                 __HAL_RCC_GPIOA_CLK_DISABLE
 #define BSP_AMP_INT_PIN                         GPIO_PIN_0
 #define BSP_AMP_INT_GPIO_PORT                   GPIOA
+#endif
+#ifdef TARGET_CS40L25
+#define BSP_HAPTIC_RESET_CLK_ENABLE             __HAL_RCC_GPIOC_CLK_ENABLE
+#define BSP_HAPTIC_RESET_CLK_DISABLE            __HAL_RCC_GPIOC_CLK_DISABLE
+#define BSP_HAPTIC_RESET_PIN                    GPIO_PIN_0
+#define BSP_HAPTIC_RESET_GPIO_PORT              GPIOC
+#define BSP_HAPTIC_INT_CLK_ENABLE               __HAL_RCC_GPIOA_CLK_ENABLE
+#define BSP_HAPTIC_INT_CLK_DISABLE              __HAL_RCC_GPIOA_CLK_DISABLE
+#define BSP_HAPTIC_INT_PIN                      GPIO_PIN_0
+#define BSP_HAPTIC_INT_GPIO_PORT                GPIOA
+#endif
 
 #define BSP_PB_TOTAL                            (1)
-
-#ifdef TARGET_CS40L25
-#define BSP_HAPTIC_SUPPORTED_FW_REVISION        (0x90002)
-#endif
 
 /***********************************************************************************************************************
  * LOCAL VARIABLES
@@ -166,6 +174,8 @@ static void *bsp_amp_int_cb_arg;
 static bsp_callback_t bsp_haptic_int_cb;
 static void *bsp_haptic_int_cb_arg;
 static cs40l25_fw_revision_t fw_revision;
+static cs40l25_dynamic_f0_table_entry_t dynamic_f0;
+static uint32_t dynamic_redc;
 #endif
 static uint16_t *playback_content;
 
@@ -490,8 +500,14 @@ void HAL_MspInit(void)
     // Enable clocks to ports used
     __HAL_RCC_GPIOA_CLK_ENABLE();
     __HAL_RCC_GPIOC_CLK_ENABLE();
+#ifdef TARGET_CS35L41
     BSP_AMP_RESET_CLK_ENABLE();
     BSP_AMP_INT_CLK_ENABLE();
+#endif
+#ifdef TARGET_CS40L25
+    BSP_HAPTIC_RESET_CLK_ENABLE();
+    BSP_HAPTIC_INT_CLK_ENABLE();
+#endif
 
     // Configure the LD2 GPO
     HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_RESET);
@@ -502,6 +518,7 @@ void HAL_MspInit(void)
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
+#ifdef TARGET_CS35L41
     // Configure the Amp Reset GPO
     HAL_GPIO_WritePin(BSP_AMP_RESET_GPIO_PORT, BSP_AMP_RESET_PIN, GPIO_PIN_SET);
     GPIO_InitStruct.Pin = BSP_AMP_RESET_PIN;
@@ -511,7 +528,6 @@ void HAL_MspInit(void)
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     HAL_GPIO_Init(BSP_AMP_RESET_GPIO_PORT, &GPIO_InitStruct);
 
-#ifdef TARGET_CS35L41
     // Configure Amp Interrupt GPI
     GPIO_InitStruct.Pin = BSP_AMP_INT_PIN;
     GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
@@ -519,6 +535,25 @@ void HAL_MspInit(void)
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
     GPIO_InitStruct.Pull = GPIO_PULLUP;
     HAL_GPIO_Init(BSP_AMP_INT_GPIO_PORT, &GPIO_InitStruct);
+#endif
+
+#ifdef TARGET_CS40L25
+    // Configure the Haptic Reset GPO
+    HAL_GPIO_WritePin(BSP_HAPTIC_RESET_GPIO_PORT, BSP_HAPTIC_RESET_PIN, GPIO_PIN_SET);
+    GPIO_InitStruct.Pin = BSP_HAPTIC_RESET_PIN;
+    GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+    GPIO_InitStruct.Alternate = 0;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    HAL_GPIO_Init(BSP_HAPTIC_RESET_GPIO_PORT, &GPIO_InitStruct);
+
+    // Configure Haptic Interrupt GPI
+    GPIO_InitStruct.Pin = BSP_HAPTIC_INT_PIN;
+    GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
+    GPIO_InitStruct.Alternate = 0;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+    GPIO_InitStruct.Pull = GPIO_PULLUP;
+    HAL_GPIO_Init(BSP_HAPTIC_INT_GPIO_PORT, &GPIO_InitStruct);
 #endif
 
     HAL_NVIC_SetPriority((IRQn_Type)EXTI0_IRQn, 0x0F, 0x00);
@@ -544,13 +579,25 @@ void HAL_MspDeInit(void)
     HAL_GPIO_DeInit(GPIOA, GPIO_PIN_5);
     HAL_GPIO_DeInit(GPIOC, GPIO_PIN_13);
 
+#ifdef TARGET_CS35L41
     HAL_GPIO_DeInit(BSP_AMP_RESET_GPIO_PORT, BSP_AMP_RESET_PIN);
     HAL_GPIO_DeInit(BSP_AMP_INT_GPIO_PORT, BSP_AMP_INT_PIN);
+#endif
+#ifdef TARGET_CS40L25
+    HAL_GPIO_DeInit(BSP_HAPTIC_RESET_GPIO_PORT, BSP_HAPTIC_RESET_PIN);
+    HAL_GPIO_DeInit(BSP_HAPTIC_INT_GPIO_PORT, BSP_HAPTIC_INT_PIN);
+#endif
 
     __HAL_RCC_GPIOA_CLK_DISABLE();
     __HAL_RCC_GPIOC_CLK_DISABLE();
+#ifdef TARGET_CS35L41
     BSP_AMP_RESET_CLK_DISABLE();
     BSP_AMP_INT_CLK_DISABLE();
+#endif
+#ifdef TARGET_CS40L25
+    BSP_HAPTIC_RESET_CLK_DISABLE();
+    BSP_HAPTIC_INT_CLK_DISABLE();
+#endif
 
     return;
 }
@@ -729,14 +776,14 @@ void HAL_I2C_MasterRxCpltCallback(I2C_HandleTypeDef *hi2c)
 
 void HAL_I2C_ErrorCallback(I2C_HandleTypeDef *hi2c)
 {
-    Error_Handler();
+    bsp_i2c_done_cb(BSP_STATUS_FAIL, bsp_i2c_done_cb_arg);
 
     return;
 }
 
 void HAL_I2C_AbortCpltCallback(I2C_HandleTypeDef *hi2c)
 {
-    Error_Handler();
+    //Error_Handler();
 
     return;
 }
@@ -1362,6 +1409,10 @@ uint32_t bsp_haptic_initialize(uint8_t boot_type)
         haptic_config.amp_config.bst_ctl_sel = 1;  // Class-H tracking
         haptic_config.amp_config.bst_ctl_lim_en = true;
 
+        haptic_config.amp_config.wksrc_gpio1_en = true;
+        haptic_config.amp_config.wksrc_sda_en = true;
+        haptic_config.amp_config.wksrc_sda_falling_edge = true;
+
         haptic_config.cal_data.is_valid_f0 = false;
         haptic_config.cal_data.is_valid_qest = false;
 
@@ -1383,6 +1434,9 @@ uint32_t bsp_haptic_initialize(uint8_t boot_type)
 
         haptic_config.dsp_config_ctrls.clab_enable = true;
         haptic_config.dsp_config_ctrls.peak_amplitude = 0x400000;
+
+        haptic_config.event_control.hardware = 1;
+        haptic_config.event_control.playback_end_suspend = 1;
 
         haptic_status = cs40l25_functions_g->configure(&haptic_driver, &haptic_config);
 
@@ -1463,14 +1517,11 @@ void bsp_haptic_control_callback(uint8_t id, uint32_t status, void *arg)
         (id == CS40L25_CONTROL_ID_SET_GPIO4_INDEX_BUTTON_RELEASE) ||
         (id == CS40L25_CONTROL_ID_SET_CLAB_ENABLED) ||
         (id == CS40L25_CONTROL_ID_GET_FW_REVISION) ||
+        (id == CS40L25_CONTROL_ID_GET_DYNAMIC_REDC) ||
+        (id == CS40L25_CONTROL_ID_GET_DYNAMIC_F0) ||
+        (id == CS40L25_CONTROL_ID_ENABLE_DYNAMIC_F0) ||
         (id == CS40L25_CONTROL_ID_GET_DSP_STATUS))
     {
-        // Check if HALO FW revision is supported
-        if ((id == CS40L25_CONTROL_ID_GET_FW_REVISION) && (fw_revision.word != BSP_HAPTIC_SUPPORTED_FW_REVISION))
-        {
-            status = CS40L25_STATUS_FAIL;
-        }
-
         if (app_cb == NULL)
         {
             if (status == CS40L25_STATUS_OK)
@@ -1629,6 +1680,58 @@ uint32_t bsp_haptic_power_down(void)
     return haptic_status;
 }
 
+uint32_t bsp_haptic_hibernate(void)
+{
+    uint32_t haptic_status;
+    bsp_haptic_control_status = 0;
+    haptic_status = cs40l25_functions_g->power(&haptic_driver, CS40L25_POWER_HIBERNATE, bsp_haptic_control_callback, NULL);
+
+    if ((haptic_status == CS40L25_STATUS_OK) && (app_cb == NULL))
+    {
+        while (bsp_haptic_control_status == 0)
+        {
+            cs40l25_functions_g->process(&haptic_driver);
+        }
+
+        if (bsp_haptic_control_status == 1)
+        {
+            haptic_status = BSP_STATUS_OK;
+        }
+        else
+        {
+            haptic_status = BSP_STATUS_FAIL;
+        }
+    }
+
+    return haptic_status;
+}
+
+uint32_t bsp_haptic_wake(void)
+{
+    uint32_t haptic_status;
+    bsp_haptic_control_status = 0;
+    haptic_status = cs40l25_functions_g->power(&haptic_driver, CS40L25_POWER_WAKE, bsp_haptic_control_callback, NULL);
+
+    if ((haptic_status == CS40L25_STATUS_OK) && (app_cb == NULL))
+    {
+        while (bsp_haptic_control_status == 0)
+        {
+            cs40l25_functions_g->process(&haptic_driver);
+        }
+
+        if (bsp_haptic_control_status == 1)
+        {
+            haptic_status = BSP_STATUS_OK;
+        }
+        else
+        {
+            haptic_status = BSP_STATUS_FAIL;
+        }
+    }
+
+    return haptic_status;
+}
+
 uint32_t bsp_haptic_mute(bool is_mute)
 {
     return BSP_STATUS_FAIL;
@@ -1673,6 +1776,43 @@ uint32_t bsp_haptic_control(uint32_t id, uint32_t arg)
     return BSP_STATUS_OK;
 }
 
+uint32_t bsp_haptic_dynamic_calibrate(void)
+{
+    uint32_t ret;
+    cs40l25_control_request_t req;
+
+    // Enable Dynamic F0
+    req.id = CS40L25_CONTROL_ID_ENABLE_DYNAMIC_F0;
+    req.arg = 1;
+    req.cb = bsp_haptic_control_callback;
+    req.cb_arg = NULL;
+
+    ret = cs40l25_functions_g->control(&haptic_driver, req);
+
+    // Read Dynamic F0 from WT Index 0
+    req.id = CS40L25_CONTROL_ID_GET_DYNAMIC_F0;
+    dynamic_f0.index = 0;
+    req.arg = &dynamic_f0;
+    req.cb = bsp_haptic_control_callback;
+    req.cb_arg = NULL;
+
+    ret = cs40l25_functions_g->control(&haptic_driver, req);
+
+    // Get Dynamic ReDC
+    req.id = CS40L25_CONTROL_ID_GET_DYNAMIC_REDC;
+    req.arg = &dynamic_redc;
+    req.cb = bsp_haptic_control_callback;
+    req.cb_arg = NULL;
+
+    ret = cs40l25_functions_g->control(&haptic_driver, req);
+
+    if (ret != CS40L25_STATUS_OK)
+    {
+        return BSP_STATUS_FAIL;
+    }
+
+    return BSP_STATUS_OK;
+}
 #endif
 
 uint32_t bsp_audio_play(uint8_t content)
@@ -1843,12 +1983,12 @@ uint32_t bsp_set_gpio(uint32_t gpio_id, uint8_t gpio_state)
 
 #ifdef TARGET_CS35L41
         case BSP_GPIO_ID_CS35L41_RESET:
-            HAL_GPIO_WritePin(GPIOC, GPIO_PIN_0, (GPIO_PinState) gpio_state);
+            HAL_GPIO_WritePin(BSP_AMP_RESET_GPIO_PORT, BSP_AMP_RESET_PIN, (GPIO_PinState) gpio_state);
             break;
 #endif
 #ifdef TARGET_CS40L25
         case BSP_GPIO_ID_CS40L25_RESET:
-            HAL_GPIO_WritePin(GPIOC, GPIO_PIN_0, (GPIO_PinState) gpio_state);
+            HAL_GPIO_WritePin(BSP_HAPTIC_RESET_GPIO_PORT, BSP_HAPTIC_RESET_PIN, (GPIO_PinState) gpio_state);
             break;
 #endif
 
@@ -2036,16 +2176,29 @@ uint32_t bsp_register_gpio_cb(uint32_t gpio_id, bsp_callback_t cb, void *cb_arg)
     return BSP_STATUS_OK;
 }
 
-uint32_t bsp_i2c_reset(uint32_t bsp_dev_id)
+uint32_t bsp_i2c_reset(uint32_t bsp_dev_id, bool *was_i2c_busy)
 {
-    switch (bsp_dev_id)
+    if (was_i2c_busy != NULL)
     {
-        case BSP_AMP_DEV_ID:
-            HAL_I2C_Master_Abort_IT(&i2c_drv_handle, 0x80);
-            break;
+        *was_i2c_busy = false;
+    }
 
-        default:
-            break;
+    if (HAL_I2C_GetState(&i2c_drv_handle) != HAL_I2C_STATE_READY)
+    {
+        if (was_i2c_busy != NULL)
+        {
+            *was_i2c_busy = true;
+        }
+
+        switch (bsp_dev_id)
+        {
+            case BSP_AMP_DEV_ID:
+                HAL_I2C_Master_Abort_IT(&i2c_drv_handle, 0x80);
+                break;
+
+            default:
+                break;
+        }
     }
 
     return BSP_STATUS_OK;

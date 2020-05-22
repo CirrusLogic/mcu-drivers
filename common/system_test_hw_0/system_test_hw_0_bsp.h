@@ -130,10 +130,13 @@ uint32_t bsp_haptic_boot(bool cal_boot);
 uint32_t bsp_haptic_calibrate(void);
 uint32_t bsp_haptic_power_up(void);
 uint32_t bsp_haptic_power_down(void);
+uint32_t bsp_haptic_hibernate(void);
+uint32_t bsp_haptic_wake(void);
 uint32_t bsp_haptic_mute(bool is_mute);
 uint32_t bsp_haptic_is_processing(bool *is_processing);
 uint32_t bsp_haptic_process(void);
 uint32_t bsp_haptic_control(uint32_t id, uint32_t arg);
+uint32_t bsp_haptic_dynamic_calibrate(void);
 #endif
 uint32_t bsp_audio_play(uint8_t content);
 uint32_t bsp_audio_play_record(uint8_t content);

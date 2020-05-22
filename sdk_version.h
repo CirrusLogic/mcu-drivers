@@ -1,10 +1,10 @@
 /**
- * @file version.h
+ * @file sdk_version.h
  *
- * @brief CS40L25 driver software version literals
+ * @brief Alt-OS SDK version literals
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2019 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2020 All Rights Reserved, http://www.cirrus.com/
  *
  * This code and information are provided 'as-is' without warranty of any
  * kind, either expressed or implied, including but not limited to the
@@ -13,8 +13,8 @@
  *
  */
 
-#ifndef VERSION_H
-#define VERSION_H
+#ifndef SDK_VERSION_H
+#define SDK_VERSION_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -29,11 +29,11 @@ extern "C" {
  **********************************************************************************************************************/
 
 /**
- * @defgroup VERSION_
- * @brief Defines for the release version of the driver
+ * @defgroup SDK_VERSION_
+ * @brief Defines for the release version of the SDK
  *
  * @details
- * Versions for the CS40L25 driver are defined as:
+ * Versions for the SDK are defined as:
  * - Major - The interface of the firmware or module has changed in a way that breaks backwards compatibility. This
  * means that the module will not work as before if the old interface is used.
  * - Minor - The interface of the firmware or module has changed, but not in a way that breaks backwards compatibility.
@@ -42,9 +42,9 @@ extern "C" {
  *
  * @{
  */
-#define VERSION_MAJOR   (0) ///< Release Major version
-#define VERSION_MINOR   (2) ///< Release Minor version
-#define VERSION_PATCH   (0) ///< Release Patch version
+#define SDK_VERSION_MAJOR   (1) ///< Release Major version
+#define SDK_VERSION_MINOR   (1) ///< Release Minor version
+#define SDK_VERSION_PATCH   (0) ///< Release Patch version
 /** @} */
 
 
@@ -69,4 +69,4 @@ extern "C" {
 }
 #endif
 
-#endif // VERSION_H
+#endif // SDK_VERSION_H

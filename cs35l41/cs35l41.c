@@ -2931,11 +2931,20 @@ static uint32_t cs35l41_event_sm(void *driver)
     switch (sm->state)
     {
         case CS35L41_EVENT_SM_STATE_INIT:
+        {
             /*
              * Since upon entering the Event Handler SM, the BSP Control Port may be in the middle of a transaction,
              * request the BSP to reset the Control Port and abort the current transaction.
              */
-            bsp_driver_if_g->i2c_reset(d->bsp_dev_id);
+            bool was_i2c_busy = false;
+            bsp_driver_if_g->i2c_reset(d->bsp_dev_id, &was_i2c_busy);
+
+            // If an I2C transaction was interrupted, then current Control Request must be restarted
+            if (was_i2c_busy)
+            {
+                CS35L41_SET_FLAG(d->control_sm.flags, CS35L41_FLAGS_REQUEST_RESTART);
+            }
+
             CS35L41_CLEAR_FLAG(sm->flags, CS35L41_FLAGS_CP_RW_DONE);
             sm->count = 0;
             // Read the first IRQ1 flag register
@@ -2945,6 +2954,7 @@ static uint32_t cs35l41_event_sm(void *driver)
                                                         false);
             sm->state = CS35L41_EVENT_SM_STATE_READ_IRQ_STATUS;
             break;
+        }
 
         case CS35L41_EVENT_SM_STATE_READ_IRQ_STATUS:
             if (CS35L41_IS_FLAG_SET(sm->flags, CS35L41_FLAGS_CP_RW_DONE))
@@ -4252,10 +4262,15 @@ uint32_t cs35l41_process(cs35l41_t *driver)
                 if (driver->event_sm.state == CS35L41_SM_STATE_DONE)
                 {
                     driver->mode = CS35L41_MODE_HANDLING_CONTROLS;
-                    driver->event_sm.state = CS35L41_EVENT_SM_STATE_INIT;
-                    // Need to reset current Control SM here
-                    driver->control_sm.state = CS35L41_SM_STATE_INIT;
-                    driver->control_sm.flags = 0;
+
+                    // If a control port transaction was interrupted, restart the current Control Request
+                    if (CS35L41_IS_FLAG_SET(driver->control_sm.flags, CS35L41_FLAGS_REQUEST_RESTART))
+                    {
+                        driver->event_sm.state = CS35L41_EVENT_SM_STATE_INIT;
+                        // Need to reset current Control SM here
+                        driver->control_sm.state = CS35L41_SM_STATE_INIT;
+                        driver->control_sm.flags = 0;
+                    }
                 }
             }
             else

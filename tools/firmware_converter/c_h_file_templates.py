@@ -60,6 +60,15 @@ header_file_template_str = """/**
  * LITERALS & CONSTANTS
  **********************************************************************************************************************/
 
+/**
+ * @defgroup CS40L25_FIRMWARE_META
+ * @brief Firmware meta data
+ *
+ * @{
+ */
+#define CS40L25_FIRMWARE_ID {fw_id}
+/** @} */
+
 {include_coeff_0}
 
 /**
@@ -154,7 +163,7 @@ source_file_template_str = """/**
  * @brief {part_number_uc} Firmware C Array File
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2019 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2020 All Rights Reserved, http://www.cirrus.com/
  *
  * This code and information are provided 'as-is' without warranty of any
  * kind, either expressed or implied, including but not limited to the
@@ -246,7 +255,7 @@ source_file_template_coeff_boot_block_entry_str = """    {
 # CLASSES
 #==========================================================================
 class header_file:
-    def __init__(self, part_number_str):
+    def __init__(self, part_number_str, fw_meta):
         self.template_str = header_file_template_str
         self.includes_coeff = False
         self.output_str = ''
@@ -259,6 +268,7 @@ class header_file:
         self.terms['control_defines'] = ''
         self.terms['include_coeff_0'] = ''
         self.terms['include_coeff_1'] = ''
+        self.terms['fw_id'] = fw_meta['fw_id']
         self.algorithm_controls = dict()
         return
 
@@ -269,7 +279,7 @@ class header_file:
             for coeff_block_total in coeff_block_totals:
                 self.terms['total_coeff_blocks'].append(str(coeff_block_total))
 
-        return
+        return        
 
     def add_control(self, algorithm_name, control_name, address):
         if (self.algorithm_controls.get(algorithm_name, None) == None):
@@ -279,6 +289,10 @@ class header_file:
 
     def __str__(self):
         output_str = self.template_str
+        
+        # Update firmware metadata
+        fw_id_str = " 0x" + "{0:{1}X}".format(self.terms['fw_id'], 6)
+        output_str = output_str.replace('{fw_id}', fw_id_str)
 
         if (len(self.algorithm_controls) > 0):
             temp_alg_str = ""

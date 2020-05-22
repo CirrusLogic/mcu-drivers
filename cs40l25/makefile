@@ -242,7 +242,7 @@ endif
 # Assign sources, includes, paths for driver library
 DRIVER_PATH = $(REPO_PATH)/cs40l25
 COMMON_PATH = $(REPO_PATH)/common
-HALO_FIRMWARE_PATH = $(REPO_PATH)/cs40l25/fw_7_4_3
+HALO_FIRMWARE_PATH = $(REPO_PATH)/cs40l25/fw_8_5_2
 DRIVER_SRCS = $(DRIVER_PATH)/cs40l25.c $(DRIVER_PATH)/cs40l25_spec.c $(COMMON_PATH)/f_queue.c
 INCLUDES += -I$(DRIVER_PATH) -I$(COMMON_PATH) -I$(HALO_FIRMWARE_PATH)
 DRIVER_LIBRARY = $(BUILD_DIR)/cs40l25/libcs40l25.a

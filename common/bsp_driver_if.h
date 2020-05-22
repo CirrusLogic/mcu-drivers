@@ -4,7 +4,7 @@
  * @brief Functions and prototypes that define the BSP-to-Device Driver Interface
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2019 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2019, 2020 All Rights Reserved, http://www.cirrus.com/
  *
  * This code and information are provided 'as-is' without warranty of any
  * kind, either expressed or implied, including but not limited to the
@@ -24,6 +24,7 @@ extern "C" {
  * INCLUDES
  **********************************************************************************************************************/
 #include <stdint.h>
+#include <stdbool.h>
 
 /***********************************************************************************************************************
  * LITERALS & CONSTANTS
@@ -49,6 +50,7 @@ extern "C" {
  */
 #define BSP_TIMER_DURATION_1MS      (1)
 #define BSP_TIMER_DURATION_2MS      (2)
+#define BSP_TIMER_DURATION_5MS      (5)
 #define BSP_TIMER_DURATION_10MS     (10)
 #define BSP_TIMER_DURATION_2S       (2000)
 /** @} */
@@ -186,14 +188,15 @@ typedef struct
      * Abort the current I2C transaction and reset the I2C peripheral.  This is required for quickly handling of
      * CS35L41 IRQ events.
      *
-     * @param [in] bsp_dev_id   ID of the I2C device corresponding to the I2C peripheral to reset
+     * @param [in] bsp_dev_id       ID of the I2C device corresponding to the I2C peripheral to reset
+     * @param [out] was_i2c_busy    flag to indicate whether an I2C transaction was in progress when reset
      *
      * @return
      * - BSP_STATUS_FAIL        if bsp_dev_id is invalid
      * - BSP_STATUS_OK          otherwise
      *
      */
-    uint32_t (*i2c_reset)(uint32_t bsp_dev_id);
+    uint32_t (*i2c_reset)(uint32_t bsp_dev_id, bool *was_i2c_busy);
 
     /**
      * Perform an I2C Write-Repeated Start-Read transaction

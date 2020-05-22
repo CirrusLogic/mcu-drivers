@@ -1,0 +1,35 @@
+Cirrus Logic Alt-OS Driver SDK
+Release Notes
+
+=============================================================================
+Summary:
+This is the release of Alt-OS Driver SDK v1.1.0
+Date: 2020/05/22
+
+Component Driver Versions:
+CS35L41 - v1.1.0
+CS40L25 - v0.2.0
+
+Component Tool Versions:
+firmware_converter - v2.0.0
+
+Architectures/Compilers Used:
+GNU Arm Embedded Toolchain: arm-none-eabi-gcc -mcpu=cortex-m4
+
+New Features:
+[SQA-1541] Prince-H driver - Can enter/exit Standby and Hibernation
+[SQA-1558] Develop power() API
+[SQA-1559] Add hibernation-related config to config structure
+[SQA-1560] Add hibernation prep to boot()
+[SQA-1567] Add handling of Prince-H events, including release from Haptic-Safe Mode
+[SQA-1651] Add POWERONSEQUENCE support at config and runtime
+[SQA-1722] Add support for Dynamic F0 and ReDC
+[SQA-1726] Add support for CS40L25B DEVID
+
+Fixed Bugs:
+None
+
+Changes:
+None
+
+=============================================================================

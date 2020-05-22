@@ -4,7 +4,7 @@
  * @brief The CS40L25 Driver module
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2019 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2019, 2020 All Rights Reserved, http://www.cirrus.com/
  *
  * This code and information are provided 'as-is' without warranty of any
  * kind, either expressed or implied, including but not limited to the
@@ -25,15 +25,11 @@
  **********************************************************************************************************************/
 //#define TO_FIX_IN_PORTING
 //#define I2S_CONFIG_SHORTCUT
-#ifdef I2S_CONFIG_SHORTCUT
-//#define USE_DIAG_SIGGEN
-#endif
-//#define DEBUG_POWER_DOWN_STOP_DSP
 
 /**
- * Default Interrupt Mask for IRQ1_MASK_1 register
+ * Default Interrupt Mask for IRQ2_MASK_1 register
  *
- * The interrupts that are unmasked in Interrupt Status and Mask Control (IRQ1) are:
+ * The interrupts that are unmasked in Interrupt Status and Mask Control (IRQ2) are:
  * - b31 - AMP_ERR_MASK1
  * - b17 - TEMP_ERR_MASK1
  * - b15 - TEMP_WARN_RISE_MASK1
@@ -41,41 +37,36 @@
  * - b7  - BST_DCM_UVP_ERR_MASK1
  * - b6  - BST_OVP_ERR_MASK1
  *
- * @see IRQ1_IRQ1_MASK_1_REG
+ * @see IRQ2_IRQ2_MASK_1_REG
  *
  */
-#define CS40L25_INT1_MASK_DEFAULT               (0x7FFD7E3F)
+#define CS40L25_INT2_MASK_DEFAULT   (0x7FFD7E3F)
+#define CS40L25_IRQ2_MASK1_DEFAULT  (CS40L25_INT2_MASK_DEFAULT)
+#define CS40L25_IRQ2_MASK2_DEFAULT  (0xFFFFFFFF)
+#define CS40L25_IRQ2_MASK3_DEFAULT  (0xFFFF87FF)
+#define CS40L25_IRQ2_MASK4_DEFAULT  (0xFEFFFFFF)
 
 /**
- * IRQ1 Status Bits for Speaker Safe Mode
+ * Event Flag Mask for IRQ2 Status Bits for Speaker Safe Mode Boost-related Events
  *
- * If any of the bits in the mask below are set in IRQ1_EINT_1, the amplifier will have entered Speaker Safe Mode.
- * - b31 - AMP_ERR_MASK1
- * - b17 - TEMP_ERR_MASK1
- * - b8  - BST_SHORT_ERR_MASK1
- * - b7  - BST_DCM_UVP_ERR_MASK1
- * - b6  - BST_OVP_ERR_MASK1
- *
- * @see IRQ1_EINT_1
- * @see Datasheet Section 4.16.1.1
- *
- */
-#define CS40L25_INT1_SPEAKER_SAFE_MODE_IRQ_MASK (0x800201C0)
-
-/**
- * IRQ1 Status Bits for Speaker Safe Mode Boost-related Events
- *
- * If any of the bits in the mask below are set in IRQ1_EINT_1, the amplifier will have entered Speaker Safe Mode
+ * If any of the bits in the mask below are set in IRQ2_EINT_1, the amplifier will have entered Speaker Safe Mode
  * and will require additional steps to release from Speaker Safe Mode.
  * - b8 - BST_SHORT_ERR_MASK1
  * - b7 - BST_DCM_UVP_ERR_MASK1
  * - b6 - BST_OVP_ERR_MASK1
  *
- * @see IRQ1_EINT_1
+ * These bits correspond to the following flags in Event Flags:
+ * - BST_SHORT_ERR_MASK1 - CS40L25_EVENT_FLAG_BOOST_INDUCTOR_SHORT
+ * - BST_DCM_UVP_ERR_MASK1 - CS40L25_EVENT_FLAG_BOOST_UNDERVOLTAGE
+ * - BST_OVP_ERR_MASK1 - CS40L25_EVENT_FLAG_BOOST_OVERVOLTAGE
+ *
+ * @see IRQ2_EINT_1
  * @see Datasheet Section 4.16.1.1
  *
  */
-#define CS40L25_INT1_BOOST_IRQ_MASK             (0x000001C0)
+#define CS40L25_EVENT_FLAGS_BOOST_CYCLE         (CS40L25_EVENT_FLAG_BOOST_INDUCTOR_SHORT | \
+                                                 CS40L25_EVENT_FLAG_BOOST_UNDERVOLTAGE | \
+                                                 CS40L25_EVENT_FLAG_BOOST_OVERVOLTAGE)
 
 /**
  * Toggle Mask for MSM_ERROR_RELEASE_REG to Release from Speaker Safe Mode
@@ -120,6 +111,117 @@
  */
 #define CS40L25_SYNC_CTRLS_TOTAL (0)
 
+/**
+ * @defgroup CS40L25_POWERCONTROL_
+ * @brief Valid values to write to DSP_VIRTUAL1_MBOX_DSP_VIRTUAL1_MBOX_4_REG (i.e. POWERCONTROL)
+ *
+ * @{
+ */
+#define CS40L25_POWERCONTROL_NONE               (0)
+#define CS40L25_POWERCONTROL_HIBERNATE          (1)
+#define CS40L25_POWERCONTROL_WAKEUP             (2)
+#define CS40L25_POWERCONTROL_FRC_STDBY          (3)
+/** @} */
+
+/**
+ * @defgroup CS40L25_POWERSTATE_
+ * @brief Valid values read from the POWERSTATE HALO FW control
+ *
+ * @{
+ */
+#define CS40L25_POWERSTATE_BLANK                (0)
+#define CS40L25_POWERSTATE_ACTIVE               (1)
+#define CS40L25_POWERSTATE_STANDBY              (2)
+#define CS40L25_POWERSTATE_HIBERNATE            (3)
+/** @} */
+
+/**
+ * HALO FW control fixed address for the FW ID
+ */
+#define CS40L25_FIRMWARE_ID_ADDR                (0x0280000C)
+
+/**
+ * @defgroup CS40L2X_EVENT_
+ * @brief Bit masks for enables in the EVENTCONTROL HALO FW control
+ *
+ * @{
+ */
+#define CS40L2X_EVENT_DISABLED                  0x000000
+#define CS40L2X_EVENT_GPIO1_ENABLED             0x000001
+#define CS40L2X_EVENT_GPIO2_ENABLED             0x000002
+#define CS40L2X_EVENT_GPIO3_ENABLED             0x000004
+#define CS40L2X_EVENT_GPIO4_ENABLED             0x000008
+#define CS40L2X_EVENT_START_ENABLED             0x000010
+#define CS40L2X_EVENT_END_ENABLED               0x000020
+#define CS40L2X_EVENT_READY_ENABLED             0x000040
+#define CS40L2X_EVENT_HARDWARE_ENABLED          0x800000
+/** @} */
+
+/**
+ * @defgroup CS40L2X_EVENT_CTRL_
+ * @brief Possible values for the
+ *
+ * @{
+ */
+#define CS40L2X_EVENT_CTRL_GPIO1_FALL           0
+#define CS40L2X_EVENT_CTRL_GPIO1_RISE           1
+#define CS40L2X_EVENT_CTRL_GPIO2_FALL           2
+#define CS40L2X_EVENT_CTRL_GPIO2_RISE           3
+#define CS40L2X_EVENT_CTRL_GPIO3_FALL           4
+#define CS40L2X_EVENT_CTRL_GPIO3_RISE           5
+#define CS40L2X_EVENT_CTRL_GPIO4_FALL           6
+#define CS40L2X_EVENT_CTRL_GPIO4_RISE           7
+#define CS40L2X_EVENT_CTRL_TRIG_STOP            10
+#define CS40L2X_EVENT_CTRL_GPIO_STOP            11
+#define CS40L2X_EVENT_CTRL_READY                12
+#define CS40L2X_EVENT_CTRL_HARDWARE             13
+#define CS40L2X_EVENT_CTRL_TRIG_SUSP            14
+#define CS40L2X_EVENT_CTRL_TRIG_RESM            15
+#define CS40L2X_EVENT_CTRL_NONE                 0xFFFFFF
+/** @} */
+
+/**
+ * Total number of event source registers to poll in HALO FW.
+ *
+ * @see cs40l2x_event_regs
+ * @see cs40l2x_event_masks
+ *
+ */
+#define CS40L25_EVENT_SOURCES                   (8)
+
+/**
+ * Total number of IRQ registers to poll.
+ *
+ * @see cs40l25_irq2_mask_1_to_event_flag_map
+ *
+ */
+#define CS40L25_EVENT_HW_SOURCES                (6)
+
+/**
+ * @defgroup CS40L25_IMASKSEQ_WORD_
+ * @brief Macros to formulate IRQ Masks for Wake Write Sequencer
+ *
+ * @{
+ */
+#define CS40L25_IMASKSEQ_WORD_1(B)              (((B & 0x000000FF) << 16))
+#define CS40L25_IMASKSEQ_WORD_2(B)              ((B & 0xFFFFFF00) >> 8)
+/** @} */
+
+/**
+ * @defgroup CS40L25_STATUS_
+ * @brief Return values for all public and most private API calls
+ *
+ * @{
+ */
+#ifndef CS40L25_ALGORITHM_DYNAMIC_F0
+#define CS40L25_DYNAMIC_F0_ENABLED              (0)
+#define CS40L25_DYN_F0_TABLE                    (0)
+#define CS40L25_DYNAMIC_REDC                    (0)
+#endif // CS40L25_ALGORITHM_DYNAMIC_F0
+/** @} */
+
+#define CS40L25_EVENT_VALUE_TO_FLAG_MAP_LENGTH  (15)
+
 /***********************************************************************************************************************
  * LOCAL VARIABLES
  **********************************************************************************************************************/
@@ -140,7 +242,7 @@
  */
 static const uint32_t cs40l25_revb0_errata_patch[] =
 {
-    0x0000001C, //
+    0x00000018, //
     0x00003008, 0x000C1837,
     0x00003014, 0x03008E0E,
     CS40L25_CTRL_KEYS_TEST_KEY_CTRL_REG, CS40L25_TEST_KEY_CTRL_UNLOCK_1,
@@ -150,8 +252,6 @@ static const uint32_t cs40l25_revb0_errata_patch[] =
     0x00004360, 0x00002B4F,
     0x00004100, 0x00000000,
     0x00004310, 0x00000000,
-    IRQ1_IRQ1_MASK_1_REG, CS40L25_INT1_MASK_DEFAULT,    // Unmask IRQs
-    PAD_INTF_GPIO_PAD_CONTROL_REG, 0x04000000,          // Set GPIO2 for INTb function
     CS40L25_CTRL_KEYS_TEST_KEY_CTRL_REG, CS40L25_TEST_KEY_CTRL_LOCK_1,
     CS40L25_CTRL_KEYS_TEST_KEY_CTRL_REG, CS40L25_TEST_KEY_CTRL_LOCK_2,
     0x00004400, 0x00000000,
@@ -327,6 +427,7 @@ static const uint32_t cs40l25_config_register_addresses[CS40L25_CONFIG_REGISTERS
     BOOST_BST_IPK_CTL_REG,
     BOOST_VBST_CTL_1_REG,
     BOOST_VBST_CTL_2_REG,
+    CS40L25_WAKESRC_CTL_REG,
     CS40L25_GPIO_BUTTONDETECT,
     CS40L25_GPIO_ENABLE,
     CS40L25_GAIN_CONTROL,
@@ -339,7 +440,45 @@ static const uint32_t cs40l25_config_register_addresses[CS40L25_CONFIG_REGISTERS
     CS40L25_INDEXBUTTONRELEASE + 8,
     CS40L25_INDEXBUTTONRELEASE + 12,
     CS40L25_CLAB_ENABLED,
-    CS40L25_PEAK_AMPLITUDE_CONTROL
+    CS40L25_PEAK_AMPLITUDE_CONTROL,
+    CS40L25_EVENTCONTROL,
+};
+
+/**
+ * Array of registers and values to add to the Wake Write Sequencer
+ *
+ * Written to the CS40L25 in the Boot State Machine.
+ *
+ * List is in the form:
+ * - word0 - Address of first configuration register
+ * - word1 - Default value for the configuration register
+ * - ...
+ *
+ */
+static const uint32_t cs40l25_wseq_regs[] =
+{
+    BOOST_VBST_CTL_1_REG,           0x000000000,
+    BOOST_VBST_CTL_2_REG,           0x000000001,
+    BOOST_BST_IPK_CTL_REG,          0x00000004A,
+    BOOST_BST_LOOP_COEFF_REG,       0x000002424,
+    BOOST_LBST_SLOPE_REG,           0x000007500,
+    CS40L25_INTP_AMP_CTRL_REG,      0x000008000,
+    CS40L25_WAKESRC_CTL_REG,        0x000000008,
+    CCM_REFCLK_INPUT_REG,           0x000000010,
+    DATAIF_ASP_ENABLES1_REG,        0x000000000,
+    DATAIF_ASP_CONTROL1_REG,        0x000000028,
+    CCM_FS_MON_0_REG,               0x000000000,
+    DATAIF_ASP_CONTROL2_REG,        0x018180200,
+    DATAIF_ASP_FRAME_CONTROL5_REG,  0x000000100,
+    DATAIF_ASP_FRAME_CONTROL1_REG,  0x003020100,
+    DATAIF_ASP_DATA_CONTROL5_REG,   0x000000018,
+    DATAIF_ASP_DATA_CONTROL1_REG,   0x000000018,
+    MSM_BLOCK_ENABLES2_REG,         0x010000010,
+    CS40L25_MIXER_DACPCM1_INPUT_REG, CS40L25_INPUT_SRC_DSP1TX1,
+    CS40L25_MIXER_DSP1RX1_INPUT_REG, CS40L25_INPUT_SRC_ASPRX1,
+    CS40L25_MIXER_DSP1RX2_INPUT_REG, CS40L25_INPUT_SRC_VMON,
+    CS40L25_MIXER_DSP1RX3_INPUT_REG, CS40L25_INPUT_SRC_VMON,
+    CS40L25_MIXER_DSP1RX4_INPUT_REG, CS40L25_INPUT_SRC_VMON
 };
 
 /**
@@ -362,52 +501,125 @@ static const uint32_t cs40l25_dsp_status_addresses[CS40L25_DSP_STATUS_WORDS_TOTA
         CS40L25_HALO_HEARTBEAT
 };
 
-/***********************************************************************************************************************
- * GLOBAL VARIABLES
- **********************************************************************************************************************/
 /**
- * Cache for contents of IRQ1_EINT_*_REG interrupt flag registers.
+ * DSP Memory addresses to read during Event Handler SM
  *
- * Currently, the following registers are cached:
- * - IRQ1_IRQ1_EINT_1_REG
- * - IRQ1_IRQ1_EINT_2_REG
- * - IRQ1_IRQ1_EINT_3_REG
- * - IRQ1_IRQ1_EINT_4_REG
+ * List is in the form:
+ * - word0 - Address of first status register
+ * - word1 - Address of second status register
+ * - ...
  *
- * This cache is required for cs40l25_event_sm.  It is used along with irq_masks[] to determine what unmasked
- * interrupts have occurred.  This cache is required for cs40l25_event_sm.  The cache currently is not allocated as
- * part of cs40l25_t, but it should either be allocated there or have another means to cache the contents.
+ * @see cs40l2x_event_masks
  *
- * @see IRQ1_IRQ1_EINT_1_REG
- * @see IRQ1_IRQ1_EINT_2_REG
- * @see IRQ1_IRQ1_EINT_3_REG
- * @see IRQ1_IRQ1_EINT_4_REG
- * @see cs40l25_event_sm
+ * @warning This list MUST correspond with the list in cs40l2x_event_masks
  *
  */
-static uint32_t irq_statuses[4];
+static const uint32_t cs40l2x_event_regs[CS40L25_EVENT_SOURCES] =
+{
+    CS40L25_HARDWAREEVENT, // For the Event Handler SM, HW Event handling must be first
+    CS40L25_GPIO1EVENT,
+    CS40L25_GPIO2EVENT,
+    CS40L25_GPIO3EVENT,
+    CS40L25_GPIO4EVENT,
+    CS40L25_GPIOPLAYBACKEVENT,
+    CS40L25_TRIGGERPLAYBACKEVENT,
+    CS40L25_RXREADYEVENT,
+};
 
 /**
- * Cache for contents of IRQ1_MASK_*_REG interrupt mask registers.
+ * Masks to the 'EventControl' HALO FW control that enable events
  *
- * Currently, the following registers are cached:
- * - IRQ1_IRQ1_MASK_1_REG
- * - IRQ1_IRQ1_MASK_2_REG
- * - IRQ1_IRQ1_MASK_3_REG
- * - IRQ1_IRQ1_MASK_4_REG
+ * List is in the form:
+ * - word0 - Mask in 'EventControl' that will enable results from HARDWAREEVENT
+ * - word1 - Mask in 'EventControl' that will enable results from GPIO1EVENT
+ * - ...
  *
- * This cache is required for cs40l25_event_sm.  It is used along with irq_statuses[] to determine what unmasked
- * interrupts have occurred. The cache currently is not allocated as part of cs40l25_t, but it should either be
- * allocated there or have another means to cache the contents.
+ * @see cs40l2x_event_regs
  *
- * @see IRQ1_IRQ1_MASK_1_REG
- * @see IRQ1_IRQ1_MASK_2_REG
- * @see IRQ1_IRQ1_MASK_3_REG
- * @see IRQ1_IRQ1_MASK_4_REG
- * @see cs40l25_event_sm
+ * @warning This list MUST correspond with the list in cs40l2x_event_regs
  *
  */
-static uint32_t irq_masks[4];
+static const unsigned int cs40l2x_event_masks[CS40L25_EVENT_SOURCES] =
+{
+    CS40L2X_EVENT_HARDWARE_ENABLED, // For the Event Handler SM, HW Event handling must be first
+    CS40L2X_EVENT_GPIO1_ENABLED,
+    CS40L2X_EVENT_GPIO2_ENABLED,
+    CS40L2X_EVENT_GPIO3_ENABLED,
+    CS40L2X_EVENT_GPIO4_ENABLED,
+    CS40L2X_EVENT_START_ENABLED | CS40L2X_EVENT_END_ENABLED,
+    CS40L2X_EVENT_START_ENABLED | CS40L2X_EVENT_END_ENABLED,
+    CS40L2X_EVENT_READY_ENABLED,
+};
+
+/**
+ * Map from values of the *Event controls in HALO FW to flag bitmasks to notification callback
+ *
+ * The Event Handler SM will poll the *Event controls in HALO FW ('GPIO1Event', 'TriggerPlaybackEvent', etc).  The
+ * values of these registers are unique to a specific event, which is mapped to a bitmask to be applied to
+ * cs40l25_t.event_flags.  This value is passed to the calling layer via the notification callback.
+ *
+ * @see CS40L25_EVENT_FLAG_
+ *
+ */
+static const uint32_t cs40l25_event_value_to_flag_map[CS40L25_EVENT_VALUE_TO_FLAG_MAP_LENGTH] =
+{
+    CS40L25_EVENT_FLAG_GPIO_1_RELEASE,
+    CS40L25_EVENT_FLAG_GPIO_1_PRESS,
+    CS40L25_EVENT_FLAG_GPIO_2_RELEASE,
+    CS40L25_EVENT_FLAG_GPIO_2_PRESS,
+    CS40L25_EVENT_FLAG_GPIO_3_RELEASE,
+    CS40L25_EVENT_FLAG_GPIO_3_PRESS,
+    CS40L25_EVENT_FLAG_GPIO_4_RELEASE,
+    CS40L25_EVENT_FLAG_GPIO_4_PRESS,
+    0,
+    0,
+    CS40L25_EVENT_FLAG_CP_PLAYBACK_DONE,
+    CS40L25_EVENT_FLAG_GPIO_PLAYBACK_DONE,
+    CS40L25_EVENT_FLAG_READY_FOR_DATA,
+    0,
+    CS40L25_EVENT_FLAG_CP_PLAYBACK_SUSPEND,
+    CS40L25_EVENT_FLAG_CP_PLAYBACK_RESUME
+};
+
+/**
+ * Map of IRQ flags to flag bitmasks to notification callback
+ *
+ * If enabled, the Event Handler SM will poll the 'HardwareEvent' control in HALO FW.  The Event Handler SM will then
+ * poll for IRQ hardware events, and based on the values apply the event bitmasks to cs40l25_t.event_flags.  This value
+ * is passed to the calling layer via the notification callback.
+ *
+ * @see CS40L25_EVENT_FLAG_
+ * @see SECTION_7_24_IRQ2
+ *
+ */
+static const uint32_t cs40l25_irq2_mask_1_to_event_flag_map[CS40L25_EVENT_HW_SOURCES * 2] =
+{
+    IRQ2_IRQ2_EINT_1_AMP_ERR_EINT2_BITMASK, CS40L25_EVENT_FLAG_AMP_SHORT,
+    IRQ2_IRQ2_EINT_1_TEMP_ERR_EINT2_BITMASK, CS40L25_EVENT_FLAG_OVERTEMP_ERROR,
+    IRQ2_IRQ2_EINT_1_TEMP_WARN_RISE_EINT2_BITMASK, CS40L25_EVENT_FLAG_OVERTEMP_WARNING,
+    IRQ2_IRQ2_EINT_1_BST_SHORT_ERR_EINT2_BITMASK, CS40L25_EVENT_FLAG_BOOST_INDUCTOR_SHORT,
+    IRQ2_IRQ2_EINT_1_BST_DCM_UVP_ERR_EINT2_BITMASK, CS40L25_EVENT_FLAG_BOOST_UNDERVOLTAGE,
+    IRQ2_IRQ2_EINT_1_BST_OVP_ERR_EINT2_BITMASK, CS40L25_EVENT_FLAG_BOOST_OVERVOLTAGE,
+};
+
+/**
+ * Wake Write Sequencer patch to be applied during the Configure SM.
+ *
+ * These values are formatted to the packed specification required by the Write Sequencer.
+ *
+ */
+static const uint32_t cs40l25_irqmaskseq_patch[] =
+{
+    CS40L25_IRQMASKSEQUENCE,        CS40L25_IMASKSEQ_WORD_1(CS40L25_IRQ2_MASK1_DEFAULT),
+    (CS40L25_IRQMASKSEQUENCE + 4),  CS40L25_IMASKSEQ_WORD_2(CS40L25_IRQ2_MASK1_DEFAULT),
+    (CS40L25_IRQMASKSEQUENCE + 8),  CS40L25_IMASKSEQ_WORD_1(CS40L25_IRQ2_MASK2_DEFAULT),
+    (CS40L25_IRQMASKSEQUENCE + 12), CS40L25_IMASKSEQ_WORD_2(CS40L25_IRQ2_MASK2_DEFAULT),
+    (CS40L25_IRQMASKSEQUENCE + 16), CS40L25_IMASKSEQ_WORD_1(CS40L25_IRQ2_MASK3_DEFAULT),
+    (CS40L25_IRQMASKSEQUENCE + 20), CS40L25_IMASKSEQ_WORD_2(CS40L25_IRQ2_MASK3_DEFAULT),
+    (CS40L25_IRQMASKSEQUENCE + 24), CS40L25_IMASKSEQ_WORD_1(CS40L25_IRQ2_MASK4_DEFAULT),
+    (CS40L25_IRQMASKSEQUENCE + 28), CS40L25_IMASKSEQ_WORD_2(CS40L25_IRQ2_MASK4_DEFAULT),
+    CS40L25_IRQMASKSEQUENCE_VALID, 0x1,
+};
 
 /***********************************************************************************************************************
  * LOCAL FUNCTIONS
@@ -497,6 +709,18 @@ static void cs40l25_cp_write_callback(uint32_t status, void *cb_arg)
             CS40L25_SET_FLAG(d->event_sm.flags, CS40L25_FLAGS_CP_RW_DONE);
         }
     }
+    else
+    {
+        // Check the driver mode to know which state machine called the BSP API and set respective flag
+        if (d->mode == CS40L25_MODE_HANDLING_CONTROLS)
+        {
+            CS40L25_SET_FLAG(d->control_sm.flags, CS40L25_FLAGS_CP_RW_ERROR);
+        }
+        else
+        {
+            CS40L25_SET_FLAG(d->event_sm.flags, CS40L25_FLAGS_CP_RW_ERROR);
+        }
+    }
 
     return;
 }
@@ -532,6 +756,122 @@ static void cs40l25_irq_callback(uint32_t status, void *cb_arg)
     }
 
     return;
+}
+
+/**
+ * Adds register address/value pair to the Write Sequencer table
+ *
+ * @param [in] driver           Pointer to the driver state
+ * @param [in] address          Register address to add
+ * @param [in] value            Register value to add
+ *
+ * @return
+ * - CS40L25_STATUS_FAIL        if the fixed-size Write Sequencer Table is full
+ * - CS40L25_STATUS_OK          otherwise
+ *
+ */
+uint32_t cs40l25_wseq_table_add(cs40l25_t *driver, uint32_t address, uint32_t value)
+{
+    uint32_t ret = CS40L25_STATUS_OK;
+
+    cs40l25_wseq_entry_t *table = &driver->wseq_table;
+    uint32_t num_entries = driver->wseq_num_entries;
+
+    if (num_entries < CS40L25_WSEQ_MAX_ENTRIES)
+    {
+        table[num_entries].address_ms = (address & 0xFF00) >> 8;
+        table[num_entries].address_ls = address & 0x00FF;
+        table[num_entries].val_3 = (value & 0xFF000000) >> 24;
+        table[num_entries].val_2 = (value & 0x00FF0000) >> 16;
+        table[num_entries].val_1 = (value & 0x0000FF00) >> 8;
+        table[num_entries].val_0 = value & 0x000000FF;
+        table[num_entries].changed = 1;
+        // Make sure reserved* members are 0
+        table[num_entries].reserved_0 = 0;
+        table[num_entries].reserved_1 = 0;
+
+        driver->wseq_num_entries += 1;
+    }
+    else
+    {
+        ret = CS40L25_STATUS_FAIL;
+    }
+
+    return ret;
+}
+
+/**
+ * Updated a register address/value pair in the Write Sequencer table
+ *
+ * If value does not currently exist, it will be added to the table.
+ *
+ * @param [in] driver           Pointer to the driver state
+ * @param [in] address          Register address to update
+ * @param [in] value            New value to apply to the register
+ *
+ * @return
+ * - CS40L25_STATUS_FAIL        if the fixed-size Write Sequencer Table is full
+ * - CS40L25_STATUS_OK          otherwise
+ *
+ */
+uint32_t cs40l25_wseq_table_update(cs40l25_t *driver, uint32_t address, uint32_t value)
+{
+    uint32_t ret = CS40L25_STATUS_OK;
+
+    cs40l25_wseq_entry_t *table = &driver->wseq_table;
+    if (address < 0xFFFF)
+    {
+        uint32_t num_entries = driver->wseq_num_entries;
+        bool address_found = false;
+        for (int i = 0; i < num_entries; i++) {
+            uint32_t temp_address = (table[i].address_ms << 8) | (table[i].address_ls);
+            uint32_t temp_value = (table[i].val_3 << 24) | (table[i].val_2 << 16) |
+                                  (table[i].val_1 << 8) | (table[i].val_0);
+            if ((temp_address == address) &&
+                (temp_value != value) &&
+                (address != CS40L25_CTRL_KEYS_TEST_KEY_CTRL_REG))
+            {
+                table[i].val_3 = (value & 0xFF000000) >> 24;
+                table[i].val_2 = (value & 0x00FF0000) >> 16;
+                table[i].val_1 = (value & 0x0000FF00) >> 8;
+                table[i].val_0 = value & 0x000000FF;
+                table[i].changed = 1;
+
+                address_found = true;
+            }
+        }
+
+        if (!address_found)
+        {
+            ret = cs40l25_wseq_table_add(driver, address, value);
+        }
+    }
+
+    return ret;
+}
+
+/**
+ * Add an array of register address/value pairs the Write Sequencer table
+ *
+ * @param [in] driver           Pointer to the driver state
+ * @param [in] entries          Pointer to the array of address/value pairs
+ * @param [in] num_entries      Number of address/value pairs in 'entries'
+ *
+ * @return
+ * - CS40L25_STATUS_FAIL        if the fixed-size Write Sequencer Table is full
+ * - CS40L25_STATUS_OK          otherwise
+ *
+ */
+uint32_t cs40l25_wseq_add_block(cs40l25_t *driver, uint32_t *entries, uint32_t num_entries)
+{
+    uint32_t ret;
+    for (int i = 0; i < num_entries; i++) {
+        ret = cs40l25_wseq_table_add(driver, entries[2 * i], entries[2 * i + 1]);
+        if (ret != CS40L25_STATUS_OK) {
+            return ret;
+        }
+    }
+    return CS40L25_STATUS_OK;
 }
 
 /**
@@ -614,6 +954,9 @@ static uint32_t cs40l25_write_reg(cs40l25_t *driver, uint32_t addr, uint32_t val
 {
     uint32_t ret = CS40L25_STATUS_FAIL;
     uint32_t bsp_status = BSP_STATUS_FAIL;
+
+    //Update corresponding entry in wseq_table if it exists
+    cs40l25_wseq_table_update(driver, addr, val);
 
     /*
      * Copy Little-Endian contents of 'addr' and 'val' to the Big-Endian format required for Control Port transactions
@@ -973,6 +1316,14 @@ static uint32_t cs40l25_boot_sm(cs40l25_t *driver)
                 // If there are FW blocks to boot
                 else if (CS40L25_IS_FLAG_SET(b->flags, CS40L25_FLAGS_REQUEST_FW_BOOT))
                 {
+                    //Ignore first word of errata_patch
+                    int errata_entries = (sizeof(cs40l25_revb0_errata_patch) - sizeof(uint32_t)) / (2 * sizeof(uint32_t));
+                    int wseq_entries = sizeof(cs40l25_wseq_regs) / (2 * sizeof(uint32_t));
+
+                    driver->wseq_num_entries = 0;
+                    cs40l25_wseq_add_block(driver, cs40l25_revb0_errata_patch + 1, errata_entries);
+                    cs40l25_wseq_add_block(driver, cs40l25_wseq_regs, wseq_entries);
+
                     // Get first FW block
                     temp_block = cfg->fw_blocks;
                     b->state = CS40L25_BOOT_SM_STATE_LOAD_FW;
@@ -1417,7 +1768,7 @@ static uint32_t cs40l25_power_up_sm(cs40l25_t *driver)
                 {
                     CS40L25_CLEAR_FLAG(sm->flags, CS40L25_FLAGS_TIMEOUT);
                     // After enabling core, wait for at least T_AMP_PUP (1ms)
-                    ret = bsp_driver_if_g->set_timer(CS40L25_T_AMP_PUP_MS, cs40l25_timer_callback, driver);
+                    ret = bsp_driver_if_g->set_timer(CS40L25_T_BST_PUP_MS, cs40l25_timer_callback, driver);
                     sm->state = CS40L25_POWER_UP_SM_STATE_WAIT_HALO_STATE_T;
                 }
             }
@@ -1511,7 +1862,7 @@ static uint32_t cs40l25_power_down_sm(cs40l25_t *driver)
                 // Force fw into standby
                 ret = cs40l25_private_functions_g->write_reg(driver,
                                                              DSP_VIRTUAL1_MBOX_DSP_VIRTUAL1_MBOX_4_REG,
-                                                             DSP_VIRTUAL1_MBOX_DSP_VIRTUAL1_MBOX_4_FORCE_STANDBY,
+                                                             CS40L25_POWERCONTROL_FRC_STDBY,
                                                              false);
 
                 sm->state = CS40L25_POWER_DOWN_SM_STATE_MBOX_START;
@@ -1737,7 +2088,7 @@ static uint32_t cs40l25_power_down_sm(cs40l25_t *driver)
             {
                 sm->count++;
                 // If ack ctrl has been reset
-                if (driver->register_buffer == DSP_VIRTUAL1_MBOX_DSP_VIRTUAL1_MBOX_4_NONE)
+                if (driver->register_buffer == CS40L25_POWERCONTROL_NONE)
                 {
                     CS40L25_CLEAR_FLAG(sm->flags, CS40L25_FLAGS_CP_RW_DONE);
                     // Read so we can update bits
@@ -1907,6 +2258,31 @@ static uint32_t cs40l25_configure_sm(cs40l25_t *driver)
                     ret = cs40l25_private_functions_g->write_reg(driver,
                                                                  cs40l25_config_register_addresses[sm->count],
                                                                  driver->config_regs.words[sm->count],
+                                                                 false);
+                }
+                else
+                {
+                    // Write IRQMASKSEQUENCE
+                    sm->count = 0;
+                    ret = cs40l25_private_functions_g->write_reg(driver,
+                                                                 cs40l25_irqmaskseq_patch[sm->count],
+                                                                 cs40l25_irqmaskseq_patch[sm->count + 1],
+                                                                 false);
+                    sm->state = CS40L25_CONFIGURE_SM_STATE_WRITE_IRQ;
+                }
+            }
+            break;
+
+        case CS40L25_CONFIGURE_SM_STATE_WRITE_IRQ:
+            if (CS40L25_IS_FLAG_SET(sm->flags, CS40L25_FLAGS_CP_RW_DONE))
+            {
+                CS40L25_CLEAR_FLAG(sm->flags, CS40L25_FLAGS_CP_RW_DONE);
+                sm->count += 2;
+                if (sm->count < (sizeof(cs40l25_irqmaskseq_patch) / sizeof(uint32_t)))
+                {
+                    ret = cs40l25_private_functions_g->write_reg(driver,
+                                                                 cs40l25_irqmaskseq_patch[sm->count],
+                                                                 cs40l25_irqmaskseq_patch[sm->count + 1],
                                                                  false);
                 }
                 else
@@ -2448,6 +2824,203 @@ static uint32_t cs40l25_calibration_sm(cs40l25_t *driver)
 }
 
 /**
+ * Dynamic ReDC State Machine
+ *
+ * Implementation of cs40l25_private_functions_t.dynamic_redc_sm
+ *
+ */
+static uint32_t cs40l25_dynamic_redc_sm(cs40l25_t *driver)
+{
+    uint32_t ret = CS40L25_STATUS_OK;
+    cs40l25_sm_t *sm = &(driver->control_sm);
+
+    if (CS40L25_IS_FLAG_SET(sm->flags, CS40L25_FLAGS_CP_RW_ERROR))
+    {
+        sm->state = CS40L25_DYNAMIC_REDC_SM_STATE_ERROR;
+        ret = CS40L25_STATUS_FAIL;
+    }
+
+    switch(sm->state)
+    {
+        case CS40L25_DYNAMIC_REDC_SM_STATE_INIT:
+            CS40L25_CLEAR_FLAG(sm->flags, CS40L25_FLAGS_CP_RW_DONE);
+            sm->count = 0;
+
+            // The driver will set the dynamic_redc control to -1 (0xFFFFFF)
+            ret = cs40l25_private_functions_g->write_reg(driver,
+                                                         CS40L25_DYNAMIC_REDC,
+                                                         0xFFFFFFFF,
+                                                         false);
+            sm->state = CS40L25_DYNAMIC_REDC_SM_STATE_SET_REDC_WAKE;
+            break;
+
+        case CS40L25_DYNAMIC_REDC_SM_STATE_SET_REDC_WAKE:
+            if (CS40L25_IS_FLAG_SET(sm->flags, CS40L25_FLAGS_CP_RW_DONE))
+            {
+                CS40L25_CLEAR_FLAG(sm->flags, CS40L25_FLAGS_CP_RW_DONE);
+                if (sm->count == 0)
+                {
+                    sm->count++;
+
+                    // The PowerControl (MBOX_4) register must be set to WAKEUP (2)
+                    ret = cs40l25_private_functions_g->write_reg(driver,
+                                                                 DSP_VIRTUAL1_MBOX_DSP_VIRTUAL1_MBOX_4_REG,
+                                                                 CS40L25_POWERCONTROL_WAKEUP,
+                                                                 false);
+                }
+                else
+                {
+                    sm->count = 0;
+
+                    // The dynamic_redc register contents will remain at -1 until the calculation is complete
+                    ret = cs40l25_private_functions_g->read_reg(driver,
+                                                                CS40L25_DYNAMIC_REDC,
+                                                                &(driver->register_buffer),
+                                                                false);
+
+                    sm->state = CS40L25_DYNAMIC_REDC_SM_STATE_GET_REDC;
+                }
+            }
+            break;
+
+        case CS40L25_DYNAMIC_REDC_SM_STATE_GET_REDC:
+            if (CS40L25_IS_FLAG_SET(sm->flags, CS40L25_FLAGS_CP_RW_DONE))
+            {
+                if (driver->register_buffer == 0xFFFFFF)
+                {
+                    if (sm->count < 30)
+                    {
+                        sm->count++;
+
+                        CS40L25_CLEAR_FLAG(sm->flags, CS40L25_FLAGS_TIMEOUT);
+                        ret = bsp_driver_if_g->set_timer(CS40L25_POLL_ACK_CTRL_MS,
+                                                         cs40l25_timer_callback,
+                                                         driver);
+                        sm->state = CS40L25_DYNAMIC_REDC_SM_STATE_WAIT_10MS;
+                    }
+                    else
+                    {
+                        sm->state = CS40L25_DYNAMIC_REDC_SM_STATE_ERROR;
+                    }
+                }
+                else
+                {
+                    uint32_t *reg_ptr = (uint32_t *) driver->current_request.arg;
+                    *reg_ptr = driver->register_buffer;
+                    sm->state = CS40L25_DYNAMIC_REDC_SM_STATE_DONE;
+                }
+            }
+            break;
+
+        case CS40L25_DYNAMIC_REDC_SM_STATE_WAIT_10MS:
+            if (CS40L25_IS_FLAG_SET(sm->flags, CS40L25_FLAGS_TIMEOUT))
+            {
+                CS40L25_CLEAR_FLAG(sm->flags, CS40L25_FLAGS_CP_RW_DONE);
+                ret = cs40l25_private_functions_g->read_reg(driver,
+                                                            CS40L25_DYNAMIC_REDC,
+                                                            &(driver->register_buffer),
+                                                            false);
+                sm->state = CS40L25_DYNAMIC_REDC_SM_STATE_GET_REDC;
+            }
+            break;
+
+        case CS40L25_DYNAMIC_REDC_SM_STATE_DONE:
+            break;
+
+        case CS40L25_DYNAMIC_REDC_SM_STATE_ERROR:
+        default:
+            ret = CS40L25_STATUS_FAIL;
+            break;
+    }
+
+    if (ret == CS40L25_STATUS_FAIL)
+    {
+        sm->state = CS40L25_DYNAMIC_REDC_SM_STATE_ERROR;
+    }
+
+    return ret;
+}
+
+/**
+ * Dynamic F0 State Machine
+ *
+ * Implementation of cs40l25_private_functions_t.dynamic_f0_sm
+ *
+ */
+static uint32_t cs40l25_dynamic_f0_sm(cs40l25_t *driver)
+{
+    uint32_t ret = CS40L25_STATUS_OK;
+    cs40l25_sm_t *sm = &(driver->control_sm);
+
+    if (CS40L25_IS_FLAG_SET(sm->flags, CS40L25_FLAGS_CP_RW_ERROR))
+    {
+        sm->state = CS40L25_DYNAMIC_F0_SM_STATE_ERROR;
+        ret = CS40L25_STATUS_FAIL;
+    }
+
+    switch(sm->state)
+    {
+        case CS40L25_DYNAMIC_F0_SM_STATE_INIT:
+            CS40L25_CLEAR_FLAG(sm->flags, CS40L25_FLAGS_CP_RW_DONE);
+            sm->count = 0;
+
+            ret = cs40l25_private_functions_g->read_reg(driver,
+                                                        CS40L25_DYN_F0_TABLE,
+                                                        &(driver->register_buffer),
+                                                        false);
+            sm->state = CS40L25_DYNAMIC_F0_SM_STATE_READ_F0;
+            break;
+
+        case CS40L25_DYNAMIC_F0_SM_STATE_READ_F0:
+            if (CS40L25_IS_FLAG_SET(sm->flags, CS40L25_FLAGS_CP_RW_DONE))
+            {
+                cs40l25_dynamic_f0_table_entry_t *f0_req;
+                cs40l25_dynamic_f0_table_entry_t f0_read;
+                f0_req = (cs40l25_dynamic_f0_table_entry_t*) (driver->current_request.arg);
+                f0_read.word = driver->register_buffer;
+
+                if (f0_req->index == f0_read.index)
+                {
+                    f0_req->f0 = f0_read.f0;
+                    sm->state = CS40L25_DYNAMIC_F0_SM_STATE_DONE;
+                }
+                else if (sm->count < 20)
+                {
+                    CS40L25_CLEAR_FLAG(sm->flags, CS40L25_FLAGS_CP_RW_DONE);
+                    sm->count++;
+
+                    ret = cs40l25_private_functions_g->read_reg(driver,
+                                                                (CS40L25_DYN_F0_TABLE + (sm->count * 4)),
+                                                                &(driver->register_buffer),
+                                                                false);
+                }
+                else
+                {
+                    // Set to default of table entry to indicate index not found
+                    f0_req->word = 0x007FE000;
+                    sm->state = CS40L25_DYNAMIC_F0_SM_STATE_DONE;
+                }
+            }
+            break;
+
+        case CS40L25_DYNAMIC_F0_SM_STATE_DONE:
+            break;
+
+        case CS40L25_DYNAMIC_F0_SM_STATE_ERROR:
+        default:
+            ret = CS40L25_STATUS_FAIL;
+            break;
+    }
+
+    if (ret == CS40L25_STATUS_FAIL)
+    {
+        sm->state = CS40L25_DYNAMIC_F0_SM_STATE_ERROR;
+    }
+
+    return ret;
+}
+
+/**
  * Get DSP Status State Machine
  *
  * Implementation of cs40l25_private_functions_t.get_dsp_status_sm
@@ -2591,6 +3164,373 @@ static uint32_t cs40l25_get_dsp_status_sm(cs40l25_t *driver)
 }
 
 /**
+ * Hibernate State Machine
+ *
+ * Implementation of cs40l25_private_functions_t.hibernate_sm
+ *
+ */
+static uint32_t cs40l25_hibernate_sm(cs40l25_t *driver)
+{
+    uint32_t ret = CS40L25_STATUS_OK;
+    cs40l25_sm_t *sm = &(driver->control_sm);
+
+    if (CS40L25_IS_FLAG_SET(sm->flags, CS40L25_FLAGS_CP_RW_ERROR))
+    {
+        sm->state = CS40L25_HIBERNATE_SM_STATE_ERROR;
+        ret = CS40L25_STATUS_FAIL;
+    }
+
+    switch(sm->state)
+    {
+        case CS40L25_HIBERNATE_SM_STATE_INIT:
+            // Only if in AoH Standby
+            if (driver->state == CS40L25_STATE_DSP_POWER_UP)
+            {
+                sm->count = 0;
+                // Find first changed wseq entry and write it, if no changed entries
+                // transition directly to sending hibernate command
+                int found_entry = 0;
+                while (sm->count < driver->wseq_num_entries)
+                {
+                    if (driver->wseq_table[sm->count].changed == 1)
+                    {
+                        //Write 16bit address and 32bit value to poweronsequence
+                        cs40l25_private_functions_g->cp_bulk_write(driver,
+                                                                   CS40L25_POWERONSEQUENCE + (8 * sm->count),
+                                                                   (uint8_t *) driver->wseq_table[sm->count].words,
+                                                                   8);
+
+                        driver->wseq_table[sm->count].changed = 0;
+                        sm->count++;
+                        sm->state = CS40L25_HIBERNATE_SM_STATE_WSEQ;
+                        found_entry = 1;
+                        break;
+                    }
+                    sm->count++;
+                }
+                if (found_entry == 0)
+                {
+                    ret = cs40l25_private_functions_g->write_reg(driver,
+                                                                 CS40L25_POWERONSEQUENCE + (8 * sm->count),
+                                                                 0x00FFFFFF,
+                                                                 false);
+                    sm->state = CS40L25_HIBERNATE_SM_STATE_WRITE_TERMINATOR;
+                }
+
+            }
+            else
+            {
+                sm->state = CS40L25_HIBERNATE_SM_STATE_ERROR;
+                ret = CS40L25_STATUS_FAIL;
+            }
+            break;
+        case CS40L25_HIBERNATE_SM_STATE_WSEQ:
+            if (CS40L25_IS_FLAG_SET(sm->flags, CS40L25_FLAGS_CP_RW_DONE))
+            {
+                CS40L25_CLEAR_FLAG(sm->flags, CS40L25_FLAGS_CP_RW_DONE);
+                int found_entry = 0;
+                while (sm->count < driver->wseq_num_entries)
+                {
+                    if (driver->wseq_table[sm->count].changed == 1)
+                    {
+                        //Write 32bit address and 32bit value to poweronsequence
+                        cs40l25_private_functions_g->cp_bulk_write(driver,
+                                                                   CS40L25_POWERONSEQUENCE + (8 * sm->count),
+                                                                   (uint8_t *) driver->wseq_table[sm->count].words,
+                                                                   8);
+
+                        driver->wseq_table[sm->count].changed = 0;
+                        sm->count++;
+                        found_entry = 1;
+                        break;
+                    }
+                    sm->count++;
+                }
+                if (found_entry == 0)
+                {
+                    ret = cs40l25_private_functions_g->write_reg(driver,
+                                                                 CS40L25_POWERONSEQUENCE + (8 * sm->count),
+                                                                 0x00FFFFFF,
+                                                                 false);
+                    sm->state = CS40L25_HIBERNATE_SM_STATE_WRITE_TERMINATOR;
+                }
+            }
+            break;
+
+        case CS40L25_HIBERNATE_SM_STATE_WRITE_TERMINATOR:
+            if (CS40L25_IS_FLAG_SET(sm->flags, CS40L25_FLAGS_CP_RW_DONE))
+            {
+                CS40L25_CLEAR_FLAG(sm->flags, CS40L25_FLAGS_CP_RW_DONE);
+                ret = cs40l25_private_functions_g->write_reg(driver,
+                                                             DSP_VIRTUAL1_MBOX_DSP_VIRTUAL1_MBOX_4_REG,
+                                                             CS40L25_POWERCONTROL_HIBERNATE,
+                                                             false);
+                sm->state = CS40L25_HIBERNATE_SM_STATE_SEND_CMD;
+            }
+            break;
+
+        case CS40L25_HIBERNATE_SM_STATE_SEND_CMD:
+            if (CS40L25_IS_FLAG_SET(sm->flags, CS40L25_FLAGS_CP_RW_DONE))
+            {
+                sm->state = CS40L25_HIBERNATE_SM_STATE_DONE;
+            }
+            break;
+
+        case CS40L25_HIBERNATE_SM_STATE_DONE:
+            break;
+
+        case CS40L25_HIBERNATE_SM_STATE_ERROR:
+        default:
+            ret = CS40L25_STATUS_FAIL;
+            break;
+    }
+
+    if (ret == CS40L25_STATUS_FAIL)
+    {
+        sm->state = CS40L25_HIBERNATE_SM_STATE_ERROR;
+    }
+
+    return ret;
+}
+
+/**
+ * Wake State Machine
+ *
+ * Implementation of cs40l25_private_functions_t.wake_sm
+ *
+ */
+static uint32_t cs40l25_wake_sm(cs40l25_t *driver)
+{
+    uint32_t ret = CS40L25_STATUS_OK;
+    cs40l25_sm_t *sm = &(driver->control_sm);
+
+    if ((CS40L25_IS_FLAG_SET(sm->flags, CS40L25_FLAGS_CP_RW_ERROR)) &&
+        ((sm->state != CS40L25_WAKE_SM_STATE_SEND_WAKE) && (sm->state != CS40L25_WAKE_SM_STATE_SEND_HIBERNATE)))
+    {
+        sm->state = CS40L25_WAKE_SM_STATE_ERROR;
+        ret = CS40L25_STATUS_FAIL;
+    }
+
+    switch (sm->state)
+    {
+        case CS40L25_WAKE_SM_STATE_INIT:
+            // Only if in AoH Hibernate
+            if (driver->state == CS40L25_STATE_HIBERNATE)
+            {
+                CS40L25_CLEAR_FLAG(sm->flags, CS40L25_FLAGS_CP_RW_DONE);
+
+                // Request Wake
+                ret = cs40l25_private_functions_g->write_reg(driver,
+                                                             DSP_VIRTUAL1_MBOX_DSP_VIRTUAL1_MBOX_4_REG,
+                                                             CS40L25_POWERCONTROL_WAKEUP,
+                                                             false);
+                sm->count = 0;
+                sm->state = CS40L25_WAKE_SM_STATE_SEND_WAKE;
+            }
+            else
+            {
+                sm->state = CS40L25_HIBERNATE_SM_STATE_ERROR;
+                ret = CS40L25_STATUS_FAIL;
+            }
+
+            break;
+
+        case CS40L25_WAKE_SM_STATE_SEND_WAKE:
+            // Check for successful control port write
+            if (CS40L25_IS_FLAG_SET(sm->flags, CS40L25_FLAGS_CP_RW_DONE))
+            {
+                // Set the inner counter to 0
+                sm->count &= 0xF0;
+
+                // Wait for at least 5ms
+                CS40L25_CLEAR_FLAG(sm->flags, CS40L25_FLAGS_TIMEOUT);
+                ret = bsp_driver_if_g->set_timer(BSP_TIMER_DURATION_5MS, cs40l25_timer_callback, driver);
+                sm->state = CS40L25_WAKE_SM_STATE_WAKE_OK_WAIT_5MS;
+            }
+            // Check for control port write error, indicating possible wake from control port
+            else if (CS40L25_IS_FLAG_SET(sm->flags, CS40L25_FLAGS_CP_RW_ERROR))
+            {
+                CS40L25_CLEAR_FLAG(sm->flags, CS40L25_FLAGS_CP_RW_ERROR);
+
+                sm->count++;
+                // If less than 10 tries to wake, wait 1ms and then try again
+                if ((sm->count & 0x0F) < 10)
+                {
+                    // Wait for at least 1ms
+                    CS40L25_CLEAR_FLAG(sm->flags, CS40L25_FLAGS_TIMEOUT);
+                    ret = bsp_driver_if_g->set_timer(BSP_TIMER_DURATION_1MS, cs40l25_timer_callback, driver);
+                    sm->state = CS40L25_WAKE_SM_STATE_WAKE_FAILED_WAIT_1MS;
+                }
+                else
+                {
+                    sm->state = CS40L25_WAKE_SM_STATE_ERROR;
+                }
+            }
+            break;
+
+        case CS40L25_WAKE_SM_STATE_WAKE_FAILED_WAIT_1MS:
+            if (CS40L25_IS_FLAG_SET(sm->flags, CS40L25_FLAGS_TIMEOUT))
+            {
+                CS40L25_CLEAR_FLAG(sm->flags, CS40L25_FLAGS_CP_RW_DONE);
+
+                // Request Wake
+                ret = cs40l25_private_functions_g->write_reg(driver,
+                                                             DSP_VIRTUAL1_MBOX_DSP_VIRTUAL1_MBOX_4_REG,
+                                                             CS40L25_POWERCONTROL_WAKEUP,
+                                                             false);
+                sm->state = CS40L25_WAKE_SM_STATE_SEND_WAKE;
+            }
+            break;
+
+        case CS40L25_WAKE_SM_STATE_WAKE_OK_WAIT_5MS:
+            if (CS40L25_IS_FLAG_SET(sm->flags, CS40L25_FLAGS_TIMEOUT))
+            {
+                CS40L25_CLEAR_FLAG(sm->flags, CS40L25_FLAGS_CP_RW_DONE);
+
+                // Read FW ID
+                ret = cs40l25_private_functions_g->read_reg(driver,
+                                                            CS40L25_FIRMWARE_ID_ADDR,
+                                                            &(driver->register_buffer),
+                                                            false);
+                sm->state = CS40L25_WAKE_SM_STATE_READ_FW_ID;
+            }
+            break;
+
+        case CS40L25_WAKE_SM_STATE_READ_FW_ID:
+            if (CS40L25_IS_FLAG_SET(sm->flags, CS40L25_FLAGS_CP_RW_DONE))
+            {
+                // Increment the inner loop counter to read FW ID
+                sm->count++;
+
+                // Check if FW ID is correct
+                if (driver->register_buffer == CS40L25_FIRMWARE_ID)
+                {
+                    sm->count = 0;
+                    CS40L25_CLEAR_FLAG(sm->flags, CS40L25_FLAGS_CP_RW_DONE);
+
+                    // Read POWERSTATE
+                    ret = cs40l25_private_functions_g->read_reg(driver,
+                                                                CS40L25_POWERSTATE,
+                                                                &(driver->register_buffer),
+                                                                false);
+                    sm->state = CS40L25_WAKE_SM_STATE_READ_POWER_STATE;
+                }
+                // If less than 10 tries to read FW ID, wait 5ms and then try again
+                else if ((sm->count & 0x0F) < 10)
+                {
+                    // Wait for at least 5ms
+                    CS40L25_CLEAR_FLAG(sm->flags, CS40L25_FLAGS_TIMEOUT);
+                    ret = bsp_driver_if_g->set_timer(BSP_TIMER_DURATION_5MS, cs40l25_timer_callback, driver);
+                    sm->state = CS40L25_WAKE_SM_STATE_WAKE_OK_WAIT_5MS;
+                }
+                // If FW ID was incorrect 10 times, force back into hibernate
+                else
+                {
+                    // Increment outer loop counter - force hibernate attempts
+                    sm->count += (1 << 4);
+
+                    // If less than 10 force hibernate attemps, force once more
+                    if (sm->count < (10 << 4))
+                    {
+                        CS40L25_CLEAR_FLAG(sm->flags, CS40L25_FLAGS_CP_RW_DONE);
+
+                        // Request Hibernate manually (not via HALO MBOX)
+                        ret = cs40l25_private_functions_g->write_reg(driver,
+                                                                     CS40L25_PWRMGT_CTL_REG,
+                                                                     CS40L25_PWRMGT_CTL_MEM_RDY_TRIG_HIBER,
+                                                                     false);
+                        sm->state = CS40L25_WAKE_SM_STATE_SEND_HIBERNATE;
+                    }
+                    else
+                    {
+                        sm->state = CS40L25_WAKE_SM_STATE_ERROR;
+                    }
+                }
+            }
+            break;
+
+        case CS40L25_WAKE_SM_STATE_SEND_HIBERNATE:
+            if (CS40L25_IS_FLAG_SET(sm->flags, CS40L25_FLAGS_CP_RW_DONE))
+            {
+                // Wait for at least 1ms
+                CS40L25_CLEAR_FLAG(sm->flags, CS40L25_FLAGS_TIMEOUT);
+                ret = bsp_driver_if_g->set_timer(BSP_TIMER_DURATION_1MS, cs40l25_timer_callback, driver);
+                sm->state = CS40L25_WAKE_SM_STATE_HIBERNATE_WAIT_1MS;
+            }
+            break;
+
+        case CS40L25_WAKE_SM_STATE_HIBERNATE_WAIT_1MS:
+            if (CS40L25_IS_FLAG_SET(sm->flags, CS40L25_FLAGS_TIMEOUT))
+            {
+                CS40L25_CLEAR_FLAG(sm->flags, CS40L25_FLAGS_CP_RW_DONE);
+
+                // Request Wake
+                ret = cs40l25_private_functions_g->write_reg(driver,
+                                                             DSP_VIRTUAL1_MBOX_DSP_VIRTUAL1_MBOX_4_REG,
+                                                             CS40L25_POWERCONTROL_WAKEUP,
+                                                             false);
+                // Clear lower nibble of 'count' used for inner loop to send Wake command
+                sm->count &= 0xF0;
+                sm->state = CS40L25_WAKE_SM_STATE_SEND_WAKE;
+            }
+            break;
+
+        case CS40L25_WAKE_SM_STATE_READ_POWER_STATE:
+            if (CS40L25_IS_FLAG_SET(sm->flags, CS40L25_FLAGS_CP_RW_DONE))
+            {
+                sm->count++;
+                if ((driver->register_buffer == CS40L25_POWERSTATE_ACTIVE) ||
+                    (driver->register_buffer == CS40L25_POWERSTATE_STANDBY))
+                {
+                    sm->state = CS40L25_WAKE_SM_STATE_DONE;
+                }
+                else if ((driver->register_buffer == CS40L25_POWERSTATE_HIBERNATE) &&
+                         (sm->count < 10))
+                {
+                    // Wait for at least 5ms
+                    CS40L25_CLEAR_FLAG(sm->flags, CS40L25_FLAGS_TIMEOUT);
+                    ret = bsp_driver_if_g->set_timer(BSP_TIMER_DURATION_5MS, cs40l25_timer_callback, driver);
+                    sm->state = CS40L25_WAKE_SM_STATE_STILL_HIBERNATE_WAIT_5MS;
+                }
+                else
+                {
+                    sm->state = CS40L25_WAKE_SM_STATE_ERROR;
+                }
+            }
+            break;
+
+        case CS40L25_WAKE_SM_STATE_STILL_HIBERNATE_WAIT_5MS:
+            if (CS40L25_IS_FLAG_SET(sm->flags, CS40L25_FLAGS_TIMEOUT))
+            {
+                CS40L25_CLEAR_FLAG(sm->flags, CS40L25_FLAGS_CP_RW_DONE);
+
+                // Read POWERSTATE
+                ret = cs40l25_private_functions_g->read_reg(driver,
+                                                            CS40L25_POWERSTATE,
+                                                            &(driver->register_buffer),
+                                                            false);
+                sm->state = CS40L25_WAKE_SM_STATE_READ_POWER_STATE;
+            }
+            break;
+
+        case CS40L25_WAKE_SM_STATE_DONE:
+            break;
+
+        case CS40L25_WAKE_SM_STATE_ERROR:
+        default:
+            ret = CS40L25_STATUS_FAIL;
+            break;
+    }
+
+    if (ret == CS40L25_STATUS_FAIL)
+    {
+        sm->state = CS40L25_WAKE_SM_STATE_ERROR;
+    }
+
+    return ret;
+}
+
+/**
  * Event Handler State Machine
  *
  * Implementation of cs40l25_private_functions_t.event_sm
@@ -2602,7 +3542,6 @@ static uint32_t cs40l25_event_sm(void *driver)
     cs40l25_t *d = driver;
     cs40l25_sm_t *sm = &(d->event_sm);
 
-
     if (CS40L25_IS_FLAG_SET(sm->flags, CS40L25_FLAGS_CP_RW_ERROR))
     {
         sm->state = CS40L25_EVENT_SM_STATE_ERROR;
@@ -2612,87 +3551,191 @@ static uint32_t cs40l25_event_sm(void *driver)
     switch (sm->state)
     {
         case CS40L25_EVENT_SM_STATE_INIT:
+        {
             /*
              * Since upon entering the Event Handler SM, the BSP Control Port may be in the middle of a transaction,
              * request the BSP to reset the Control Port and abort the current transaction.
              */
-            bsp_driver_if_g->i2c_reset(d->bsp_dev_id);
+
+            bool was_i2c_busy = false;
+            bsp_driver_if_g->i2c_reset(d->bsp_dev_id, &was_i2c_busy);
+
+            // If an I2C transaction was interrupted, then current Control Request must be restarted
+            if (was_i2c_busy)
+            {
+                CS40L25_SET_FLAG(d->control_sm.flags, CS40L25_FLAGS_REQUEST_RESTART);
+            }
+
+            d->event_flags = 0;
             CS40L25_CLEAR_FLAG(sm->flags, CS40L25_FLAGS_CP_RW_DONE);
             sm->count = 0;
             // Read the first IRQ1 flag register
             ret = cs40l25_private_functions_g->read_reg(d,
-                                                        IRQ1_IRQ1_EINT_1_REG,
+                                                        XM_UNPACKED24_DSP1_SCRATCH_REG,
                                                         &d->register_buffer,
                                                         false);
-            sm->state = CS40L25_EVENT_SM_STATE_READ_IRQ_STATUS;
+            sm->state = CS40L25_EVENT_SM_STATE_READ_SCRATCH;
+            break;
+        }
+
+        case CS40L25_EVENT_SM_STATE_READ_SCRATCH:
+            if (CS40L25_IS_FLAG_SET(sm->flags, CS40L25_FLAGS_CP_RW_DONE))
+            {
+                // If SCRATCH is nonzero OR If no events are unmasked
+                uint32_t temp_event_control = d->config_regs.event_control.reg.halo_word;
+                if ((d->register_buffer) || (!temp_event_control))
+                {
+                    // Call BSP Notification Callback
+                    if (d->notification_cb != NULL)
+                    {
+                        uint32_t temp_event_flags = 0;
+                        if (d->register_buffer)
+                        {
+                            temp_event_flags = CS40L25_EVENT_FLAG_DSP_ERROR;
+                        }
+
+                        d->notification_cb(temp_event_flags, d->notification_cb_arg);
+                    }
+                    sm->state = CS40L25_EVENT_SM_STATE_DONE;
+                }
+                else
+                {
+                    sm->count = 0;
+
+                    // Read unmasked event register
+                    CS40L25_CLEAR_FLAG(sm->flags, CS40L25_FLAGS_CP_RW_DONE);
+                    ret = cs40l25_private_functions_g->read_reg(d,
+                                                                cs40l2x_event_regs[sm->count],
+                                                                &d->register_buffer,
+                                                                false);
+                    sm->state = CS40L25_EVENT_SM_STATE_READ_EVENT;
+                }
+            }
+            break;
+
+        case CS40L25_EVENT_SM_STATE_READ_EVENT:
+            if (CS40L25_IS_FLAG_SET(sm->flags, CS40L25_FLAGS_CP_RW_DONE))
+            {
+                CS40L25_CLEAR_FLAG(sm->flags, CS40L25_FLAGS_CP_RW_DONE);
+
+                // If Event is not trigger source or we don't care about this source, read next Event register
+                uint32_t temp_event_control = d->config_regs.event_control.reg.halo_word;
+                if ((d->register_buffer == CS40L2X_EVENT_CTRL_NONE) ||
+                    ((temp_event_control & cs40l2x_event_masks[sm->count]) == 0))
+                {
+                    CS40L25_CLEAR_FLAG(sm->flags, CS40L25_FLAGS_CP_RW_DONE);
+
+                    sm->count++;
+                    // If there are any more event sources to poll
+                    if (sm->count < CS40L25_EVENT_SOURCES)
+                    {
+                        // Read unmasked event register
+                        ret = cs40l25_private_functions_g->read_reg(d,
+                                                                    cs40l2x_event_regs[sm->count],
+                                                                    &d->register_buffer,
+                                                                    false);
+                    }
+                    else
+                    {
+                        // Write WAKE to POWERCONTROL register
+                        /*
+                         * polling for acknowledgment as with other mailbox registers
+                         * is unnecessary in this case and adds latency, so only send
+                         * the wake-up command to complete the notification sequence
+                         */
+                        ret = cs40l25_private_functions_g->write_reg(driver,
+                                                                     DSP_VIRTUAL1_MBOX_DSP_VIRTUAL1_MBOX_4_REG,
+                                                                     CS40L25_POWERCONTROL_WAKEUP,
+                                                                     false);
+                        sm->state = CS40L25_EVENT_SM_STATE_WRITE_WAKE;
+                    }
+                }
+                // If event is HW Event, then process separately
+                else if (d->register_buffer == CS40L2X_EVENT_CTRL_HARDWARE)
+                {
+                    // Read the first IRQ2 flag register
+                    ret = cs40l25_private_functions_g->read_reg(d,
+                                                                IRQ2_IRQ2_EINT_1_REG,
+                                                                &d->register_buffer,
+                                                                false);
+
+                    // Since the CS40L25_HARDWAREEVENT is first in the list, it will be presumed that sm->count = 0 here
+                    sm->state = CS40L25_EVENT_SM_STATE_READ_IRQ_STATUS;
+                }
+                // Else set event flag and clear event source
+                else if (d->register_buffer <= CS40L2X_EVENT_CTRL_TRIG_RESM)
+                {
+                    // Set correct bit in flags to send to the BSP Notification Callback
+                    d->event_flags |= cs40l25_event_value_to_flag_map[d->register_buffer];
+
+                    // Write EVENT_CTRL_NONE to the triggered event register
+                    ret = cs40l25_private_functions_g->write_reg(d,
+                                                                 cs40l2x_event_regs[sm->count],
+                                                                 CS40L2X_EVENT_CTRL_NONE,
+                                                                 false);
+                    sm->state = CS40L25_EVENT_SM_STATE_CLEAR_EVENT;
+                }
+                else
+                {
+                    sm->state = CS40L25_EVENT_SM_STATE_ERROR;
+                }
+            }
+            break;
+
+        case CS40L25_EVENT_SM_STATE_CLEAR_EVENT:
+            if (CS40L25_IS_FLAG_SET(sm->flags, CS40L25_FLAGS_CP_RW_DONE))
+            {
+                sm->count++;
+                CS40L25_CLEAR_FLAG(sm->flags, CS40L25_FLAGS_CP_RW_DONE);
+                // If there are any more event sources to poll
+                if (sm->count < CS40L25_EVENT_SOURCES)
+                {
+                    // Read unmasked event register
+                    ret = cs40l25_private_functions_g->read_reg(d,
+                                                                cs40l2x_event_regs[sm->count],
+                                                                &d->register_buffer,
+                                                                false);
+                    sm->state = CS40L25_EVENT_SM_STATE_READ_EVENT;
+                }
+                else
+                {
+                    // Write WAKE to POWERCONTROL register
+                    /*
+                     * polling for acknowledgment as with other mailbox registers
+                     * is unnecessary in this case and adds latency, so only send
+                     * the wake-up command to complete the notification sequence
+                     */
+                    ret = cs40l25_private_functions_g->write_reg(driver,
+                                                                 DSP_VIRTUAL1_MBOX_DSP_VIRTUAL1_MBOX_4_REG,
+                                                                 CS40L25_POWERCONTROL_WAKEUP,
+                                                                 false);
+                    sm->state = CS40L25_EVENT_SM_STATE_WRITE_WAKE;
+                }
+            }
             break;
 
         case CS40L25_EVENT_SM_STATE_READ_IRQ_STATUS:
             if (CS40L25_IS_FLAG_SET(sm->flags, CS40L25_FLAGS_CP_RW_DONE))
             {
                 CS40L25_CLEAR_FLAG(sm->flags, CS40L25_FLAGS_CP_RW_DONE);
-                irq_statuses[sm->count] = d->register_buffer;
-                // If more IRQ1 flag registers remain to be read
-                if (sm->count < 4)
-                {
-                    sm->count++;
-                    // Read the next IRQ1 flag register
-                    ret = cs40l25_private_functions_g->read_reg(d,
-                                                                IRQ1_IRQ1_EINT_1_REG + (sm->count * 4),
-                                                                &d->register_buffer,
-                                                                false);
-                }
-                else
-                {
-                    sm->count = 0;
-                    // Read the first IRQ1 mask register
-                    ret = cs40l25_private_functions_g->read_reg(d,
-                                                                IRQ1_IRQ1_MASK_1_REG,
-                                                                &d->register_buffer,
-                                                                false);
-                    sm->state = CS40L25_EVENT_SM_STATE_READ_IRQ_MASK;
-                }
-            }
-            break;
 
-        case CS40L25_EVENT_SM_STATE_READ_IRQ_MASK:
-            if (CS40L25_IS_FLAG_SET(sm->flags, CS40L25_FLAGS_CP_RW_DONE))
-            {
-                CS40L25_CLEAR_FLAG(sm->flags, CS40L25_FLAGS_CP_RW_DONE);
-                irq_masks[sm->count] = d->register_buffer;
-                // If more IRQ1 mask registers remain to be read
-                if (sm->count < 4)
+                // Set flags in event_flags
+                for (uint8_t i = 0; i < (CS40L25_EVENT_HW_SOURCES * 2); i += 2)
                 {
-                    sm->count++;
-                    // Read the next IRQ1 flag register
-                    ret = cs40l25_private_functions_g->read_reg(d,
-                                                                IRQ1_IRQ1_MASK_1_REG + (sm->count * 4),
-                                                                &d->register_buffer,
-                                                                false);
-                }
-                else
-                {
-                    uint32_t flags_to_clear = 0;
-
-                    sm->count = 0;
-                    flags_to_clear = irq_statuses[0] & ~(irq_masks[0]);
-
-                    // If there are unmasked IRQs, then process
-                    if (flags_to_clear)
+                    if (d->register_buffer & cs40l25_irq2_mask_1_to_event_flag_map[i])
                     {
-                        // Clear any IRQ1 flags from first register
-                        ret = cs40l25_private_functions_g->write_reg(d,
-                                                                     IRQ1_IRQ1_EINT_1_REG,
-                                                                     flags_to_clear,
-                                                                     false);
-
-                        sm->state = CS40L25_EVENT_SM_STATE_CLEAR_IRQ_FLAGS;
-                    }
-                    else
-                    {
-                        sm->state = CS40L25_EVENT_SM_STATE_DONE;
+                        d->event_flags |= cs40l25_irq2_mask_1_to_event_flag_map[i + 1];
                     }
                 }
+
+                // Clear any IRQ2 flags from first register
+                d->register_buffer &= ~CS40L25_INT2_MASK_DEFAULT;
+                ret = cs40l25_private_functions_g->write_reg(d,
+                                                             IRQ2_IRQ2_EINT_1_REG,
+                                                             d->register_buffer,
+                                                             false);
+
+                sm->state = CS40L25_EVENT_SM_STATE_CLEAR_IRQ_FLAGS;
             }
             break;
 
@@ -2700,53 +3743,27 @@ static uint32_t cs40l25_event_sm(void *driver)
             if (CS40L25_IS_FLAG_SET(sm->flags, CS40L25_FLAGS_CP_RW_DONE))
             {
                 CS40L25_CLEAR_FLAG(sm->flags, CS40L25_FLAGS_CP_RW_DONE);
-                // If more IRQ1 flag registers remain to be cleared
-                if (sm->count < 4)
-                {
-                    uint32_t flags_to_clear = 0;
+                sm->count = 0;
 
-                    sm->count++;
-                    // Get the unmasked IRQ1 flags to process
-                    flags_to_clear = irq_statuses[sm->count] & ~(irq_masks[sm->count]);
-                    // Clear any IRQ1 flags from next register
-                    ret = cs40l25_private_functions_g->write_reg(d,
-                                                                 IRQ1_IRQ1_EINT_1_REG + (sm->count * 4),
-                                                                 flags_to_clear,
-                                                                 false);
+                // If there are Boost-related Errors, proceed to DISABLE_BOOST
+                if (d->event_flags & CS40L25_EVENT_FLAGS_BOOST_CYCLE)
+                {
+                    // Read which MSM Blocks are enabled
+                    ret = cs40l25_private_functions_g->read_reg(d,
+                                                                MSM_BLOCK_ENABLES_REG,
+                                                                &d->register_buffer,
+                                                                false);
+                    sm->state = CS40L25_EVENT_SM_STATE_DISABLE_BOOST;
                 }
+                // IF there are no Boost-related Errors, proceed to TOGGLE_ERR_RLS
                 else
                 {
-                    sm->count = 0;
-                    // If there are Boost-related Errors, proceed to DISABLE_BOOST
-                    if (irq_statuses[0] & CS40L25_INT1_BOOST_IRQ_MASK)
-                    {
-                        // Read which MSM Blocks are enabled
-                        ret = cs40l25_private_functions_g->read_reg(d,
-                                                                    MSM_BLOCK_ENABLES_REG,
-                                                                    &d->register_buffer,
-                                                                    false);
-                        sm->state = CS40L25_EVENT_SM_STATE_DISABLE_BOOST;
-                    }
-                    // IF there are no Boost-related Errors but are Speaker-Safe Mode errors, proceed to TOGGLE_ERR_RLS
-                    else if (irq_statuses[0] & CS40L25_INT1_SPEAKER_SAFE_MODE_IRQ_MASK)
-                    {
-                        // Clear the Error Release register
-                        ret = cs40l25_private_functions_g->write_reg(d,
-                                                                     MSM_ERROR_RELEASE_REG,
-                                                                     0,
-                                                                     false);
-                        sm->state = CS40L25_EVENT_SM_STATE_TOGGLE_ERR_RLS;
-                    }
-                    else
-                    {
-                        // Call BSP Notification Callback
-                        if (d->notification_cb != NULL)
-                        {
-                            uint32_t event_flags = cs40l25_private_functions_g->irq_to_event_id(irq_statuses);
-                            d->notification_cb(event_flags, d->notification_cb_arg);
-                        }
-                        sm->state = CS40L25_EVENT_SM_STATE_DONE;
-                    }
+                    // Clear the Error Release register
+                    ret = cs40l25_private_functions_g->write_reg(d,
+                                                                 MSM_ERROR_RELEASE_REG,
+                                                                 0,
+                                                                 false);
+                    sm->state = CS40L25_EVENT_SM_STATE_TOGGLE_ERR_RLS;
                 }
             }
             break;
@@ -2808,7 +3825,7 @@ static uint32_t cs40l25_event_sm(void *driver)
                     sm->count = 0;
 
                     // If there are Boost-related Errors, re-enable Boost
-                    if (irq_statuses[0] & CS40L25_INT1_BOOST_IRQ_MASK)
+                    if (d->event_flags & CS40L25_EVENT_FLAGS_BOOST_CYCLE)
                     {
                         // Read register containing BST_EN
                         ret = cs40l25_private_functions_g->read_reg(d,
@@ -2819,13 +3836,13 @@ static uint32_t cs40l25_event_sm(void *driver)
                     }
                     else
                     {
-                        // Call BSP Notification Callback
-                        if (d->notification_cb != NULL)
-                        {
-                            uint32_t event_flags = cs40l25_private_functions_g->irq_to_event_id(irq_statuses);
-                            d->notification_cb(event_flags, d->notification_cb_arg);
-                        }
-                        sm->state = CS40L25_EVENT_SM_STATE_DONE;
+                        // Write EVENT_CTRL_NONE to the triggered event register
+                        sm->count = 0;
+                        ret = cs40l25_private_functions_g->write_reg(d,
+                                                                     cs40l2x_event_regs[sm->count],
+                                                                     CS40L2X_EVENT_CTRL_NONE,
+                                                                     false);
+                        sm->state = CS40L25_EVENT_SM_STATE_CLEAR_EVENT;
                     }
                 }
             }
@@ -2847,14 +3864,26 @@ static uint32_t cs40l25_event_sm(void *driver)
                 }
                 else
                 {
-                    // Call BSP Notification Callback
-                    if (d->notification_cb != NULL)
-                    {
-                        uint32_t event_flags = cs40l25_private_functions_g->irq_to_event_id(irq_statuses);
-                        d->notification_cb(event_flags, d->notification_cb_arg);
-                    }
-                    sm->state = CS40L25_EVENT_SM_STATE_DONE;
+                    // Write EVENT_CTRL_NONE to the triggered event register
+                    sm->count = 0;
+                    ret = cs40l25_private_functions_g->write_reg(d,
+                                                                 cs40l2x_event_regs[sm->count],
+                                                                 CS40L2X_EVENT_CTRL_NONE,
+                                                                 false);
+                    sm->state = CS40L25_EVENT_SM_STATE_CLEAR_EVENT;
                 }
+            }
+            break;
+
+        case CS40L25_EVENT_SM_STATE_WRITE_WAKE:
+            if (CS40L25_IS_FLAG_SET(sm->flags, CS40L25_FLAGS_CP_RW_DONE))
+            {
+                // Call BSP Notification Callback
+                if (d->notification_cb != NULL)
+                {
+                    d->notification_cb(d->event_flags, d->notification_cb_arg);
+                }
+                sm->state = CS40L25_EVENT_SM_STATE_DONE;
             }
             break;
 
@@ -2885,8 +3914,8 @@ static uint32_t cs40l25_get_errata(uint32_t devid, uint32_t revid, const uint32_
 {
     uint32_t ret = CS40L25_STATUS_FAIL;
 
-    // Only CS40L25 Rev B1 is supported
-    if ((devid == CS40L25_DEVID) && (revid == CS40L25_REVID_B1))
+    // CS40L25 and CS40L25B Rev B1 are supported
+    if (((devid == CS40L25_DEVID) || (devid == CS40L25B_DEVID)) && (revid == CS40L25_REVID_B1))
     {
         ret = CS40L25_STATUS_OK;
 
@@ -3141,6 +4170,7 @@ static uint32_t cs40l25_is_control_valid(cs40l25_t *driver)
             if ((state == CS40L25_STATE_CONFIGURED) ||
                 (state == CS40L25_STATE_DSP_STANDBY) ||
                 (state == CS40L25_STATE_CAL_STANDBY) ||
+                (state == CS40L25_STATE_HIBERNATE) ||
                 (state == CS40L25_STATE_STANDBY))
             {
                 ret = CS40L25_STATUS_OK;
@@ -3187,6 +4217,22 @@ static uint32_t cs40l25_is_control_valid(cs40l25_t *driver)
             }
             break;
 
+        case CS40L25_CONTROL_ID_POWER_HIBERNATE:
+            // HIBERNATE Control Request is only valid for DSP_POWER_UP state
+            if (state == CS40L25_STATE_DSP_POWER_UP)
+            {
+                ret = CS40L25_STATUS_OK;
+            }
+            break;
+
+        case CS40L25_CONTROL_ID_POWER_WAKE:
+            // WAKE Control Request is only valid for HIBERNATE state
+            if (state == CS40L25_STATE_HIBERNATE)
+            {
+                ret = CS40L25_STATUS_OK;
+            }
+            break;
+
         case CS40L25_CONTROL_ID_CALIBRATION:
             // CALIBRATION Control Requests are valid for DSP_POWER_UP and CAL_POWER_UP states
             if (state == CS40L25_STATE_DSP_POWER_UP ||
@@ -3224,6 +4270,16 @@ static uint32_t cs40l25_is_control_valid(cs40l25_t *driver)
         case CS40L25_CONTROL_ID_GET_FW_REVISION:
             // GET_HALO_HEARTBEAT and GET_DSP_STATUS Control Requests are always valid
             ret = CS40L25_STATUS_OK;
+            break;
+
+
+        case CS40L25_CONTROL_ID_GET_DYNAMIC_REDC:
+        case CS40L25_CONTROL_ID_GET_DYNAMIC_F0:
+        case CS40L25_CONTROL_ID_ENABLE_DYNAMIC_F0:
+            // If Dynamic F0 algorithm is loaded, then OK
+#ifdef CS40L25_ALGORITHM_DYNAMIC_F0
+            ret = CS40L25_STATUS_OK;
+#endif
             break;
 
         default:
@@ -3277,6 +4333,18 @@ static uint32_t cs40l25_load_control(cs40l25_t *driver)
 
             case CS40L25_CONTROL_ID_POWER_DOWN:
                 driver->control_sm.fp = cs40l25_private_functions_g->power_down_sm;
+                driver->control_sm.state = CS40L25_SM_STATE_INIT;
+                ret = CS40L25_STATUS_OK;
+                break;
+
+            case CS40L25_CONTROL_ID_POWER_HIBERNATE:
+                driver->control_sm.fp = cs40l25_private_functions_g->hibernate_sm;
+                driver->control_sm.state = CS40L25_SM_STATE_INIT;
+                ret = CS40L25_STATUS_OK;
+                break;
+
+            case CS40L25_CONTROL_ID_POWER_WAKE:
+                driver->control_sm.fp = cs40l25_private_functions_g->wake_sm;
                 driver->control_sm.state = CS40L25_SM_STATE_INIT;
                 ret = CS40L25_STATUS_OK;
                 break;
@@ -3535,6 +4603,29 @@ static uint32_t cs40l25_load_control(cs40l25_t *driver)
                 driver->field_accessor.shift = 0;
                 driver->field_accessor.size = 32;
                 driver->field_accessor.ack_ctrl = false;
+                ret = CS40L25_STATUS_OK;
+                break;
+
+            case CS40L25_CONTROL_ID_GET_DYNAMIC_REDC:
+                driver->control_sm.fp = cs40l25_private_functions_g->dynamic_redc_sm;
+                driver->control_sm.state = CS40L25_SM_STATE_INIT;
+                ret = CS40L25_STATUS_OK;
+                break;
+
+            case CS40L25_CONTROL_ID_GET_DYNAMIC_F0:
+                driver->control_sm.fp = cs40l25_private_functions_g->dynamic_f0_sm;
+                driver->control_sm.state = CS40L25_SM_STATE_INIT;
+                ret = CS40L25_STATUS_OK;
+                break;
+
+            case CS40L25_CONTROL_ID_ENABLE_DYNAMIC_F0:
+                driver->control_sm.fp = cs40l25_private_functions_g->field_access_sm;
+                driver->control_sm.state = CS40L25_SM_STATE_INIT;
+                driver->field_accessor.address = CS40L25_DYNAMIC_F0_ENABLED;
+                driver->field_accessor.shift = 0;
+                driver->field_accessor.size = 1;
+                driver->field_accessor.ack_ctrl = false;
+                ret = CS40L25_STATUS_OK;
                 break;
 
             default:
@@ -3543,40 +4634,6 @@ static uint32_t cs40l25_load_control(cs40l25_t *driver)
     }
 
     return ret;
-}
-
-/**
- * Maps IRQ Flag to Event ID passed to BSP
- *
- * Implementation of cs40l25_private_functions_t.irq_to_event_id
- *
- */
-static uint32_t cs40l25_irq_to_event_id(uint32_t *irq_statuses)
-{
-    uint32_t temp_event_flag = 0;
-
-    if (irq_statuses[0] & IRQ1_IRQ1_EINT_1_AMP_ERR_EINT1_BITMASK)
-    {
-        CS40L25_SET_FLAG(temp_event_flag, CS40L25_EVENT_FLAG_AMP_SHORT);
-    }
-    if (irq_statuses[0] & IRQ1_IRQ1_EINT_1_TEMP_ERR_EINT1_BITMASK)
-    {
-        CS40L25_SET_FLAG(temp_event_flag, CS40L25_EVENT_FLAG_OVERTEMP);
-    }
-    if (irq_statuses[0] & IRQ1_IRQ1_EINT_1_BST_SHORT_ERR_EINT1_BITMASK)
-    {
-        CS40L25_SET_FLAG(temp_event_flag, CS40L25_EVENT_FLAG_BOOST_INDUCTOR_SHORT);
-    }
-    if (irq_statuses[0] & IRQ1_IRQ1_EINT_1_BST_DCM_UVP_ERR_EINT1_BITMASK)
-    {
-        CS40L25_SET_FLAG(temp_event_flag, CS40L25_EVENT_FLAG_BOOST_UNDERVOLTAGE);
-    }
-    if (irq_statuses[0] & IRQ1_IRQ1_EINT_1_BST_OVP_ERR_EINT1_BITMASK)
-    {
-        CS40L25_SET_FLAG(temp_event_flag, CS40L25_EVENT_FLAG_BOOST_OVERVOLTAGE);
-    }
-
-    return temp_event_flag;
 }
 
 /**
@@ -3862,6 +4919,16 @@ static uint32_t cs40l25_apply_configs(cs40l25_t *driver)
 
     regs->msm_block_enables.vbstmon_en = 1;
 
+    regs->wakesrc_ctl.wksrc_en = (amp->wksrc_gpio1_en ? 0x1 : 0) |
+                                 (amp->wksrc_gpio2_en ? 0x2 : 0) |
+                                 (amp->wksrc_gpio4_en ? 0x4 : 0) |
+                                 (amp->wksrc_sda_en ? 0x8 : 0);
+
+    regs->wakesrc_ctl.wksrc_pol = (amp->wksrc_gpio1_falling_edge ? 0x1 : 0) |
+                                  (amp->wksrc_gpio2_falling_edge ? 0x2 : 0) |
+                                  (amp->wksrc_gpio4_falling_edge ? 0x4 : 0) |
+                                  (amp->wksrc_sda_falling_edge ? 0x8 : 0);
+
     // Always configure as Boost converter enabled.
     regs->msm_block_enables.bst_en = 0x2;
 
@@ -3939,6 +5006,10 @@ static cs40l25_private_functions_t cs40l25_private_functions_s =
     .field_access_sm = &cs40l25_field_access_sm,
     .calibration_sm = &cs40l25_calibration_sm,
     .get_dsp_status_sm = &cs40l25_get_dsp_status_sm,
+    .hibernate_sm = &cs40l25_hibernate_sm,
+    .wake_sm = &cs40l25_wake_sm,
+    .dynamic_redc_sm = &cs40l25_dynamic_redc_sm,
+    .dynamic_f0_sm = &cs40l25_dynamic_f0_sm,
     .event_sm = &cs40l25_event_sm,
     .get_errata = &cs40l25_get_errata,
     .cp_bulk_read = &cs40l25_cp_bulk_read,
@@ -3947,7 +5018,6 @@ static cs40l25_private_functions_t cs40l25_private_functions_s =
     .control_q_copy = &cs40l25_control_q_copy,
     .is_control_valid = &cs40l25_is_control_valid,
     .load_control = &cs40l25_load_control,
-    .irq_to_event_id = &cs40l25_irq_to_event_id,
     .apply_configs = &cs40l25_apply_configs,
     .is_mixer_source_used = &cs40l25_is_mixer_source_used
 };
@@ -4038,6 +5108,8 @@ uint32_t cs40l25_configure(cs40l25_t *driver, cs40l25_config_t *config)
                                                 cs40l25_private_functions_g->irq_callback,
                                                 driver);
 
+        driver->config_regs.event_control = config->event_control;
+
         if (ret == BSP_STATUS_OK)
         {
             ret = CS40L25_STATUS_OK;
@@ -4065,24 +5137,40 @@ uint32_t cs40l25_process(cs40l25_t *driver)
         // check for driver mode
         if (driver->mode == CS40L25_MODE_HANDLING_EVENTS)
         {
-            // run through event sm
-            sm_ret = cs40l25_private_functions_g->event_sm(driver);
-
-            if (sm_ret == CS40L25_STATUS_OK)
+            // Check for valid state to process events
+            if ((driver->state == CS40L25_STATE_DSP_STANDBY) ||
+                (driver->state == CS40L25_STATE_DSP_POWER_UP) ||
+                (driver->state == CS40L25_STATE_HIBERNATE))
             {
-                // check current status of Event SM
-                if (driver->event_sm.state == CS40L25_SM_STATE_DONE)
+                // run through event sm
+                sm_ret = cs40l25_private_functions_g->event_sm(driver);
+
+                if (sm_ret == CS40L25_STATUS_OK)
                 {
-                    driver->mode = CS40L25_MODE_HANDLING_CONTROLS;
-                    driver->event_sm.state = CS40L25_EVENT_SM_STATE_INIT;
-                    // Need to reset current Control SM here
-                    driver->control_sm.state = CS40L25_SM_STATE_INIT;
-                    driver->control_sm.flags = 0;
+                    // check current status of Event SM
+                    if (driver->event_sm.state == CS40L25_SM_STATE_DONE)
+                    {
+                        driver->mode = CS40L25_MODE_HANDLING_CONTROLS;
+
+                        // If a control port transaction was interrupted, restart the current Control Request
+                        if (CS40L25_IS_FLAG_SET(driver->control_sm.flags, CS40L25_FLAGS_REQUEST_RESTART))
+                        {
+                            driver->event_sm.state = CS40L25_EVENT_SM_STATE_INIT;
+                            // Need to reset current Control SM here
+                            driver->control_sm.state = CS40L25_SM_STATE_INIT;
+                            driver->control_sm.flags = 0;
+                        }
+                    }
+                }
+                else
+                {
+                    driver->state = CS40L25_STATE_ERROR;
                 }
             }
+            // If in invalid state for handling events (i.e. BHM, Calibration), simply switch back to Handling Controls
             else
             {
-                driver->state = CS40L25_STATE_ERROR;
+                driver->mode = CS40L25_MODE_HANDLING_CONTROLS;
             }
         }
 
@@ -4125,7 +5213,8 @@ uint32_t cs40l25_process(cs40l25_t *driver)
                             case CS40L25_CONTROL_ID_RESET:
                                 if ((driver->state == CS40L25_STATE_CONFIGURED) ||
                                     (driver->state == CS40L25_STATE_DSP_STANDBY) ||
-                                    (driver->state == CS40L25_STATE_CAL_STANDBY))
+                                    (driver->state == CS40L25_STATE_CAL_STANDBY) ||
+                                    (driver->state == CS40L25_STATE_HIBERNATE))
                                 {
                                     driver->state = CS40L25_STATE_POWER_UP;
                                 }
@@ -4134,7 +5223,7 @@ uint32_t cs40l25_process(cs40l25_t *driver)
                             case CS40L25_CONTROL_ID_BOOT:
                                 if (driver->state == CS40L25_STATE_STANDBY ||
                                     driver->state == CS40L25_STATE_DSP_STANDBY ||
-                                    driver->state == CS40L25_STATE_CAL_STANDBY )
+                                    driver->state == CS40L25_STATE_CAL_STANDBY)
                                 {
                                     cs40l25_sm_t *b = &(driver->control_sm);
                                     if (CS40L25_IS_FLAG_SET(b->flags, CS40L25_FLAGS_REQUEST_CAL_BOOT))
@@ -4177,6 +5266,20 @@ uint32_t cs40l25_process(cs40l25_t *driver)
                                 else if (driver->state == CS40L25_STATE_CAL_POWER_UP)
                                 {
                                     driver->state = CS40L25_STATE_CAL_STANDBY;
+                                }
+                                break;
+
+                            case CS40L25_CONTROL_ID_POWER_HIBERNATE:
+                                if (driver->state == CS40L25_STATE_DSP_POWER_UP)
+                                {
+                                    driver->state = CS40L25_STATE_HIBERNATE;
+                                }
+                                break;
+
+                            case CS40L25_CONTROL_ID_POWER_WAKE:
+                                if (driver->state == CS40L25_STATE_HIBERNATE)
+                                {
+                                    driver->state = CS40L25_STATE_DSP_POWER_UP;
                                 }
                                 break;
 
@@ -4224,15 +5327,14 @@ uint32_t cs40l25_process(cs40l25_t *driver)
 
         if (driver->state == CS40L25_STATE_ERROR)
         {
-            uint32_t temp_event_flag = 0;
-            CS40L25_SET_FLAG(temp_event_flag, CS40L25_EVENT_FLAG_SM_ERROR);
+            driver->event_flags |= CS40L25_EVENT_FLAG_SM_ERROR;
             if (driver->mode == CS40L25_MODE_HANDLING_CONTROLS)
                 debug_printf("Error handling control id 0x%x - SM state:0x%x\n", driver->current_request.id, driver->control_sm.state);
             else
                 debug_printf("Error handling event, SM state:0x%x\n", driver->event_sm.state);
             if (driver->notification_cb != NULL)
             {
-                driver->notification_cb(temp_event_flag, driver->notification_cb_arg);
+                driver->notification_cb(driver->event_flags, driver->notification_cb_arg);
             }
         }
     }
@@ -4351,16 +5453,31 @@ uint32_t cs40l25_power(cs40l25_t *driver, uint32_t power_state, cs40l25_control_
     cs40l25_control_request_t r;
 
     // Submit the correct request based on power_state
-    if (power_state == CS40L25_POWER_UP)
+    switch (power_state)
     {
-        r.id = CS40L25_CONTROL_ID_POWER_UP;
-        r.cb = cb;
-        r.cb_arg = cb_arg;
-        ret = cs40l25_functions_g->control(driver, r);
+        case CS40L25_POWER_UP:
+            r.id = CS40L25_CONTROL_ID_POWER_UP;
+            break;
+
+        case CS40L25_POWER_DOWN:
+            r.id = CS40L25_CONTROL_ID_POWER_DOWN;
+            break;
+
+        case CS40L25_POWER_HIBERNATE:
+            r.id = CS40L25_CONTROL_ID_POWER_HIBERNATE;
+            break;
+
+        case CS40L25_POWER_WAKE:
+            r.id = CS40L25_CONTROL_ID_POWER_WAKE;
+            break;
+
+        default:
+            r.id = CS40L25_CONTROL_ID_NONE;
+            break;
     }
-    else if (power_state == CS40L25_POWER_DOWN)
+
+    if (r.id != CS40L25_CONTROL_ID_NONE)
     {
-        r.id = CS40L25_CONTROL_ID_POWER_DOWN;
         r.cb = cb;
         r.cb_arg = cb_arg;
         ret = cs40l25_functions_g->control(driver, r);
