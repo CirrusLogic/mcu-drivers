@@ -43,7 +43,7 @@ extern "C" {
  * @{
  */
 #define SDK_VERSION_MAJOR   (1) ///< Release Major version
-#define SDK_VERSION_MINOR   (1) ///< Release Minor version
+#define SDK_VERSION_MINOR   (2) ///< Release Minor version
 #define SDK_VERSION_PATCH   (0) ///< Release Patch version
 /** @} */
 

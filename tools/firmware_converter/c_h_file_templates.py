@@ -61,12 +61,12 @@ header_file_template_str = """/**
  **********************************************************************************************************************/
 
 /**
- * @defgroup CS40L25_FIRMWARE_META
+ * @defgroup {part_number_uc}_FIRMWARE_META
  * @brief Firmware meta data
  *
  * @{
  */
-#define CS40L25_FIRMWARE_ID {fw_id}
+#define {part_number_uc}_FIRMWARE_ID {fw_id}
 /** @} */
 
 {include_coeff_0}

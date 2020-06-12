@@ -93,7 +93,7 @@ endif
 
 # Assign compiler, assembler, linker flags required per target
 ifeq ($(MAKECMDGOALS), unit_test)
-    CFLAGS      += -g
+    CFLAGS      += -g -std=c99
     # include DSP/FW-related code
     CFLAGS += -DINCLUDE_FW
     OUTPUT_NAME = unit_test
@@ -490,7 +490,7 @@ $(foreach obj,$(ASM_OBJS),$(eval $(call asm_obj_rule,$(obj),$(subst $(BUILD_DIR)
 bullseye_on:
 	@echo -------------------------------------------------------------------------------
 	@echo BULLSEYE ON
-	cov01.exe --on
+	cov01 --on
 	covselect --deleteAll
 	covselect --add $(REPO_PATH)/cs35l41/
 	covselect --add !$(REPO_PATH)/cs35l41/unit_test/
@@ -504,7 +504,7 @@ bullseye_on:
 bullseye_off:
 	@echo -------------------------------------------------------------------------------
 	@echo BULLSEYE OFF
-	cov01.exe --off
+	cov01 --off
 
 # Create the driver static library and print the resource usage
 driver_lib_cm4: build_path $(BUILD_PATHS) $(DRIVER_OBJS)

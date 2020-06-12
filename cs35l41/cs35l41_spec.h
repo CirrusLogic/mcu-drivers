@@ -123,6 +123,8 @@ extern const uint8_t cs35l41_bst_slope_table[4];
 #define CS35L41_SW_RESET_OTPID_OTPID_BITMASK                                (0xF)           ///< @see Section 7.1.5
 
 #define CS35L41_DEVID                                                       (0x35A40)       ///< @see Section 7.1.1
+#define CS35L41R_DEVID                                                      (0x35B40)       ///< @see Section 7.1.1
+
 #define CS35L41_REVID_B2                                                    (0xB2)          ///< @see Section 7.1.2
 /** @} */
 
@@ -245,6 +247,19 @@ typedef union
  * @{
  */
 #define PAD_INTF_GPIO_PAD_CONTROL_REG                                       (0x242C)        ///< @see Section 7.6.3
+/** @} */
+
+/**
+ * @defgroup SECTION_7_8_PWRMGT
+ * @brief Register descriptions from datasheet
+ *
+ * @see Datasheet Section 7.8
+ *
+ * @{
+ */
+#define PWRMGT_CTL                                                          (0x2900)        ///< @see Section 7.8.1
+#define WAKESRC_CTL                                                         (0x2904)        ///< @see Section 7.8.2
+#define PWRMGT_STS                                                          (0x2908)        ///< @see Section 7.8.3
 /** @} */
 
 /**

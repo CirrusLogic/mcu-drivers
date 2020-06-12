@@ -357,9 +357,11 @@ extern "C" {
 #define CS35L41_CONTROL_ID_GET_HALO_HEARTBEAT           (8)
 #define CS35L41_CONTROL_ID_CALIBRATION                  (9)
 #define CS35L41_CONTROL_ID_GET_DSP_STATUS               (10)
+#define CS35L41_CONTROL_ID_HIBERNATE                    (11)
+#define CS35L41_CONTROL_ID_WAKE                         (12)
 #endif // INCLUDE_FW
 #ifdef INCLUDE_FW
-#define CS35L41_CONTROL_ID_MAX                          (CS35L41_CONTROL_ID_GET_DSP_STATUS)
+#define CS35L41_CONTROL_ID_MAX                          (CS35L41_CONTROL_ID_WAKE)
 #else
 #define CS35L41_CONTROL_ID_MAX                          (CS35L41_CONTROL_ID_SET_VOLUME)
 #endif // INCLUDE_FW
@@ -375,6 +377,7 @@ extern "C" {
 #define CS35L41_DSP_MBOX_STATUS_RUNNING                 (0)
 #define CS35L41_DSP_MBOX_STATUS_PAUSED                  (1)
 #define CS35L41_DSP_MBOX_STATUS_RDY_FOR_REINIT          (2)
+#define CS35L41_DSP_MBOX_STATUS_HIBERNATE               (3)
 /** @} */
 
 /**
@@ -390,6 +393,8 @@ extern "C" {
 #define CS35L41_DSP_MBOX_CMD_RESUME                     (2)
 #define CS35L41_DSP_MBOX_CMD_REINIT                     (3)
 #define CS35L41_DSP_MBOX_CMD_STOP_PRE_REINIT            (4)
+#define CS35L41_DSP_MBOX_CMD_HIBERNATE                  (5)
+#define CS35L41_DSP_MBOX_CMD_OUT_OF_HIBERNATE           (6)
 #define CS35L41_DSP_MBOX_CMD_UNKNOWN                    (-1)
 /** @} */
 #endif // INCLUDE_FW
@@ -404,6 +409,8 @@ extern "C" {
  */
 #define CS35L41_POWER_UP                                (0)
 #define CS35L41_POWER_DOWN                              (1)
+#define CS35L41_POWER_HIBERNATE                         (2)
+#define CS35L41_POWER_WAKE                              (3)
 /** @} */
 
 /**
@@ -1528,6 +1535,30 @@ typedef struct
      *
      */
     bool (*is_mixer_source_used)(cs35l41_t *driver, uint8_t source);
+
+    /**
+     * Puts device into hibernate
+     *
+     * @param [in] driver           Pointer to the driver state
+     *
+     * @return
+     * - CS35L41_STATUS_FAIL        if no request is being processed, or if current request is invalid
+     * - CS35L41_STATUS_OK          otherwise
+     *
+     */
+    uint32_t (*hibernate)(cs35l41_t *driver);
+
+    /**
+     * Wakes device from hibernate
+     *
+     * @param [in] driver           Pointer to the driver state
+     *
+     * @return
+     * - CS35L41_STATUS_FAIL        if no request is being processed, or if current request is invalid
+     * - CS35L41_STATUS_OK          otherwise
+     *
+     */
+    uint32_t (*wake)(cs35l41_t *driver);
 } cs35l41_private_functions_t;
 
 /***********************************************************************************************************************

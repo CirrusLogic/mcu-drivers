@@ -3554,6 +3554,8 @@ static uint32_t cs35l41_is_control_valid(cs35l41_t *driver)
 #ifdef INCLUDE_FW
         case CS35L41_CONTROL_ID_GET_HALO_HEARTBEAT:
         case CS35L41_CONTROL_ID_GET_DSP_STATUS:
+        case CS35L41_CONTROL_ID_HIBERNATE:
+        case CS35L41_CONTROL_ID_WAKE:
             // GET_HALO_HEARTBEAT and GET_DSP_STATUS Control Requests are always valid
 #endif // INCLUDE_FW
             ret = CS35L41_STATUS_OK;
@@ -3658,6 +3660,18 @@ static uint32_t cs35l41_load_control(cs35l41_t *driver)
 
             case CS35L41_CONTROL_ID_GET_DSP_STATUS:
                 driver->control_sm.fp = cs35l41_private_functions_g->get_dsp_status_sm;
+                driver->control_sm.state = CS35L41_SM_STATE_INIT;
+                ret = CS35L41_STATUS_OK;
+                break;
+
+            case CS35L41_CONTROL_ID_HIBERNATE:
+                driver->control_sm.fp = cs35l41_private_functions_g->hibernate;
+                driver->control_sm.state = CS35L41_SM_STATE_INIT;
+                ret = CS35L41_STATUS_OK;
+                break;
+
+            case CS35L41_CONTROL_ID_WAKE:
+                driver->control_sm.fp = cs35l41_private_functions_g->wake;
                 driver->control_sm.state = CS35L41_SM_STATE_INIT;
                 ret = CS35L41_STATUS_OK;
                 break;
@@ -4095,6 +4109,265 @@ static bool cs35l41_is_mixer_source_used(cs35l41_t *driver, uint8_t source)
 }
 
 /**
+ * Puts device into hibernate
+ *
+ * Implementation of cs35l41_private_functions_t.hibernate
+ *
+ */
+static uint32_t cs35l41_hibernate(cs35l41_t *driver)
+{
+    int i;
+    uint32_t disable_int = 0xFFFFFFFF;
+    uint32_t mbox_cmd_drv_shift = 1 << 20;
+    uint32_t mbox_cmd_fw_shift = 1 << 21;
+
+    cs35l41_private_functions_g->write_reg(driver,
+                                           IRQ1_IRQ1_MASK_1_REG,
+                                           disable_int,
+                                           true);
+    cs35l41_private_functions_g->write_reg(driver,
+                                           IRQ2_IRQ2_EINT_2_REG,
+                                           mbox_cmd_drv_shift,
+                                           true);
+    cs35l41_private_functions_g->write_reg(driver,
+                                           IRQ1_IRQ1_EINT_2_REG,
+                                           mbox_cmd_fw_shift,
+                                           true);
+    cs35l41_private_functions_g->write_reg(driver,
+                                           WAKESRC_CTL,
+                                           0x0088,
+                                           true);
+    cs35l41_private_functions_g->write_reg(driver,
+                                           WAKESRC_CTL,
+                                           0x0188,
+                                           true);
+    cs35l41_private_functions_g->write_reg(driver,
+                                           DSP_VIRTUAL1_MBOX_DSP_VIRTUAL1_MBOX_1_REG,
+                                           CS35L41_DSP_MBOX_CMD_HIBERNATE,
+                                           true);
+
+    driver->control_sm.state = CS35L41_SM_STATE_DONE;
+
+    return CS35L41_STATUS_OK;
+}
+
+/**
+ * Poll PWRMGT_STS until WR_PEND_STS is cleared
+ *
+ * @param [in] driver           Pointer to the driver state
+ *
+ * @return
+ * - CS35L41_STATUS_FAIL        if no request is being processed, or if current request is invalid
+ * - CS35L41_STATUS_OK          otherwise
+ *
+ */
+static uint32_t cs35l41_wait_for_pwrmgt_sts(cs35l41_t *driver)
+{
+    int i, ret;
+    unsigned int wrpend_sts = 0x2;
+
+    for (i = 0; (i < 10) && (wrpend_sts & 0x2); i++)
+    {
+        ret = cs35l41_private_functions_g->read_reg(driver, PWRMGT_STS, wrpend_sts, true);
+    }
+
+    return ret;
+}
+
+/**
+ * Restore HW regsiters to pre-hibernation state
+ *
+ * @param [in] driver           Pointer to the driver state
+ *
+ * @return
+ * - CS35L41_STATUS_FAIL        if no request is being processed, or if current request is invalid
+ * - CS35L41_STATUS_OK          otherwise
+ *
+ */
+static uint32_t cs35l41_restore(cs35l41_t *driver)
+{
+    int ret, i;
+    uint32_t regid, reg_revid, mtl_revid, chipid_match;
+    cs35l41_otp_packed_entry_t temp_trim_entry;
+    const uint32_t *errata_write = driver->errata;
+    int len_errata = sizeof(cs35l41_revb0_errata_patch) / sizeof(driver->errata[0]);
+    int otp_len = sizeof(otp_map_1) / sizeof(driver->otp_map->map[0]);
+    int config_len = sizeof(cs35l41_config_register_addresses) / sizeof(cs35l41_config_register_addresses[0]);
+
+    ret = cs35l41_private_functions_g->read_reg(driver, CS35L41_SW_RESET_DEVID_REG, &regid, true);
+    if (ret == CS35L41_STATUS_FAIL)
+        return ret;
+
+    ret = cs35l41_private_functions_g->read_reg(driver, CS35L41_SW_RESET_REVID_REG, &reg_revid, true);
+    if (ret == CS35L41_STATUS_FAIL)
+        return ret;
+
+    mtl_revid = reg_revid & 0x0F;
+    chipid_match = (mtl_revid % 2) ? CS35L41R_DEVID : CS35L41_DEVID;
+    if (regid != chipid_match)
+        return CS35L41_STATUS_FAIL;
+
+    cs35l41_private_functions_g->write_reg(driver, CS35L41_MIXER_DSP1RX5_INPUT_REG, CS35L41_INPUT_SRC_VPMON, true);
+    cs35l41_private_functions_g->write_reg(driver, CS35L41_MIXER_DSP1RX6_INPUT_REG, CS35L41_INPUT_SRC_CLASSH, true);
+    cs35l41_private_functions_g->write_reg(driver, CS35L41_MIXER_DSP1RX7_INPUT_REG, CS35L41_INPUT_SRC_TEMPMON, true);
+    cs35l41_private_functions_g->write_reg(driver, CS35L41_MIXER_DSP1RX8_INPUT_REG, CS35L41_INPUT_SRC_RSVD, true);
+
+    /* Apply errata */
+    for (int i = 1; i < len_errata; i+=2)
+    {
+        cs35l41_private_functions_g->write_reg(driver, *(errata_write + i), *(errata_write + i + 1), true);
+    }
+
+    /* OTP unpack */
+    cs35l41_private_functions_g->write_reg(driver,
+                                           CS35L41_CTRL_KEYS_TEST_KEY_CTRL_REG,
+                                           CS35L41_TEST_KEY_CTRL_UNLOCK_1,
+                                           true);
+    cs35l41_private_functions_g->write_reg(driver,
+                                           CS35L41_CTRL_KEYS_TEST_KEY_CTRL_REG,
+                                           CS35L41_TEST_KEY_CTRL_UNLOCK_2,
+                                           true);
+    driver->otp_bit_count = driver->otp_map->bit_offset;
+    for (int i = 0; i < otp_len; i++)
+    {
+        temp_trim_entry = driver->otp_map->map[i];
+        cs35l41_private_functions_g->read_reg(driver, temp_trim_entry.reg, &(driver->register_buffer), true);
+
+        if (temp_trim_entry.reg != 0x00000000)
+        {
+            /*
+             * Apply OTP trim bit-field to recently read trim register value.  OTP contents is saved in
+             * cp_read_buffer + CS35L41_CP_REG_READ_LENGTH_BYTES
+             */
+            ret = cs35l41_private_functions_g->apply_trim_word((driver->cp_read_buffer + \
+                                                                CS35L41_CP_REG_READ_LENGTH_BYTES),
+                                                                driver->otp_bit_count,
+                                                                &(driver->register_buffer),
+                                                                temp_trim_entry.shift,
+                                                                temp_trim_entry.size);
+            if (ret == CS35L41_STATUS_OK)
+            {
+                //Write new trimmed register value back
+                ret = cs35l41_private_functions_g->write_reg(driver,
+                                                             temp_trim_entry.reg,
+                                                             driver->register_buffer,
+                                                             true);
+                //Increment the OTP unpacking state variable otp_bit_count
+                driver->otp_bit_count += temp_trim_entry.size;
+            }
+        }
+        else
+        {
+            driver->otp_bit_count += temp_trim_entry.size;
+        }
+
+    }
+
+    cs35l41_private_functions_g->write_reg(driver,
+                                           CS35L41_CTRL_KEYS_TEST_KEY_CTRL_REG,
+                                           CS35L41_TEST_KEY_CTRL_LOCK_1,
+                                           true);
+    cs35l41_private_functions_g->write_reg(driver,
+                                           CS35L41_CTRL_KEYS_TEST_KEY_CTRL_REG,
+                                           CS35L41_TEST_KEY_CTRL_LOCK_2,
+                                           true);
+
+    for (i = 0; i < config_len; i++)
+    {
+        ret = cs35l41_private_functions_g->write_reg(driver,
+                                                     cs35l41_config_register_addresses[i],
+                                                     driver->config_regs.words[i],
+                                                     true);
+    }
+
+    return ret;
+}
+
+/**
+ * Wakes device from hibernatee
+ *
+ * Implementation of cs35l41_private_functions_t.wake
+ *
+ */
+static uint32_t cs35l41_wake(cs35l41_t *driver)
+{
+    int timeout = 10, ret;
+    unsigned int status;
+    int retries = 5;
+    uint32_t mbox_cmd_drv_shift = 1 << 20;
+    uint32_t mbox_cmd_fw_shift = 1 << 21;
+
+    do {
+        do {
+            ret = cs35l41_private_functions_g->write_reg(driver,
+                                                         DSP_VIRTUAL1_MBOX_DSP_VIRTUAL1_MBOX_1_REG,
+                                                         CS35L41_DSP_MBOX_CMD_OUT_OF_HIBERNATE,
+                                                         true);
+            if (ret < 0)
+              ret = CS35L41_STATUS_FAIL;
+
+            bsp_driver_if_g->set_timer(4, NULL, NULL);
+
+            ret = cs35l41_private_functions_g->read_reg(driver,
+                                                        DSP_MBOX_DSP_MBOX_2_REG,
+                                                        &status, true);
+            if (ret < 0)
+              ret = CS35L41_STATUS_FAIL;
+        } while (status != CS35L41_DSP_MBOX_STATUS_PAUSED && --timeout > 0);
+
+        if (timeout != 0)
+            break;
+        cs35l41_wait_for_pwrmgt_sts(driver);
+        cs35l41_private_functions_g->write_reg(driver,
+                                               WAKESRC_CTL, 0x0088,
+                                               true);
+        cs35l41_wait_for_pwrmgt_sts(driver);
+        cs35l41_private_functions_g->write_reg(driver,
+                                               WAKESRC_CTL, 0x0188,
+                                               true);
+        cs35l41_wait_for_pwrmgt_sts(driver);
+        cs35l41_private_functions_g->write_reg(driver,
+                                               PWRMGT_CTL,
+                                               0x3,
+                                               true);
+
+        timeout = 10;
+
+    } while (--retries > 0);
+
+    cs35l41_private_functions_g->write_reg(driver,
+                                           IRQ2_IRQ2_EINT_2_REG,
+                                           &(mbox_cmd_drv_shift),
+                                           true);
+    cs35l41_private_functions_g->write_reg(driver,
+                                           IRQ1_IRQ1_EINT_2_REG,
+                                           &(mbox_cmd_fw_shift),
+                                           true);
+
+    retries = 5;
+
+    do {
+        ret = cs35l41_restore(driver);
+        bsp_driver_if_g->set_timer(4, NULL, NULL);
+    } while (ret < 0 && --retries > 0);
+
+    if (retries < 0)
+      //Failed to wake
+      ret = CS35L41_STATUS_FAIL;
+
+    if (ret == CS35L41_STATUS_OK)
+    {
+        driver->control_sm.state = CS35L41_SM_STATE_DONE;
+    }
+    else
+    {
+        driver->control_sm.state = CS35L41_SM_STATE_ERROR;
+    }
+
+    return ret;
+}
+
+/**
  * Function pointer table for Private API implementation
  *
  * @attention Although not const, this should never be changed run-time in an end-product.  It is implemented this
@@ -4137,7 +4410,9 @@ static cs35l41_private_functions_t cs35l41_private_functions_s =
 #endif // INCLUDE_FW
     .irq_to_event_id = &cs35l41_irq_to_event_id,
     .apply_configs = &cs35l41_apply_configs,
-    .is_mixer_source_used = &cs35l41_is_mixer_source_used
+    .is_mixer_source_used = &cs35l41_is_mixer_source_used,
+    .hibernate = &cs35l41_hibernate,
+    .wake = &cs35l41_wake,
 };
 
 /**
@@ -4504,20 +4779,29 @@ uint32_t cs35l41_power(cs35l41_t *driver, uint32_t power_state, cs35l41_control_
     cs35l41_control_request_t r;
 
     // Submit the correct request based on power_state
-    if (power_state == CS35L41_POWER_UP)
+    r.cb = cb;
+    r.cb_arg = cb_arg;
+
+    switch (power_state)
     {
-        r.id = CS35L41_CONTROL_ID_POWER_UP;
-        r.cb = cb;
-        r.cb_arg = cb_arg;
-        ret = cs35l41_functions_g->control(driver, r);
+        case CS35L41_POWER_UP:
+            r.id = CS35L41_CONTROL_ID_POWER_UP;
+            break;
+
+        case CS35L41_POWER_DOWN:
+            r.id = CS35L41_CONTROL_ID_POWER_DOWN;
+            break;
+
+        case CS35L41_POWER_HIBERNATE:
+            r.id = CS35L41_CONTROL_ID_HIBERNATE;
+            break;
+
+        case CS35L41_POWER_WAKE:
+            r.id = CS35L41_CONTROL_ID_WAKE;
+            break;
     }
-    else if (power_state == CS35L41_POWER_DOWN)
-    {
-        r.id = CS35L41_CONTROL_ID_POWER_DOWN;
-        r.cb = cb;
-        r.cb_arg = cb_arg;
-        ret = cs35l41_functions_g->control(driver, r);
-    }
+
+    ret = cs35l41_functions_g->control(driver, r);
 
     return ret;
 }
@@ -4547,6 +4831,8 @@ uint32_t cs35l41_calibrate(cs35l41_t *driver,
 
     return ret;
 }
+
+
 #endif // INCLUDE_FW
 
 /**

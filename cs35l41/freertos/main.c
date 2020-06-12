@@ -26,12 +26,14 @@
 //#define ONLY_PB_THREAD
 //#define INCLUDE_CALIBRATION
 
-#define APP_AUDIO_STATE_CALIBRATING     (0)
-#define APP_AUDIO_STATE_BOOTING         (1)
-#define APP_AUDIO_STATE_PDN             (2)
-#define APP_AUDIO_STATE_PUP             (3)
-#define APP_AUDIO_STATE_MUTE            (4)
-#define APP_AUDIO_STATE_UNMUTE          (5)
+#define APP_AUDIO_STATE_CALIBRATING         (0)
+#define APP_AUDIO_STATE_BOOTING             (1)
+#define APP_AUDIO_STATE_PDN                 (2)
+#define APP_AUDIO_STATE_PUP                 (3)
+#define APP_AUDIO_STATE_MUTE                (4)
+#define APP_AUDIO_STATE_UNMUTE              (5)
+#define APP_AUDIO_STATE_HIBERNATE           (6)
+#define APP_AUDIO_STATE_WAKE                (7)
 
 #define APP_AMP_AUDIO_THREAD_FLAG_PB_PRESSED    (1 << 0)
 #define APP_AMP_AUDIO_THREAD_FLAG_BSP_CB        (1 << 1)
@@ -41,6 +43,7 @@
  **********************************************************************************************************************/
 static uint8_t app_audio_state = APP_AUDIO_STATE_PDN;
 static bool is_calibrated = false;
+static bool is_processing = false;
 static TaskHandle_t AppAmpAudioTaskHandle = NULL;
 static TaskHandle_t BspTaskHandle = NULL;
 
@@ -174,6 +177,22 @@ static void AppAmpAudioThread(void *argument)
                 if (flags & APP_AMP_AUDIO_THREAD_FLAG_PB_PRESSED)
                 {
                     bsp_amp_power_down();
+                    app_audio_state = APP_AUDIO_STATE_HIBERNATE;
+                }
+                break;
+
+            case APP_AUDIO_STATE_HIBERNATE:
+                if (flags & APP_AMP_AUDIO_THREAD_FLAG_PB_PRESSED)
+                {
+                    bsp_amp_hibernate();
+                    app_audio_state = APP_AUDIO_STATE_WAKE;
+                }
+                break;
+
+            case APP_AUDIO_STATE_WAKE:
+                if (flags & APP_AMP_AUDIO_THREAD_FLAG_PB_PRESSED)
+                {
+                    bsp_amp_wake();
                     app_audio_state = APP_AUDIO_STATE_PDN;
                 }
                 break;

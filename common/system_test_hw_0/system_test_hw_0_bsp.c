@@ -22,7 +22,11 @@
 #include "cs35l41.h"
 #endif
 #if TARGET_CS40L25
+#ifndef DRV_MIN
 #include "cs40l25.h"
+#else
+#include "cs40l25_min.h"
+#endif
 #endif
 #include "test_tone_tables.h"
 
@@ -152,6 +156,7 @@ static uint32_t bsp_haptic_volume = CS40L25_AMP_VOLUME_0DB;
 static bsp_callback_t bsp_timer_cb;
 static void *bsp_timer_cb_arg;
 static bool bsp_timer_has_started;
+static bool bsp_timer_elapsed;
 
 static uint8_t transmit_buffer[32];
 static uint8_t receive_buffer[256];
@@ -163,6 +168,8 @@ static uint32_t bsp_i2c_read_length;
 static uint8_t bsp_i2c_read_address;
 static uint32_t bsp_i2c_write_length;
 static uint8_t *bsp_i2c_write_buffer_ptr;
+static bool bsp_i2c_transaction_complete;
+static bool bsp_i2c_transaction_error;
 
 static uint16_t playback_buffer[PLAYBACK_BUFFER_SIZE_2BYTES];
 static uint16_t record_buffer[RECORD_BUFFER_SIZE_2BYTES];
@@ -217,6 +224,11 @@ uint32_t bsp_i2c_read_repeated_start(uint32_t bsp_dev_id,
                                      void *cb_arg);
 
 uint32_t bsp_toggle_gpio(uint32_t gpio_id);
+uint32_t bsp_i2c_write(uint32_t bsp_dev_id,
+                       uint8_t *write_buffer,
+                       uint32_t write_length,
+                       bsp_callback_t cb,
+                       void *cb_arg);
 /***********************************************************************************************************************
  * LOCAL FUNCTIONS
  **********************************************************************************************************************/
@@ -650,16 +662,21 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
     if (htim->Instance == TIM2)
     {
-        if ((bsp_timer_has_started) && (bsp_timer_cb != NULL))
+        if (bsp_timer_has_started)
         {
             if(HAL_TIM_Base_Stop_IT(&tim_drv_handle) != HAL_OK)
             {
               Error_Handler();
             }
 
-            bsp_timer_cb(BSP_STATUS_OK, bsp_timer_cb_arg);
-            bsp_timer_cb = NULL;
-            bsp_timer_cb_arg = NULL;
+            bsp_timer_elapsed = true;
+
+            if (bsp_timer_cb != NULL)
+            {
+                bsp_timer_cb(BSP_STATUS_OK, bsp_timer_cb_arg);
+                bsp_timer_cb = NULL;
+                bsp_timer_cb_arg = NULL;
+            }
         }
 
         bsp_timer_has_started = !bsp_timer_has_started;
@@ -725,6 +742,7 @@ void HAL_I2C_MasterTxCpltCallback(I2C_HandleTypeDef *hi2c)
         }
         else if (bsp_i2c_current_transaction_type == BSP_I2C_TRANSACTION_TYPE_WRITE)
         {
+            bsp_i2c_transaction_complete = true;
             if (bsp_i2c_done_cb != NULL)
             {
                 bsp_i2c_done_cb(BSP_STATUS_OK, bsp_i2c_done_cb_arg);
@@ -734,6 +752,7 @@ void HAL_I2C_MasterTxCpltCallback(I2C_HandleTypeDef *hi2c)
         {
             if (bsp_i2c_write_length == 0)
             {
+                bsp_i2c_transaction_complete = true;
                 if (bsp_i2c_done_cb != NULL)
                 {
                     bsp_i2c_done_cb(BSP_STATUS_OK, bsp_i2c_done_cb_arg);
@@ -762,6 +781,7 @@ void HAL_I2C_MasterRxCpltCallback(I2C_HandleTypeDef *hi2c)
     {
         if (bsp_i2c_current_transaction_type != BSP_I2C_TRANSACTION_TYPE_INVALID)
         {
+            bsp_i2c_transaction_complete = true;
             if (bsp_i2c_done_cb != NULL)
             {
                 bsp_i2c_done_cb(BSP_STATUS_OK, bsp_i2c_done_cb_arg);
@@ -776,7 +796,11 @@ void HAL_I2C_MasterRxCpltCallback(I2C_HandleTypeDef *hi2c)
 
 void HAL_I2C_ErrorCallback(I2C_HandleTypeDef *hi2c)
 {
-    bsp_i2c_done_cb(BSP_STATUS_FAIL, bsp_i2c_done_cb_arg);
+    bsp_i2c_transaction_error = true;
+    if (bsp_i2c_done_cb != NULL)
+    {
+        bsp_i2c_done_cb(BSP_STATUS_FAIL, bsp_i2c_done_cb_arg);
+    }
 
     return;
 }
@@ -1093,20 +1117,20 @@ void bsp_amp_control_callback(uint8_t id, uint32_t status, void *arg)
         (id == CS35L41_CONTROL_ID_SET_VOLUME) ||
         (id == CS35L41_CONTROL_ID_GET_HALO_HEARTBEAT) ||
         (id == CS35L41_CONTROL_ID_CALIBRATION) ||
-        (id == CS35L41_CONTROL_ID_GET_DSP_STATUS))
+        (id == CS35L41_CONTROL_ID_GET_DSP_STATUS) ||
+        (id == CS35L41_CONTROL_ID_HIBERNATE) ||
+        (id == CS35L41_CONTROL_ID_WAKE))
     {
-        if (app_cb == NULL)
+        if (status == CS35L41_STATUS_OK)
         {
-            if (status == CS35L41_STATUS_OK)
-            {
-                bsp_amp_boot_status = 1;
-            }
-            else
-            {
-                bsp_amp_boot_status = 2;
-            }
+            bsp_amp_boot_status = 1;
         }
         else
+        {
+            bsp_amp_boot_status = 2;
+        }
+
+        if (app_cb != NULL)
         {
             uint32_t bsp_status = (status == CS35L41_STATUS_OK) ? BSP_STATUS_OK : BSP_STATUS_FAIL;
             app_cb(bsp_status, app_cb_arg);
@@ -1316,7 +1340,7 @@ uint32_t bsp_amp_is_processing(bool *is_processing)
     bsp_amp_boot_status = 0;
     amp_status = cs35l41_functions_g->control(&amp_driver, req);
 
-    if ((amp_status == CS35L41_STATUS_OK) && (app_cb == NULL))
+    if (amp_status == CS35L41_STATUS_OK)
     {
         while (bsp_amp_boot_status == 0)
         {
@@ -1337,6 +1361,61 @@ uint32_t bsp_amp_is_processing(bool *is_processing)
 
     return amp_status;
 }
+
+uint32_t bsp_amp_hibernate(void)
+{
+    uint32_t amp_status;
+
+    bsp_amp_boot_status = 0;
+    amp_status = cs35l41_functions_g->power(&amp_driver, CS35L41_POWER_HIBERNATE, bsp_amp_control_callback, NULL);
+
+    if ((amp_status == CS35L41_STATUS_OK) && (app_cb == NULL))
+    {
+        while (bsp_amp_boot_status == 0)
+        {
+            cs35l41_functions_g->process(&amp_driver);
+        }
+
+        if (bsp_amp_boot_status == 1)
+        {
+            amp_status = BSP_STATUS_OK;
+        }
+        else
+        {
+            amp_status = BSP_STATUS_FAIL;
+        }
+    }
+
+    return amp_status;
+}
+
+uint32_t bsp_amp_wake(void)
+{
+    uint32_t amp_status;
+
+    bsp_amp_boot_status = 0;
+    amp_status = cs35l41_functions_g->power(&amp_driver, CS35L41_POWER_WAKE, bsp_amp_control_callback, NULL);
+
+    if ((amp_status == CS35L41_STATUS_OK) && (app_cb == NULL))
+    {
+        while (bsp_amp_boot_status == 0)
+        {
+            cs35l41_functions_g->process(&amp_driver);
+        }
+
+        if (bsp_amp_boot_status == 1)
+        {
+            amp_status = BSP_STATUS_OK;
+        }
+        else
+        {
+            amp_status = BSP_STATUS_FAIL;
+        }
+    }
+
+    return amp_status;
+}
+
 #endif
 
 #ifdef TARGET_CS40L25
@@ -1374,10 +1453,15 @@ uint32_t bsp_haptic_initialize(uint8_t boot_type)
         haptic_config.audio_config.hw.is_master_mode = false;
         haptic_config.audio_config.hw.ng_enable = false;
 
+        haptic_config.audio_config.clock.gp1_ctrl = 0x1;
+        haptic_config.audio_config.clock.gp2_ctrl = 0x3;
         haptic_config.audio_config.clock.global_fs = 48000;
         haptic_config.audio_config.clock.refclk_freq = 32768;
         haptic_config.audio_config.clock.sclk = 3072000;
         haptic_config.audio_config.clock.refclk_sel = CS40L25_PLL_REFLCLK_SEL_MCLK;
+#ifdef CONFIG_TEST_OPEN_LOOP
+        haptic_config.audio_config.clock.open_loop = true;
+#endif
 
         haptic_config.audio_config.asp.is_i2s = true;
         haptic_config.audio_config.asp.rx_width = 32;
@@ -1392,11 +1476,7 @@ uint32_t bsp_haptic_initialize(uint8_t boot_type)
         haptic_config.audio_config.volume = 0x3E;
 
         haptic_config.audio_config.routing.dac_src = CS40L25_INPUT_SRC_DSP1TX1;
-        haptic_config.audio_config.routing.asp_tx1_src = CS40L25_INPUT_SRC_DISABLE;
-        haptic_config.audio_config.routing.asp_tx2_src = CS40L25_INPUT_SRC_DISABLE;
-        haptic_config.audio_config.routing.asp_tx3_src = CS40L25_INPUT_SRC_DISABLE;
-        haptic_config.audio_config.routing.asp_tx4_src = CS40L25_INPUT_SRC_DISABLE;
-        haptic_config.audio_config.routing.dsp_rx1_src = CS40L25_INPUT_SRC_DISABLE;
+        haptic_config.audio_config.routing.dsp_rx1_src = CS40L25_INPUT_SRC_ASPRX1;
         haptic_config.audio_config.routing.dsp_rx2_src = CS40L25_INPUT_SRC_VMON;
         haptic_config.audio_config.routing.dsp_rx3_src = CS40L25_INPUT_SRC_IMON;
         haptic_config.audio_config.routing.dsp_rx4_src = CS40L25_INPUT_SRC_VPMON;
@@ -1485,18 +1565,29 @@ uint32_t bsp_haptic_initialize(uint8_t boot_type)
         ret = BSP_STATUS_FAIL;
     }
 
+#ifndef CONFIG_TEST_OPEN_LOOP
+    // Enable 32kHz clock routing to CS40L25B
+    uint8_t temp_buffer[4] = {0x00, 0x1F, 0x80, 0x03};
+    bsp_i2c_write(BSP_LN2_DEV_ID, temp_buffer, 4, NULL, NULL);
+#endif
+
     return ret;
 }
 
 void bsp_haptic_control_callback(uint8_t id, uint32_t status, void *arg)
 {
+#ifndef DRV_MIN
     if ((id == CS40L25_CONTROL_ID_CONFIGURE) ||
         (id == CS40L25_CONTROL_ID_POWER_UP) ||
         (id == CS40L25_CONTROL_ID_POWER_DOWN) ||
+        (id == CS40L25_CONTROL_ID_CALIBRATION) ||
         (id == CS40L25_CONTROL_ID_GET_VOLUME) ||
+#else
+    if ((id == CS40L25_CONTROL_ID_GET_VOLUME) ||
+#endif
+
         (id == CS40L25_CONTROL_ID_SET_VOLUME) ||
         (id == CS40L25_CONTROL_ID_GET_HALO_HEARTBEAT) ||
-        (id == CS40L25_CONTROL_ID_CALIBRATION) ||
         (id == CS40L25_CONTROL_ID_SET_TRIGGER_INDEX) ||
         (id == CS40L25_CONTROL_ID_SET_TRIGGER_MS) ||
         (id == CS40L25_CONTROL_ID_SET_TIMEOUT_MS) ||
@@ -1732,6 +1823,58 @@ uint32_t bsp_haptic_wake(void)
     return haptic_status;
 }
 
+uint32_t bsp_haptic_start_i2s(void)
+{
+    uint32_t haptic_status;
+    bsp_haptic_control_status = 0;
+
+    haptic_status = cs40l25_functions_g->start_i2s(&haptic_driver, bsp_haptic_control_callback, NULL);
+    if ((haptic_status == CS40L25_STATUS_OK) && (app_cb == NULL))
+    {
+        while (bsp_haptic_control_status == 0)
+        {
+            cs40l25_functions_g->process(&haptic_driver);
+        }
+
+        if (bsp_haptic_control_status == 1)
+        {
+            haptic_status = BSP_STATUS_OK;
+        }
+        else
+        {
+            haptic_status = BSP_STATUS_FAIL;
+        }
+    }
+
+    return haptic_status;
+}
+
+uint32_t bsp_haptic_stop_i2s(void)
+{
+    uint32_t haptic_status;
+    bsp_haptic_control_status = 0;
+
+    haptic_status = cs40l25_functions_g->stop_i2s(&haptic_driver, bsp_haptic_control_callback, NULL);
+    if ((haptic_status == CS40L25_STATUS_OK) && (app_cb == NULL))
+    {
+        while (bsp_haptic_control_status == 0)
+        {
+            cs40l25_functions_g->process(&haptic_driver);
+        }
+
+        if (bsp_haptic_control_status == 1)
+        {
+            haptic_status = BSP_STATUS_OK;
+        }
+        else
+        {
+            haptic_status = BSP_STATUS_FAIL;
+        }
+    }
+
+    return haptic_status;
+}
+
 uint32_t bsp_haptic_mute(bool is_mute)
 {
     return BSP_STATUS_FAIL;
@@ -1759,8 +1902,15 @@ uint32_t bsp_haptic_process(void)
 uint32_t bsp_haptic_control(uint32_t id, uint32_t arg)
 {
     uint32_t ret;
-
     cs40l25_control_request_t req;
+
+#ifdef DRV_MIN
+    if (id != BSP_HAPTIC_CONTROL_GET_HALO_HEARTBEAT)
+    {
+        id |= CS40L25_CONTROL_ID_FA_SET_MASK;
+    }
+#endif
+
     req.id = id;
     req.arg = arg;
     req.cb = bsp_haptic_control_callback;
@@ -1778,6 +1928,7 @@ uint32_t bsp_haptic_control(uint32_t id, uint32_t arg)
 
 uint32_t bsp_haptic_dynamic_calibrate(void)
 {
+#ifdef CS40L25_ALGORITHM_DYNAMIC_F0
     uint32_t ret;
     cs40l25_control_request_t req;
 
@@ -1810,7 +1961,7 @@ uint32_t bsp_haptic_dynamic_calibrate(void)
     {
         return BSP_STATUS_FAIL;
     }
-
+#endif
     return BSP_STATUS_OK;
 }
 #endif
@@ -2019,8 +2170,14 @@ uint32_t bsp_set_timer(uint32_t duration_ms, bsp_callback_t cb, void *cb_arg)
     bsp_timer_cb = cb;
     bsp_timer_cb_arg = cb_arg;
     bsp_timer_has_started = false;
+    bsp_timer_elapsed = false;
 
     Timer_Start(duration_ms * 10);
+
+    if (cb == NULL)
+    {
+        while (!bsp_timer_elapsed);
+    }
 
     return BSP_STATUS_OK;
 }
@@ -2036,30 +2193,22 @@ uint32_t bsp_i2c_read_repeated_start(uint32_t bsp_dev_id,
     switch (bsp_dev_id)
     {
         case BSP_AMP_DEV_ID:
+            bsp_i2c_transaction_complete = false;
+            bsp_i2c_done_cb = cb;
+            bsp_i2c_done_cb_arg = cb_arg;
+            bsp_i2c_current_transaction_type = BSP_I2C_TRANSACTION_TYPE_READ_REPEATED_START;
+            bsp_i2c_read_buffer_ptr = read_buffer;
+            bsp_i2c_read_length = read_length;
+            bsp_i2c_read_address = 0x80;
+            HAL_I2C_Master_Seq_Transmit_IT(&i2c_drv_handle,
+                                           bsp_i2c_read_address,
+                                           write_buffer,
+                                           write_length,
+                                           I2C_FIRST_FRAME);
+
             if (cb == NULL)
             {
-                HAL_I2C_Master_Seq_Transmit_IT(&i2c_drv_handle, 0x80, write_buffer, write_length, I2C_FIRST_FRAME);
-                while (HAL_I2C_GetState(&i2c_drv_handle) != HAL_I2C_STATE_READY)
-                {
-                }
-                HAL_I2C_Master_Seq_Receive_IT(&i2c_drv_handle, 0x80, read_buffer, read_length, I2C_LAST_FRAME);
-                while (HAL_I2C_GetState(&i2c_drv_handle) != HAL_I2C_STATE_READY)
-                {
-                }
-            }
-            else
-            {
-                bsp_i2c_done_cb = cb;
-                bsp_i2c_done_cb_arg = cb_arg;
-                bsp_i2c_current_transaction_type = BSP_I2C_TRANSACTION_TYPE_READ_REPEATED_START;
-                bsp_i2c_read_buffer_ptr = read_buffer;
-                bsp_i2c_read_length = read_length;
-                bsp_i2c_read_address = 0x80;
-                HAL_I2C_Master_Seq_Transmit_IT(&i2c_drv_handle,
-                                               bsp_i2c_read_address,
-                                               write_buffer,
-                                               write_length,
-                                               I2C_FIRST_FRAME);
+                while (!bsp_i2c_transaction_complete);
             }
 
             break;
@@ -2077,45 +2226,58 @@ uint32_t bsp_i2c_write(uint32_t bsp_dev_id,
                        bsp_callback_t cb,
                        void *cb_arg)
 {
+    uint32_t ret = BSP_STATUS_OK;
+
     switch (bsp_dev_id)
     {
         case BSP_AMP_DEV_ID:
+            bsp_i2c_transaction_complete = false;
+            bsp_i2c_transaction_error = false;
+            bsp_i2c_done_cb = cb;
+            bsp_i2c_done_cb_arg = cb_arg;
+            bsp_i2c_current_transaction_type = BSP_I2C_TRANSACTION_TYPE_WRITE;
+            HAL_I2C_Master_Seq_Transmit_IT(&i2c_drv_handle,
+                                           0x80,
+                                           write_buffer,
+                                           write_length,
+                                           I2C_FIRST_AND_LAST_FRAME);
+
             if (cb == NULL)
             {
-                HAL_I2C_Master_Seq_Transmit_IT(&i2c_drv_handle, 0x80, write_buffer, write_length, I2C_FIRST_AND_LAST_FRAME);
-                while (HAL_I2C_GetState(&i2c_drv_handle) != HAL_I2C_STATE_READY)
+                while ((!bsp_i2c_transaction_complete) && (!bsp_i2c_transaction_error));
+                if (bsp_i2c_transaction_error)
                 {
-                }
-            }
-            else
-            {
-                bsp_i2c_done_cb = cb;
-                bsp_i2c_done_cb_arg = cb_arg;
-                bsp_i2c_current_transaction_type = BSP_I2C_TRANSACTION_TYPE_WRITE;
-                HAL_I2C_Master_Seq_Transmit_IT(&i2c_drv_handle,
-                                               0x80,
-                                               write_buffer,
-                                               write_length,
-                                               I2C_FIRST_AND_LAST_FRAME);
-            }
-
-            break;
-
-        case BSP_DEV_ID_NULL:
-            if (cb == NULL)
-            {
-                HAL_I2C_Master_Seq_Transmit_IT(&i2c_drv_handle, 0xAA, write_buffer, write_length, I2C_FIRST_AND_LAST_FRAME);
-                while (HAL_I2C_GetState(&i2c_drv_handle) != HAL_I2C_STATE_READY)
-                {
+                    ret = BSP_STATUS_FAIL;
                 }
             }
             break;
+
+#ifdef BSP_LN2_DEV_ID
+        case BSP_LN2_DEV_ID:
+            bsp_i2c_transaction_complete = false;
+            bsp_i2c_done_cb = cb;
+            bsp_i2c_done_cb_arg = cb_arg;
+            bsp_i2c_current_transaction_type = BSP_I2C_TRANSACTION_TYPE_WRITE;
+            HAL_I2C_Master_Seq_Transmit_IT(&i2c_drv_handle,
+                                           0x44,
+                                           write_buffer,
+                                           write_length,
+                                           I2C_FIRST_AND_LAST_FRAME);
+
+            if (cb == NULL)
+            {
+                while (!bsp_i2c_transaction_complete);
+            }
+
+            break;
+#endif
+
 
         default:
             break;
     }
 
-    return BSP_STATUS_OK;
+    return ret;
 }
 
 uint32_t bsp_i2c_db_write(uint32_t bsp_dev_id,
@@ -2129,28 +2291,19 @@ uint32_t bsp_i2c_db_write(uint32_t bsp_dev_id,
     switch (bsp_dev_id)
     {
         case BSP_AMP_DEV_ID:
+            bsp_i2c_transaction_complete = false;
+            bsp_i2c_done_cb = cb;
+            bsp_i2c_done_cb_arg = cb_arg;
+            bsp_i2c_read_address = 0x80;
+            bsp_i2c_write_length = write_length_1;
+            bsp_i2c_write_buffer_ptr = write_buffer_1;
+            bsp_i2c_current_transaction_type = BSP_I2C_TRANSACTION_TYPE_DB_WRITE;
+
+            HAL_I2C_Master_Seq_Transmit_IT(&i2c_drv_handle, 0x80, write_buffer_0, write_length_0, I2C_FIRST_FRAME);
+
             if (cb == NULL)
             {
-                HAL_I2C_Master_Seq_Transmit_IT(&i2c_drv_handle, 0x80, write_buffer_0, write_length_0, I2C_FIRST_FRAME);
-                while (HAL_I2C_GetState(&i2c_drv_handle) != HAL_I2C_STATE_READY)
-                {
-                }
-                HAL_I2C_Master_Seq_Transmit_IT(&i2c_drv_handle, 0x80, write_buffer_0, write_length_0, I2C_LAST_FRAME);
-                while (HAL_I2C_GetState(&i2c_drv_handle) != HAL_I2C_STATE_READY)
-                {
-                }
-            }
-            else
-            {
-                bsp_i2c_done_cb = cb;
-                bsp_i2c_done_cb_arg = cb_arg;
-                bsp_i2c_read_address = 0x80;
-                bsp_i2c_write_length = write_length_1;
-                bsp_i2c_write_buffer_ptr = write_buffer_1;
-
-                bsp_i2c_current_transaction_type = BSP_I2C_TRANSACTION_TYPE_DB_WRITE;
-
-                HAL_I2C_Master_Seq_Transmit_IT(&i2c_drv_handle, 0x80, write_buffer_0, write_length_0, I2C_FIRST_FRAME);
+                while (!bsp_i2c_transaction_complete);
             }
 
             break;
