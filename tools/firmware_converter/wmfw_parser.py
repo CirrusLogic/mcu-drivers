@@ -50,8 +50,9 @@ halo_ym_u32_block_type = 0x22
 halo_block_types_memory_region_u24 = [
     halo_xm_u24_block_type,
     halo_ym_u24_block_type]
+halo_block_types_memory_region_pm32 = [
+    halo_pm_p32_block_type]
 halo_block_types_memory_region_p32 = [
-    halo_pm_p32_block_type,
     halo_xm_p32_block_type,
     halo_ym_p32_block_type]
 halo_block_types_memory_region_u32 = [
@@ -80,6 +81,7 @@ halo_block_types_memory_region_pm = [
 informational_text_block_type = 0xFF
 algorithm_information_data_block = 0xF2
 user_defined_name_text_block_type = 0xFE
+metadata_block_type = 0xFC
 
 #==========================================================================
 # CLASSES
@@ -219,6 +221,8 @@ class wmfw_memory_region_data_block(wmfw_block):
 
         if (self.fields['type'] in halo_block_types_memory_region_u24):
             self.memory_type = 'u24'
+        elif (self.fields['type'] in halo_block_types_memory_region_pm32):
+            self.memory_type = 'pm32'
         elif (self.fields['type'] in halo_block_types_memory_region_p32):
             self.memory_type = 'p32'
         elif (self.fields['type'] in halo_block_types_memory_region_u32):

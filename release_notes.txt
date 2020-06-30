@@ -3,6 +3,32 @@ Release Notes
 
 =============================================================================
 Summary:
+This is the release of Alt-OS Driver SDK v2.0.0
+Date: 2020/06/30
+
+Component Driver Versions:
+CS35L41 - v2.0.0
+CS40L25 - v1.0.0
+
+Component Tool Versions:
+firmware_converter - v2.2.0
+
+Architectures/Compilers Used:
+GNU Arm Embedded Toolchain: arm-none-eabi-gcc -mcpu=cortex-m4
+
+New Features/Changes:
+[SQA-1813] L41 - Fully migrate to the 'minimal' architecture
+[SQA-1795] L25 - fully convert driver to 'minimal' architecture
+[SQA-1802] firmware_converter exports version and CLI call to header
+[SQA-1806] L25 - Update to use fw_img_v1 for booting
+
+Fixed Bugs:
+[SQA-1798] firmware_converter crashes for Informational Text Block
+[SQA-1793] L25 - field_access_set does not ack correctly
+
+=============================================================================
+=============================================================================
+Summary:
 This is the release of Alt-OS Driver SDK v1.2.0
 Date: 2020/06/12
 

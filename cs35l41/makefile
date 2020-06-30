@@ -94,8 +94,6 @@ endif
 # Assign compiler, assembler, linker flags required per target
 ifeq ($(MAKECMDGOALS), unit_test)
     CFLAGS      += -g -std=c99
-    # include DSP/FW-related code
-    CFLAGS += -DINCLUDE_FW
     OUTPUT_NAME = unit_test
     OUTPUT_EXT  = exe
     LIBS        = -lm
@@ -105,36 +103,17 @@ ifeq ($(MAKECMDGOALS), unit_test)
 else ifeq ($(MAKECMDGOALS), driver_lib_cm4)
     OPTIMIZATION_OPTIONS += -Os
 
-    # disable some particularly annoying warnings
-    SANITY_PRESERVING_OPTIONS += -Wno-unknown-pragmas
-    SANITY_PRESERVING_OPTIONS += -Wno-unused-parameter
-    SANITY_PRESERVING_OPTIONS += -Wno-unused-variable
-    SANITY_PRESERVING_OPTIONS += -Wno-missing-field-initializers
-    SANITY_PRESERVING_OPTIONS += -Wno-endif-labels
-    SANITY_PRESERVING_OPTIONS += -Wno-clobbered
-    SANITY_PRESERVING_OPTIONS += -Wno-format
-    SANITY_PRESERVING_OPTIONS += -Wno-comment
-    SANITY_PRESERVING_OPTIONS += -Wno-empty-body
-    SANITY_PRESERVING_OPTIONS += -Wno-char-subscripts
-
-ifneq ($(EXCLUDE_FW), 1)
-    # include DSP/FW-related code
-    CFLAGS += -DINCLUDE_FW
-endif
-
     # stop winging about type-punned pointers breaking strict-aliasing rules
-    CFLAGS += -Wno-strict-aliasing
     CFLAGS += -fno-strict-aliasing
     CFLAGS += -ffreestanding # C99 standard n1570: A conforming freestanding implementation shall accept any strictly conforming program in which the use of the features specified in the library clause (clause 7) is confined to the contents of the standard headers <float.h>, <iso646.h>, <limits.h>, <stdalign.h>, <stdarg.h>, <stdbool.h>, <stddef.h>, <stdint.h>, and <stdnoreturn.h>.
 
     # use = or += not := else dependencies expand to nil
     CFLAGS += -mcpu=cortex-m4 -mthumb
-    CFLAGS += -W -Wall --std=gnu99
+    CFLAGS += -Werror -Wall -W --std=gnu99
     CFLAGS += -fno-diagnostics-show-caret
     CFLAGS += -fdata-sections -ffunction-sections
     CFLAGS += -funsigned-char -funsigned-bitfields
     CFLAGS += $(OPTIMIZATION_OPTIONS)
-    CFLAGS += $(SANITY_PRESERVING_OPTIONS)
     CFLAGS += $(APP_OPTIONS)
     OUTPUT_NAME =
     OUTPUT_EXT  =
@@ -145,17 +124,13 @@ else ifeq ($(MAKECMDGOALS), system_test)
     DEBUG_OPTIONS += -DDEBUG
     DEBUG_OPTIONS += -g3
 
-    # include DSP/FW-related code
-    CFLAGS += -DINCLUDE_FW
-
     # use = or += not := else dependencies expand to nil
     CFLAGS += -mcpu=cortex-m4 -mthumb -mfpu=fpv4-sp-d16 -mfloat-abi=hard --specs=nano.specs
-    CFLAGS += -Wall --std=gnu11
+    CFLAGS += -Werror -Wall --std=gnu11
     CFLAGS += -fno-diagnostics-show-caret
     CFLAGS += -fdata-sections -ffunction-sections -fstack-usage
     CFLAGS += -DUSE_HAL_DRIVER -DSTM32F401xE
     CFLAGS += $(DEBUG_OPTIONS)
-    CFLAGS += $(SANITY_PRESERVING_OPTIONS)
     CFLAGS += $(APP_OPTIONS)
     CFLAGS += -DSEGGER_RTT_SECTION=\"SEGGER_RTT_SECTION\"
     CFLAGS += -DNO_OS
@@ -175,17 +150,13 @@ else ifeq ($(MAKECMDGOALS), baremetal)
     DEBUG_OPTIONS += -DDEBUG
     DEBUG_OPTIONS += -g3
 
-    # include DSP/FW-related code
-    CFLAGS += -DINCLUDE_FW
-
     # use = or += not := else dependencies expand to nil
     CFLAGS += -mcpu=cortex-m4 -mthumb -mfpu=fpv4-sp-d16 -mfloat-abi=hard --specs=nano.specs
-    CFLAGS += -Wall --std=gnu11
+    CFLAGS += -Werror -Wall --std=gnu11
     CFLAGS += -fno-diagnostics-show-caret
     CFLAGS += -fdata-sections -ffunction-sections -fstack-usage
     CFLAGS += -DUSE_HAL_DRIVER -DSTM32F401xE
     CFLAGS += $(DEBUG_OPTIONS)
-    CFLAGS += $(SANITY_PRESERVING_OPTIONS)
     CFLAGS += $(APP_OPTIONS)
     CFLAGS += -DNO_OS
     OUTPUT_NAME =
@@ -203,17 +174,13 @@ else ifeq ($(MAKECMDGOALS), freertos)
     DEBUG_OPTIONS += -DDEBUG
     DEBUG_OPTIONS += -g3
 
-    # include DSP/FW-related code
-    CFLAGS += -DINCLUDE_FW
-
     # use = or += not := else dependencies expand to nil
     CFLAGS += -mcpu=cortex-m4 -mthumb -mfpu=fpv4-sp-d16 -mfloat-abi=hard --specs=nano.specs
-    CFLAGS += -Wall --std=gnu11
+    CFLAGS += -Werror -Wall --std=gnu11
     CFLAGS += -fno-diagnostics-show-caret
     CFLAGS += -fdata-sections -ffunction-sections -fstack-usage
     CFLAGS += -DUSE_HAL_DRIVER -DSTM32F401xE
     CFLAGS += $(DEBUG_OPTIONS)
-    CFLAGS += $(SANITY_PRESERVING_OPTIONS)
     CFLAGS += $(APP_OPTIONS)
     CFLAGS += -DUSE_CMSIS_OS
     OUTPUT_NAME =
@@ -233,7 +200,7 @@ endif
 DRIVER_PATH = $(REPO_PATH)/cs35l41
 COMMON_PATH = $(REPO_PATH)/common
 HALO_FIRMWARE_PATH = $(REPO_PATH)/cs35l41/fw_29_6_0_cspl
-DRIVER_SRCS = $(DRIVER_PATH)/cs35l41.c $(DRIVER_PATH)/cs35l41_spec.c $(COMMON_PATH)/f_queue.c
+DRIVER_SRCS = $(DRIVER_PATH)/cs35l41.c $(DRIVER_PATH)/cs35l41_syscfg_regs.c $(COMMON_PATH)/fw_img_v1.c
 INCLUDES += -I$(DRIVER_PATH) -I$(COMMON_PATH) -I$(HALO_FIRMWARE_PATH)
 DRIVER_LIBRARY = $(BUILD_DIR)/cs35l41/libcs35l41.a
 LIBS += $(DRIVER_LIBRARY)
@@ -264,10 +231,10 @@ ifeq ($(MAKECMDGOALS), system_test)
     C_SRCS += $(APP_PATH)/main.c
     C_SRCS += $(APP_PATH)/test_cs35l41.c
     C_SRCS += $(TEST_HW_PATH)/test_tone_tables.c
-    C_SRCS += $(TEST_HW_PATH)/system_test_hw_0_bsp.c
+    C_SRCS += $(REPO_PATH)/cs35l41/bsp/hw_0_bsp.c
+    C_SRCS += $(REPO_PATH)/cs35l41/bsp/hw_0_bsp_cs35l41.c
     C_SRCS += $(TEST_HW_PATH)/stm32f4xx_it.c
     C_SRCS += $(TEST_HW_PATH)/sysmem.c
-    C_SRCS += $(HALO_FIRMWARE_PATH)/cs35l41_firmware.c
     C_SRCS += $(REPO_PATH)/third_party/st/STM32Cube_FW_F4_V1.24.1/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_cortex.c
     C_SRCS += $(REPO_PATH)/third_party/st/STM32Cube_FW_F4_V1.24.1/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_gpio.c
     C_SRCS += $(REPO_PATH)/third_party/st/STM32Cube_FW_F4_V1.24.1/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_i2c_ex.c
@@ -295,6 +262,7 @@ endif
     C_SRCS += $(REPO_PATH)/third_party/unity/unity_fixture.c
     ASM_SRCS += $(REPO_PATH)/third_party/st/STM32Cube_FW_F4_V1.24.1/Drivers/CMSIS/Device/ST/STM32F4xx/Source/Templates/gcc/startup_stm32f401xe.s
     INCLUDES += -I$(APP_PATH)
+    INCLUDES += -I$(REPO_PATH)/cs35l41/bsp
     INCLUDES += -I$(TEST_HW_PATH)
     INCLUDES += -I$(REPO_PATH)/third_party/arm/cmsis/Include
     INCLUDES += -I$(REPO_PATH)/third_party/st/STM32Cube_FW_F4_V1.24.1/Drivers/CMSIS/Device/ST/STM32F4xx/Include
@@ -311,11 +279,11 @@ ifeq ($(MAKECMDGOALS), baremetal)
     TEST_HW_PATH = $(COMMON_PATH)/system_test_hw_0
     C_SRCS += $(APP_PATH)/main.c
     C_SRCS += $(TEST_HW_PATH)/test_tone_tables.c
-    C_SRCS += $(TEST_HW_PATH)/system_test_hw_0_bsp.c
+    C_SRCS += $(REPO_PATH)/cs35l41/bsp/hw_0_bsp.c
+    C_SRCS += $(REPO_PATH)/cs35l41/bsp/hw_0_bsp_cs35l41.c
     C_SRCS += $(TEST_HW_PATH)/stm32f4xx_it.c
     C_SRCS += $(TEST_HW_PATH)/syscalls.c
     C_SRCS += $(TEST_HW_PATH)/sysmem.c
-    C_SRCS += $(HALO_FIRMWARE_PATH)/cs35l41_firmware.c
     C_SRCS += $(REPO_PATH)/third_party/st/STM32Cube_FW_F4_V1.24.1/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_cortex.c
     C_SRCS += $(REPO_PATH)/third_party/st/STM32Cube_FW_F4_V1.24.1/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_gpio.c
     C_SRCS += $(REPO_PATH)/third_party/st/STM32Cube_FW_F4_V1.24.1/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_i2c_ex.c
@@ -334,6 +302,7 @@ ifeq ($(MAKECMDGOALS), baremetal)
     C_SRCS += $(REPO_PATH)/third_party/st/STM32Cube_FW_F4_V1.24.1/Drivers/CMSIS/Device/ST/STM32F4xx/Source/Templates/system_stm32f4xx.c
     ASM_SRCS += $(REPO_PATH)/third_party/st/STM32Cube_FW_F4_V1.24.1/Drivers/CMSIS/Device/ST/STM32F4xx/Source/Templates/gcc/startup_stm32f401xe.s
     INCLUDES += -I$(APP_PATH)
+    INCLUDES += -I$(REPO_PATH)/cs35l41/bsp
     INCLUDES += -I$(TEST_HW_PATH)
     INCLUDES += -I$(REPO_PATH)/third_party/arm/cmsis/Include
     INCLUDES += -I$(REPO_PATH)/third_party/st/STM32Cube_FW_F4_V1.24.1/Drivers/CMSIS/Device/ST/STM32F4xx/Include
@@ -346,11 +315,11 @@ ifeq ($(MAKECMDGOALS), freertos)
     FREERTOS_PATH = $(REPO_PATH)/third_party/st/STM32Cube_FW_F4_V1.24.1/Middlewares/Third_Party/FreeRTOS/Source
     C_SRCS += $(APP_PATH)/main.c
     C_SRCS += $(TEST_HW_PATH)/test_tone_tables.c
-    C_SRCS += $(TEST_HW_PATH)/system_test_hw_0_bsp.c
+    C_SRCS += $(REPO_PATH)/cs35l41/bsp/hw_0_bsp.c
+    C_SRCS += $(REPO_PATH)/cs35l41/bsp/hw_0_bsp_cs35l41.c
     C_SRCS += $(TEST_HW_PATH)/stm32f4xx_it.c
     C_SRCS += $(TEST_HW_PATH)/syscalls.c
     C_SRCS += $(TEST_HW_PATH)/sysmem.c
-    C_SRCS += $(HALO_FIRMWARE_PATH)/cs35l41_firmware.c
     C_SRCS += $(REPO_PATH)/third_party/st/STM32Cube_FW_F4_V1.24.1/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_cortex.c
     C_SRCS += $(REPO_PATH)/third_party/st/STM32Cube_FW_F4_V1.24.1/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_gpio.c
     C_SRCS += $(REPO_PATH)/third_party/st/STM32Cube_FW_F4_V1.24.1/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_i2c_ex.c
@@ -375,6 +344,7 @@ ifeq ($(MAKECMDGOALS), freertos)
     C_SRCS += $(FREERTOS_PATH)/portable/MemMang/heap_1.c
     ASM_SRCS += $(REPO_PATH)/third_party/st/STM32Cube_FW_F4_V1.24.1/Drivers/CMSIS/Device/ST/STM32F4xx/Source/Templates/gcc/startup_stm32f401xe.s
     INCLUDES += -I$(APP_PATH)
+    INCLUDES += -I$(REPO_PATH)/cs35l41/bsp
     INCLUDES += -I$(TEST_HW_PATH)
     INCLUDES += -I$(REPO_PATH)/third_party/arm/cmsis/Include
     INCLUDES += -I$(REPO_PATH)/third_party/st/STM32Cube_FW_F4_V1.24.1/Drivers/CMSIS/Device/ST/STM32F4xx/Include
@@ -461,7 +431,7 @@ $(foreach path,$(BUILD_PATHS),$(eval $(call mkdir_rule,$(path))))
 
 # Create a target for each .o files, depending on its corresponding .c file
 define driver_obj_rule
-$(1): $(2) $(MAKEFILE_PATH)/makefile
+$(1): $(2) $(MAKEFILE_PATH)/makefile create_syscfg_regs
 	@echo -------------------------------------------------------------------------------
 	@echo COMPILING $(2) #to $(1)
 	$(CC) $(CFLAGS) $(INCLUDES) -frecord-gcc-switches -MD -MP -MT $(1) -MF $(subst .o,.d,$(1)) -c $(2) -o $(1)
@@ -470,7 +440,7 @@ $(foreach obj,$(DRIVER_OBJS),$(eval $(call driver_obj_rule,$(obj),$(subst $(BUIL
 
 # Create a target for each .o files, depending on its corresponding .c file
 define obj_rule
-$(1): $(2) $(MAKEFILE_PATH)/makefile
+$(1): $(2) $(MAKEFILE_PATH)/makefile create_syscfg_regs
 	@echo -------------------------------------------------------------------------------
 	@echo COMPILING $(2) #to $(1)
 	$(CC) $(CFLAGS) $(INCLUDES) -MD -MP -MT $(1) -MF $(subst .o,.d,$(1)) -c $(2) -o $(1)
@@ -506,8 +476,19 @@ bullseye_off:
 	@echo BULLSEYE OFF
 	cov01 --off
 
+create_syscfg_regs: build_path create_syscfg_regs.c
+	@echo -------------------------------------------------------------------------------
+	@echo COMPILING create_syscfg_regs
+	gcc -Werror -Wall -w -I../common -c cs35l41_spec.c
+	gcc -Werror -Wall -std=c99 -I../common -c create_syscfg_regs.c
+	gcc -o create_syscfg_regs.exe create_syscfg_regs.o cs35l41_spec.o
+	@echo -------------------------------------------------------------------------------
+	@echo EXECUTING create_syscfg_regs	
+	./create_syscfg_regs.exe
+	rm -f *.o *.exe	
+
 # Create the driver static library and print the resource usage
-driver_lib_cm4: build_path $(BUILD_PATHS) $(DRIVER_OBJS)
+driver_lib_cm4: build_path $(BUILD_PATHS) create_syscfg_regs $(DRIVER_OBJS)
 	@echo -------------------------------------------------------------------------------
 	@echo ARCHIVING $(DRIVER_LIBRARY)
 	$(AR) $(ARFLAGS) $(DRIVER_LIBRARY) $(DRIVER_OBJS)

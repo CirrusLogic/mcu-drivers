@@ -35,17 +35,18 @@ from wmfw_parser import wmfw_parser, get_memory_region_from_type
 from wmdr_parser import wmdr_parser
 from c_h_file_templates import header_file, source_file
 from wisce_file_templates import wisce_script_file
+from fw_img_v1_templates import fw_img_v1_file
 
 #==========================================================================
 # VERSION
 #==========================================================================
-VERSION_STRING = "2.0.1"
+VERSION_STRING = "2.2.0"
 
 #==========================================================================
 # CONSTANTS/GLOBALS
 #==========================================================================
-supported_part_numbers = ['cs35l41', 'cs40l25', 'cs48l32']
-supported_commands = ['print', 'export', 'wisce']
+supported_part_numbers = ['cs35l41', 'cs40l25', 'cs40l30', 'cs48l32']
+supported_commands = ['print', 'export', 'wisce', 'fw_img_v1']
 
 supported_mem = {
     'cs35l41': {
@@ -60,7 +61,7 @@ supported_mem = {
             'u32': 0x3000000,
         },
         'pm': {
-            'p32': 0x3800000,
+            'pm32': 0x3800000,
         }
     },
     'cs40l25': {
@@ -75,7 +76,22 @@ supported_mem = {
             'u32': 0x3000000,
         },
         'pm': {
-            'p32': 0x3800000,
+            'pm32': 0x3800000,
+        }
+    },
+    'cs40l30': {
+        'xm': {
+            'u24': 0x2800000,
+            'p32': 0x2000000,
+            'u32': 0x2400000,
+        },
+        'ym': {
+            'u24': 0x3400000,
+            'p32': 0x2C00000,
+            'u32': 0x3000000,
+        },
+        'pm': {
+            'pm32': 0x3800000,
         }
     },
     'cs48l32': {
@@ -91,7 +107,7 @@ supported_mem = {
 
         },
         'pm': {
-            'p32': 0x3800000
+            'pm32': 0x3800000
         }
     }
 }
@@ -112,6 +128,8 @@ class address_resolver:
                 addresses_per_word = 4
             elif (mem_type == 'p32'):
                 addresses_per_word = 3
+            elif (mem_type == 'pm32'):
+                addresses_per_word = 5
 
             address = self.mem_map[mem_region][mem_type] + offset * addresses_per_word
 
@@ -200,6 +218,7 @@ def get_args():
                         'parsed.')
     parser.add_argument('-i', '--i2c-address', type=str, default='0x80', dest='i2c_address', help='Specify I2C address for WISCE script output.')
     parser.add_argument('-b', '--block-size-limit', type=int, default='4140', dest='block_size_limit', help='Specify maximum byte size of block per control port transaction.')
+    parser.add_argument('--sym', dest='symbol_table', type=str, default=None, help='The location of the symbol table C header.')
 
     args = parser.parse_args()
     return args
@@ -289,8 +308,8 @@ def main(argv):
     wmfw = wmfw_parser(args.wmfw)
     wmfw.parse()
 
+    wmdrs = []
     if (process_wmdr):
-        wmdrs = []
         for wmdr_filename in args.wmdrs:
             wmdr = wmdr_parser(wmdr_filename)
             wmdr.parse()
@@ -318,16 +337,25 @@ def main(argv):
             coeff_data_block_list.rehash_blocks()
             coeff_data_block_lists.append(coeff_data_block_list)
 
-
+    # Create WISCE outputter
+    wf = wisce_script_file(args.part_number, args.i2c_address)
+    
     # Create C Header
-    hf = header_file((args.part_number + suffix), dict(fw_id = wmfw.fw_id_block.fields['firmware_id']))
+    hf = None
+    fw_v1 = None
+    if (args.command == 'export'):
+        hf = header_file((args.part_number + suffix), dict(fw_id = wmfw.fw_id_block.fields['firmware_id']))
+    elif (args.command == 'fw_img_v1'):
+        fw_v1 = fw_img_v1_file(args.part_number, suffix, dict(fw_id = wmfw.fw_id_block.fields['firmware_id'], fw_rev = wmfw.fw_id_block.fields['firmware_revision']), args.symbol_table)
     if (not process_wmdr):
-        hf.update_block_info(len(fw_data_block_list.blocks), None)
+        if hf is not None:
+            hf.update_block_info(len(fw_data_block_list.blocks), None)
     else:
         coeff_data_block_list_lengths = []
-        for coeff_data_block_list in coeff_data_block_lists:
-            coeff_data_block_list_lengths.append(len(coeff_data_block_list.blocks))
-        hf.update_block_info(len(fw_data_block_list.blocks), coeff_data_block_list_lengths)
+        if hf is not None:
+            for coeff_data_block_list in coeff_data_block_lists:
+                coeff_data_block_list_lengths.append(len(coeff_data_block_list.blocks))
+            hf.update_block_info(len(fw_data_block_list.blocks), coeff_data_block_list_lengths)
     # Add controls
     # For each algorithm information data block
     for alg_block in wmfw.get_algorithm_information_data_blocks():
@@ -345,18 +373,56 @@ def main(argv):
             else:
                 algorithm_name = alg_block.fields['algorithm_name']
             # Add control
-            hf.add_control(algorithm_name, coeff_desc.fields['coefficient_name'], temp_coeff_address)
+            if hf is not None:
+                hf.add_control(algorithm_name, coeff_desc.fields['coefficient_name'], temp_coeff_address)
+            elif fw_v1 is not None:
+                fw_v1.add_control(algorithm_name, alg_block.fields['algorithm_id'], 
+                                  coeff_desc.fields['coefficient_name'], temp_coeff_address)
+        
+    # Add metadata text
+    wf = None
+    if (args.command == 'wisce'):
+        wf = wisce_script_file(args.part_number, args.i2c_address)
+        
+    metadata_text_lines = []
+    metadata_text_lines.append('firmware_converter.py version: ' + VERSION_STRING)
+    temp_line = ''
+    for arg in argv:
+        temp_line = temp_line + ' ' + arg
+    metadata_text_lines.append('Command: ' + temp_line)
+    for wmdr in wmdrs:
+        if (len(wmdr.informational_text_blocks) > 0):
+            metadata_text_lines.append('BIN Filename: ' + wmdr.filename)
+            metadata_text_lines.append('    Informational Text:')
+            for block in wmdr.informational_text_blocks:
+                for line in block.text.splitlines():
+                    metadata_text_lines.append('    ' + line)
+            metadata_text_lines.append('')
+            
+    for line in metadata_text_lines:
+        if hf is not None:
+            hf.add_metadata_text_line(line)
+        elif wf is not None:
+            wf.add_metadata_text_line(line)
+        elif fw_v1 is not None:
+            fw_v1.add_metadata_text_line(line)
 
     # Create C Source
-    cf = source_file(args.part_number + suffix)
-    wf = wisce_script_file(args.part_number, args.i2c_address)
+    cf = None
+    if (args.command == 'export'):
+        cf = source_file(args.part_number + suffix)
+        
     # Add FW Blocks
     for block in fw_data_block_list.blocks:
         block_bytes = []
         for byte_str in block[1]:
             block_bytes.append(int.from_bytes(byte_str, 'little', signed=False))
-        cf.add_fw_block(block[0], block_bytes)
-        wf.add_data_block(block[0], block_bytes)
+        if cf is not None:
+            cf.add_fw_block(block[0], block_bytes)
+        elif wf is not None:
+            wf.add_data_block(block[0], block_bytes)
+        elif fw_v1 is not None:
+            fw_v1.add_fw_block(block[0], block_bytes)
     # Add Coeff Blocks
     if (process_wmdr):
         coeff_block_list_count = 0
@@ -367,8 +433,12 @@ def main(argv):
                 for byte_str in block[1]:
                     block_bytes.append(int.from_bytes(byte_str, 'little', signed=False))
 
-                cf.add_coeff_block(coeff_block_list_count, block[0], block_bytes)
-                wf.add_data_block(block[0], block_bytes)
+                if cf is not None:
+                    cf.add_coeff_block(coeff_block_list_count, block[0], block_bytes)
+                elif wf is not None:
+                    wf.add_data_block(block[0], block_bytes)
+                elif fw_v1 is not None:
+                    fw_v1.add_coeff_block(coeff_block_list_count, block[0], block_bytes)
             coeff_block_list_count = coeff_block_list_count + 1
 
     results_str = ''
@@ -402,6 +472,13 @@ def main(argv):
         
         f = open('wisce_script_output.txt', 'w')
         f.write(str(wf))
+        f.close()
+    elif (args.command == 'fw_img_v1'):
+        temp_filename = args.part_number + suffix + "_fw_img.h"
+        results_str = "Exported to " + temp_filename + "\n"
+        
+        f = open(temp_filename, 'w')
+        f.write(str(fw_v1))
         f.close()
 
     print_results(results_str)

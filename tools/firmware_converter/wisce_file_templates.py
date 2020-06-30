@@ -39,6 +39,8 @@ wisce_script_template_str = """
 *                                                                                   *
 *************************************************************************************
 
+{metadata_text}
+
     message Script - Starting {part_number_uc} Firmware and Tuning Boot Script.
 
 {wisce_script_block_writes}
@@ -67,6 +69,7 @@ class wisce_script_file:
         self.terms['part_number_uc'] = part_number_str.upper()
         self.terms['wisce_blocks'] = ''
         self.terms['i2c_address'] = i2c_address
+        self.terms['metadata_text'] = ''
         self.block_write_32dat_per_line = 8
         return
 
@@ -98,9 +101,16 @@ class wisce_script_file:
         self.terms['wisce_blocks'] = self.terms['wisce_blocks'] + temp_str + '\n'
 
         return
+            
+    def add_metadata_text_line(self, line):
+        self.terms['metadata_text'] = self.terms['metadata_text'] + '* ' + line + '\n'
+        return
 
     def __str__(self):
         output_str = wisce_script_template_str
+        
+        output_str = output_str.replace('{metadata_text}', self.terms['metadata_text'])
+        
         output_str = output_str.replace('{wisce_script_block_writes}', self.terms['wisce_blocks'])
 
         output_str = output_str.replace('{part_number_lc}', self.terms['part_number_lc'])

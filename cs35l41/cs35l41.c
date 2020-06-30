@@ -4,7 +4,7 @@
  * @brief The CS35L41 Driver module
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2019 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2019, 2020 All Rights Reserved, http://www.cirrus.com/
  *
  * This code and information are provided 'as-is' without warranty of any
  * kind, either expressed or implied, including but not limited to the
@@ -21,13 +21,8 @@
 #include "string.h"
 
 /***********************************************************************************************************************
- * LOCAL LITERAL SUBSTITUTIONS
+ * LOCAL LITERAL SUBSTITUTIONS, TYPEDEFS
  **********************************************************************************************************************/
-//#define I2S_CONFIG_SHORTCUT
-#ifdef I2S_CONFIG_SHORTCUT
-//#define USE_DIAG_SIGGEN
-#endif
-//#define DEBUG_POWER_DOWN_STOP_DSP
 
 /**
  * Default Interrupt Mask for IRQ1_MASK_1 register
@@ -94,15 +89,6 @@
 #define CS35L41_ERR_RLS_SPEAKER_SAFE_MODE_MASK  (0x0000007E)
 
 /**
- * Beta value used to calculate value for CCM_FS_MON_0_REG
- *
- * @see Datasheet Section 4.13.9
- *
- */
-#define CS35L41_FS_MON0_BETA                    (6000000)
-
-#ifdef INCLUDE_FW
-/**
  * Value of CS35L41_CAL_STATUS that indicates Calibration success
  *
  * @see CS35L41_CAL_STATUS
@@ -111,15 +97,55 @@
 #define CS35L41_CAL_STATUS_CALIB_SUCCESS        (0x1)
 
 /**
- * Total number of HALO FW controls to cache before CS35L41 Power Up
- *
- * Currently, there are no HALO FW controls that are cached in the driver.
- *
- * @see cs35l41_power_up_sm
+ * Register address for the HALO FW Revision control
  *
  */
-#define CS35L41_SYNC_CTRLS_TOTAL (0)
-#endif // INCLUDE_FW
+#define CS35L41_FIRMWARE_REVISION               (0x2800010)
+
+/**
+ * @defgroup CS35L41_DSP_MBOX_STATUS_
+ * @brief Statuses of the HALO DSP Mailbox
+ *
+ * @{
+ */
+#define CS35L41_DSP_MBOX_STATUS_RUNNING         (0)
+#define CS35L41_DSP_MBOX_STATUS_PAUSED          (1)
+#define CS35L41_DSP_MBOX_STATUS_RDY_FOR_REINIT  (2)
+#define CS35L41_DSP_MBOX_STATUS_HIBERNATE       (3)
+/** @} */
+
+/**
+ * @defgroup CS35L41_DSP_MBOX_CMD_
+ * @brief HALO DSP Mailbox commands
+ *
+ * @see cs35l41_t member mbox_cmd
+ *
+ * @{
+ */
+#define CS35L41_DSP_MBOX_CMD_NONE               (0)
+#define CS35L41_DSP_MBOX_CMD_PAUSE              (1)
+#define CS35L41_DSP_MBOX_CMD_RESUME             (2)
+#define CS35L41_DSP_MBOX_CMD_REINIT             (3)
+#define CS35L41_DSP_MBOX_CMD_STOP_PRE_REINIT    (4)
+#define CS35L41_DSP_MBOX_CMD_HIBERNATE          (5)
+#define CS35L41_DSP_MBOX_CMD_OUT_OF_HIBERNATE   (6)
+#define CS35L41_DSP_MBOX_CMD_UNKNOWN            (-1)
+/** @} */
+
+/**
+ * Data structure to describe a field to read via the Field Access SM
+ *
+ * @see cs35l41_field_access
+ */
+typedef struct
+{
+    bool symbol;        ///< If True, field is in firmware and only the id is known
+    uint32_t address;   ///< Control Port address of field to access
+    uint32_t id;        ///< Id of symbol in symbol table
+    uint32_t value;     ///< Value to write/value read
+    uint8_t size;       ///< Bitwise size of field to access in register
+    uint8_t shift;      ///< Bitwise shift of field to access in register
+} cs35l41_field_accessor_t;
 
 /***********************************************************************************************************************
  * LOCAL VARIABLES
@@ -311,7 +337,6 @@ static const cs35l41_otp_map_t cs35l41_otp_maps[] = {
     },
 };
 
-#ifdef INCLUDE_FW
 /**
  * Register configuration after HALO FW is loaded in Boot SM
  *
@@ -330,7 +355,6 @@ static const uint32_t cs35l41_post_boot_config[] =
     CS35L41_MIXER_DSP1RX7_INPUT_REG, CS35L41_INPUT_SRC_TEMPMON,
     CS35L41_MIXER_DSP1RX8_INPUT_REG, CS35L41_INPUT_SRC_RSVD
 };
-#endif // INCLUDE_FW
 
 /**
  * Register configuration to send just before the CS35L41 is powered up in Power Up SM
@@ -358,22 +382,6 @@ static const uint32_t cs35l41_pup_patch[] =
     CS35L41_CTRL_KEYS_TEST_KEY_CTRL_REG, CS35L41_TEST_KEY_CTRL_UNLOCK_1,
     CS35L41_CTRL_KEYS_TEST_KEY_CTRL_REG, CS35L41_TEST_KEY_CTRL_UNLOCK_2,
     0x00002084, 0x002F1AA0,
-#ifdef I2S_CONFIG_SHORTCUT
-    CCM_REFCLK_INPUT_REG, 0x00000430,
-    CCM_GLOBAL_SAMPLE_RATE_REG, 0x00000003,
-    DATAIF_ASP_CONTROL1_REG, 0x00000021,
-    DATAIF_ASP_CONTROL2_REG, 0x20200200,
-    DATAIF_ASP_ENABLES1_REG, 0x00010003,
-    CCM_FS_MON_0_REG, 0x0002C01C,
-    MSM_BLOCK_ENABLES_REG, 0x00003721,
-#ifdef USE_DIAG_SIGGEN
-    0x00003800, 0x00000000,     // BST_CTL = 0x0; VBST=VP
-    0x00003804, 0x00000000,     // BST_CTL_SEL = 0b00; control port BST_CTL
-    0x00006000, 0x00000000,     // clear AMP_HPF_PCM_EN to disable HPF
-    0x00004C00, 0x00000004,     // DACPCM1_SRC = 4 to route SIGGEN to DAC
-    0x00007400, 0x005801C0,     // Select -6dBFs sine and enable SIGGEN
-#endif
-#endif
     CS35L41_CTRL_KEYS_TEST_KEY_CTRL_REG, CS35L41_TEST_KEY_CTRL_LOCK_1,
     CS35L41_CTRL_KEYS_TEST_KEY_CTRL_REG, CS35L41_TEST_KEY_CTRL_LOCK_2,
 };
@@ -408,7 +416,6 @@ static const uint32_t cs35l41_pdn_patch[] =
     CS35L41_CTRL_KEYS_TEST_KEY_CTRL_REG, CS35L41_TEST_KEY_CTRL_LOCK_2,
 };
 
-#ifdef INCLUDE_FW
 /**
  * Register configuration to lock HALO memory regions
  *
@@ -491,62 +498,7 @@ static const uint32_t cs35l41_frame_sync_regs[] =
     XM_UNPACKED24_DSP1_SAMPLE_RATE_TX7_REG,
     XM_UNPACKED24_DSP1_SAMPLE_RATE_TX8_REG
 };
-#endif // INCLUDE_FW
 
-/**
- * Register addresses to modify during Configure SM
- *
- * Sent after the CS35L41 has been reset and, if firmware is available, has been booted.
- *
- * List is in the form:
- * - word0 - Address of first configuration register
- * - word1 - Address of second configuration register
- * - ...
- *
- * @see cs35l41_configure_sm
- * @see cs35l41_t member config_regs
- * @see cs35l41_config_registers_t
- *
- * @warning  The list of registers MUST correspond to the union of structs in  in cs35l41_config_registers_t.
- *
- */
-static const uint32_t cs35l41_config_register_addresses[CS35L41_CONFIG_REGISTERS_TOTAL] =
-{
-    CS35L41_INTP_AMP_CTRL_REG,
-    CS35L41_DRE_AMP_GAIN_REG,
-    CS35L41_MIXER_ASPTX1_INPUT_REG,
-    CS35L41_MIXER_ASPTX2_INPUT_REG,
-    CS35L41_MIXER_ASPTX3_INPUT_REG,
-    CS35L41_MIXER_ASPTX4_INPUT_REG,
-    CS35L41_MIXER_DSP1RX1_INPUT_REG,
-    CS35L41_MIXER_DSP1RX2_INPUT_REG,
-    CS35L41_MIXER_DACPCM1_INPUT_REG,
-    CCM_GLOBAL_SAMPLE_RATE_REG,
-    NOISE_GATE_MIXER_NGATE_CH1_CFG_REG,
-    NOISE_GATE_MIXER_NGATE_CH2_CFG_REG,
-    CCM_REFCLK_INPUT_REG,
-    MSM_BLOCK_ENABLES_REG,
-    MSM_BLOCK_ENABLES2_REG,
-    DATAIF_ASP_ENABLES1_REG,
-    DATAIF_ASP_CONTROL2_REG,
-    DATAIF_ASP_FRAME_CONTROL5_REG,
-    DATAIF_ASP_FRAME_CONTROL1_REG,
-    DATAIF_ASP_CONTROL3_REG,
-    DATAIF_ASP_DATA_CONTROL5_REG,
-    DATAIF_ASP_DATA_CONTROL1_REG,
-    CCM_FS_MON_0_REG,
-    DATAIF_ASP_CONTROL1_REG,
-    BOOST_LBST_SLOPE_REG,
-    BOOST_BST_LOOP_COEFF_REG,
-    BOOST_BST_IPK_CTL_REG,
-    BOOST_VBST_CTL_1_REG,
-    BOOST_VBST_CTL_2_REG,
-    TEMPMON_WARN_LIMIT_THRESHOLD_REG,
-    PWRMGMT_CLASSH_CONFIG_REG,
-    PWRMGMT_WKFET_AMP_CONFIG_REG,
-};
-
-#ifdef INCLUDE_FW
 /**
  * Register/DSP Memory addresses to read during Get DSP Status SM
  *
@@ -561,163 +513,69 @@ static const uint32_t cs35l41_config_register_addresses[CS35L41_CONFIG_REGISTERS
  * @warning  The list of registers MUST correspond to the union of structs in  in cs35l41_dsp_status_t.
  *
  */
-static const uint32_t cs35l41_dsp_status_addresses[CS35L41_DSP_STATUS_WORDS_TOTAL] =
+static const uint32_t cs35l41_dsp_status_controls[CS35L41_DSP_STATUS_WORDS_TOTAL] =
 {
-        CS35L41_HALO_STATE,
-        CS35L41_HALO_HEARTBEAT,
-        CS35L41_CSPL_STATE,
-        CS35L41_CAL_SET_STATUS,
-        CS35L41_CAL_R_SELECTED,
-        CS35L41_CAL_R,
-        CS35L41_CAL_STATUS,
-        CS35L41_CAL_CHECKSUM,
-        CS35L41_CSPL_TEMPERATURE
+        CS35L41_SYM_GENERAL_HALO_STATE,
+        CS35L41_SYM_GENERAL_HALO_HEARTBEAT,
+        CS35L41_SYM_CSPL_CSPL_STATE,
+        CS35L41_SYM_CSPL_CAL_SET_STATUS,
+        CS35L41_SYM_CSPL_CAL_R_SELECTED,
+        CS35L41_SYM_CSPL_CAL_R,
+        CS35L41_SYM_CSPL_CAL_STATUS,
+        CS35L41_SYM_CSPL_CAL_CHECKSUM,
+        CS35L41_SYM_CSPL_CSPL_TEMPERATURE
 };
-#endif // INCLUDE_FW
+
+/**
+ * List of fields able to be accessed via cs35l41_control calls
+ *
+ * @see cs35l41_field_accessor_t
+ *
+ */
+static const cs35l41_field_accessor_t fa_list[] =
+{
+    {
+        .address = CS35L41_INTP_AMP_CTRL_REG,
+        .shift = CS35L41_INTP_AMP_CTRL_AMP_VOL_PCM_BITOFFSET,
+        .size = CS35L41_INTP_AMP_CTRL_AMP_VOL_PCM_BITWIDTH,
+    },
+    {
+        .symbol = true,
+        .id = CS35L41_SYM_GENERAL_HALO_HEARTBEAT,
+        .shift = 0,
+        .size = 32,
+    },
+    {
+        .address = CS35L41_FIRMWARE_REVISION,
+        .shift = 0,
+        .size = 32,
+    },
+};
 
 /***********************************************************************************************************************
  * GLOBAL VARIABLES
  **********************************************************************************************************************/
-/**
- * Cache for contents of IRQ1_EINT_*_REG interrupt flag registers.
- *
- * Currently, the following registers are cached:
- * - IRQ1_IRQ1_EINT_1_REG
- * - IRQ1_IRQ1_EINT_2_REG
- * - IRQ1_IRQ1_EINT_3_REG
- * - IRQ1_IRQ1_EINT_4_REG
- *
- * This cache is required for cs35l41_event_sm.  It is used along with irq_masks[] to determine what unmasked
- * interrupts have occurred.  This cache is required for cs35l41_event_sm.  The cache currently is not allocated as
- * part of cs35l41_t, but it should either be allocated there or have another means to cache the contents.
- *
- * @see IRQ1_IRQ1_EINT_1_REG
- * @see IRQ1_IRQ1_EINT_2_REG
- * @see IRQ1_IRQ1_EINT_3_REG
- * @see IRQ1_IRQ1_EINT_4_REG
- * @see cs35l41_event_sm
- *
- */
-static uint32_t irq_statuses[4];
-
-/**
- * Cache for contents of IRQ1_MASK_*_REG interrupt mask registers.
- *
- * Currently, the following registers are cached:
- * - IRQ1_IRQ1_MASK_1_REG
- * - IRQ1_IRQ1_MASK_2_REG
- * - IRQ1_IRQ1_MASK_3_REG
- * - IRQ1_IRQ1_MASK_4_REG
- *
- * This cache is required for cs35l41_event_sm.  It is used along with irq_statuses[] to determine what unmasked
- * interrupts have occurred. The cache currently is not allocated as part of cs35l41_t, but it should either be
- * allocated there or have another means to cache the contents.
- *
- * @see IRQ1_IRQ1_MASK_1_REG
- * @see IRQ1_IRQ1_MASK_2_REG
- * @see IRQ1_IRQ1_MASK_3_REG
- * @see IRQ1_IRQ1_MASK_4_REG
- * @see cs35l41_event_sm
- *
- */
-static uint32_t irq_masks[4];
 
 /***********************************************************************************************************************
  * LOCAL FUNCTIONS
  **********************************************************************************************************************/
 
 /**
- * Notify the driver when the BSP Timer expires.
- *
- * Implementation of cs35l41_private_functions_t.timer_callback
- *
- */
-static void cs35l41_timer_callback(uint32_t status, void *cb_arg)
-{
-    cs35l41_t *d;
-
-    d = (cs35l41_t *) cb_arg;
-
-    if (status == BSP_STATUS_OK)
-    {
-        CS35L41_SET_FLAG(d->control_sm.flags, CS35L41_FLAGS_TIMEOUT);
-    }
-
-    return;
-}
-
-/**
- * Notify the driver when the BSP Control Port (cp) read transaction completes.
- *
- * Implementation of cs35l41_private_functions_t.cp_read_callback
- *
- */
-static void cs35l41_cp_read_callback(uint32_t status, void *cb_arg)
-{
-    cs35l41_t *d;
-
-    d = (cs35l41_t *) cb_arg;
-
-    if (status == BSP_STATUS_OK)
-    {
-        // Check the driver mode to know which state machine called the BSP API and set respective flag
-        if (d->mode == CS35L41_MODE_HANDLING_CONTROLS)
-        {
-            CS35L41_SET_FLAG(d->control_sm.flags, CS35L41_FLAGS_CP_RW_DONE);
-        }
-        else
-        {
-            CS35L41_SET_FLAG(d->event_sm.flags, CS35L41_FLAGS_CP_RW_DONE);
-        }
-
-        /*
-         *  Copy 32-bit word read from BSP-allocated buffer to driver's cache.  Responses to Control Port reads
-         *  come over the bus MS-Byte-first, so end up Big-Endian in the BSP buffer.  This requires swapping bytes
-         *  to the driver's Little-Endian uint32_t cache.
-         *
-         *  FIXME: This is not platform independent.
-         */
-        ADD_BYTE_TO_WORD(d->register_buffer, d->cp_read_buffer[0], 3);
-        ADD_BYTE_TO_WORD(d->register_buffer, d->cp_read_buffer[1], 2);
-        ADD_BYTE_TO_WORD(d->register_buffer, d->cp_read_buffer[2], 1);
-        ADD_BYTE_TO_WORD(d->register_buffer, d->cp_read_buffer[3], 0);
-    }
-
-    return;
-}
-
-/**
- * Notify the driver when the BSP Control Port (cp) write transaction completes.
- *
- * Implementation of cs35l41_private_functions_t.cp_write_callback
- *
- */
-static void cs35l41_cp_write_callback(uint32_t status, void *cb_arg)
-{
-    cs35l41_t *d;
-
-    d = (cs35l41_t *) cb_arg;
-
-    if (status == BSP_STATUS_OK)
-    {
-        // Check the driver mode to know which state machine called the BSP API and set respective flag
-        if (d->mode == CS35L41_MODE_HANDLING_CONTROLS)
-        {
-            CS35L41_SET_FLAG(d->control_sm.flags, CS35L41_FLAGS_CP_RW_DONE);
-        }
-        else
-        {
-            CS35L41_SET_FLAG(d->event_sm.flags, CS35L41_FLAGS_CP_RW_DONE);
-        }
-    }
-
-    return;
-}
-
-/**
  * Notify the driver when the CS35L41 INTb GPIO drops low.
  *
- * Implementation of cs35l41_private_functions_t.irq_callback
+ * This callback is registered with the BSP in the register_gpio_cb() API call.
+ *
+ * The primary task of this callback is to transition the driver mode from CS35L41_MODE_HANDLING_CONTROLS to
+ * CS35L41_MODE_HANDLING_EVENTS, in order to signal to the main thread to process events.
+ *
+ * @param [in] status           BSP status for the INTb IRQ.
+ * @param [in] cb_arg           A pointer to callback argument registered.  For the driver, this arg is used for a
+ *                              pointer to the driver state cs35l41_t.
+ *
+ * @return none
+ *
+ * @see bsp_driver_if_t member register_gpio_cb.
+ * @see bsp_callback_t
  *
  */
 static void cs35l41_irq_callback(uint32_t status, void *cb_arg)
@@ -728,20 +586,8 @@ static void cs35l41_irq_callback(uint32_t status, void *cb_arg)
 
     if (status == BSP_STATUS_OK)
     {
-        // Only if the driver is in CS35L41_MODE_HANDLING_CONTROLS, then reset Event Handler state machine
-        if (d->mode == CS35L41_MODE_HANDLING_CONTROLS)
-        {
-            // Switch driver mode to CS35L41_MODE_HANDLING_EVENTS
-            d->mode = CS35L41_MODE_HANDLING_EVENTS;
-            // Reset Event Handler state machine
-            d->event_sm.state = CS35L41_EVENT_SM_STATE_INIT;
-            d->event_sm.flags = 0;
-            d->event_sm.count = 0;
-            /*
-             * This is left to support the potential of having multiple types of Event Handler state machines.
-             */
-            d->event_sm.fp = cs35l41_private_functions_g->event_sm;
-        }
+        // Switch driver mode to CS35L41_MODE_HANDLING_EVENTS
+        d->mode = CS35L41_MODE_HANDLING_EVENTS;
     }
 
     return;
@@ -750,67 +596,59 @@ static void cs35l41_irq_callback(uint32_t status, void *cb_arg)
 /**
  * Reads the contents of a single register/memory address
  *
- * Implementation of cs35l41_private_functions_t.read_reg
+ * The main purpose is to handle buffering and BSP calls required for reading a single memory address.
+ *
+ * @param [in] driver           Pointer to the driver state
+ * @param [in] addr             32-bit address to be read
+ * @param [out] val             Pointer to register value read
+ *
+ * @return
+ * - CS35L41_STATUS_FAIL        if the call to BSP failed
+ * - CS35L41_STATUS_OK          otherwise
+ *
+ * @warning Contains platform-dependent code.
  *
  */
-static uint32_t cs35l41_read_reg(cs35l41_t *driver, uint32_t addr, uint32_t *val, bool is_blocking)
+static uint32_t cs35l41_read_reg(cs35l41_t *driver, uint32_t addr, uint32_t *val)
 {
     uint32_t ret = CS35L41_STATUS_FAIL;
+    cs35l41_bsp_config_t *b = &(driver->config.bsp_config);
 
     /*
      * Switch from Little-Endian contents of uint32_t 'addr' to Big-Endian format required for Control Port transaction.
-     * Since register address is first written, cp_write_buffer[] is filled with register address.
+     * Since register address is first written, config.bsp_config.cp_write_buffer[] is filled with register address.
      *
      * FIXME: This is not platform independent.
      */
-    driver->cp_write_buffer[0] = GET_BYTE_FROM_WORD(addr, 3);
-    driver->cp_write_buffer[1] = GET_BYTE_FROM_WORD(addr, 2);
-    driver->cp_write_buffer[2] = GET_BYTE_FROM_WORD(addr, 1);
-    driver->cp_write_buffer[3] = GET_BYTE_FROM_WORD(addr, 0);
+    b->cp_write_buffer[0] = GET_BYTE_FROM_WORD(addr, 3);
+    b->cp_write_buffer[1] = GET_BYTE_FROM_WORD(addr, 2);
+    b->cp_write_buffer[2] = GET_BYTE_FROM_WORD(addr, 1);
+    b->cp_write_buffer[3] = GET_BYTE_FROM_WORD(addr, 0);
 
     // Currently only I2C transactions are supported
-    if (driver->bus_type == CS35L41_BUS_TYPE_I2C)
+    if (b->bus_type == CS35L41_BUS_TYPE_I2C)
     {
-        uint32_t bsp_status;
-
-        if (is_blocking)
+        ret = bsp_driver_if_g->i2c_read_repeated_start(b->bsp_dev_id,
+                                                       b->cp_write_buffer,
+                                                       4,
+                                                       b->cp_read_buffer,
+                                                       4,
+                                                       NULL,
+                                                       NULL);
+        if (BSP_STATUS_OK == ret)
         {
-            bsp_status = bsp_driver_if_g->i2c_read_repeated_start(driver->bsp_dev_id,
-                                                                  driver->cp_write_buffer,
-                                                                  4,
-                                                                  driver->cp_read_buffer,
-                                                                  4,
-                                                                  NULL,
-                                                                  NULL);
-            if (BSP_STATUS_OK == bsp_status)
-            {
-                /*
-                 * Switch from Big-Endian format required for Control Port transaction to Little-Endian contents of
-                 * uint32_t 'val'
-                 *
-                 * FIXME: This is not platform independent.
-                 */
-                ADD_BYTE_TO_WORD(*val, driver->cp_read_buffer[0], 3);
-                ADD_BYTE_TO_WORD(*val, driver->cp_read_buffer[1], 2);
-                ADD_BYTE_TO_WORD(*val, driver->cp_read_buffer[2], 1);
-                ADD_BYTE_TO_WORD(*val, driver->cp_read_buffer[3], 0);
+            /*
+             * Switch from Big-Endian format required for Control Port transaction to Little-Endian contents of
+             * uint32_t 'val'
+             *
+             * FIXME: This is not platform independent.
+             */
+            ADD_BYTE_TO_WORD(*val, b->cp_read_buffer[0], 3);
+            ADD_BYTE_TO_WORD(*val, b->cp_read_buffer[1], 2);
+            ADD_BYTE_TO_WORD(*val, b->cp_read_buffer[2], 1);
+            ADD_BYTE_TO_WORD(*val, b->cp_read_buffer[3], 0);
 
-                ret = CS35L41_STATUS_OK;
-            }
-        }
-        else
-        {
-            bsp_status = bsp_driver_if_g->i2c_read_repeated_start(driver->bsp_dev_id,
-                                                                  driver->cp_write_buffer,
-                                                                  4,
-                                                                  driver->cp_read_buffer,
-                                                                  4,
-                                                                  cs35l41_private_functions_g->cp_read_callback,
-                                                                  driver);
-            if (BSP_STATUS_OK == bsp_status)
-            {
-                ret = CS35L41_STATUS_OK;
-            }
+            ret = CS35L41_STATUS_OK;
         }
     }
 
@@ -820,2450 +658,45 @@ static uint32_t cs35l41_read_reg(cs35l41_t *driver, uint32_t addr, uint32_t *val
 /**
  * Writes the contents of a single register/memory address
  *
- * Implementation of cs35l41_private_functions_t.write_reg
+ * The main purpose is to handle buffering and BSP calls required for writing a single memory address.
+ *
+ * @param [in] driver           Pointer to the driver state
+ * @param [in] addr             32-bit address to be written
+ * @param [in] val              32-bit value to be written
+ *
+ * @return
+ * - CS35L41_STATUS_FAIL        if the call to BSP failed
+ * - CS35L41_STATUS_OK          otherwise
+ *
+ * @warning Contains platform-dependent code.
  *
  */
-static uint32_t cs35l41_write_reg(cs35l41_t *driver, uint32_t addr, uint32_t val, bool is_blocking)
+static uint32_t cs35l41_write_reg(cs35l41_t *driver, uint32_t addr, uint32_t val)
 {
     uint32_t ret = CS35L41_STATUS_FAIL;
-    uint32_t bsp_status = BSP_STATUS_FAIL;
+    cs35l41_bsp_config_t *b = &(driver->config.bsp_config);
 
     /*
      * Copy Little-Endian contents of 'addr' and 'val' to the Big-Endian format required for Control Port transactions
-     * using a uint8_t cp_write_buffer.
+     * using a uint8_t config.bsp_config..
      *
      * FIXME: This is not platform independent.
      */
-    driver->cp_write_buffer[0] = GET_BYTE_FROM_WORD(addr, 3);
-    driver->cp_write_buffer[1] = GET_BYTE_FROM_WORD(addr, 2);
-    driver->cp_write_buffer[2] = GET_BYTE_FROM_WORD(addr, 1);
-    driver->cp_write_buffer[3] = GET_BYTE_FROM_WORD(addr, 0);
-    driver->cp_write_buffer[4] = GET_BYTE_FROM_WORD(val, 3);
-    driver->cp_write_buffer[5] = GET_BYTE_FROM_WORD(val, 2);
-    driver->cp_write_buffer[6] = GET_BYTE_FROM_WORD(val, 1);
-    driver->cp_write_buffer[7] = GET_BYTE_FROM_WORD(val, 0);
+    b->cp_write_buffer[0] = GET_BYTE_FROM_WORD(addr, 3);
+    b->cp_write_buffer[1] = GET_BYTE_FROM_WORD(addr, 2);
+    b->cp_write_buffer[2] = GET_BYTE_FROM_WORD(addr, 1);
+    b->cp_write_buffer[3] = GET_BYTE_FROM_WORD(addr, 0);
+    b->cp_write_buffer[4] = GET_BYTE_FROM_WORD(val, 3);
+    b->cp_write_buffer[5] = GET_BYTE_FROM_WORD(val, 2);
+    b->cp_write_buffer[6] = GET_BYTE_FROM_WORD(val, 1);
+    b->cp_write_buffer[7] = GET_BYTE_FROM_WORD(val, 0);
 
     // Currently only I2C transactions are supported
-    if (driver->bus_type == CS35L41_BUS_TYPE_I2C)
+    if (b->bus_type == CS35L41_BUS_TYPE_I2C)
     {
-        if (is_blocking)
-        {
-            bsp_status = bsp_driver_if_g->i2c_write(driver->bsp_dev_id,
-                                                    driver->cp_write_buffer,
-                                                    8,
-                                                    NULL,
-                                                    NULL);
+        ret = bsp_driver_if_g->i2c_write(b->bsp_dev_id, b->cp_write_buffer, 8, NULL, NULL);
 
-        }
-        else
-        {
-            bsp_status = bsp_driver_if_g->i2c_write(driver->bsp_dev_id,
-                                                    driver->cp_write_buffer,
-                                                    8,
-                                                    cs35l41_private_functions_g->cp_write_callback,
-                                                    driver);
-        }
-    }
-
-    if (BSP_STATUS_OK == bsp_status)
-    {
-        ret = CS35L41_STATUS_OK;
-    }
-
-    return ret;
-}
-
-/**
- * Reset State Machine
- *
- * Implementation of cs35l41_private_functions_t.reset_sm
- *
- */
-static uint32_t cs35l41_reset_sm(cs35l41_t *driver)
-{
-    uint32_t ret = CS35L41_STATUS_OK;
-    cs35l41_sm_t *r = &(driver->control_sm);
-    uint32_t bsp_status = BSP_STATUS_OK;
-
-    switch(r->state)
-    {
-        case CS35L41_RESET_SM_STATE_INIT:
-            // Drive RESET low for at least T_RLPW (1ms)
-            bsp_status = bsp_driver_if_g->set_gpio(driver->bsp_reset_gpio_id, BSP_GPIO_LOW);
-            if (bsp_status == BSP_STATUS_OK)
-            {
-                CS35L41_CLEAR_FLAG(r->flags, CS35L41_FLAGS_TIMEOUT);
-                bsp_status = bsp_driver_if_g->set_timer(CS35L41_T_RLPW_MS, cs35l41_timer_callback, driver);
-                if (bsp_status == BSP_STATUS_OK)
-                {
-                    r->state = CS35L41_RESET_SM_STATE_WAIT_T_RLPW;
-                }
-            }
-            break;
-
-        case CS35L41_RESET_SM_STATE_WAIT_T_RLPW:
-            if (CS35L41_IS_FLAG_SET(r->flags, CS35L41_FLAGS_TIMEOUT))
-            {
-                r->state = CS35L41_RESET_SM_STATE_WAIT_T_IRS;
-                // Drive RESET high and wait for at least T_IRS (1ms)
-                bsp_status = bsp_driver_if_g->set_gpio(driver->bsp_reset_gpio_id, BSP_GPIO_HIGH);
-                if (bsp_status == BSP_STATUS_OK)
-                {
-                    CS35L41_CLEAR_FLAG(r->flags, CS35L41_FLAGS_TIMEOUT);
-                    bsp_status = bsp_driver_if_g->set_timer(CS35L41_T_IRS_MS, cs35l41_timer_callback, driver);
-                    if (bsp_status == BSP_STATUS_OK)
-                    {
-                        r->state = CS35L41_RESET_SM_STATE_WAIT_T_IRS;
-                    }
-                }
-            }
-            break;
-
-        case CS35L41_RESET_SM_STATE_WAIT_T_IRS:
-            if (CS35L41_IS_FLAG_SET(r->flags, CS35L41_FLAGS_TIMEOUT))
-            {
-                CS35L41_CLEAR_FLAG(r->flags, CS35L41_FLAGS_CP_RW_DONE);
-                r->count = 0;
-                // Start polling OTP_BOOT_DONE bit every 10ms
-                ret = cs35l41_private_functions_g->read_reg(driver,
-                                                            CS35L41_OTP_CTRL_OTP_CTRL8_REG,
-                                                            &(driver->register_buffer),
-                                                            false);
-
-                if (ret == CS35L41_STATUS_OK)
-                {
-                    CS35L41_CLEAR_FLAG(r->flags, CS35L41_FLAGS_TIMEOUT);
-                    bsp_status = bsp_driver_if_g->set_timer(CS35L41_POLL_OTP_BOOT_DONE_MS,
-                                                            cs35l41_timer_callback,
-                                                            driver);
-                    if (bsp_status == BSP_STATUS_OK)
-                    {
-                        r->state = CS35L41_RESET_SM_STATE_WAIT_OTP_BOOT_DONE;
-                    }
-                }
-            }
-            break;
-
-        case CS35L41_RESET_SM_STATE_WAIT_OTP_BOOT_DONE:
-            if (CS35L41_IS_FLAG_SET(r->flags, CS35L41_FLAGS_TIMEOUT))
-            {
-                if (CS35L41_IS_FLAG_SET(r->flags, CS35L41_FLAGS_CP_RW_DONE))
-                {
-                    r->count++;
-                    // If OTP_BOOT_DONE is set
-                    if (driver->register_buffer & OTP_CTRL_OTP_CTRL8_OTP_BOOT_DONE_STS_BITMASK)
-                    {
-                        CS35L41_CLEAR_FLAG(r->flags, CS35L41_FLAGS_CP_RW_DONE);
-                        // Read DEVID
-                        ret = cs35l41_private_functions_g->read_reg(driver,
-                                                                    CS35L41_SW_RESET_DEVID_REG,
-                                                                    &(driver->register_buffer),
-                                                                    false);
-
-                        if (ret == CS35L41_STATUS_OK)
-                        {
-                            r->count = 0;
-                            r->state = CS35L41_RESET_SM_STATE_READ_ID;
-                        }
-                    }
-                    // If polling period expired, indicate ERROR
-                    else if (r->count >= CS35L41_POLL_OTP_BOOT_DONE_MAX)
-                    {
-                        ret = CS35L41_STATUS_FAIL;
-                        r->state = CS35L41_RESET_SM_STATE_ERROR;
-                    }
-                    // If time left to poll, read OTP_BOOT_DONE again
-                    else
-                    {
-                        CS35L41_CLEAR_FLAG(r->flags, CS35L41_FLAGS_CP_RW_DONE);
-                        ret = cs35l41_private_functions_g->read_reg(driver,
-                                                                    CS35L41_OTP_CTRL_OTP_CTRL8_REG,
-                                                                    &(driver->register_buffer),
-                                                                    false);
-
-                        if (ret == CS35L41_STATUS_OK)
-                        {
-                            CS35L41_CLEAR_FLAG(r->flags, CS35L41_FLAGS_TIMEOUT);
-                            bsp_status = bsp_driver_if_g->set_timer(CS35L41_POLL_OTP_BOOT_DONE_MS,
-                                                                    cs35l41_timer_callback,
-                                                                    driver);
-                        }
-                    }
-                }
-                // If after 10ms I2C Read Callback hasn't been called from BSP, assume an error
-                else
-                {
-                    ret = CS35L41_STATUS_FAIL;
-                    r->state = CS35L41_RESET_SM_STATE_ERROR;
-                }
-            }
-            break;
-
-        case CS35L41_RESET_SM_STATE_READ_ID:
-            if (CS35L41_IS_FLAG_SET(r->flags, CS35L41_FLAGS_CP_RW_DONE))
-            {
-                r->count++;
-                if (r->count == 1)
-                {
-                    driver->devid = driver->register_buffer;
-
-                    CS35L41_CLEAR_FLAG(r->flags, CS35L41_FLAGS_CP_RW_DONE);
-                    // Read REVID
-                    ret = cs35l41_private_functions_g->read_reg(driver,
-                                                                CS35L41_SW_RESET_REVID_REG,
-                                                                &(driver->register_buffer),
-                                                                false);
-                }
-                else
-                {
-                    driver->revid = driver->register_buffer;
-                    // Get errata based on DEVID/REVID
-                    ret = cs35l41_private_functions_g->get_errata(driver->devid, driver->revid, &(driver->errata));
-
-                    if (ret == CS35L41_STATUS_OK)
-                    {
-                        r->state = CS35L41_RESET_SM_STATE_WRITE_IRQ_ERRATA;
-                        CS35L41_CLEAR_FLAG(r->flags, CS35L41_FLAGS_CP_RW_DONE);
-                        r->count = 0;
-                        const uint32_t *errata_write = driver->errata;
-                        // Skip first word which is errata length
-                        errata_write++;
-                        // Start sending errata
-                        ret = cs35l41_private_functions_g->write_reg(driver,
-                                                                     *(errata_write),
-                                                                     *(errata_write + 1),
-                                                                     false);
-                    }
-                }
-            }
-            else if (CS35L41_IS_FLAG_SET(r->flags, CS35L41_FLAGS_CP_RW_ERROR))
-            {
-                ret = CS35L41_STATUS_FAIL;
-                r->state = CS35L41_RESET_SM_STATE_ERROR;
-            }
-            break;
-
-        case CS35L41_RESET_SM_STATE_WRITE_IRQ_ERRATA:
-            if (CS35L41_IS_FLAG_SET(r->flags, CS35L41_FLAGS_CP_RW_DONE))
-            {
-                r->count++;
-                const uint32_t *errata_write = driver->errata;
-
-                if ((r->count * 2) < *errata_write)
-                {
-                    CS35L41_CLEAR_FLAG(r->flags, CS35L41_FLAGS_CP_RW_DONE);
-
-                    // Calculate position in errata erray - Skip first word which is errata length
-                    errata_write++;
-                    errata_write += (r->count * 2);
-                    ret = cs35l41_private_functions_g->write_reg(driver,
-                                                                 *(errata_write),
-                                                                 *(errata_write + 1),
-                                                                 false);
-                }
-                else
-                {
-                    r->state = CS35L41_RESET_SM_STATE_READ_OTPID;
-
-                    CS35L41_CLEAR_FLAG(r->flags, CS35L41_FLAGS_CP_RW_DONE);
-                    // Read OTPID
-                    ret = cs35l41_private_functions_g->read_reg(driver,
-                                                                CS35L41_SW_RESET_OTPID_REG,
-                                                                &(driver->register_buffer),
-                                                                false);
-                }
-            }
-            break;
-
-        case CS35L41_RESET_SM_STATE_READ_OTPID:
-            if (CS35L41_IS_FLAG_SET(r->flags, CS35L41_FLAGS_CP_RW_ERROR))
-            {
-                ret = CS35L41_STATUS_FAIL;
-                r->state = CS35L41_RESET_SM_STATE_ERROR;
-            }
-            else if (CS35L41_IS_FLAG_SET(r->flags, CS35L41_FLAGS_CP_RW_DONE))
-            {
-                uint32_t otpid = driver->register_buffer & CS35L41_SW_RESET_OTPID_OTPID_BITMASK;
-                // Find correct OTP Map based on OTPID
-                for (uint8_t i = 0; i < (sizeof(cs35l41_otp_maps)/sizeof(cs35l41_otp_map_t)); i++)
-                {
-                    if (cs35l41_otp_maps[i].id == otpid)
-                    {
-                        driver->otp_map = &(cs35l41_otp_maps[i]);
-                    }
-                }
-
-                // If no OTP Map found, indicate ERROR
-                if (driver->otp_map == NULL)
-                {
-                    ret = CS35L41_STATUS_FAIL;
-                    r->state = CS35L41_RESET_SM_STATE_ERROR;
-                }
-                else
-                {
-                    CS35L41_CLEAR_FLAG(r->flags, CS35L41_FLAGS_CP_RW_DONE);
-                    // Read entire OTP trim contents
-                    ret = cs35l41_private_functions_g->cp_bulk_read(driver,
-                                                                    CS35L41_OTP_IF_OTP_MEM0_REG,
-                                                                    CS35L41_OTP_SIZE_WORDS);
-                    r->state = CS35L41_RESET_SM_STATE_READ_OTP;
-                }
-            }
-            break;
-
-        case CS35L41_RESET_SM_STATE_READ_OTP:
-            if (CS35L41_IS_FLAG_SET(r->flags, CS35L41_FLAGS_CP_RW_ERROR))
-            {
-                ret = CS35L41_STATUS_FAIL;
-                r->state = CS35L41_RESET_SM_STATE_ERROR;
-            }
-            else if (CS35L41_IS_FLAG_SET(r->flags, CS35L41_FLAGS_CP_RW_DONE))
-            {
-                CS35L41_CLEAR_FLAG(r->flags, CS35L41_FLAGS_CP_RW_DONE);
-                r->count = 0;
-                // Unlock register file to apply OTP trims
-                ret = cs35l41_private_functions_g->write_reg(driver,
-                                                             CS35L41_CTRL_KEYS_TEST_KEY_CTRL_REG,
-                                                             CS35L41_TEST_KEY_CTRL_UNLOCK_1,
-                                                             false);
-                r->state = CS35L41_RESET_SM_STATE_WRITE_OTP_UNLOCK;
-            }
-            break;
-
-        case CS35L41_RESET_SM_STATE_WRITE_OTP_UNLOCK:
-            if (CS35L41_IS_FLAG_SET(r->flags, CS35L41_FLAGS_CP_RW_ERROR))
-            {
-                ret = CS35L41_STATUS_FAIL;
-                r->state = CS35L41_RESET_SM_STATE_ERROR;
-            }
-            else if (CS35L41_IS_FLAG_SET(r->flags, CS35L41_FLAGS_CP_RW_DONE))
-            {
-                CS35L41_CLEAR_FLAG(r->flags, CS35L41_FLAGS_CP_RW_DONE);
-                r->count++;
-                if (r->count == 1)
-                {
-                    // Unlock register file to apply OTP trims
-                    ret = cs35l41_private_functions_g->write_reg(driver,
-                                                                 CS35L41_CTRL_KEYS_TEST_KEY_CTRL_REG,
-                                                                 CS35L41_TEST_KEY_CTRL_UNLOCK_2,
-                                                                 false);
-                }
-                else
-                {
-                    r->count = 0;
-                    // Initialize OTP unpacking state - otp_bit_count.  There are bits in OTP to skip to reach the trims
-                    driver->otp_bit_count = driver->otp_map->bit_offset;
-                    // Get first trim entry
-                    cs35l41_otp_packed_entry_t temp_trim_entry = driver->otp_map->map[0];
-                    // Read the first register to be trimmed
-                    ret = cs35l41_private_functions_g->read_reg(driver,
-                                                                temp_trim_entry.reg,
-                                                                &(driver->register_buffer),
-                                                                false);
-                    r->state = CS35L41_RESET_SM_STATE_READ_TRIM_WORD;
-                }
-            }
-            break;
-
-        case CS35L41_RESET_SM_STATE_READ_TRIM_WORD:
-            if (CS35L41_IS_FLAG_SET(r->flags, CS35L41_FLAGS_CP_RW_ERROR))
-            {
-                ret = CS35L41_STATUS_FAIL;
-                r->state = CS35L41_RESET_SM_STATE_ERROR;
-            }
-            else if (CS35L41_IS_FLAG_SET(r->flags, CS35L41_FLAGS_CP_RW_DONE))
-            {
-                // Get current trim entry
-                cs35l41_otp_packed_entry_t temp_trim_entry = driver->otp_map->map[r->count];
-                r->count++;
-                CS35L41_CLEAR_FLAG(r->flags, CS35L41_FLAGS_CP_RW_DONE);
-
-                // If the entry's 'reg' member is 0x0, it means skip that trim
-                if (temp_trim_entry.reg != 0x00000000)
-                {
-                    /*
-                     * Apply OTP trim bit-field to recently read trim register value.  OTP contents is saved in
-                     * cp_read_buffer + CS35L41_CP_REG_READ_LENGTH_BYTES
-                     */
-                    ret = cs35l41_private_functions_g->apply_trim_word((driver->cp_read_buffer + \
-                                                                        CS35L41_CP_REG_READ_LENGTH_BYTES),
-                                                                       driver->otp_bit_count,
-                                                                       &(driver->register_buffer),
-                                                                       temp_trim_entry.shift,
-                                                                       temp_trim_entry.size);
-                    if (ret == CS35L41_STATUS_OK)
-                    {
-                        // Write new trimmed register value back
-                        ret = cs35l41_private_functions_g->write_reg(driver,
-                                                                     temp_trim_entry.reg,
-                                                                     driver->register_buffer,
-                                                                     false);
-                        // Inrement the OTP unpacking state variable otp_bit_count
-                        driver->otp_bit_count += temp_trim_entry.size;
-                        r->state = CS35L41_RESET_SM_STATE_WRITE_TRIM_WORD;
-                    }
-                }
-                else if (r->count < driver->otp_map->num_elements)
-                {
-                    // If trim entry skipped, get next trim entry and read the register
-                    driver->otp_bit_count += temp_trim_entry.size;
-                    temp_trim_entry = driver->otp_map->map[r->count];
-                    ret = cs35l41_private_functions_g->read_reg(driver,
-                                                                temp_trim_entry.reg,
-                                                                &(driver->register_buffer),
-                                                                false);
-                }
-                // If done unpacking OTP
-                else
-                {
-                    r->count = 0;
-                    // Lock register file
-                    ret = cs35l41_private_functions_g->write_reg(driver,
-                                                                 CS35L41_CTRL_KEYS_TEST_KEY_CTRL_REG,
-                                                                 CS35L41_TEST_KEY_CTRL_LOCK_1,
-                                                                 false);
-                    r->state = CS35L41_RESET_SM_STATE_WRITE_TRIM_LOCK;
-                }
-            }
-            break;
-
-        case CS35L41_RESET_SM_STATE_WRITE_TRIM_WORD:
-            if (CS35L41_IS_FLAG_SET(r->flags, CS35L41_FLAGS_CP_RW_ERROR))
-            {
-                ret = CS35L41_STATUS_FAIL;
-                r->state = CS35L41_RESET_SM_STATE_ERROR;
-            }
-            else if (CS35L41_IS_FLAG_SET(r->flags, CS35L41_FLAGS_CP_RW_DONE))
-            {
-                // If there are still trim entries remaining in OTP
-                if (r->count < driver->otp_map->num_elements)
-                {
-                    // Get current trim entry
-                    cs35l41_otp_packed_entry_t temp_trim_entry = driver->otp_map->map[r->count];
-
-                    CS35L41_CLEAR_FLAG(r->flags, CS35L41_FLAGS_CP_RW_DONE);
-                    // Read value of next register to trim
-                    ret = cs35l41_private_functions_g->read_reg(driver,
-                                                                temp_trim_entry.reg,
-                                                                &(driver->register_buffer),
-                                                                false);
-
-                    r->state = CS35L41_RESET_SM_STATE_READ_TRIM_WORD;
-                }
-                else
-                {
-                    CS35L41_CLEAR_FLAG(r->flags, CS35L41_FLAGS_CP_RW_DONE);
-                    r->count = 0;
-                    // Lock register file
-                    ret = cs35l41_private_functions_g->write_reg(driver,
-                                                                 CS35L41_CTRL_KEYS_TEST_KEY_CTRL_REG,
-                                                                 CS35L41_TEST_KEY_CTRL_LOCK_1,
-                                                                 false);
-                    r->state = CS35L41_RESET_SM_STATE_WRITE_TRIM_LOCK;
-                }
-            }
-            break;
-
-        case CS35L41_RESET_SM_STATE_WRITE_TRIM_LOCK:
-            if (CS35L41_IS_FLAG_SET(r->flags, CS35L41_FLAGS_CP_RW_ERROR))
-            {
-                ret = CS35L41_STATUS_FAIL;
-                r->state = CS35L41_RESET_SM_STATE_ERROR;
-            }
-            else if (CS35L41_IS_FLAG_SET(r->flags, CS35L41_FLAGS_CP_RW_DONE))
-            {
-                CS35L41_CLEAR_FLAG(r->flags, CS35L41_FLAGS_CP_RW_DONE);
-                r->count++;
-                if (r->count == 1)
-                {
-                    // Lock register file
-                    ret = cs35l41_private_functions_g->write_reg(driver,
-                                                                 CS35L41_CTRL_KEYS_TEST_KEY_CTRL_REG,
-                                                                 CS35L41_TEST_KEY_CTRL_LOCK_2,
-                                                                 false);
-                }
-                else
-                {
-                    r->count = 0;
-                    // Stop clocks to HALO DSP Core
-                    ret = cs35l41_private_functions_g->write_reg(driver,
-                                                                 XM_UNPACKED24_DSP1_CCM_CORE_CONTROL_REG,
-                                                                 0,
-                                                                 false);
-                    r->state = CS35L41_RESET_SM_STATE_WRITE_CCM_CORE_CTRL;
-                }
-            }
-            break;
-
-        case CS35L41_RESET_SM_STATE_WRITE_CCM_CORE_CTRL:
-            if (CS35L41_IS_FLAG_SET(r->flags, CS35L41_FLAGS_CP_RW_ERROR))
-            {
-                ret = CS35L41_STATUS_FAIL;
-                r->state = CS35L41_RESET_SM_STATE_ERROR;
-            }
-            else if (CS35L41_IS_FLAG_SET(r->flags, CS35L41_FLAGS_CP_RW_DONE))
-            {
-                r->state = CS35L41_RESET_SM_STATE_DONE;
-            }
-            break;
-
-        // For both DONE and ERROR, do nothing
-        case CS35L41_RESET_SM_STATE_DONE:
-        case CS35L41_RESET_SM_STATE_ERROR:
-            break;
-
-        default:
-            ret = CS35L41_STATUS_FAIL;
-            r->state = CS35L41_RESET_SM_STATE_ERROR;
-            break;
-    }
-
-    if ((ret != CS35L41_STATUS_OK) || (bsp_status != BSP_STATUS_OK))
-    {
-        ret = CS35L41_STATUS_FAIL;
-        r->state = CS35L41_RESET_SM_STATE_ERROR;
-    }
-
-    return ret;
-}
-
-#ifdef INCLUDE_FW
-/**
- * Boot State Machine
- *
- * Implementation of cs35l41_private_functions_t.boot_sm
- *
- */
-static uint32_t cs35l41_boot_sm(cs35l41_t *driver)
-{
-    uint32_t ret = CS35L41_STATUS_OK;
-    cs35l41_sm_t *b = &(driver->control_sm);
-    cs35l41_boot_config_t *cfg = driver->boot_config;
-
-    if (CS35L41_IS_FLAG_SET(b->flags, CS35L41_FLAGS_CP_RW_ERROR))
-    {
-        b->state = CS35L41_BOOT_SM_STATE_ERROR;
-        ret = CS35L41_STATUS_FAIL;
-    }
-
-    switch(b->state)
-    {
-        case CS35L41_BOOT_SM_STATE_INIT:
-            // Validate the boot configuration
-            ret = cs35l41_private_functions_g->validate_boot_config(cfg,
-                                                                    CS35L41_IS_FLAG_SET(b->flags, \
-                                                                            CS35L41_FLAGS_REQUEST_FW_BOOT),
-                                                                    CS35L41_IS_FLAG_SET(b->flags, \
-                                                                            CS35L41_FLAGS_REQUEST_COEFF_BOOT));
-            // If there is a valid boot configuration
-            if (ret == CS35L41_STATUS_BOOT_REQUEST)
-            {
-                b->count = 0;
-                CS35L41_CLEAR_FLAG(b->flags, CS35L41_FLAGS_CP_RW_DONE);
-                halo_boot_block_t *temp_block;
-                // If there are FW blocks to boot
-                if (CS35L41_IS_FLAG_SET(b->flags, CS35L41_FLAGS_REQUEST_FW_BOOT))
-                {
-                    CS35L41_CLEAR_FLAG(b->flags, CS35L41_FLAGS_REQUEST_FW_BOOT);
-                    // Get first FW block
-                    temp_block = cfg->fw_blocks;
-                    b->state = CS35L41_BOOT_SM_STATE_LOAD_FW;
-                }
-                // Otherwise, it must be COEFF-only boot
-                else
-                {
-                    CS35L41_CLEAR_FLAG(b->flags, CS35L41_FLAGS_REQUEST_COEFF_BOOT);
-                    // Get first COEFF block
-                    temp_block = cfg->coeff_blocks;
-                    b->state = CS35L41_BOOT_SM_STATE_LOAD_COEFF;
-                }
-                // Write first block (either FW or COEFF) to HALO DSP memory
-                ret = cs35l41_private_functions_g->cp_bulk_write(driver,
-                                                                 temp_block->address,
-                                                                 (uint8_t *) temp_block->bytes,
-                                                                 temp_block->block_size);
-            }
-            break;
-
-        case CS35L41_BOOT_SM_STATE_LOAD_FW:
-            if (CS35L41_IS_FLAG_SET(b->flags, CS35L41_FLAGS_CP_RW_DONE))
-            {
-                CS35L41_CLEAR_FLAG(b->flags, CS35L41_FLAGS_CP_RW_DONE);
-                b->count++;
-
-                // If there are remaining FW blocks
-                if (b->count < cfg->total_fw_blocks)
-                {
-                    // Get next FW block
-                    halo_boot_block_t *temp_block = cfg->fw_blocks;
-                    temp_block += b->count;
-                    // Write next FW block to HALO DSP memory
-                    ret = cs35l41_private_functions_g->cp_bulk_write(driver,
-                                                                     temp_block->address,
-                                                                     (uint8_t *) temp_block->bytes,
-                                                                     temp_block->block_size);
-                }
-                else
-                {
-                    b->count = 0;
-                    // If there is also a request to boot COEFF blocks
-                    if (CS35L41_IS_FLAG_SET(b->flags, CS35L41_FLAGS_REQUEST_COEFF_BOOT))
-                    {
-                        CS35L41_CLEAR_FLAG(b->flags, CS35L41_FLAGS_REQUEST_COEFF_BOOT);
-                        // Get first COEFF block
-                        halo_boot_block_t *temp_block = cfg->coeff_blocks;
-                        // Write first COEFF block to HALO DSP memory
-                        ret = cs35l41_private_functions_g->cp_bulk_write(driver,
-                                                                         temp_block->address,
-                                                                         (uint8_t *) temp_block->bytes,
-                                                                         temp_block->block_size);
-                        b->state = CS35L41_BOOT_SM_STATE_LOAD_COEFF;
-                    }
-                    else
-                    {
-                        // Write first post-boot configuration
-                        ret = cs35l41_private_functions_g->write_reg(driver,
-                                                                     cs35l41_post_boot_config[0],
-                                                                     cs35l41_post_boot_config[1],
-                                                                     false);
-                        b->state = CS35L41_BOOT_SM_STATE_POST_BOOT_CONFIG;
-                    }
-                }
-
-            }
-            break;
-
-        case CS35L41_BOOT_SM_STATE_LOAD_COEFF:
-            if (CS35L41_IS_FLAG_SET(b->flags, CS35L41_FLAGS_CP_RW_DONE))
-            {
-                CS35L41_CLEAR_FLAG(b->flags, CS35L41_FLAGS_CP_RW_DONE);
-                b->count++;
-
-                // If there are remaining COEFF blocks
-                if (b->count < cfg->total_coeff_blocks)
-                {
-                    // Get next COEFF block
-                    halo_boot_block_t *temp_block = cfg->coeff_blocks;
-                    temp_block += b->count;
-                    // Write next COEFF block to HALO DSP memory
-                    ret = cs35l41_private_functions_g->cp_bulk_write(driver,
-                                                                     temp_block->address,
-                                                                     (uint8_t *) temp_block->bytes,
-                                                                     temp_block->block_size);
-                }
-                else
-                {
-                    b->count = 0;
-                    // Write first post-boot configuration
-                    ret = cs35l41_private_functions_g->write_reg(driver,
-                                                                 cs35l41_post_boot_config[0],
-                                                                 cs35l41_post_boot_config[1],
-                                                                 false);
-                    b->state = CS35L41_BOOT_SM_STATE_POST_BOOT_CONFIG;
-                }
-
-            }
-            break;
-
-        case CS35L41_BOOT_SM_STATE_POST_BOOT_CONFIG:
-            if (CS35L41_IS_FLAG_SET(b->flags, CS35L41_FLAGS_CP_RW_DONE))
-            {
-                b->count++;
-                // If there are remaining post-boot configuration words
-                if (b->count < (sizeof(cs35l41_post_boot_config)/(sizeof(uint32_t) * 2)))
-                {
-                    CS35L41_CLEAR_FLAG(b->flags, CS35L41_FLAGS_CP_RW_DONE);
-                    // Write next post-boot configuration
-                    ret = cs35l41_private_functions_g->write_reg(driver,
-                                                                 cs35l41_post_boot_config[b->count * 2],
-                                                                 cs35l41_post_boot_config[(b->count * 2) + 1],
-                                                                 false);
-                }
-                else
-                {
-                    // If calibration data is valid
-                    if (driver->cal_data.is_valid)
-                    {
-                        CS35L41_CLEAR_FLAG(b->flags, CS35L41_FLAGS_CP_RW_DONE);
-                        b->count = 0;
-                        // Write calibrated load impedance
-                        ret = cs35l41_private_functions_g->write_reg(driver,
-                                                                     CS35L41_CAL_R,
-                                                                     driver->cal_data.r,
-                                                                     false);
-                        b->state = CS35L41_BOOT_SM_STATE_APPLY_CAL_DATA;
-                    }
-                    else
-                    {
-                        b->state = CS35L41_BOOT_SM_STATE_DONE;
-                    }
-                }
-            }
-            break;
-
-        case CS35L41_BOOT_SM_STATE_APPLY_CAL_DATA:
-            if (CS35L41_IS_FLAG_SET(b->flags, CS35L41_FLAGS_CP_RW_DONE))
-            {
-                CS35L41_CLEAR_FLAG(b->flags, CS35L41_FLAGS_CP_RW_DONE);
-                b->count++;
-                if (b->count == 1)
-                {
-                    // Write CAL_STATUS
-                    ret = cs35l41_private_functions_g->write_reg(driver,
-                                                                 CS35L41_CAL_STATUS,
-                                                                 CS35L41_CAL_STATUS_CALIB_SUCCESS,
-                                                                 false);
-                }
-                else if (b->count == 2)
-                {
-                    // Write CAL_CHECKSUM
-                    ret = cs35l41_private_functions_g->write_reg(driver,
-                                                                 CS35L41_CAL_CHECKSUM,
-                                                                 (driver->cal_data.r + \
-                                                                         CS35L41_CAL_STATUS_CALIB_SUCCESS),
-                                                                 false);
-                }
-                else
-                {
-                    b->state = CS35L41_BOOT_SM_STATE_DONE;
-                }
-            }
-            break;
-
-        case CS35L41_BOOT_SM_STATE_DONE:
-            break;
-
-        case CS35L41_BOOT_SM_STATE_ERROR:
-        default:
-            ret = CS35L41_STATUS_FAIL;
-            break;
-    }
-
-    return ret;
-}
-#endif // INCLUDE_FW
-
-/**
- * Power Up State Machine
- *
- * Implementation of cs35l41_private_functions_t.power_up_sm
- *
- */
-static uint32_t cs35l41_power_up_sm(cs35l41_t *driver)
-{
-    uint32_t ret = CS35L41_STATUS_OK;
-    cs35l41_sm_t *sm = &(driver->control_sm);
-
-    if (CS35L41_IS_FLAG_SET(sm->flags, CS35L41_FLAGS_CP_RW_ERROR))
-    {
-        sm->state = CS35L41_POWER_UP_SM_STATE_ERROR;
-        ret = CS35L41_STATUS_FAIL;
-    }
-
-    switch(sm->state)
-    {
-        case CS35L41_POWER_UP_SM_STATE_INIT:
-            sm->count = 0;
-            CS35L41_CLEAR_FLAG(sm->flags, CS35L41_FLAGS_CP_RW_DONE);
-
-#ifndef INCLUDE_FW
-            // Send first words of Power Up Patch
-            ret = cs35l41_private_functions_g->write_reg(driver,
-                                                         cs35l41_pup_patch[0],
-                                                         cs35l41_pup_patch[1],
-                                                         false);
-            sm->state = CS35L41_POWER_UP_SM_STATE_PUP_PATCH;
-            break;
-#else
-            // If DSP is NOT booted
-            if (driver->state == CS35L41_STATE_STANDBY)
-            {
-                // Send first words of Power Up Patch
-                ret = cs35l41_private_functions_g->write_reg(driver,
-                                                             cs35l41_pup_patch[0],
-                                                             cs35l41_pup_patch[1],
-                                                             false);
-                sm->state = CS35L41_POWER_UP_SM_STATE_PUP_PATCH;
-            }
-            // Otherwise, assume DSP is booted
-            else
-            {
-                sm->count = 0;
-                // Send first words of HALO DSP Memory Lock sequence
-                ret = cs35l41_private_functions_g->write_reg(driver,
-                                                             cs35l41_mem_lock[0],
-                                                             cs35l41_mem_lock[1],
-                                                             false);
-                sm->state = CS35L41_POWER_UP_SM_STATE_LOCK_MEM;
-            }
-            break;
-
-        case CS35L41_POWER_UP_SM_STATE_LOCK_MEM:
-            if (CS35L41_IS_FLAG_SET(sm->flags, CS35L41_FLAGS_CP_RW_DONE))
-            {
-                CS35L41_CLEAR_FLAG(sm->flags, CS35L41_FLAGS_CP_RW_DONE);
-                sm->count++;
-                // If there are remaining lock sequence words
-                if (sm->count < (sizeof(cs35l41_mem_lock)/(sizeof(uint32_t) * 2)))
-                {
-                    // Send next words of HALO DSP Memory Lock sequence
-                    ret = cs35l41_private_functions_g->write_reg(driver,
-                                                                 cs35l41_mem_lock[sm->count * 2],
-                                                                 cs35l41_mem_lock[(sm->count * 2) + 1],
-                                                                 false);
-                }
-                else
-                {
-                    sm->count = 0;
-                    // Set first HALO DSP Sample Rate registers to G1R2
-                    ret = cs35l41_private_functions_g->write_reg(driver,
-                                                                 cs35l41_frame_sync_regs[0],
-                                                                 CS35L41_DSP1_SAMPLE_RATE_G1R2,
-                                                                 false);
-                    sm->state = CS35L41_POWER_UP_SM_STATE_SET_FRAME_SYNC;
-                }
-            }
-            break;
-
-        case CS35L41_POWER_UP_SM_STATE_SET_FRAME_SYNC:
-            if (CS35L41_IS_FLAG_SET(sm->flags, CS35L41_FLAGS_CP_RW_DONE))
-            {
-                CS35L41_CLEAR_FLAG(sm->flags, CS35L41_FLAGS_CP_RW_DONE);
-                sm->count++;
-                // If there are more Sample Rate registers to write
-                if (sm->count < (sizeof(cs35l41_frame_sync_regs)/sizeof(uint32_t)))
-                {
-                    // Set next HALO DSP Sample Rate register to G1R2
-                    ret = cs35l41_private_functions_g->write_reg(driver,
-                                                                 cs35l41_frame_sync_regs[sm->count],
-                                                                 CS35L41_DSP1_SAMPLE_RATE_G1R2,
-                                                                 false);
-                }
-                else
-                {
-                    sm->count = 0;
-                    // Read the HALO DSP CCM control register
-                    ret = cs35l41_private_functions_g->read_reg(driver,
-                                                                XM_UNPACKED24_DSP1_CCM_CORE_CONTROL_REG,
-                                                                &(driver->register_buffer),
-                                                                false);
-                    sm->state = CS35L41_POWER_UP_SM_STATE_CLOCKS_TO_DSP;
-                }
-            }
-            break;
-
-        case CS35L41_POWER_UP_SM_STATE_CLOCKS_TO_DSP:
-            if (CS35L41_IS_FLAG_SET(sm->flags, CS35L41_FLAGS_CP_RW_DONE))
-            {
-                CS35L41_CLEAR_FLAG(sm->flags, CS35L41_FLAGS_CP_RW_DONE);
-                if (sm->count == 0)
-                {
-                    uint32_t temp_reg = 0;
-                    sm->count++;
-                    // Enable clocks to HALO DSP core
-                    temp_reg |= XM_UNPACKED24_DSP1_CCM_CORE_CONTROL_DSP1_CCM_CORE_EN_BITMASK;
-                    ret = cs35l41_private_functions_g->write_reg(driver,
-                                                                 XM_UNPACKED24_DSP1_CCM_CORE_CONTROL_REG,
-                                                                 temp_reg,
-                                                                 false);
-                }
-                else
-                {
-                    sm->count = 0;
-                    // Send first words of Power Up Patch
-                    ret = cs35l41_private_functions_g->write_reg(driver,
-                                                                 cs35l41_pup_patch[0],
-                                                                 cs35l41_pup_patch[1],
-                                                                 false);
-                    sm->state = CS35L41_POWER_UP_SM_STATE_PUP_PATCH;
-                }
-            }
-            break;
-#endif // INCLUDE_FW
-
-        case CS35L41_POWER_UP_SM_STATE_PUP_PATCH:
-            if (CS35L41_IS_FLAG_SET(sm->flags, CS35L41_FLAGS_CP_RW_DONE))
-            {
-                CS35L41_CLEAR_FLAG(sm->flags, CS35L41_FLAGS_CP_RW_DONE);
-                sm->count++;
-                // If there are remaining Power Up Patch words
-                if (sm->count < (sizeof(cs35l41_pup_patch)/(sizeof(uint32_t) * 2)))
-                {
-                    // Send next words of Power Up Patch
-                    ret = cs35l41_private_functions_g->write_reg(driver,
-                                                                 cs35l41_pup_patch[sm->count * 2],
-                                                                 cs35l41_pup_patch[(sm->count * 2) + 1],
-                                                                 false);
-                }
-                else
-                {
-                    sm->count = 0;
-                    // Read GLOBAL_EN register
-                    ret = cs35l41_private_functions_g->read_reg(driver,
-                                                                MSM_GLOBAL_ENABLES_REG,
-                                                                &(driver->register_buffer),
-                                                                false);
-                    sm->state = CS35L41_POWER_UP_SM_STATE_SET_GLOBAL_EN;
-                }
-            }
-            break;
-
-        case CS35L41_POWER_UP_SM_STATE_SET_GLOBAL_EN:
-            if (CS35L41_IS_FLAG_SET(sm->flags, CS35L41_FLAGS_CP_RW_DONE))
-            {
-                CS35L41_CLEAR_FLAG(sm->flags, CS35L41_FLAGS_CP_RW_DONE);
-                if (sm->count == 0)
-                {
-                    uint32_t temp_reg = 0;
-                    sm->count++;
-                    // Set GLOBAL_EN
-                    temp_reg |= MSM_GLOBAL_ENABLES_GLOBAL_EN_BITMASK;
-                    ret = cs35l41_private_functions_g->write_reg(driver,
-                                                                 MSM_GLOBAL_ENABLES_REG,
-                                                                 temp_reg,
-                                                                 false);
-                }
-                else
-                {
-                    CS35L41_CLEAR_FLAG(sm->flags, CS35L41_FLAGS_TIMEOUT);
-                    // After setting GLOBAL_EN, wait for at least T_AMP_PUP (1ms)
-                    ret = bsp_driver_if_g->set_timer(CS35L41_T_AMP_PUP_MS, cs35l41_timer_callback, driver);
-                    sm->state = CS35L41_POWER_UP_SM_STATE_WAIT_T_AMP_PUP;
-                }
-            }
-            break;
-
-        case CS35L41_POWER_UP_SM_STATE_WAIT_T_AMP_PUP:
-            if (CS35L41_IS_FLAG_SET(sm->flags, CS35L41_FLAGS_TIMEOUT))
-            {
-#ifndef INCLUDE_FW
-                sm->state = CS35L41_POWER_UP_SM_STATE_DONE;
-#else
-                // If the DSP is NOT booted
-                if (driver->state == CS35L41_STATE_STANDBY)
-                {
-                    sm->state = CS35L41_POWER_UP_SM_STATE_DONE;
-                }
-                else
-                {
-                    CS35L41_CLEAR_FLAG(sm->flags, CS35L41_FLAGS_CP_RW_DONE);
-                    sm->count = 0;
-                    // Clear HALO DSP Virtual MBOX 1 IRQ
-                    ret = cs35l41_private_functions_g->write_reg(driver,
-                                                                 IRQ2_IRQ2_EINT_2_REG,
-                                                                 IRQ2_IRQ2_EINT_2_DSP_VIRTUAL1_MBOX_WR_EINT2_BITMASK,
-                                                                 false);
-                    sm->state = CS35L41_POWER_UP_SM_STATE_MBOX_CLR_UNMASK_IRQ;
-                }
-#endif // INCLUDE_FW
-            }
-            break;
-
-#ifdef INCLUDE_FW
-        case CS35L41_POWER_UP_SM_STATE_MBOX_CLR_UNMASK_IRQ:
-            if (CS35L41_IS_FLAG_SET(sm->flags, CS35L41_FLAGS_CP_RW_DONE))
-            {
-                CS35L41_CLEAR_FLAG(sm->flags, CS35L41_FLAGS_CP_RW_DONE);
-                if (sm->count == 0)
-                {
-                    sm->count++;
-                    // Clear HALO DSP Virtual MBOX 2 IRQ
-                    ret = cs35l41_private_functions_g->write_reg(driver,
-                                                                 IRQ1_IRQ1_EINT_2_REG,
-                                                                 IRQ1_IRQ1_EINT_2_DSP_VIRTUAL2_MBOX_WR_EINT1_BITMASK,
-                                                                 false);
-                }
-                else if (sm->count == 1)
-                {
-                    sm->count++;
-                    // Read IRQ2 Mask register
-                    ret = cs35l41_private_functions_g->read_reg(driver,
-                                                                IRQ2_IRQ2_MASK_2_REG,
-                                                                &(driver->register_buffer),
-                                                                false);
-                }
-                else if (sm->count == 2)
-                {
-                    uint32_t temp_reg = driver->register_buffer;
-                    sm->count++;
-
-                    // Unmask IRQ for HALO DSP Virtual MBOX 1
-                    temp_reg &= ~(IRQ2_IRQ2_MASK_2_DSP_VIRTUAL1_MBOX_WR_MASK2_BITMASK);
-                    ret = cs35l41_private_functions_g->write_reg(driver,
-                                                                 IRQ2_IRQ2_MASK_2_REG,
-                                                                 temp_reg,
-                                                                 false);
-                }
-                else
-                {
-                    // Read HALO DSP MBOX Space 2 register
-                    ret = cs35l41_private_functions_g->read_reg(driver,
-                                                                DSP_MBOX_DSP_MBOX_2_REG,
-                                                                &(driver->register_buffer),
-                                                                false);
-                    sm->state = CS35L41_POWER_UP_SM_STATE_MBOX_READ_STATUS_1;
-                }
-            }
-            break;
-
-        case CS35L41_POWER_UP_SM_STATE_MBOX_READ_STATUS_1:
-            if (CS35L41_IS_FLAG_SET(sm->flags, CS35L41_FLAGS_CP_RW_DONE))
-            {
-                driver->mbox_cmd = CS35L41_DSP_MBOX_CMD_NONE;
-
-                // Based on MBOX status, select correct MBOX Command
-                switch (driver->register_buffer)
-                {
-                    case CS35L41_DSP_MBOX_STATUS_RDY_FOR_REINIT:
-                        driver->mbox_cmd = CS35L41_DSP_MBOX_CMD_REINIT;
-                        break;
-
-                    case CS35L41_DSP_MBOX_STATUS_PAUSED:
-                    case CS35L41_DSP_MBOX_STATUS_RUNNING:
-                        driver->mbox_cmd = CS35L41_DSP_MBOX_CMD_RESUME;
-                        break;
-
-                    default:
-                        break;
-                }
-
-                // If no command found, indicate ERROR
-                if (driver->mbox_cmd == CS35L41_DSP_MBOX_CMD_NONE)
-                {
-                    sm->state = CS35L41_POWER_UP_SM_STATE_ERROR;
-                    ret = CS35L41_STATUS_FAIL;
-                }
-                else
-                {
-                    CS35L41_CLEAR_FLAG(sm->flags, CS35L41_FLAGS_CP_RW_DONE);
-                    // Write MBOX command
-                    ret = cs35l41_private_functions_g->write_reg(driver,
-                                                                 DSP_VIRTUAL1_MBOX_DSP_VIRTUAL1_MBOX_1_REG,
-                                                                 driver->mbox_cmd,
-                                                                 false);
-                    sm->state = CS35L41_POWER_UP_SM_STATE_MBOX_WRITE_CMD;
-                }
-            }
-            break;
-
-        case CS35L41_POWER_UP_SM_STATE_MBOX_WRITE_CMD:
-            if (CS35L41_IS_FLAG_SET(sm->flags, CS35L41_FLAGS_CP_RW_DONE))
-            {
-                CS35L41_CLEAR_FLAG(sm->flags, CS35L41_FLAGS_TIMEOUT);
-                sm->count = 0;
-                // Wait for at least 1ms
-                ret = bsp_driver_if_g->set_timer(BSP_TIMER_DURATION_2MS, cs35l41_timer_callback, driver);
-                sm->state = CS35L41_POWER_UP_SM_STATE_MBOX_WAIT_1MS;
-
-            }
-            break;
-
-        case CS35L41_POWER_UP_SM_STATE_MBOX_WAIT_1MS:
-            if (CS35L41_IS_FLAG_SET(sm->flags, CS35L41_FLAGS_TIMEOUT))
-            {
-                CS35L41_CLEAR_FLAG(sm->flags, CS35L41_FLAGS_CP_RW_DONE);
-                // Poll MBOX IRQ flag
-                ret = cs35l41_private_functions_g->read_reg(driver,
-                                                            IRQ1_IRQ1_EINT_2_REG,
-                                                            &(driver->register_buffer),
-                                                            false);
-                sm->state = CS35L41_POWER_UP_SM_STATE_MBOX_READ_IRQ;
-            }
-            break;
-
-        case CS35L41_POWER_UP_SM_STATE_MBOX_READ_IRQ:
-            if (CS35L41_IS_FLAG_SET(sm->flags, CS35L41_FLAGS_CP_RW_DONE))
-            {
-                sm->count++;
-                // If MBOX IRQ flag is set
-                if (driver->register_buffer & IRQ1_IRQ1_EINT_2_DSP_VIRTUAL2_MBOX_WR_EINT1_BITMASK)
-                {
-                    CS35L41_CLEAR_FLAG(sm->flags, CS35L41_FLAGS_CP_RW_DONE);
-                    sm->count = 0;
-                    // Clear MBOX IRQ
-                    ret = cs35l41_private_functions_g->write_reg(driver,
-                                                                 IRQ1_IRQ1_EINT_2_REG,
-                                                                 IRQ1_IRQ1_EINT_2_DSP_VIRTUAL2_MBOX_WR_EINT1_BITMASK,
-                                                                 false);
-                    sm->state = CS35L41_POWER_UP_SM_STATE_MBOX_MASK_CLR_IRQ;
-                }
-                // Repeat 1ms delay then poll IRQ 5x
-                else if (sm->count < 5)
-                {
-                    CS35L41_CLEAR_FLAG(sm->flags, CS35L41_FLAGS_TIMEOUT);
-                    // Wait again for at least 1ms
-                    ret = bsp_driver_if_g->set_timer(BSP_TIMER_DURATION_2MS, cs35l41_timer_callback, driver);
-                    sm->state = CS35L41_POWER_UP_SM_STATE_MBOX_WAIT_1MS;
-                }
-                // If polling finished without MBOX IRQ set, then indicate ERROR
-                else
-                {
-                    ret = CS35L41_STATUS_FAIL;
-                    sm->state = CS35L41_POWER_UP_SM_STATE_ERROR;
-                }
-            }
-            break;
-
-        case CS35L41_POWER_UP_SM_STATE_MBOX_MASK_CLR_IRQ:
-            if (CS35L41_IS_FLAG_SET(sm->flags, CS35L41_FLAGS_CP_RW_DONE))
-            {
-                CS35L41_CLEAR_FLAG(sm->flags, CS35L41_FLAGS_CP_RW_DONE);
-                if (sm->count == 0)
-                {
-                    sm->count++;
-                    // Read IRQ2 Mask register to next re-mask the MBOX IRQ
-                    ret = cs35l41_private_functions_g->read_reg(driver,
-                                                                IRQ2_IRQ2_MASK_2_REG,
-                                                                &(driver->register_buffer),
-                                                                false);
-                }
-                else if (sm->count == 1)
-                {
-                    uint32_t temp_reg = driver->register_buffer;
-                    sm->count++;
-
-                    // Re-mask the MBOX IRQ
-                    temp_reg |= IRQ2_IRQ2_MASK_2_DSP_VIRTUAL1_MBOX_WR_MASK2_BITMASK;
-                    ret = cs35l41_private_functions_g->write_reg(driver,
-                                                                 IRQ2_IRQ2_MASK_2_REG,
-                                                                 temp_reg,
-                                                                 false);
-                }
-                else
-                {
-                    // Read the HALO DSP MBOX status
-                    ret = cs35l41_private_functions_g->read_reg(driver,
-                                                                DSP_MBOX_DSP_MBOX_2_REG,
-                                                                &(driver->register_buffer),
-                                                                false);
-                    sm->state = CS35L41_POWER_UP_SM_STATE_MBOX_READ_STATUS_2;
-                }
-            }
-            break;
-
-        case CS35L41_POWER_UP_SM_STATE_MBOX_READ_STATUS_2:
-            if (CS35L41_IS_FLAG_SET(sm->flags, CS35L41_FLAGS_CP_RW_DONE))
-            {
-                // Check if the status is correct for the command just sent
-                if (cs35l41_private_functions_g->is_mbox_status_correct(driver->mbox_cmd, driver->register_buffer))
-                {
-                    sm->state = CS35L41_POWER_UP_SM_STATE_DONE;
-                }
-                else
-                {
-                    ret = CS35L41_STATUS_FAIL;
-                    sm->state = CS35L41_POWER_UP_SM_STATE_ERROR;
-                }
-            }
-            break;
-#endif // INCLUDE_FW
-
-        case CS35L41_POWER_UP_SM_STATE_DONE:
-            break;
-
-        case CS35L41_POWER_UP_SM_STATE_ERROR:
-        default:
-            ret = CS35L41_STATUS_FAIL;
-            break;
-    }
-
-    if (ret == CS35L41_STATUS_FAIL)
-    {
-        sm->state = CS35L41_POWER_UP_SM_STATE_ERROR;
-    }
-
-    return ret;
-}
-
-/**
- * Power Down State Machine
- *
- * Implementation of cs35l41_private_functions_t.power_down_sm
- *
- */
-static uint32_t cs35l41_power_down_sm(cs35l41_t *driver)
-{
-    uint32_t ret = CS35L41_STATUS_OK;
-    cs35l41_sm_t *sm = &(driver->control_sm);
-
-    if (CS35L41_IS_FLAG_SET(sm->flags, CS35L41_FLAGS_CP_RW_ERROR))
-    {
-        sm->state = CS35L41_POWER_DOWN_SM_STATE_ERROR;
-        ret = CS35L41_STATUS_FAIL;
-    }
-
-    switch(sm->state)
-    {
-        case CS35L41_POWER_DOWN_SM_STATE_INIT:
-            sm->count = 0;
-            CS35L41_CLEAR_FLAG(sm->flags, CS35L41_FLAGS_CP_RW_DONE);
-#ifndef INCLUDE_FW
-            // Read register for read-modify-write of GLOBAL_EN
-            ret = cs35l41_private_functions_g->read_reg(driver,
-                                                        MSM_GLOBAL_ENABLES_REG,
-                                                        &(driver->register_buffer),
-                                                        false);
-            sm->state = CS35L41_POWER_DOWN_SM_STATE_CLEAR_GLOBAL_EN;
-#else
-            // If DSP is NOT booted
-            if (driver->state == CS35L41_STATE_POWER_UP)
-            {
-                // Read register for read-modify-write of GLOBAL_EN
-                ret = cs35l41_private_functions_g->read_reg(driver,
-                                                            MSM_GLOBAL_ENABLES_REG,
-                                                            &(driver->register_buffer),
-                                                            false);
-                sm->state = CS35L41_POWER_DOWN_SM_STATE_CLEAR_GLOBAL_EN;
-            }
-            else
-            {
-                // Clear HALO DSP Virtual MBOX 1 IRQ flag
-                ret = cs35l41_private_functions_g->write_reg(driver,
-                                                             IRQ2_IRQ2_EINT_2_REG,
-                                                             IRQ2_IRQ2_EINT_2_DSP_VIRTUAL1_MBOX_WR_EINT2_BITMASK,
-                                                             false);
-                sm->state = CS35L41_POWER_DOWN_SM_STATE_MBOX_CLR_UNMASK_IRQ;
-            }
-#endif // INCLUDE_FW
-            break;
-
-#ifdef INCLUDE_FW
-#ifdef DEBUG_POWER_DOWN_STOP_DSP
-        case CS35L41_POWER_DOWN_SM_STATE_STOP_WDT:
-            if (CS35L41_IS_FLAG_SET(sm->flags, CS35L41_FLAGS_CP_RW_DONE))
-            {
-                CS35L41_CLEAR_FLAG(sm->flags, CS35L41_FLAGS_CP_RW_DONE);
-                if (sm->count == 0)
-                {
-                    uint32_t temp_reg = driver->register_buffer;
-
-                    sm->count++;
-                    // Clear WDT_EN bit to disable HALO DSP Watchdog Timer
-                    temp_reg &= ~(XM_UNPACKED24_DSP1_WDT_CONTROL_DSP1_WDT_EN_BITMASK);
-                    ret = cs35l41_private_functions_g->write_reg(driver,
-                                                                 XM_UNPACKED24_DSP1_WDT_CONTROL_REG,
-                                                                 temp_reg,
-                                                                 false);
-                }
-                else
-                {
-                    sm->count = 0;
-                    // Read HALO DSP CCM Core Control register
-                    ret = cs35l41_private_functions_g->read_reg(driver,
-                                                                XM_UNPACKED24_DSP1_CCM_CORE_CONTROL_REG,
-                                                                &(driver->register_buffer),
-                                                                false);
-                    sm->state = CS35L41_POWER_DOWN_SM_STATE_STOP_DSP;
-                }
-            }
-            break;
-
-        case CS35L41_POWER_DOWN_SM_STATE_STOP_DSP:
-            if (CS35L41_IS_FLAG_SET(sm->flags, CS35L41_FLAGS_CP_RW_DONE))
-            {
-                CS35L41_CLEAR_FLAG(sm->flags, CS35L41_FLAGS_CP_RW_DONE);
-                if (sm->count == 0)
-                {
-                    uint32_t temp_reg = driver->register_buffer;
-
-                    sm->count++;
-                    // Disable clocks to the HALO DSP core
-                    temp_reg &= ~(XM_UNPACKED24_DSP1_CCM_CORE_CONTROL_DSP1_CCM_CORE_EN_BITMASK);
-                    ret = cs35l41_private_functions_g->write_reg(driver,
-                                                                 XM_UNPACKED24_DSP1_CCM_CORE_CONTROL_REG,
-                                                                 temp_reg,
-                                                                 false);
-                }
-                else if (sm->count == 1)
-                {
-                    sm->count++;
-                    // Read SOFT_RESET register
-                    ret = cs35l41_private_functions_g->read_reg(driver,
-                                                                XM_UNPACKED24_DSP1_CORE_SOFT_RESET_REG,
-                                                                &(driver->register_buffer),
-                                                                false);
-                }
-                else if (sm->count == 2)
-                {
-                    uint32_t temp_reg = driver->register_buffer;
-
-                    sm->count++;
-                    // Initiate a HALO DSP core Soft Reset
-                    temp_reg |= XM_UNPACKED24_DSP1_CORE_SOFT_RESET_DSP1_CORE_SOFT_RESET_BITMASK;
-                    ret = cs35l41_private_functions_g->write_reg(driver,
-                                                                 XM_UNPACKED24_DSP1_CORE_SOFT_RESET_REG,
-                                                                 temp_reg,
-                                                                 false);
-                }
-                else
-                {
-                    sm->count = 0;
-                    // Read register for GLOBAL_EN bit
-                    ret = cs35l41_private_functions_g->read_reg(driver,
-                                                                MSM_GLOBAL_ENABLES_REG,
-                                                                &(driver->register_buffer),
-                                                                false);
-                    sm->state = CS35L41_POWER_DOWN_SM_STATE_CLEAR_GLOBAL_EN;
-                }
-            }
-            break;
-#endif // DEBUG_POWER_DOWN_STOP_DSP
-
-        case CS35L41_POWER_DOWN_SM_STATE_MBOX_CLR_UNMASK_IRQ:
-            if (CS35L41_IS_FLAG_SET(sm->flags, CS35L41_FLAGS_CP_RW_DONE))
-            {
-                CS35L41_CLEAR_FLAG(sm->flags, CS35L41_FLAGS_CP_RW_DONE);
-                if (sm->count == 0)
-                {
-                    sm->count++;
-                    // Clear HALO DSP Virtual MBOX 2 IRQ flag
-                    ret = cs35l41_private_functions_g->write_reg(driver,
-                                                                 IRQ1_IRQ1_EINT_2_REG,
-                                                                 IRQ1_IRQ1_EINT_2_DSP_VIRTUAL2_MBOX_WR_EINT1_BITMASK,
-                                                                 false);
-                }
-                else if (sm->count == 1)
-                {
-                    sm->count++;
-                    // Read IRQ2 Mask register
-                    ret = cs35l41_private_functions_g->read_reg(driver,
-                                                                IRQ2_IRQ2_MASK_2_REG,
-                                                                &(driver->register_buffer),
-                                                                false);
-                }
-                else if (sm->count == 2)
-                {
-                    uint32_t temp_reg = driver->register_buffer;
-                    sm->count++;
-
-                    // Clear HALO DSP Virtual MBOX 1 IRQ mask
-                    temp_reg &= ~(IRQ2_IRQ2_MASK_2_DSP_VIRTUAL1_MBOX_WR_MASK2_BITMASK);
-                    ret = cs35l41_private_functions_g->write_reg(driver,
-                                                                 IRQ2_IRQ2_MASK_2_REG,
-                                                                 temp_reg,
-                                                                 false);
-                }
-                else
-                {
-                    // Send HALO DSP MBOX 'Pause' Command
-                    ret = cs35l41_private_functions_g->write_reg(driver,
-                                                                 DSP_VIRTUAL1_MBOX_DSP_VIRTUAL1_MBOX_1_REG,
-                                                                 CS35L41_DSP_MBOX_CMD_PAUSE,
-                                                                 false);
-                    sm->state = CS35L41_POWER_DOWN_SM_STATE_MBOX_WRITE_CMD;
-                }
-            }
-            break;
-
-        case CS35L41_POWER_DOWN_SM_STATE_MBOX_WRITE_CMD:
-            if (CS35L41_IS_FLAG_SET(sm->flags, CS35L41_FLAGS_CP_RW_DONE))
-            {
-                CS35L41_CLEAR_FLAG(sm->flags, CS35L41_FLAGS_TIMEOUT);
-                sm->count = 0;
-                // Wait for at least 1ms
-                ret = bsp_driver_if_g->set_timer(BSP_TIMER_DURATION_2MS, cs35l41_timer_callback, driver);
-                sm->state = CS35L41_POWER_DOWN_SM_STATE_MBOX_WAIT_1MS;
-
-            }
-            break;
-
-        case CS35L41_POWER_DOWN_SM_STATE_MBOX_WAIT_1MS:
-            if (CS35L41_IS_FLAG_SET(sm->flags, CS35L41_FLAGS_TIMEOUT))
-            {
-                CS35L41_CLEAR_FLAG(sm->flags, CS35L41_FLAGS_CP_RW_DONE);
-                // Read IRQ1 flag register to poll for MBOX IRQ
-                ret = cs35l41_private_functions_g->read_reg(driver,
-                                                            IRQ1_IRQ1_EINT_2_REG,
-                                                            &(driver->register_buffer),
-                                                            false);
-                sm->state = CS35L41_POWER_DOWN_SM_STATE_MBOX_READ_IRQ;
-            }
-            break;
-
-        case CS35L41_POWER_DOWN_SM_STATE_MBOX_READ_IRQ:
-            if (CS35L41_IS_FLAG_SET(sm->flags, CS35L41_FLAGS_CP_RW_DONE))
-            {
-                sm->count++;
-                // If MBOX IRQ flag set
-                if (driver->register_buffer & IRQ1_IRQ1_EINT_2_DSP_VIRTUAL2_MBOX_WR_EINT1_BITMASK)
-                {
-                    CS35L41_CLEAR_FLAG(sm->flags, CS35L41_FLAGS_CP_RW_DONE);
-                    sm->count = 0;
-                    // Clear MBOX IRQ flag
-                    ret = cs35l41_private_functions_g->write_reg(driver,
-                                                                 IRQ1_IRQ1_EINT_2_REG,
-                                                                 IRQ1_IRQ1_EINT_2_DSP_VIRTUAL2_MBOX_WR_EINT1_BITMASK,
-                                                                 false);
-                    sm->state = CS35L41_POWER_DOWN_SM_STATE_MBOX_MASK_CLR_IRQ;
-                }
-                // If have not yet polled 5x
-                else if (sm->count < 5)
-                {
-                    CS35L41_CLEAR_FLAG(sm->flags, CS35L41_FLAGS_TIMEOUT);
-                    // Wait at least 1ms
-                    ret = bsp_driver_if_g->set_timer(BSP_TIMER_DURATION_2MS, cs35l41_timer_callback, driver);
-                    sm->state = CS35L41_POWER_DOWN_SM_STATE_MBOX_WAIT_1MS;
-                }
-                // If MBOX IRQ flag was never set, indicate ERROR
-                else
-                {
-                    ret = CS35L41_STATUS_FAIL;
-                    sm->state = CS35L41_POWER_DOWN_SM_STATE_ERROR;
-                }
-            }
-            break;
-
-        case CS35L41_POWER_DOWN_SM_STATE_MBOX_MASK_CLR_IRQ:
-            if (CS35L41_IS_FLAG_SET(sm->flags, CS35L41_FLAGS_CP_RW_DONE))
-            {
-                CS35L41_CLEAR_FLAG(sm->flags, CS35L41_FLAGS_CP_RW_DONE);
-                if (sm->count == 0)
-                {
-                    sm->count++;
-                    // Read IRQ2 Mask register to re-mask HALO DSP Virtual MBOX 1 IRQ
-                    ret = cs35l41_private_functions_g->read_reg(driver,
-                                                                IRQ2_IRQ2_MASK_2_REG,
-                                                                &(driver->register_buffer),
-                                                                false);
-                }
-                else if (sm->count == 1)
-                {
-                    uint32_t temp_reg = driver->register_buffer;
-                    sm->count++;
-                    // Re-mask HALO DSP Virtual MBOX 1 IRQ
-                    temp_reg |= IRQ2_IRQ2_MASK_2_DSP_VIRTUAL1_MBOX_WR_MASK2_BITMASK;
-                    ret = cs35l41_private_functions_g->write_reg(driver,
-                                                                 IRQ2_IRQ2_MASK_2_REG,
-                                                                 temp_reg,
-                                                                 false);
-                }
-                else
-                {
-                    // Read the MBOX status
-                    ret = cs35l41_private_functions_g->read_reg(driver,
-                                                                DSP_MBOX_DSP_MBOX_2_REG,
-                                                                &(driver->register_buffer),
-                                                                false);
-                    sm->state = CS35L41_POWER_DOWN_SM_STATE_MBOX_READ_STATUS;
-                }
-            }
-            break;
-
-        case CS35L41_POWER_DOWN_SM_STATE_MBOX_READ_STATUS:
-            if (CS35L41_IS_FLAG_SET(sm->flags, CS35L41_FLAGS_CP_RW_DONE))
-            {
-                // Check that MBOX status is correct for 'Pause' command just sent
-                if (cs35l41_private_functions_g->is_mbox_status_correct(CS35L41_DSP_MBOX_CMD_PAUSE, driver->register_buffer))
-                {
-                    CS35L41_CLEAR_FLAG(sm->flags, CS35L41_FLAGS_CP_RW_DONE);
-                    sm->count = 0;
-                    // Read GLOBAL_EN register in order to clear GLOBAL_EN
-                    ret = cs35l41_private_functions_g->read_reg(driver,
-                                                                MSM_GLOBAL_ENABLES_REG,
-                                                                &(driver->register_buffer),
-                                                                false);
-                    sm->state = CS35L41_POWER_DOWN_SM_STATE_CLEAR_GLOBAL_EN;
-                }
-            }
-            break;
-#endif // INCLUDE_FW
-
-        case CS35L41_POWER_DOWN_SM_STATE_CLEAR_GLOBAL_EN:
-            if (CS35L41_IS_FLAG_SET(sm->flags, CS35L41_FLAGS_CP_RW_DONE))
-            {
-                CS35L41_CLEAR_FLAG(sm->flags, CS35L41_FLAGS_CP_RW_DONE);
-                if (sm->count == 0)
-                {
-                    uint32_t temp_reg = driver->register_buffer;
-
-                    sm->count++;
-                    // Clear GLOBAL_EN
-                    temp_reg &= ~(MSM_GLOBAL_ENABLES_GLOBAL_EN_BITMASK);
-                    ret = cs35l41_private_functions_g->write_reg(driver,
-                                                                 MSM_GLOBAL_ENABLES_REG,
-                                                                 temp_reg,
-                                                                 false);
-                }
-                else
-                {
-                    sm->count = 0;
-                    // Read IRQ1 flag register to poll MSM_PDN_DONE bit
-                    ret = cs35l41_private_functions_g->read_reg(driver,
-                                                                IRQ1_IRQ1_EINT_1_REG,
-                                                                &(driver->register_buffer),
-                                                                false);
-                    sm->state = CS35L41_POWER_DOWN_SM_STATE_READ_PDN_IRQ;
-                }
-            }
-            break;
-
-        case CS35L41_POWER_DOWN_SM_STATE_READ_PDN_IRQ:
-            if (CS35L41_IS_FLAG_SET(sm->flags, CS35L41_FLAGS_CP_RW_DONE))
-            {
-                // If MSM_PDN_DONE IRQ flag is set
-                if (driver->register_buffer & IRQ1_IRQ1_EINT_1_MSM_PDN_DONE_EINT1_BITMASK)
-                {
-                    sm->count = 0;
-                    CS35L41_CLEAR_FLAG(sm->flags, CS35L41_FLAGS_CP_RW_DONE);
-                    // Clear MSM_PDN_DONE IRQ flag
-                    ret = cs35l41_private_functions_g->write_reg(driver,
-                                                                 IRQ1_IRQ1_EINT_1_REG,
-                                                                 IRQ1_IRQ1_EINT_1_MSM_PDN_DONE_EINT1_BITMASK,
-                                                                 false);
-                    sm->state = CS35L41_POWER_DOWN_SM_STATE_CLEAR_PDN_IRQ;
-                }
-                else
-                {
-                    sm->count++;
-                    // Poll MSM_PDN_DONE IRQ flag at least 100x
-                    if (sm->count < 100)
-                    {
-                        CS35L41_CLEAR_FLAG(sm->flags, CS35L41_FLAGS_TIMEOUT);
-                        // Wait at least 1ms until next poll
-                        ret = bsp_driver_if_g->set_timer(BSP_TIMER_DURATION_1MS, cs35l41_timer_callback, driver);
-                        sm->state = CS35L41_POWER_DOWN_SM_STATE_READ_PDN_IRQ_WAIT;
-                    }
-                    // If exceeded 100 reads of MSM_PDN_DONE and still clear, then indicate ERROR
-                    else
-                    {
-                        ret = CS35L41_STATUS_FAIL;
-                        sm->state = CS35L41_POWER_DOWN_SM_STATE_ERROR;
-                    }
-                }
-            }
-            break;
-
-        case CS35L41_POWER_DOWN_SM_STATE_READ_PDN_IRQ_WAIT:
-            if (CS35L41_IS_FLAG_SET(sm->flags, CS35L41_FLAGS_TIMEOUT))
-            {
-                CS35L41_CLEAR_FLAG(sm->flags, CS35L41_FLAGS_CP_RW_DONE);
-                // Read IRQ1 flag register to poll MSM_PDN_DONE again
-                ret = cs35l41_private_functions_g->read_reg(driver,
-                                                            IRQ1_IRQ1_EINT_1_REG,
-                                                            &(driver->register_buffer),
-                                                            false);
-                sm->state = CS35L41_POWER_DOWN_SM_STATE_READ_PDN_IRQ;
-            }
-            break;
-
-        case CS35L41_POWER_DOWN_SM_STATE_CLEAR_PDN_IRQ:
-            if (CS35L41_IS_FLAG_SET(sm->flags, CS35L41_FLAGS_CP_RW_DONE))
-            {
-                sm->count = 0;
-                CS35L41_CLEAR_FLAG(sm->flags, CS35L41_FLAGS_CP_RW_DONE);
-                // Send first words of Power Down Patch set
-                ret = cs35l41_private_functions_g->write_reg(driver,
-                                                             cs35l41_pdn_patch[0],
-                                                             cs35l41_pdn_patch[1],
-                                                             false);
-                sm->state = CS35L41_POWER_DOWN_SM_STATE_WRITE_PDN_PATCH;
-            }
-            break;
-
-        case CS35L41_POWER_DOWN_SM_STATE_WRITE_PDN_PATCH:
-            if (CS35L41_IS_FLAG_SET(sm->flags, CS35L41_FLAGS_CP_RW_DONE))
-            {
-                sm->count += 2;
-                if (sm->count < (sizeof(cs35l41_pdn_patch)/sizeof(uint32_t)))
-                {
-                    CS35L41_CLEAR_FLAG(sm->flags, CS35L41_FLAGS_CP_RW_DONE);
-                    // Send next words of Power Down Patch set
-                    ret = cs35l41_private_functions_g->write_reg(driver,
-                                                                 cs35l41_pdn_patch[sm->count],
-                                                                 cs35l41_pdn_patch[sm->count + 1],
-                                                                 false);
-                }
-                else
-                {
-                    sm->state = CS35L41_POWER_DOWN_SM_STATE_DONE;
-                }
-            }
-            break;
-
-        case CS35L41_POWER_DOWN_SM_STATE_DONE:
-            break;
-
-        case CS35L41_POWER_DOWN_SM_STATE_ERROR:
-        default:
-            ret = CS35L41_STATUS_FAIL;
-            break;
-    }
-
-    if (ret == CS35L41_STATUS_FAIL)
-    {
-        sm->state = CS35L41_POWER_DOWN_SM_STATE_ERROR;
-    }
-
-    return ret;
-}
-
-/**
- * Configure State Machine
- *
- * Implementation of cs35l41_private_functions_t.configure_sm
- *
- */
-static uint32_t cs35l41_configure_sm(cs35l41_t *driver)
-{
-    uint32_t ret = CS35L41_STATUS_OK;
-    cs35l41_sm_t *sm = &(driver->control_sm);
-
-    if (CS35L41_IS_FLAG_SET(sm->flags, CS35L41_FLAGS_CP_RW_ERROR))
-    {
-        sm->state = CS35L41_CONFIGURE_SM_STATE_ERROR;
-        ret = CS35L41_STATUS_FAIL;
-    }
-
-    switch(sm->state)
-    {
-        case CS35L41_CONFIGURE_SM_STATE_INIT:
-            sm->count = 0;
-            CS35L41_CLEAR_FLAG(sm->flags, CS35L41_FLAGS_CP_RW_DONE);
-            // Unlock the register file
-            ret = cs35l41_private_functions_g->write_reg(driver,
-                                                         CS35L41_CTRL_KEYS_TEST_KEY_CTRL_REG,
-                                                         CS35L41_TEST_KEY_CTRL_UNLOCK_1,
-                                                         false);
-            sm->state = CS35L41_CONFIGURE_SM_STATE_UNLOCK_REGS;
-            break;
-
-        case CS35L41_CONFIGURE_SM_STATE_UNLOCK_REGS:
-            if (CS35L41_IS_FLAG_SET(sm->flags, CS35L41_FLAGS_CP_RW_DONE))
-            {
-                CS35L41_CLEAR_FLAG(sm->flags, CS35L41_FLAGS_CP_RW_DONE);
-                sm->count++;
-                if (sm->count == 1)
-                {
-                    // Unlock the register file
-                    ret = cs35l41_private_functions_g->write_reg(driver,
-                                                                 CS35L41_CTRL_KEYS_TEST_KEY_CTRL_REG,
-                                                                 CS35L41_TEST_KEY_CTRL_UNLOCK_2,
-                                                                 false);
-                }
-                else
-                {
-                    sm->count = 0;
-                    // Read the first of the Configuration Registers
-                    ret = cs35l41_private_functions_g->read_reg(driver,
-                                                                cs35l41_config_register_addresses[0],
-                                                                &(driver->config_regs.words[0]),
-                                                                false);
-                    sm->state = CS35L41_CONFIGURE_SM_STATE_READ_REGS;
-                }
-            }
-            break;
-
-        case CS35L41_CONFIGURE_SM_STATE_READ_REGS:
-            if (CS35L41_IS_FLAG_SET(sm->flags, CS35L41_FLAGS_CP_RW_DONE))
-            {
-                CS35L41_CLEAR_FLAG(sm->flags, CS35L41_FLAGS_CP_RW_DONE);
-                sm->count++;
-                // If there are remaining Configuration Registers to read
-                if (sm->count < CS35L41_CONFIG_REGISTERS_TOTAL)
-                {
-                    // Read the next of the Configuration Registers
-                    ret = cs35l41_private_functions_g->read_reg(driver,
-                                                                cs35l41_config_register_addresses[sm->count],
-                                                                &(driver->config_regs.words[sm->count]),
-                                                                false);
-                }
-                else
-                {
-                    // Apply audio_config to config_regs
-                    ret = cs35l41_private_functions_g->apply_configs(driver);
-
-                    if (ret == CS35L41_STATUS_OK)
-                    {
-                        // Write new value to first of the Configuration Registers
-                        sm->count = 0;
-                        ret = cs35l41_private_functions_g->write_reg(driver,
-                                                                     cs35l41_config_register_addresses[0],
-                                                                     driver->config_regs.words[0],
-                                                                     false);
-                        sm->state = CS35L41_CONFIGURE_SM_STATE_WRITE_REGS;
-                    }
-                }
-            }
-            break;
-
-        case CS35L41_CONFIGURE_SM_STATE_WRITE_REGS:
-            if (CS35L41_IS_FLAG_SET(sm->flags, CS35L41_FLAGS_CP_RW_DONE))
-            {
-                CS35L41_CLEAR_FLAG(sm->flags, CS35L41_FLAGS_CP_RW_DONE);
-                sm->count++;
-                // If there are remaining Configuration Registers to read
-                if (sm->count < CS35L41_CONFIG_REGISTERS_TOTAL)
-                {
-                    // Write new value to next of the Configuration Registers
-                    ret = cs35l41_private_functions_g->write_reg(driver,
-                                                                 cs35l41_config_register_addresses[sm->count],
-                                                                 driver->config_regs.words[sm->count],
-                                                                 false);
-                }
-                else
-                {
-                    sm->count = 0;
-                    // Re-lock the register file
-                    ret = cs35l41_private_functions_g->write_reg(driver,
-                                                                 CS35L41_CTRL_KEYS_TEST_KEY_CTRL_REG,
-                                                                 CS35L41_TEST_KEY_CTRL_LOCK_1,
-                                                                 false);
-                    sm->state = CS35L41_CONFIGURE_SM_STATE_LOCK_REGS;
-                }
-            }
-            break;
-
-        case CS35L41_CONFIGURE_SM_STATE_LOCK_REGS:
-            if (CS35L41_IS_FLAG_SET(sm->flags, CS35L41_FLAGS_CP_RW_DONE))
-            {
-                CS35L41_CLEAR_FLAG(sm->flags, CS35L41_FLAGS_CP_RW_DONE);
-                sm->count++;
-
-                if (sm->count == 1)
-                {
-                    // Re-lock the register file
-                    ret = cs35l41_private_functions_g->write_reg(driver,
-                                                                 CS35L41_CTRL_KEYS_TEST_KEY_CTRL_REG,
-                                                                 CS35L41_TEST_KEY_CTRL_LOCK_2,
-                                                                 false);
-                }
-                else
-                {
-                    sm->state = CS35L41_CONFIGURE_SM_STATE_DONE;
-                }
-            }
-            break;
-
-        case CS35L41_CONFIGURE_SM_STATE_DONE:
-            break;
-
-        case CS35L41_CONFIGURE_SM_STATE_ERROR:
-        default:
-            ret = CS35L41_STATUS_FAIL;
-            break;
-    }
-
-    if (ret == CS35L41_STATUS_FAIL)
-    {
-        sm->state = CS35L41_CONFIGURE_SM_STATE_ERROR;
-    }
-
-    return ret;
-}
-
-/**
- * Field Access State Machine
- *
- * Implementation of cs35l41_private_functions_t.field_access_sm
- *
- */
-static uint32_t cs35l41_field_access_sm(cs35l41_t *driver)
-{
-    uint32_t ret = CS35L41_STATUS_OK;
-    cs35l41_sm_t *sm = &(driver->control_sm);
-
-    if (CS35L41_IS_FLAG_SET(sm->flags, CS35L41_FLAGS_CP_RW_ERROR))
-    {
-        sm->state = CS35L41_FIELD_ACCESS_SM_STATE_ERROR;
-        ret = CS35L41_STATUS_FAIL;
-    }
-
-    switch(sm->state)
-    {
-        case CS35L41_FIELD_ACCESS_SM_STATE_INIT:
-            CS35L41_CLEAR_FLAG(sm->flags, CS35L41_FLAGS_CP_RW_DONE);
-
-            // Read the value from the field address
-            ret = cs35l41_private_functions_g->read_reg(driver,
-                                                        driver->field_accessor.address,
-                                                        &(driver->register_buffer),
-                                                        false);
-            sm->state = CS35L41_FIELD_ACCESS_SM_STATE_READ_MEM;
-            break;
-
-        case CS35L41_FIELD_ACCESS_SM_STATE_READ_MEM:
-            if (CS35L41_IS_FLAG_SET(sm->flags, CS35L41_FLAGS_CP_RW_DONE))
-            {
-                // Create bit-wise mask of the bit-field
-                uint32_t temp_mask = (~(0xFFFFFFFF << driver->field_accessor.size) << driver->field_accessor.shift);
-                uint32_t reg_val = driver->register_buffer;
-                // If this is only a GET request
-                if (CS35L41_IS_FLAG_SET(sm->flags, CS35L41_FLAGS_IS_GET_REQUEST))
-                {
-                    uint32_t *reg_ptr = (uint32_t *) driver->current_request.arg;
-                    // Mask off bit-field and shift down to LS-Bit
-                    reg_val &= temp_mask;
-                    reg_val >>= driver->field_accessor.shift;
-                    *reg_ptr = reg_val;
-
-                    sm->state = CS35L41_FIELD_ACCESS_SM_STATE_DONE;
-                }
-                else
-                {
-                    uint32_t field_val = (uint32_t) driver->current_request.arg;
-                    // Shift new value to bit-field bit position
-                    field_val <<= driver->field_accessor.shift;
-                    field_val &= temp_mask;
-                    // Mask off bit-field bit locations in memory's value
-                    reg_val &= ~temp_mask;
-                    // Add new value
-                    reg_val |= field_val;
-
-                    CS35L41_CLEAR_FLAG(sm->flags, CS35L41_FLAGS_CP_RW_DONE);
-                    // Write new register/memory value
-                    ret = cs35l41_private_functions_g->write_reg(driver,
-                                                                 driver->field_accessor.address,
-                                                                 reg_val,
-                                                                 false);
-
-                    sm->state = CS35L41_FIELD_ACCESS_SM_STATE_WRITE_MEM;
-                }
-            }
-            break;
-
-        case CS35L41_FIELD_ACCESS_SM_STATE_WRITE_MEM:
-            if (CS35L41_IS_FLAG_SET(sm->flags, CS35L41_FLAGS_CP_RW_DONE))
-            {
-                sm->state = CS35L41_FIELD_ACCESS_SM_STATE_DONE;
-            }
-            break;
-
-        case CS35L41_FIELD_ACCESS_SM_STATE_DONE:
-            break;
-
-        case CS35L41_FIELD_ACCESS_SM_STATE_ERROR:
-        default:
-            ret = CS35L41_STATUS_FAIL;
-            break;
-    }
-
-    if (ret == CS35L41_STATUS_FAIL)
-    {
-        sm->state = CS35L41_FIELD_ACCESS_SM_STATE_ERROR;
-    }
-
-    return ret;
-}
-
-#ifdef INCLUDE_FW
-/**
- * Calibration State Machine
- *
- * Implementation of cs35l41_private_functions_t.calibration_sm
- *
- */
-static uint32_t cs35l41_calibration_sm(cs35l41_t *driver)
-{
-    uint32_t ret = CS35L41_STATUS_OK;
-    cs35l41_sm_t *sm = &(driver->control_sm);
-
-    if (CS35L41_IS_FLAG_SET(sm->flags, CS35L41_FLAGS_CP_RW_ERROR))
-    {
-        sm->state = CS35L41_CALIBRATION_SM_STATE_ERROR;
-        ret = CS35L41_STATUS_FAIL;
-    }
-
-    switch(sm->state)
-    {
-        case CS35L41_CALIBRATION_SM_STATE_INIT:
-            CS35L41_CLEAR_FLAG(sm->flags, CS35L41_FLAGS_CP_RW_DONE);
-
-            // Set the Ambient Temp (deg C)
-            ret = cs35l41_private_functions_g->write_reg(driver,
-                                                         CS35L41_CAL_AMBIENT,
-                                                         driver->ambient_temp_deg_c,
-                                                         false);
-
-            sm->state = CS35L41_CALIBRATION_SM_STATE_SET_TEMP;
-            break;
-
-        case CS35L41_CALIBRATION_SM_STATE_SET_TEMP:
-            if (CS35L41_IS_FLAG_SET(sm->flags, CS35L41_FLAGS_CP_RW_DONE))
-            {
-                CS35L41_CLEAR_FLAG(sm->flags, CS35L41_FLAGS_TIMEOUT);
-
-                // Wait for at least 2 seconds while DSP FW performs calibration
-                ret = bsp_driver_if_g->set_timer(BSP_TIMER_DURATION_2S, cs35l41_timer_callback, driver);
-
-                sm->state = CS35L41_CALIBRATION_SM_STATE_WAIT_2S;
-            }
-            break;
-
-        case CS35L41_CALIBRATION_SM_STATE_WAIT_2S:
-            if (CS35L41_IS_FLAG_SET(sm->flags, CS35L41_FLAGS_TIMEOUT))
-            {
-                sm->count = 0;
-                CS35L41_CLEAR_FLAG(sm->flags, CS35L41_FLAGS_CP_RW_DONE);
-
-                // Read the Calibration Status
-                ret = cs35l41_private_functions_g->read_reg(driver,
-                                                            CS35L41_CAL_STATUS,
-                                                            &(driver->register_buffer),
-                                                            false);
-
-                sm->state = CS35L41_CALIBRATION_SM_STATE_READ_DATA;
-            }
-            break;
-
-        case CS35L41_CALIBRATION_SM_STATE_READ_DATA:
-            if (CS35L41_IS_FLAG_SET(sm->flags, CS35L41_FLAGS_CP_RW_DONE))
-            {
-                CS35L41_CLEAR_FLAG(sm->flags, CS35L41_FLAGS_CP_RW_DONE);
-                sm->count++;
-                if (sm->count == 1)
-                {
-                    if (driver->register_buffer == CS35L41_CAL_STATUS_CALIB_SUCCESS)
-                    {
-                        // Read the Calibration Load Impedance "R"
-                        ret = cs35l41_private_functions_g->read_reg(driver,
-                                                                    CS35L41_CAL_R,
-                                                                    &(driver->register_buffer),
-                                                                    false);
-                    }
-                    else
-                    {
-                        sm->state = CS35L41_CALIBRATION_SM_STATE_ERROR;
-                    }
-                }
-                else if (sm->count == 2)
-                {
-                    driver->cal_data.r = driver->register_buffer;
-                    // Read the Calibration Checksum
-                    ret = cs35l41_private_functions_g->read_reg(driver,
-                                                                CS35L41_CAL_CHECKSUM,
-                                                                &(driver->register_buffer),
-                                                                false);
-                }
-                else
-                {
-                    // Verify the Calibration Checksum
-                    if (driver->register_buffer == (driver->cal_data.r + CS35L41_CAL_STATUS_CALIB_SUCCESS))
-                    {
-                        driver->cal_data.is_valid = true;
-                        sm->state = CS35L41_CALIBRATION_SM_STATE_DONE;
-                    }
-                    else
-                    {
-                        sm->state = CS35L41_CALIBRATION_SM_STATE_ERROR;
-                    }
-                }
-            }
-            break;
-
-        case CS35L41_CALIBRATION_SM_STATE_DONE:
-            break;
-
-        case CS35L41_CALIBRATION_SM_STATE_ERROR:
-        default:
-            ret = CS35L41_STATUS_FAIL;
-            break;
-    }
-
-    if (ret == CS35L41_STATUS_FAIL)
-    {
-        sm->state = CS35L41_CALIBRATION_SM_STATE_ERROR;
-    }
-
-    return ret;
-}
-
-/**
- * Get DSP Status State Machine
- *
- * Implementation of cs35l41_private_functions_t.get_dsp_status_sm
- *
- */
-static uint32_t cs35l41_get_dsp_status_sm(cs35l41_t *driver)
-{
-    uint32_t ret = CS35L41_STATUS_OK;
-    cs35l41_sm_t *sm = &(driver->control_sm);
-    // Get pointer to status passed in to Control Request
-    cs35l41_dsp_status_t *status = (cs35l41_dsp_status_t *) driver->current_request.arg;
-
-    if (CS35L41_IS_FLAG_SET(sm->flags, CS35L41_FLAGS_CP_RW_ERROR))
-    {
-        sm->state = CS35L41_GET_DSP_STATUS_SM_STATE_ERROR;
-        ret = CS35L41_STATUS_FAIL;
-    }
-
-    switch(sm->state)
-    {
-        case CS35L41_GET_DSP_STATUS_SM_STATE_INIT:
-            sm->count = 0;
-            CS35L41_CLEAR_FLAG(sm->flags, CS35L41_FLAGS_CP_RW_DONE);
-
-            // Read the first DSP Status field address
-            ret = cs35l41_private_functions_g->read_reg(driver,
-                                                        cs35l41_dsp_status_addresses[0],
-                                                        &(driver->register_buffer),
-                                                        false);
-
-            sm->state = CS35L41_GET_DSP_STATUS_SM_STATE_READ_STATUSES_1;
-            break;
-
-        case CS35L41_GET_DSP_STATUS_SM_STATE_READ_STATUSES_1:
-            if (CS35L41_IS_FLAG_SET(sm->flags, CS35L41_FLAGS_CP_RW_DONE))
-            {
-                status->data.words[sm->count] = driver->register_buffer;
-                sm->count++;
-                // If there are remaining DSP Status fields to read
-                if (sm->count < CS35L41_DSP_STATUS_WORDS_TOTAL)
-                {
-                    CS35L41_CLEAR_FLAG(sm->flags, CS35L41_FLAGS_CP_RW_DONE);
-                    // Read the next DSP Status field address
-                    ret = cs35l41_private_functions_g->read_reg(driver,
-                                                                cs35l41_dsp_status_addresses[sm->count],
-                                                                &(driver->register_buffer),
-                                                                false);
-                }
-                else
-                {
-                    CS35L41_CLEAR_FLAG(sm->flags, CS35L41_FLAGS_TIMEOUT);
-
-                    // Wait at least 10ms
-                    ret = bsp_driver_if_g->set_timer(BSP_TIMER_DURATION_10MS, cs35l41_timer_callback, driver);
-
-                    sm->state = CS35L41_GET_DSP_STATUS_SM_STATE_WAIT;
-                }
-            }
-            break;
-
-        case CS35L41_GET_DSP_STATUS_SM_STATE_WAIT:
-            if (CS35L41_IS_FLAG_SET(sm->flags, CS35L41_FLAGS_TIMEOUT))
-            {
-                sm->count = 0;
-                CS35L41_CLEAR_FLAG(sm->flags, CS35L41_FLAGS_CP_RW_DONE);
-
-                // Read the first DSP Status field address
-                ret = cs35l41_private_functions_g->read_reg(driver,
-                                                            cs35l41_dsp_status_addresses[0],
-                                                            &(driver->register_buffer),
-                                                            false);
-
-                sm->state = CS35L41_GET_DSP_STATUS_SM_STATE_READ_STATUSES_2;
-            }
-            break;
-
-        case CS35L41_GET_DSP_STATUS_SM_STATE_READ_STATUSES_2:
-            if (CS35L41_IS_FLAG_SET(sm->flags, CS35L41_FLAGS_CP_RW_DONE))
-            {
-                CS35L41_CLEAR_FLAG(sm->flags, CS35L41_FLAGS_CP_RW_DONE);
-
-                // If the current field is HALO_HEARTBEAT, and there is a change in subsequent values
-                if ((sm->count == 1) && (driver->register_buffer != status->data.words[sm->count]))
-                {
-                    status->is_hb_inc = true;
-                }
-
-                // If the current field is CSPL_TEMPERATURE, and there is a change in subsequent values
-                if ((sm->count == 8) && (driver->register_buffer != status->data.words[sm->count]))
-                {
-                    status->is_temp_changed = true;
-                }
-
-                status->data.words[sm->count] = driver->register_buffer;
-
-                sm->count++;
-
-                // If there are remaining DSP Statuses to read
-                if (sm->count < CS35L41_DSP_STATUS_WORDS_TOTAL)
-                {
-                    // Read the next DSP Status field address
-                    ret = cs35l41_private_functions_g->read_reg(driver,
-                                                                cs35l41_dsp_status_addresses[sm->count],
-                                                                &(driver->register_buffer),
-                                                                false);
-                }
-                else
-                {
-                    // Assess if Calibration is applied
-                    if ((status->data.cal_set_status == 2) &&
-                        (status->data.cal_r_selected == status->data.cal_r) &&
-                        (status->data.cal_r == driver->cal_data.r) &&
-                        (status->data.cspl_state == 0) &&
-                        (status->data.halo_state == 2))
-                    {
-                        status->is_calibration_applied = true;
-                    }
-
-                    sm->state = CS35L41_GET_DSP_STATUS_SM_STATE_DONE;
-                }
-            }
-            break;
-
-        case CS35L41_GET_DSP_STATUS_SM_STATE_DONE:
-            break;
-
-        case CS35L41_GET_DSP_STATUS_SM_STATE_ERROR:
-        default:
-            ret = CS35L41_STATUS_FAIL;
-            break;
-    }
-
-    if (ret == CS35L41_STATUS_FAIL)
-    {
-        sm->state = CS35L41_GET_DSP_STATUS_SM_STATE_ERROR;
-    }
-
-    return ret;
-}
-#endif // INCLUDE_FW
-
-/**
- * Event Handler State Machine
- *
- * Implementation of cs35l41_private_functions_t.event_sm
- *
- */
-static uint32_t cs35l41_event_sm(void *driver)
-{
-    uint32_t ret = CS35L41_STATUS_OK;
-    cs35l41_t *d = driver;
-    cs35l41_sm_t *sm = &(d->event_sm);
-
-
-    if (CS35L41_IS_FLAG_SET(sm->flags, CS35L41_FLAGS_CP_RW_ERROR))
-    {
-        sm->state = CS35L41_EVENT_SM_STATE_ERROR;
-        ret = CS35L41_STATUS_FAIL;
-    }
-
-    switch (sm->state)
-    {
-        case CS35L41_EVENT_SM_STATE_INIT:
-        {
-            /*
-             * Since upon entering the Event Handler SM, the BSP Control Port may be in the middle of a transaction,
-             * request the BSP to reset the Control Port and abort the current transaction.
-             */
-            bool was_i2c_busy = false;
-            bsp_driver_if_g->i2c_reset(d->bsp_dev_id, &was_i2c_busy);
-
-            // If an I2C transaction was interrupted, then current Control Request must be restarted
-            if (was_i2c_busy)
-            {
-                CS35L41_SET_FLAG(d->control_sm.flags, CS35L41_FLAGS_REQUEST_RESTART);
-            }
-
-            CS35L41_CLEAR_FLAG(sm->flags, CS35L41_FLAGS_CP_RW_DONE);
-            sm->count = 0;
-            // Read the first IRQ1 flag register
-            ret = cs35l41_private_functions_g->read_reg(d,
-                                                        IRQ1_IRQ1_EINT_1_REG,
-                                                        &d->register_buffer,
-                                                        false);
-            sm->state = CS35L41_EVENT_SM_STATE_READ_IRQ_STATUS;
-            break;
-        }
-
-        case CS35L41_EVENT_SM_STATE_READ_IRQ_STATUS:
-            if (CS35L41_IS_FLAG_SET(sm->flags, CS35L41_FLAGS_CP_RW_DONE))
-            {
-                CS35L41_CLEAR_FLAG(sm->flags, CS35L41_FLAGS_CP_RW_DONE);
-                irq_statuses[sm->count] = d->register_buffer;
-                // If more IRQ1 flag registers remain to be read
-                if (sm->count < 4)
-                {
-                    sm->count++;
-                    // Read the next IRQ1 flag register
-                    ret = cs35l41_private_functions_g->read_reg(d,
-                                                                IRQ1_IRQ1_EINT_1_REG + (sm->count * 4),
-                                                                &d->register_buffer,
-                                                                false);
-                }
-                else
-                {
-                    sm->count = 0;
-                    // Read the first IRQ1 mask register
-                    ret = cs35l41_private_functions_g->read_reg(d,
-                                                                IRQ1_IRQ1_MASK_1_REG,
-                                                                &d->register_buffer,
-                                                                false);
-                    sm->state = CS35L41_EVENT_SM_STATE_READ_IRQ_MASK;
-                }
-            }
-            break;
-
-        case CS35L41_EVENT_SM_STATE_READ_IRQ_MASK:
-            if (CS35L41_IS_FLAG_SET(sm->flags, CS35L41_FLAGS_CP_RW_DONE))
-            {
-                CS35L41_CLEAR_FLAG(sm->flags, CS35L41_FLAGS_CP_RW_DONE);
-                irq_masks[sm->count] = d->register_buffer;
-                // If more IRQ1 mask registers remain to be read
-                if (sm->count < 4)
-                {
-                    sm->count++;
-                    // Read the next IRQ1 flag register
-                    ret = cs35l41_private_functions_g->read_reg(d,
-                                                                IRQ1_IRQ1_MASK_1_REG + (sm->count * 4),
-                                                                &d->register_buffer,
-                                                                false);
-                }
-                else
-                {
-                    uint32_t flags_to_clear = 0;
-
-                    sm->count = 0;
-                    flags_to_clear = irq_statuses[0] & ~(irq_masks[0]);
-
-                    // If there are unmasked IRQs, then process
-                    if (flags_to_clear)
-                    {
-                        // Clear any IRQ1 flags from first register
-                        ret = cs35l41_private_functions_g->write_reg(d,
-                                                                     IRQ1_IRQ1_EINT_1_REG,
-                                                                     flags_to_clear,
-                                                                     false);
-
-                        sm->state = CS35L41_EVENT_SM_STATE_CLEAR_IRQ_FLAGS;
-                    }
-                    else
-                    {
-                        sm->state = CS35L41_EVENT_SM_STATE_DONE;
-                    }
-                }
-            }
-            break;
-
-        case CS35L41_EVENT_SM_STATE_CLEAR_IRQ_FLAGS:
-            if (CS35L41_IS_FLAG_SET(sm->flags, CS35L41_FLAGS_CP_RW_DONE))
-            {
-                CS35L41_CLEAR_FLAG(sm->flags, CS35L41_FLAGS_CP_RW_DONE);
-                // If more IRQ1 flag registers remain to be cleared
-                if (sm->count < 4)
-                {
-                    uint32_t flags_to_clear = 0;
-
-                    sm->count++;
-                    // Get the unmasked IRQ1 flags to process
-                    flags_to_clear = irq_statuses[sm->count] & ~(irq_masks[sm->count]);
-                    // Clear any IRQ1 flags from next register
-                    ret = cs35l41_private_functions_g->write_reg(d,
-                                                                 IRQ1_IRQ1_EINT_1_REG + (sm->count * 4),
-                                                                 flags_to_clear,
-                                                                 false);
-                }
-                else
-                {
-                    sm->count = 0;
-                    // If there are Boost-related Errors, proceed to DISABLE_BOOST
-                    if (irq_statuses[0] & CS35L41_INT1_BOOST_IRQ_MASK)
-                    {
-                        // Read which MSM Blocks are enabled
-                        ret = cs35l41_private_functions_g->read_reg(d,
-                                                                    MSM_BLOCK_ENABLES_REG,
-                                                                    &d->register_buffer,
-                                                                    false);
-                        sm->state = CS35L41_EVENT_SM_STATE_DISABLE_BOOST;
-                    }
-                    // IF there are no Boost-related Errors but are Speaker-Safe Mode errors, proceed to TOGGLE_ERR_RLS
-                    else if (irq_statuses[0] & CS35L41_INT1_SPEAKER_SAFE_MODE_IRQ_MASK)
-                    {
-                        // Clear the Error Release register
-                        ret = cs35l41_private_functions_g->write_reg(d,
-                                                                     MSM_ERROR_RELEASE_REG,
-                                                                     0,
-                                                                     false);
-                        sm->state = CS35L41_EVENT_SM_STATE_TOGGLE_ERR_RLS;
-                    }
-                    else
-                    {
-                        // Call BSP Notification Callback
-                        if (d->notification_cb != NULL)
-                        {
-                            uint32_t event_flags = cs35l41_private_functions_g->irq_to_event_id(irq_statuses);
-                            d->notification_cb(event_flags, d->notification_cb_arg);
-                        }
-                        sm->state = CS35L41_EVENT_SM_STATE_DONE;
-                    }
-                }
-            }
-            break;
-
-        case CS35L41_EVENT_SM_STATE_DISABLE_BOOST:
-            if (CS35L41_IS_FLAG_SET(sm->flags, CS35L41_FLAGS_CP_RW_DONE))
-            {
-                CS35L41_CLEAR_FLAG(sm->flags, CS35L41_FLAGS_CP_RW_DONE);
-                if (sm->count == 0)
-                {
-                    sm->count++;
-                    // Disable Boost converter
-                    d->register_buffer &= ~(MSM_BLOCK_ENABLES_BST_EN_BITMASK);
-                    ret = cs35l41_private_functions_g->write_reg(d,
-                                                                 MSM_BLOCK_ENABLES_REG,
-                                                                 d->register_buffer,
-                                                                 false);
-                }
-                else
-                {
-                    sm->count = 0;
-
-                    // Clear the Error Release register
-                    ret = cs35l41_private_functions_g->write_reg(d,
-                                                                 MSM_ERROR_RELEASE_REG,
-                                                                 0,
-                                                                 false);
-
-                    sm->state = CS35L41_EVENT_SM_STATE_TOGGLE_ERR_RLS;
-                }
-            }
-            break;
-
-        case CS35L41_EVENT_SM_STATE_TOGGLE_ERR_RLS:
-            if (CS35L41_IS_FLAG_SET(sm->flags, CS35L41_FLAGS_CP_RW_DONE))
-            {
-                CS35L41_CLEAR_FLAG(sm->flags, CS35L41_FLAGS_CP_RW_DONE);
-
-                if (sm->count == 0)
-                {
-                    sm->count++;
-                    // Set the Error Release register
-                    ret = cs35l41_private_functions_g->write_reg(d,
-                                                                 MSM_ERROR_RELEASE_REG,
-                                                                 CS35L41_ERR_RLS_SPEAKER_SAFE_MODE_MASK,
-                                                                 false);
-                }
-                else if (sm->count == 1)
-                {
-                    sm->count++;
-                    // Clear the Error Release register
-                    ret = cs35l41_private_functions_g->write_reg(d,
-                                                                 MSM_ERROR_RELEASE_REG,
-                                                                 0,
-                                                                 false);
-                }
-                else
-                {
-                    sm->count = 0;
-
-                    // If there are Boost-related Errors, re-enable Boost
-                    if (irq_statuses[0] & CS35L41_INT1_BOOST_IRQ_MASK)
-                    {
-                        // Read register containing BST_EN
-                        ret = cs35l41_private_functions_g->read_reg(d,
-                                                                    MSM_BLOCK_ENABLES_REG,
-                                                                    &d->register_buffer,
-                                                                    false);
-                        sm->state = CS35L41_EVENT_SM_STATE_ENABLE_BOOST;
-                    }
-                    else
-                    {
-                        // Call BSP Notification Callback
-                        if (d->notification_cb != NULL)
-                        {
-                            uint32_t event_flags = cs35l41_private_functions_g->irq_to_event_id(irq_statuses);
-                            d->notification_cb(event_flags, d->notification_cb_arg);
-                        }
-                        sm->state = CS35L41_EVENT_SM_STATE_DONE;
-                    }
-                }
-            }
-            break;
-
-        case CS35L41_EVENT_SM_STATE_ENABLE_BOOST:
-            if (CS35L41_IS_FLAG_SET(sm->flags, CS35L41_FLAGS_CP_RW_DONE))
-            {
-                if (sm->count == 0)
-                {
-                    CS35L41_CLEAR_FLAG(sm->flags, CS35L41_FLAGS_CP_RW_DONE);
-                    sm->count++;
-                    // Re-enable Boost Converter
-                    d->register_buffer |= MSM_BLOCK_ENABLES_BST_EN_BITMASK;
-                    ret = cs35l41_private_functions_g->write_reg(d,
-                                                                 MSM_BLOCK_ENABLES_REG,
-                                                                 d->register_buffer,
-                                                                 false);
-                }
-                else
-                {
-                    // Call BSP Notification Callback
-                    if (d->notification_cb != NULL)
-                    {
-                        uint32_t event_flags = cs35l41_private_functions_g->irq_to_event_id(irq_statuses);
-                        d->notification_cb(event_flags, d->notification_cb_arg);
-                    }
-                    sm->state = CS35L41_EVENT_SM_STATE_DONE;
-                }
-            }
-            break;
-
-        case CS35L41_EVENT_SM_STATE_DONE:
-            break;
-
-        case CS35L41_EVENT_SM_STATE_ERROR:
-        default:
-            ret = CS35L41_STATUS_FAIL;
-            break;
-    }
-
-    if (ret == CS35L41_STATUS_FAIL)
-    {
-        sm->state = CS35L41_EVENT_SM_STATE_ERROR;
-    }
-
-    return ret;
-}
-
-/**
- * Gets pointer to correct errata based on DEVID/REVID
- *
- * Implementation of cs35l41_private_functions_t.get_errata
- *
- */
-static uint32_t cs35l41_get_errata(uint32_t devid, uint32_t revid, const uint32_t **errata)
-{
-    uint32_t ret = CS35L41_STATUS_FAIL;
-
-    // Only CS35L41 Rev B2 is supported
-    if ((devid == CS35L41_DEVID) && (revid == CS35L41_REVID_B2))
-    {
-        ret = CS35L41_STATUS_OK;
-
-        *errata = cs35l41_revb0_errata_patch;
-    }
-
-    return ret;
-}
-
-/**
- * Reads contents from a consecutive number of memory addresses
- *
- * Implementation of cs35l41_private_functions_t.cp_bulk_read
- *
- */
-static uint32_t cs35l41_cp_bulk_read(cs35l41_t *driver, uint32_t addr, uint32_t length)
-{
-    uint32_t ret = CS35L41_STATUS_FAIL;
-
-    // Check that 'length' does not exceed the size of the BSP buffer
-    if (length <= CS35L41_CP_BULK_READ_LENGTH_BYTES)
-    {
-        uint32_t bsp_status;
-
-        /*
-         * Switch from Little-Endian contents of uint32_t 'addr' to Big-Endian format required for Control Port
-         * transaction.  Since register address is first written, cp_write_buffer[] is filled with register address.
-         *
-         * FIXME: This is not platform independent.
-         */
-        driver->cp_write_buffer[0] = GET_BYTE_FROM_WORD(addr, 3);
-        driver->cp_write_buffer[1] = GET_BYTE_FROM_WORD(addr, 2);
-        driver->cp_write_buffer[2] = GET_BYTE_FROM_WORD(addr, 1);
-        driver->cp_write_buffer[3] = GET_BYTE_FROM_WORD(addr, 0);
-
-        /*
-         * Start reading contents into the BSP buffer starting at byte offset 4 - bytes 0-3 are reserved for calls to
-         * cs35l41_read_reg.
-         */
-        bsp_status = bsp_driver_if_g->i2c_read_repeated_start(driver->bsp_dev_id,
-                                                              driver->cp_write_buffer,
-                                                              4,
-                                                              (driver->cp_read_buffer + \
-                                                                       CS35L41_CP_REG_READ_LENGTH_BYTES),
-                                                              (length * 4),
-                                                              cs35l41_private_functions_g->cp_read_callback,
-                                                              driver);
-        if (bsp_status == BSP_STATUS_OK)
+        if (BSP_STATUS_OK == ret)
         {
             ret = CS35L41_STATUS_OK;
         }
@@ -3273,9 +706,125 @@ static uint32_t cs35l41_cp_bulk_read(cs35l41_t *driver, uint32_t addr, uint32_t 
 }
 
 /**
+ * Reads contents from a consecutive number of memory addresses
+ *
+ * Starting at 'addr', this will read 'length' number of 32-bit values into the BSP-allocated buffer from the
+ * control port.  This bulk read will place contents into the BSP buffer starting at the 4th byte address.
+ * Bytes 0-3 in the buffer are reserved for non-bulk reads (i.e. calls to cs35l41_read_reg).  This control port
+ * call only supports non-blocking calls.  This function also only supports I2C transactions.
+ *
+ * @param [in] driver           Pointer to the driver state
+ * @param [in] addr             32-bit address to be read
+ * @param [in] length           number of memory addresses (i.e. 32-bit words) to read
+ *
+ * @return
+ * - CS35L41_STATUS_FAIL        if the call to BSP failed, or if 'length' exceeds the size of BSP buffer
+ * - CS35L41_STATUS_OK          otherwise
+ *
+ * @warning Contains platform-dependent code.
+ *
+ */
+static uint32_t cs35l41_cp_bulk_read(cs35l41_t *driver, uint32_t addr, uint32_t length)
+{
+    uint32_t ret = CS35L41_STATUS_FAIL;
+    cs35l41_bsp_config_t *b = &(driver->config.bsp_config);
+
+    // Check that 'length' does not exceed the size of the BSP buffer
+    if (length <= CS35L41_CP_BULK_READ_LENGTH_BYTES)
+    {
+        /*
+         * Switch from Little-Endian contents of uint32_t 'addr' to Big-Endian format required for Control Port
+         * transaction.  Since register address is first written, config.bsp_config.cp_write_buffer[] is filled with register address.
+         *
+         * FIXME: This is not platform independent.
+         */
+        b->cp_write_buffer[0] = GET_BYTE_FROM_WORD(addr, 3);
+        b->cp_write_buffer[1] = GET_BYTE_FROM_WORD(addr, 2);
+        b->cp_write_buffer[2] = GET_BYTE_FROM_WORD(addr, 1);
+        b->cp_write_buffer[3] = GET_BYTE_FROM_WORD(addr, 0);
+
+        /*
+         * Start reading contents into the BSP buffer starting at byte offset 4 - bytes 0-3 are reserved for calls to
+         * cs35l41_read_reg.
+         */
+        ret = bsp_driver_if_g->i2c_read_repeated_start(b->bsp_dev_id,
+                                                       b->cp_write_buffer,
+                                                       4,
+                                                       (b->cp_read_buffer + CS35L41_CP_REG_READ_LENGTH_BYTES),
+                                                       (length * 4),
+                                                       NULL,
+                                                       NULL);
+        if (ret == BSP_STATUS_OK)
+        {
+            ret = CS35L41_STATUS_OK;
+        }
+    }
+
+    return ret;
+}
+
+/**
+ * Writes from byte array to consecutive number of Control Port memory addresses
+ *
+ * This control port call only supports non-blocking calls.  This function also only supports I2C transactions.
+ *
+ * @param [in] driver           Pointer to the driver state
+ * @param [in] addr             32-bit address to be read
+ * @param [in] bytes            pointer to array of bytes to write via Control Port bus
+ * @param [in] length           number of bytes to write
+ *
+ * @return
+ * - CS35L41_STATUS_FAIL        if the call to BSP failed
+ * - CS35L41_STATUS_OK          otherwise
+ *
+ * @warning Contains platform-dependent code.
+ *
+ */
+static uint32_t cs35l41_cp_bulk_write(cs35l41_t *driver, uint32_t addr, uint8_t *bytes, uint32_t length)
+{
+    uint32_t ret;
+    cs35l41_bsp_config_t *b = &(driver->config.bsp_config);
+
+    /*
+     * Switch from Little-Endian contents of uint32_t 'addr' to Big-Endian format required for Control Port
+     * transaction.
+     *
+     * FIXME: This is not platform independent.
+     */
+    b->cp_write_buffer[0] = GET_BYTE_FROM_WORD(addr, 3);
+    b->cp_write_buffer[1] = GET_BYTE_FROM_WORD(addr, 2);
+    b->cp_write_buffer[2] = GET_BYTE_FROM_WORD(addr, 1);
+    b->cp_write_buffer[3] = GET_BYTE_FROM_WORD(addr, 0);
+
+    ret = bsp_driver_if_g->i2c_db_write(b->bsp_dev_id, b->cp_write_buffer, 4, bytes, length, NULL, NULL);
+
+    if (ret == BSP_STATUS_FAIL)
+    {
+        ret = CS35L41_STATUS_FAIL;
+    }
+    else
+    {
+        ret = CS35L41_STATUS_OK;
+    }
+
+    return ret;
+}
+
+/**
  * Applies OTP trim bit-field to current register word value.
  *
- * Implementation of cs35l41_private_functions_t.apply_trim_word
+ * During the Reset SM, trim bit-fields must be tweezed from OTP and applied to corresponding Control Port register
+ * contents.
+ *
+ * @param [in] otp_mem          pointer byte array consisting of entire contents of OTP
+ * @param [in] bit_count        current bit index into otp_mem, i.e. location of bit-field in OTP memory
+ * @param [in,out] reg_val      contents of register to modify with trim bit-field
+ * @param [in] shift            location of bit-field in control port register in terms of bits from bit 0
+ * @param [in] size             size of bit-field in bits
+ *
+ * @return
+ * - CS35L41_STATUS_FAIL        if any pointers are NULL or if the bit-field size is 0
+ * - CS35L41_STATUS_OK          otherwise
  *
  */
 static uint32_t cs35l41_apply_trim_word(uint8_t *otp_mem,
@@ -3343,353 +892,17 @@ static uint32_t cs35l41_apply_trim_word(uint8_t *otp_mem,
     return ret;
 }
 
-#ifdef INCLUDE_FW
-/**
- * Validates the boot configuration provided by the BSP.
- *
- * Implementation of cs35l41_private_functions_t.validate_boot_config
- *
- */
-static uint32_t cs35l41_validate_boot_config(cs35l41_boot_config_t *config, bool is_fw_boot, bool is_coeff_boot)
-{
-    uint32_t ret = CS35L41_STATUS_FAIL;
-
-    // Only check config if either FW or COEFF boot or both
-    if ((!is_fw_boot) && (!is_coeff_boot))
-    {
-        ret = CS35L41_STATUS_OK;
-    }
-    // Check that 'config' is not NULL
-    else if (config != NULL)
-    {
-        ret = CS35L41_STATUS_BOOT_REQUEST;
-        // If booting FW
-        if (is_fw_boot)
-        {
-            // Check that pointer to list of FW blocks is not null, nor is size of list 0
-            if ((config->fw_blocks != NULL) && \
-                (config->total_fw_blocks > 0))
-            {
-                halo_boot_block_t *temp_block_ptr = config->fw_blocks;
-                // Check that number of required FW block pointers are NOT 0
-                for (int i = 0; i < config->total_fw_blocks; i++)
-                {
-                    if ((temp_block_ptr++)->bytes == NULL)
-                    {
-                        ret = CS35L41_STATUS_FAIL;
-                        break;
-                    }
-                }
-            }
-            else
-            {
-                ret = CS35L41_STATUS_FAIL;
-            }
-        }
-
-        // If booting COEFF file
-        if (is_coeff_boot)
-        {
-            // Check that pointer to list of COEFF blocks is not null, nor is size of list 0
-            if ((config->coeff_blocks != NULL) && \
-                (config->total_coeff_blocks > 0))
-            {
-                halo_boot_block_t *temp_block_ptr = config->coeff_blocks;
-                // Check that number of required COEFF block pointers are NOT 0
-                for (int i = 0; i < config->total_coeff_blocks; i++)
-                {
-                    if ((temp_block_ptr++)->bytes == NULL)
-                    {
-                        ret = CS35L41_STATUS_FAIL;
-                        break;
-                    }
-                }
-            }
-            else
-            {
-                ret = CS35L41_STATUS_FAIL;
-            }
-        }
-    }
-
-    return ret;
-}
-#endif // INCLUDE_FW
-
-/**
- * Writes from byte array to consecutive number of Control Port memory addresses
- *
- * Implementation of cs35l41_private_functions_t.cp_bulk_write
- *
- */
-static uint32_t cs35l41_cp_bulk_write(cs35l41_t *driver, uint32_t addr, uint8_t *bytes, uint32_t length)
-{
-    uint32_t ret = CS35L41_STATUS_OK;
-    uint32_t bsp_status;
-
-    /*
-     * Switch from Little-Endian contents of uint32_t 'addr' to Big-Endian format required for Control Port
-     * transaction.
-     *
-     * FIXME: This is not platform independent.
-     */
-    driver->cp_write_buffer[0] = GET_BYTE_FROM_WORD(addr, 3);
-    driver->cp_write_buffer[1] = GET_BYTE_FROM_WORD(addr, 2);
-    driver->cp_write_buffer[2] = GET_BYTE_FROM_WORD(addr, 1);
-    driver->cp_write_buffer[3] = GET_BYTE_FROM_WORD(addr, 0);
-
-    bsp_status = bsp_driver_if_g->i2c_db_write(driver->bsp_dev_id,
-                                               driver->cp_write_buffer,
-                                               4,
-                                               bytes,
-                                               length,
-                                               cs35l41_private_functions_g->cp_write_callback,
-                                               driver);
-
-    if (bsp_status == BSP_STATUS_FAIL)
-    {
-        ret = CS35L41_STATUS_FAIL;
-    }
-
-    return ret;
-}
-
-/**
- * Implements 'copy' method for Control Request Queue contents
- *
- * Implementation of cs35l41_private_functions_t.control_q_copy
- *
- */
-static bool cs35l41_control_q_copy(void *from, void *to)
-{
-    bool ret = false;
-
-    // Check for any NULL pointers
-    if ((from != NULL) && (to != NULL))
-    {
-        cs35l41_control_request_t *from_r, *to_r;
-        from_r = (cs35l41_control_request_t *) from;
-        to_r = (cs35l41_control_request_t *) to;
-
-        // Copy contents
-        to_r->arg = from_r->arg;
-        to_r->cb = from_r->cb;
-        to_r->cb_arg = from_r->cb_arg;
-        to_r->id = from_r->id;
-
-        ret = true;
-    }
-
-    return ret;
-}
-
-/**
- * Check that the currently processed Control Request is valid for the current state of the driver.
- *
- * Implementation of cs35l41_private_functions_t.is_control_valid
- *
- */
-static uint32_t cs35l41_is_control_valid(cs35l41_t *driver)
-{
-    uint32_t ret = CS35L41_STATUS_FAIL;
-
-    // Request is considered invalid if there is no Control Request being processed
-    if (driver->control_sm.fp == NULL)
-    {
-        return ret;
-    }
-
-    uint32_t state = driver->state;
-    switch (driver->current_request.id)
-    {
-        case CS35L41_CONTROL_ID_RESET:
-            // RESET Control Request is only invalid for UNCONFIGURED and ERROR states, otherwise valid
-            if ((state != CS35L41_STATE_UNCONFIGURED) && (state != CS35L41_STATE_ERROR))
-            {
-                ret = CS35L41_STATUS_OK;
-            }
-            break;
-
-#ifdef INCLUDE_FW
-        case CS35L41_CONTROL_ID_BOOT:
-            // BOOT Control Request is only valid for STANDBY state
-            if (state == CS35L41_STATE_STANDBY)
-            {
-                ret = CS35L41_STATUS_OK;
-            }
-            break;
-#endif // INCLUDE_FW
-
-        case CS35L41_CONTROL_ID_CONFIGURE:
-        case CS35L41_CONTROL_ID_POWER_UP:
-#ifdef INCLUDE_FW
-            // CONFIGURE and POWER_UP Control Requests are only valid for STANDBY and DSP_STANDBY states
-            if ((state == CS35L41_STATE_STANDBY) || (state == CS35L41_STATE_DSP_STANDBY))
-#else
-            // CONFIGURE and POWER_UP Control Requests are only valid for STANDBY state
-            if (state == CS35L41_STATE_STANDBY)
-#endif // INCLUDE_FW
-            {
-                ret = CS35L41_STATUS_OK;
-            }
-            break;
-
-        case CS35L41_CONTROL_ID_POWER_DOWN:
-            // POWER_DOWN Control Request is only valid for POWER_UP state
-#ifdef INCLUDE_FW
-        case CS35L41_CONTROL_ID_CALIBRATION:
-            // POWER_DOWN and CALIBRATION Control Requests are only valid for POWER_UP and DSP_POWER_UP states
-            if ((state == CS35L41_STATE_POWER_UP) || (state == CS35L41_STATE_DSP_POWER_UP))
-#else
-            if (state == CS35L41_STATE_POWER_UP)
-#endif // INCLUDE_FW
-            {
-                ret = CS35L41_STATUS_OK;
-            }
-            break;
-
-        case CS35L41_CONTROL_ID_GET_VOLUME:
-        case CS35L41_CONTROL_ID_SET_VOLUME:
-            // GET_VOLUME and SET_VOLUME Control Requests are always valid
-#ifdef INCLUDE_FW
-        case CS35L41_CONTROL_ID_GET_HALO_HEARTBEAT:
-        case CS35L41_CONTROL_ID_GET_DSP_STATUS:
-        case CS35L41_CONTROL_ID_HIBERNATE:
-        case CS35L41_CONTROL_ID_WAKE:
-            // GET_HALO_HEARTBEAT and GET_DSP_STATUS Control Requests are always valid
-#endif // INCLUDE_FW
-            ret = CS35L41_STATUS_OK;
-            break;
-
-        default:
-            break;
-    }
-
-    return ret;
-}
-
-/**
- * Load new Control Request to be processed
- *
- * Implementation of cs35l41_private_functions_t.load_control
- *
- */
-static uint32_t cs35l41_load_control(cs35l41_t *driver)
-{
-    uint32_t ret = CS35L41_STATUS_FAIL;
-
-    // Only proceed if successful removal of Control Request from Control Request Queue
-    if (F_QUEUE_STATUS_OK == f_queue_if_g->remove(&(driver->control_q), &(driver->current_request)))
-    {
-        /*
-         * Reset all Control State Machines by:
-         * - clearing flags
-         * - assigning state machine function pointer
-         * - setting initial state to CS35L41_SM_STATE_INIT
-         */
-        driver->control_sm.flags = 0;
-        switch (driver->current_request.id)
-        {
-            case CS35L41_CONTROL_ID_RESET:
-                driver->control_sm.fp = cs35l41_private_functions_g->reset_sm;
-                driver->control_sm.state = CS35L41_SM_STATE_INIT;
-                ret = CS35L41_STATUS_OK;
-                break;
-
-#ifdef INCLUDE_FW
-            case CS35L41_CONTROL_ID_BOOT:
-                driver->control_sm.fp = cs35l41_private_functions_g->boot_sm;
-                driver->control_sm.state = CS35L41_SM_STATE_INIT;
-                // For BOOT Control Request, pass through request argument to state machine flags
-                driver->control_sm.flags = (uint32_t) driver->current_request.arg;
-                ret = CS35L41_STATUS_OK;
-                break;
-#endif // INCLUDE_FW
-
-            case CS35L41_CONTROL_ID_POWER_UP:
-                driver->control_sm.fp = cs35l41_private_functions_g->power_up_sm;
-                driver->control_sm.state = CS35L41_SM_STATE_INIT;
-                ret = CS35L41_STATUS_OK;
-                break;
-
-            case CS35L41_CONTROL_ID_POWER_DOWN:
-                driver->control_sm.fp = cs35l41_private_functions_g->power_down_sm;
-                driver->control_sm.state = CS35L41_SM_STATE_INIT;
-                ret = CS35L41_STATUS_OK;
-                break;
-
-            case CS35L41_CONTROL_ID_CONFIGURE:
-                driver->control_sm.fp = cs35l41_private_functions_g->configure_sm;
-                driver->control_sm.state = CS35L41_SM_STATE_INIT;
-                ret = CS35L41_STATUS_OK;
-                break;
-
-            case CS35L41_CONTROL_ID_GET_VOLUME:
-                // For a GET request, set the GET_REQUESt flag
-                CS35L41_SET_FLAG(driver->control_sm.flags, CS35L41_FLAGS_IS_GET_REQUEST);
-            case CS35L41_CONTROL_ID_SET_VOLUME:
-                driver->control_sm.fp = cs35l41_private_functions_g->field_access_sm;
-                driver->control_sm.state = CS35L41_SM_STATE_INIT;
-                // For the GET_/SET_VOLUME Control Requests, setup field_accessor with bit-field information
-                driver->field_accessor.address = CS35L41_INTP_AMP_CTRL_REG;
-                driver->field_accessor.shift = CS35L41_INTP_AMP_CTRL_AMP_VOL_PCM_BITOFFSET;
-                driver->field_accessor.size = CS35L41_INTP_AMP_CTRL_AMP_VOL_PCM_BITWIDTH;
-                ret = CS35L41_STATUS_OK;
-                break;
-
-#ifdef INCLUDE_FW
-            case CS35L41_CONTROL_ID_GET_HALO_HEARTBEAT:
-                // For a GET request, set the GET_REQUESt flag
-                CS35L41_SET_FLAG(driver->control_sm.flags, CS35L41_FLAGS_IS_GET_REQUEST);
-                driver->control_sm.fp = cs35l41_private_functions_g->field_access_sm;
-                driver->control_sm.state = CS35L41_SM_STATE_INIT;
-                // Setup field_accessor with bit-field information
-                driver->field_accessor.address = CS35L41_HALO_HEARTBEAT;
-                driver->field_accessor.shift = 0;
-                driver->field_accessor.size = 32;
-                ret = CS35L41_STATUS_OK;
-                break;
-
-            case CS35L41_CONTROL_ID_CALIBRATION:
-                driver->control_sm.fp = cs35l41_private_functions_g->calibration_sm;
-                // Pass through Ambient Temperature (in degrees C) to Calibration state machine
-                driver->ambient_temp_deg_c = (uint32_t) driver->current_request.arg;
-                driver->control_sm.state = CS35L41_SM_STATE_INIT;
-                ret = CS35L41_STATUS_OK;
-                break;
-
-            case CS35L41_CONTROL_ID_GET_DSP_STATUS:
-                driver->control_sm.fp = cs35l41_private_functions_g->get_dsp_status_sm;
-                driver->control_sm.state = CS35L41_SM_STATE_INIT;
-                ret = CS35L41_STATUS_OK;
-                break;
-
-            case CS35L41_CONTROL_ID_HIBERNATE:
-                driver->control_sm.fp = cs35l41_private_functions_g->hibernate;
-                driver->control_sm.state = CS35L41_SM_STATE_INIT;
-                ret = CS35L41_STATUS_OK;
-                break;
-
-            case CS35L41_CONTROL_ID_WAKE:
-                driver->control_sm.fp = cs35l41_private_functions_g->wake;
-                driver->control_sm.state = CS35L41_SM_STATE_INIT;
-                ret = CS35L41_STATUS_OK;
-                break;
-#endif // INCLUDE_FW
-
-            default:
-                break;
-        }
-    }
-
-    return ret;
-}
-
-#ifdef INCLUDE_FW
 /**
  * Check HALO MBOX Status against the MBOX Command sent.
  *
- * Implementation of cs35l41_private_functions_t.is_mbox_status_correct
+ * Only some states of HALO MBOX Status are valid for each HALO MBOX Command
+ *
+ * @param [in] cmd              which HALO MBOX Command was most recently sent
+ * @param [in] status           what is the HALO MBOX Status read
+ *
+ * @return
+ * - true                       Status is correct/valid
+ * - false                      Status is incorrect/invalid
  *
  */
 static bool cs35l41_is_mbox_status_correct(uint32_t cmd, uint32_t status)
@@ -3715,12 +928,605 @@ static bool cs35l41_is_mbox_status_correct(uint32_t cmd, uint32_t status)
             return false;
     }
 }
-#endif // INCLUDE_FW
+
+/**
+ * Find if a symbol is in the symbol table and return its address if it is.
+ *
+ * This will search through the symbol table pointed to in the 'fw_info' member of the driver state and return
+ * the control port register address to use for access.  The 'symbol_id' parameter must be from the group CS35L41_SYM_.
+ *
+ * @param [in] driver           Pointer to the driver state
+ * @param [in] symbol_id        id of symbol to search for
+ *
+ * @return
+ * - non-0 - symbol register address
+ * - 0 - symbol not found.
+ *
+ */
+static uint32_t cs35l41_find_symbol(cs35l41_t *driver, uint32_t symbol_id)
+{
+    fw_img_v1_info_t *f = driver->fw_info;
+
+    if (f)
+    {
+        for (uint32_t i = 0; i < f->header.sym_table_size; i++)
+        {
+            if (f->sym_table[i].sym_id == symbol_id)
+            {
+                return f->sym_table[i].sym_addr;
+            }
+        }
+    }
+
+    return 0;
+}
+
+/**
+ * Power up from Standby
+ *
+ * This function performs all necessary steps to transition the CS35L41 to be ready to pass audio through the
+ * amplifier DAC.  Completing this results in the driver transition to POWER_UP state.
+ *
+ * @param [in] driver           Pointer to the driver state
+ *
+ * @return
+ * - CS35L41_STATUS_FAIL if:
+ *      - Control port activity fails
+ *      - Incorrect/unexpected values of Virtual MBOX transactions
+ * - CS35L41_STATUS_OK          otherwise
+ *
+ */
+static uint32_t cs35l41_power_up(cs35l41_t *driver)
+{
+    uint32_t ret = CS35L41_STATUS_OK;
+    uint32_t i;
+    uint32_t temp_reg_val;
+
+    //If the DSP is booted
+    if (driver->state != CS35L41_STATE_STANDBY)
+    {
+        // Send HALO DSP Memory Lock sequence
+        for (i = 0; i < (sizeof(cs35l41_mem_lock) / sizeof(uint32_t)); i += 2)
+        {
+            ret = cs35l41_write_reg(driver, cs35l41_mem_lock[i], cs35l41_mem_lock[i + 1]);
+            if (ret)
+            {
+                return ret;
+            }
+        }
+
+        // Set next HALO DSP Sample Rate register to G1R2
+        for (i = 0; i < (sizeof(cs35l41_frame_sync_regs)/sizeof(uint32_t)); i++)
+        {
+            ret = cs35l41_write_reg(driver, cs35l41_frame_sync_regs[i], CS35L41_DSP1_SAMPLE_RATE_G1R2);
+            if (ret)
+            {
+                return ret;
+            }
+        }
+
+        // Read the HALO DSP CCM control register
+        ret = cs35l41_read_reg(driver, XM_UNPACKED24_DSP1_CCM_CORE_CONTROL_REG, &temp_reg_val);
+        if (ret)
+        {
+            return ret;
+        }
+
+        // Enable clocks to HALO DSP core
+        temp_reg_val |= XM_UNPACKED24_DSP1_CCM_CORE_CONTROL_DSP1_CCM_CORE_EN_BITMASK;
+        ret = cs35l41_write_reg(driver, XM_UNPACKED24_DSP1_CCM_CORE_CONTROL_REG, temp_reg_val);
+        if (ret)
+        {
+            return ret;
+        }
+    }
+
+    // Send Power Up Patch
+    for (i = 0; i < (sizeof(cs35l41_pup_patch)/sizeof(uint32_t)); i += 2)
+    {
+        ret = cs35l41_write_reg(driver, cs35l41_pup_patch[i], cs35l41_pup_patch[i + 1]);
+        if (ret)
+        {
+            return ret;
+        }
+    }
+
+    // Read GLOBAL_EN register
+    ret = cs35l41_read_reg(driver, MSM_GLOBAL_ENABLES_REG, &temp_reg_val);
+    if (ret)
+    {
+        return ret;
+    }
+    temp_reg_val |= MSM_GLOBAL_ENABLES_GLOBAL_EN_BITMASK;
+    //Set GLOBAL_EN
+    ret = cs35l41_write_reg(driver, MSM_GLOBAL_ENABLES_REG, temp_reg_val);
+    if (ret)
+    {
+        return ret;
+    }
+
+    //Wait 1ms
+    bsp_driver_if_g->set_timer(CS35L41_T_AMP_PUP_MS, NULL, NULL);
+
+    // If DSP is NOT booted, then power up is finished
+    if (driver->state == CS35L41_STATE_STANDBY)
+    {
+        return CS35L41_STATUS_OK;
+    }
+
+
+    // Clear HALO DSP Virtual MBOX 1 IRQ
+    ret = cs35l41_write_reg(driver, IRQ2_IRQ2_EINT_2_REG, IRQ2_IRQ2_EINT_2_DSP_VIRTUAL1_MBOX_WR_EINT2_BITMASK);
+    if (ret)
+    {
+        return ret;
+    }
+    // Clear HALO DSP Virtual MBOX 2 IRQ
+    ret = cs35l41_write_reg(driver, IRQ1_IRQ1_EINT_2_REG, IRQ1_IRQ1_EINT_2_DSP_VIRTUAL2_MBOX_WR_EINT1_BITMASK);
+    if (ret)
+    {
+        return ret;
+    }
+
+    // Read IRQ2 Mask register
+    ret = cs35l41_read_reg(driver, IRQ2_IRQ2_MASK_2_REG, &temp_reg_val);
+    if (ret)
+    {
+        return ret;
+    }
+    // Unmask IRQ for HALO DSP Virtual MBOX 1
+    temp_reg_val &= ~(IRQ2_IRQ2_MASK_2_DSP_VIRTUAL1_MBOX_WR_MASK2_BITMASK);
+    ret = cs35l41_write_reg(driver, IRQ2_IRQ2_MASK_2_REG, temp_reg_val);
+    if (ret)
+    {
+        return ret;
+    }
+
+    // Read HALO DSP MBOX Space 2 register
+    ret = cs35l41_read_reg(driver, DSP_MBOX_DSP_MBOX_2_REG, &temp_reg_val);
+    if (ret)
+    {
+        return ret;
+    }
+
+    uint32_t mbox_cmd = CS35L41_DSP_MBOX_CMD_NONE;
+
+    // Based on MBOX status, select correct MBOX Command
+    switch (temp_reg_val)
+    {
+        case CS35L41_DSP_MBOX_STATUS_RDY_FOR_REINIT:
+            mbox_cmd = CS35L41_DSP_MBOX_CMD_REINIT;
+            break;
+
+        case CS35L41_DSP_MBOX_STATUS_PAUSED:
+        case CS35L41_DSP_MBOX_STATUS_RUNNING:
+            mbox_cmd = CS35L41_DSP_MBOX_CMD_RESUME;
+            break;
+
+        default:
+            break;
+    }
+
+    // If no command found, indicate ERROR
+    if (mbox_cmd == CS35L41_DSP_MBOX_CMD_NONE)
+    {
+        return CS35L41_STATUS_FAIL;
+    }
+
+    // Write MBOX command
+    ret = cs35l41_write_reg(driver, DSP_VIRTUAL1_MBOX_DSP_VIRTUAL1_MBOX_1_REG, mbox_cmd);
+    if (ret)
+    {
+        return ret;
+    }
+
+    i = 5;
+    for (i = 0; i < 5; i++)
+    {
+        // Wait for at least 1ms
+        bsp_driver_if_g->set_timer(BSP_TIMER_DURATION_2MS, NULL, NULL);
+
+        // Poll MBOX IRQ flag
+        ret = cs35l41_read_reg(driver, IRQ1_IRQ1_EINT_2_REG, &temp_reg_val);
+        if (ret)
+        {
+            return ret;
+        }
+
+        if (temp_reg_val & IRQ1_IRQ1_EINT_2_DSP_VIRTUAL2_MBOX_WR_EINT1_BITMASK)
+        {
+            break;
+        }
+    }
+
+    if (i == 5)
+    {
+        return CS35L41_STATUS_FAIL;
+    }
+
+    // Clear MBOX IRQ
+    ret = cs35l41_write_reg(driver, IRQ1_IRQ1_EINT_2_REG, IRQ1_IRQ1_EINT_2_DSP_VIRTUAL2_MBOX_WR_EINT1_BITMASK);
+    if (ret)
+    {
+        return ret;
+    }
+
+    // Read IRQ2 Mask register to next re-mask the MBOX IRQ
+    ret = cs35l41_read_reg(driver, IRQ2_IRQ2_MASK_2_REG, &temp_reg_val);
+    if (ret)
+    {
+        return ret;
+    }
+    // Re-mask the MBOX IRQ
+    temp_reg_val |= IRQ2_IRQ2_MASK_2_DSP_VIRTUAL1_MBOX_WR_MASK2_BITMASK;
+    ret = cs35l41_write_reg(driver, IRQ2_IRQ2_MASK_2_REG, temp_reg_val);
+    if (ret)
+    {
+        return ret;
+    }
+
+    // Read the HALO DSP MBOX status
+    ret = cs35l41_read_reg(driver, DSP_MBOX_DSP_MBOX_2_REG, &temp_reg_val);
+    if (ret)
+    {
+        return ret;
+    }
+
+    // Check if the status is correct for the command just sent
+    if (cs35l41_is_mbox_status_correct(mbox_cmd, temp_reg_val))
+    {
+        return CS35L41_STATUS_OK;
+    }
+    else
+    {
+        return CS35L41_STATUS_FAIL;
+    }
+}
+
+/**
+ * Power down to Standby
+ *
+ * This function performs all necessary steps to transition the CS35L41 to be in Standby power mode. Completing
+ * this results in the driver transition to STANDBY or DSP_STANDBY state.
+ *
+ * @param [in] driver           Pointer to the driver state
+ *
+ * @return
+ * - CS35L41_STATUS_FAIL if:
+ *      - Control port activity fails
+ *      - Incorrect/unexpected values of Virtual MBOX transactions
+ * - CS35L41_STATUS_OK          otherwise
+ *
+ */
+static uint32_t cs35l41_power_down(cs35l41_t *driver)
+{
+    uint32_t ret = CS35L41_STATUS_OK;
+    uint32_t temp_reg_val;
+    uint32_t i;
+
+    if (driver->state != CS35L41_STATE_POWER_UP)
+    {
+        // Clear HALO DSP Virtual MBOX 1 IRQ flag
+        ret = cs35l41_write_reg(driver, IRQ2_IRQ2_EINT_2_REG, IRQ2_IRQ2_EINT_2_DSP_VIRTUAL1_MBOX_WR_EINT2_BITMASK);
+        if (ret)
+        {
+            return ret;
+        }
+
+        // Clear HALO DSP Virtual MBOX 2 IRQ flag
+        ret = cs35l41_write_reg(driver, IRQ1_IRQ1_EINT_2_REG, IRQ1_IRQ1_EINT_2_DSP_VIRTUAL2_MBOX_WR_EINT1_BITMASK);
+        if (ret)
+        {
+            return ret;
+        }
+
+        // Read IRQ2 Mask register
+        ret = cs35l41_read_reg(driver, IRQ2_IRQ2_MASK_2_REG, &temp_reg_val);
+        if (ret)
+        {
+            return ret;
+        }
+
+        // Clear HALO DSP Virtual MBOX 1 IRQ mask
+        temp_reg_val &= ~(IRQ2_IRQ2_MASK_2_DSP_VIRTUAL1_MBOX_WR_MASK2_BITMASK);
+        ret = cs35l41_write_reg(driver, IRQ2_IRQ2_MASK_2_REG, temp_reg_val);
+        if (ret)
+        {
+            return ret;
+        }
+
+        // Send HALO DSP MBOX 'Pause' Command
+        ret = cs35l41_write_reg(driver, DSP_VIRTUAL1_MBOX_DSP_VIRTUAL1_MBOX_1_REG, CS35L41_DSP_MBOX_CMD_PAUSE);
+        if (ret)
+        {
+            return ret;
+        }
+
+        // Wait for at least 1ms
+        bsp_driver_if_g->set_timer(BSP_TIMER_DURATION_2MS, NULL, NULL);
+
+        for (i = 0; i < 5; i++)
+        {
+            // Read IRQ1 flag register to poll for MBOX IRQ
+            cs35l41_read_reg(driver, IRQ1_IRQ1_EINT_2_REG, &temp_reg_val);
+
+            if (temp_reg_val & IRQ1_IRQ1_EINT_2_DSP_VIRTUAL2_MBOX_WR_EINT1_BITMASK)
+            {
+                break;
+            }
+
+            bsp_driver_if_g->set_timer(BSP_TIMER_DURATION_2MS, NULL, NULL);
+        }
+
+        if (i == 5)
+        {
+            return CS35L41_STATUS_FAIL;
+        }
+
+        // Clear MBOX IRQ flag
+        ret = cs35l41_write_reg(driver, IRQ1_IRQ1_EINT_2_REG, IRQ1_IRQ1_EINT_2_DSP_VIRTUAL2_MBOX_WR_EINT1_BITMASK);
+        if (ret)
+        {
+            return ret;
+        }
+
+        // Read IRQ2 Mask register to re-mask HALO DSP Virtual MBOX 1 IRQ
+        ret = cs35l41_read_reg(driver, IRQ2_IRQ2_MASK_2_REG, &temp_reg_val);
+        if (ret)
+        {
+            return ret;
+        }
+        // Re-mask HALO DSP Virtual MBOX 1 IRQ
+        temp_reg_val |= IRQ2_IRQ2_MASK_2_DSP_VIRTUAL1_MBOX_WR_MASK2_BITMASK;
+        ret = cs35l41_write_reg(driver, IRQ2_IRQ2_MASK_2_REG, temp_reg_val);
+        if (ret)
+        {
+            return ret;
+        }
+
+        // Read the MBOX status
+        ret = cs35l41_read_reg(driver, DSP_MBOX_DSP_MBOX_2_REG, &temp_reg_val);
+        if (ret)
+        {
+            return ret;
+        }
+
+        // Check that MBOX status is correct for 'Pause' command just sent
+        if (!(cs35l41_is_mbox_status_correct(CS35L41_DSP_MBOX_CMD_PAUSE, temp_reg_val)))
+        {
+            return CS35L41_STATUS_FAIL;
+        }
+    }
+
+    // Read GLOBAL_EN register in order to clear GLOBAL_EN
+    ret = cs35l41_read_reg(driver, MSM_GLOBAL_ENABLES_REG, &temp_reg_val);
+    if (ret)
+    {
+        return ret;
+    }
+
+    // Clear GLOBAL_EN
+    temp_reg_val &= ~(MSM_GLOBAL_ENABLES_GLOBAL_EN_BITMASK);
+    ret = cs35l41_write_reg(driver, MSM_GLOBAL_ENABLES_REG, temp_reg_val);
+    if (ret)
+    {
+        return ret;
+    }
+
+    // Read IRQ1 flag register to poll MSM_PDN_DONE bit
+    i = 100;
+    do
+    {
+        ret = cs35l41_read_reg(driver, IRQ1_IRQ1_EINT_1_REG, &temp_reg_val);
+        if (ret)
+        {
+            return ret;
+        }
+
+        if (temp_reg_val & IRQ1_IRQ1_EINT_1_MSM_PDN_DONE_EINT1_BITMASK)
+        {
+            break;
+        }
+
+        bsp_driver_if_g->set_timer(BSP_TIMER_DURATION_1MS, NULL, NULL);
+
+        i--;
+    } while (i > 0);
+
+    if (i == 0)
+    {
+        return CS35L41_STATUS_FAIL;
+    }
+
+    // Clear MSM_PDN_DONE IRQ flag
+    ret = cs35l41_write_reg(driver, IRQ1_IRQ1_EINT_1_REG, IRQ1_IRQ1_EINT_1_MSM_PDN_DONE_EINT1_BITMASK);
+    if (ret)
+    {
+        return ret;
+    }
+
+    // Send Power Down Patch set
+    for(i = 0; i < (sizeof(cs35l41_pdn_patch)/sizeof(uint32_t)); i += 2)
+    {
+        ret = cs35l41_write_reg(driver, cs35l41_pdn_patch[i], cs35l41_pdn_patch[i + 1]);
+        if (ret)
+        {
+            return ret;
+        }
+    }
+
+    return CS35L41_STATUS_OK;
+}
+
+/**
+ * Access a HW or HALO DSP Memory field
+ *
+ * This function performs actions required to do a Get/Set of a Control Port register or HALO DSP Memory
+ * bit-field.
+ *
+ * @param [in] driver           Pointer to the driver state
+ *
+ * @return
+ * - CS35L41_STATUS_FAIL if:
+ *      - Control port activity fails
+ *      - Required FW Control symbols are not found in the symbol table
+ * - CS35L41_STATUS_OK          otherwise
+ *
+ * @see cs35l41_field_accessor_t
+ *
+ */
+static uint32_t cs35l41_field_access(cs35l41_t *driver, cs35l41_field_accessor_t fa, bool is_get)
+{
+    uint32_t temp_reg_val;
+    uint32_t ret = CS35L41_STATUS_OK;
+
+    if (fa.symbol)
+    {
+        fa.address = cs35l41_find_symbol(driver, fa.id);
+        if (!fa.address)
+        {
+            return CS35L41_STATUS_FAIL;
+        }
+    }
+
+    // Read the value from the field address
+    ret = cs35l41_read_reg(driver, fa.address, &temp_reg_val);
+    if (ret)
+    {
+        return ret;
+    }
+
+    // Create bit-wise mask of the bit-field
+    uint32_t temp_mask = (~(0xFFFFFFFF << fa.size) << fa.shift);
+
+    // If this is only a GET request
+    if (is_get)
+    {
+        uint32_t *reg_ptr = (uint32_t *) driver->current_request.arg;
+        // Mask off bit-field and shift down to LS-Bit
+        temp_reg_val &= temp_mask;
+        temp_reg_val >>= fa.shift;
+        *reg_ptr = temp_reg_val;
+    }
+    else
+    {
+        uint32_t field_val = (uint32_t) driver->current_request.arg;
+        // Shift new value to bit-field bit position
+        field_val <<= fa.shift;
+        field_val &= temp_mask;
+        // Mask off bit-field bit locations in memory's value
+        temp_reg_val &= ~temp_mask;
+        // Add new value
+        temp_reg_val |= field_val;
+
+        // Write new register/memory value
+        ret = cs35l41_write_reg(driver, fa.address, temp_reg_val);
+        if (ret)
+        {
+            return ret;
+        }
+    }
+
+    return CS35L41_STATUS_OK;
+}
+
+/**
+ * Get DSP Status
+ *
+ * This function performs all register/memory field address reads to get the current HALO DSP status.  Since
+ * some statuses are only determined by observing changes in values of a given field, the fields are read once,
+ * then after a delay of 10 milliseconds, are read a second time to observe changes.
+ *
+ * @param [in] driver           Pointer to the driver state
+ *
+ * @return
+ * - CS35L41_STATUS_FAIL if:
+ *      - Control port activity fails
+ *      - Required FW Control symbols are not found in the symbol table
+ * - CS35L41_STATUS_OK          otherwise
+ *
+ * @see cs35l41_dsp_status_t
+ *
+ */
+static uint32_t cs35l41_get_dsp_status(cs35l41_t *driver)
+{
+    uint8_t i;
+    uint32_t temp_reg_val;
+    uint32_t ret = CS35L41_STATUS_OK;
+
+    // Get pointer to status passed in to Control Request
+    cs35l41_dsp_status_t *status = (cs35l41_dsp_status_t *) driver->current_request.arg;
+
+    // Read the DSP Status field addresses
+    for (i = 0; i < CS35L41_DSP_STATUS_WORDS_TOTAL; i++)
+    {
+        uint32_t reg_address = cs35l41_find_symbol(driver, cs35l41_dsp_status_controls[i]);
+        if (!reg_address)
+        {
+            return CS35L41_STATUS_FAIL;
+        }
+        ret = cs35l41_read_reg(driver, reg_address, &(status->data.words[i]));
+        if (ret)
+        {
+            return ret;
+        }
+    }
+
+    // Wait at least 10ms
+    bsp_driver_if_g->set_timer(BSP_TIMER_DURATION_10MS, NULL, NULL);
+
+    for (i = 0; i < CS35L41_DSP_STATUS_WORDS_TOTAL; i++)
+    {
+        uint32_t reg_address = cs35l41_find_symbol(driver, cs35l41_dsp_status_controls[i]);
+        if (!reg_address)
+        {
+            return CS35L41_STATUS_FAIL;
+        }
+        ret = cs35l41_read_reg(driver, reg_address, &temp_reg_val);
+        if (ret)
+        {
+            return ret;
+        }
+
+        // If the current field is HALO_HEARTBEAT, and there is a change in subsequent values
+        if ((i == 1) && (temp_reg_val != status->data.words[i]))
+        {
+            status->is_hb_inc = true;
+        }
+
+        // If the current field is CSPL_TEMPERATURE, and there is a change in subsequent values
+        if ((i == 8) && (temp_reg_val != status->data.words[i]))
+        {
+            status->is_temp_changed = true;
+        }
+
+        status->data.words[i] = temp_reg_val;
+    }
+
+    // Assess if Calibration is applied
+    if ((status->data.cal_set_status == 2) &&
+        (status->data.cal_r_selected == status->data.cal_r) &&
+        (status->data.cal_r == driver->config.cal_data.r) &&
+        (status->data.cspl_state == 0) &&
+        (status->data.halo_state == 2))
+    {
+        status->is_calibration_applied = true;
+    }
+
+    return CS35L41_STATUS_OK;
+}
 
 /**
  * Maps IRQ Flag to Event ID passed to BSP
  *
- * Implementation of cs35l41_private_functions_t.irq_to_event_id
+ * Allows for abstracting driver events relayed to BSP away from IRQ flags, to allow the possibility that multiple
+ * IRQ flags correspond to a single event to relay.
+ *
+ * @param [in] irq_statuses     pointer to array of 32-bit words from IRQ1_IRQ1_EINT_*_REG registers
+ *
+ * @return                      32-bit word with CS35L41_EVENT_FLAG_* set for each event detected
+ *
+ * @see CS35L41_EVENT_FLAG_
  *
  */
 static uint32_t cs35l41_irq_to_event_id(uint32_t *irq_statuses)
@@ -3752,401 +1558,183 @@ static uint32_t cs35l41_irq_to_event_id(uint32_t *irq_statuses)
 }
 
 /**
- * Apply all driver one-time configurations to corresponding Control Port register/memory addresses
+ * Handle events indicated by the IRQ pin ALERTb
  *
- * Implementation of cs35l41_private_functions_t.apply_configs
+ * This function performs all steps to handle IRQ and other asynchronous events the driver is aware of,
+ * resulting in calling of the notification callback (cs35l41_notification_callback_t).
+ *
+ * If there are any IRQ events that include Speaker-Safe Mode Errors or Boost-related events, then the procedure
+ * outlined in the Datasheet Section 4.16.1.1 is implemented here.
+ *
+ * @param [in] driver           Pointer to the driver state
+ *
+ * @return
+ * - CS35L41_STATUS_FAI         Control port activity fails
+ * - CS35L41_STATUS_OK          otherwise
+ *
+ * @see CS35L41_EVENT_FLAG_
+ * @see cs35l41_notification_callback_t
  *
  */
-static uint32_t cs35l41_apply_configs(cs35l41_t *driver)
+static uint32_t cs35l41_event_handler(void *driver)
 {
-    uint32_t ret = CS35L41_STATUS_OK;
     uint8_t i;
-    bool code_found;
-    cs35l41_config_registers_t *regs = &(driver->config_regs);
+    uint32_t temp_reg_val;
+    uint32_t ret = CS35L41_STATUS_OK;
+    uint32_t irq_statuses[4];
+    uint32_t irq_masks[4];
+
+    cs35l41_t *d = driver;
 
     /*
-     * apply audio hw configurations
+     * Since upon entering the Event Handler SM, the BSP Control Port may be in the middle of a transaction,
+     * request the BSP to reset the Control Port and abort the current transaction.
      */
-    cs35l41_audio_hw_config_t *hw = &(driver->audio_config.hw);
-    regs->dataif_asp_control3.asp_dout_hiz_ctrl = hw->dout_hiz_ctrl;
+    bsp_driver_if_g->i2c_reset(d->config.bsp_config.bsp_dev_id, NULL);
 
-    regs->dataif_asp_control2.asp_bclk_mstr = hw->is_master_mode;
-    regs->dataif_asp_control2.asp_fsync_mstr = regs->dataif_asp_control2.asp_bclk_mstr;
-    regs->dataif_asp_control2.asp_fsync_inv = hw->fsync_inv;
-    regs->dataif_asp_control2.asp_bclk_inv = hw->bclk_inv;
+    // Read the IRQ1 flag and mask registers
+    uint32_t irq1_eint_1_flags_to_clear = 0;
 
-    regs->msm_block_enables2.amp_dre_en = hw->amp_dre_en;
-
-    regs->noise_gate_mixer_ngate_ch1_cfg.aux_ngate_ch1_en = hw->ng_enable;
-    regs->noise_gate_mixer_ngate_ch2_cfg.aux_ngate_ch2_en = hw->ng_enable;
-    regs->noise_gate_mixer_ngate_ch1_cfg.aux_ngate_ch1_hold = hw->ng_delay;
-    regs->noise_gate_mixer_ngate_ch2_cfg.aux_ngate_ch2_hold = hw->ng_delay;
-    regs->noise_gate_mixer_ngate_ch1_cfg.aux_ngate_ch1_thr = hw->ng_thld;
-    regs->noise_gate_mixer_ngate_ch2_cfg.aux_ngate_ch2_thr = hw->ng_thld;
-
-    regs->dre_amp_gain.amp_gain_pcm = hw->amp_gain_pcm;
-    regs->intp_amp_ctrl.amp_ramp_pcm = hw->amp_ramp_pcm;
-
-    /*
-     * apply audio clocking configurations
-     */
-    cs35l41_clock_config_t *clk = &(driver->audio_config.clock);
-
-    // apply audio clocking - refclk source
-    regs->ccm_refclk_input.pll_refclk_sel = clk->refclk_sel;
-
-    // apply audio clocking - refclk frequency
-    code_found = false;
-    for (i = 0; i < (sizeof(cs35l41_pll_sysclk)/sizeof(struct cs35l41_register_encoding)); i++)
+    for (i = 0; i < (sizeof(irq_statuses)/sizeof(uint32_t)); i++)
     {
-        if (clk->refclk_freq == cs35l41_pll_sysclk[i].value)
+        uint32_t flags_to_clear = 0;
+
+        ret = cs35l41_read_reg(d, (IRQ1_IRQ1_EINT_1_REG + (i * 4)), &(irq_statuses[i]));
+        if (ret)
         {
-            code_found = true;
-            regs->ccm_refclk_input.pll_refclk_freq = cs35l41_pll_sysclk[i].code;
-            break;
+            return ret;
         }
-    }
-    if (!code_found)
-    {
-        ret = CS35L41_STATUS_FAIL;
-    }
 
-    // apply audio clocking - sclk frequency
-    code_found = false;
-    for (i = 0; i < (sizeof(cs35l41_sclk_encoding)/sizeof(struct cs35l41_register_encoding)); i++)
-    {
-        if (clk->sclk == cs35l41_sclk_encoding[i].value)
+        ret = cs35l41_read_reg(d, (IRQ1_IRQ1_MASK_1_REG + (i * 4)), &(irq_masks[i]));
+        if (ret)
         {
-            code_found = true;
-            regs->dataif_asp_control1.asp_bclk_freq = cs35l41_sclk_encoding[i].code;
-            break;
+            return ret;
         }
-    }
-    if (!code_found)
-    {
-        ret = CS35L41_STATUS_FAIL;
-    }
 
-    // The procedure below is taken from the datasheet, Section 4.13.9
-    if (clk->sclk > CS35L41_FS_MON0_BETA)
-    {
-        regs->ccm_fs_mon0 = 0x00024010;
-    }
-    else
-    {
-        uint32_t x = 12 * CS35L41_FS_MON0_BETA / clk->sclk + 4;
-        uint32_t y = 20 * CS35L41_FS_MON0_BETA / clk->sclk + 4;
-        regs->ccm_fs_mon0 = x + (y * 4096);
-    }
-
-    // apply audio clocking - FS configuration
-    code_found = false;
-    for (i = 0; i < (sizeof(cs35l41_fs_rates)/sizeof(struct cs35l41_register_encoding)); i++)
-    {
-        if (clk->global_fs == cs35l41_fs_rates[i].value)
+        flags_to_clear = irq_statuses[i] & ~(irq_masks[i]);
+        if (i == 0)
         {
-            code_found = true;
-            regs->ccm_global_sample_rate.global_fs = cs35l41_fs_rates[i].code;
-            break;
+            irq1_eint_1_flags_to_clear = flags_to_clear;
         }
-    }
-    if (!code_found)
-    {
-        ret = CS35L41_STATUS_FAIL;
-    }
 
-    regs->ccm_refclk_input.pll_refclk_en = 1;
-
-    /*
-     * apply audio port configurations
-     */
-    cs35l41_asp_config_t *asp = &(driver->audio_config.asp);
-    if (asp->is_i2s)
-    {
-        regs->dataif_asp_control2.asp_fmt = CS35L41_ASP_CONTROL2_ASP_FMT_I2S;
-    }
-    else
-    {
-        regs->dataif_asp_control2.asp_fmt = CS35L41_ASP_CONTROL2_ASP_FMT_DSPA;
-    }
-
-    regs->dataif_asp_frame_control5.asp_rx1_slot = asp->rx1_slot;
-    regs->dataif_asp_frame_control5.asp_rx2_slot = asp->rx2_slot;
-    regs->dataif_asp_frame_control1.asp_tx1_slot = asp->tx1_slot;
-    regs->dataif_asp_frame_control1.asp_tx2_slot = asp->tx2_slot;
-    regs->dataif_asp_frame_control1.asp_tx3_slot = asp->tx3_slot;
-    regs->dataif_asp_frame_control1.asp_tx4_slot = asp->tx4_slot;
-
-    regs->dataif_asp_data_control5.asp_rx_wl = asp->rx_wl;
-    regs->dataif_asp_control2.asp_rx_width = asp->rx_width;
-
-    regs->dataif_asp_data_control1.asp_tx_wl = asp->tx_wl;
-    regs->dataif_asp_control2.asp_tx_width = asp->tx_width;
-
-    /*
-     * apply audio routing configurations
-     */
-    cs35l41_routing_config_t *routing = &(driver->audio_config.routing);
-    regs->dacpcm1_input.src = routing->dac_src;
-    regs->asptx1_input.src = routing->asp_tx1_src;
-    regs->asptx2_input.src = routing->asp_tx2_src;
-    regs->asptx3_input.src = routing->asp_tx3_src;
-    regs->asptx4_input.src = routing->asp_tx4_src;
-    regs->dsp1rx1_input.src = routing->dsp_rx1_src;
-    regs->dsp1rx2_input.src = routing->dsp_rx2_src;
-
-    /*
-     * apply asp block enable configurations
-     */
-    regs->dataif_asp_enables1.asp_rx1_en = 0;
-    if (cs35l41_private_functions_g->is_mixer_source_used(driver, CS35L41_INPUT_SRC_ASPRX1))
-    {
-        regs->dataif_asp_enables1.asp_rx1_en = 1;
-    }
-
-    regs->dataif_asp_enables1.asp_rx2_en = 0;
-    if (cs35l41_private_functions_g->is_mixer_source_used(driver, CS35L41_INPUT_SRC_ASPRX2))
-    {
-        regs->dataif_asp_enables1.asp_rx2_en = 1;
-    }
-
-    if (routing->asp_tx1_src != CS35L41_INPUT_SRC_DISABLE)
-    {
-        regs->dataif_asp_enables1.asp_tx1_en = 1;
-    }
-    if (routing->asp_tx2_src != CS35L41_INPUT_SRC_DISABLE)
-    {
-        regs->dataif_asp_enables1.asp_tx2_en = 1;
-    }
-    if (routing->asp_tx3_src != CS35L41_INPUT_SRC_DISABLE)
-    {
-        regs->dataif_asp_enables1.asp_tx3_en = 1;
-    }
-    if (routing->asp_tx4_src != CS35L41_INPUT_SRC_DISABLE)
-    {
-        regs->dataif_asp_enables1.asp_tx4_en = 1;
-    }
-
-    /*
-     * apply startup volume
-     */
-    regs->intp_amp_ctrl.amp_vol_pcm = driver->audio_config.volume;
-
-    /*
-     * apply boost configurations
-     */
-    cs35l41_amp_config_t *amp = &(driver->amp_config);
-
-    uint8_t lbst_code, cbst_code, ipk_code;
-
-    // Get code for Boost Inductor
-    switch (amp->boost_inductor_value_nh)
-    {
-        case 1000:  /* 1.0 uH */
-            lbst_code = 0;
-            break;
-
-        case 1200:  /* 1.2 uH */
-            lbst_code = 1;
-            break;
-
-        case 1500:  /* 1.5 uH */
-            lbst_code = 2;
-            break;
-
-        case 2200:  /* 2.2 uH */
-            lbst_code = 3;
-            break;
-
-        default:
-            ret = CS35L41_STATUS_FAIL;
-            break;
-    }
-
-    // Get code for Boost Capacitor
-    switch (amp->boost_capacitor_value_uf)
-    {
-        case 0 ... 19:
-            cbst_code = 0;
-            break;
-
-        case 20 ... 50:
-            cbst_code = 1;
-            break;
-
-        case 51 ... 100:
-            cbst_code = 2;
-            break;
-
-        case 101 ... 200:
-            cbst_code = 3;
-            break;
-
-        default:    /* 201 uF and greater */
-            cbst_code = 4;
-            break;
-    }
-
-    // Get Boost Loop Coefficient and LBST Slope based on codes above
-    regs->boost_bst_loop_coeff.bst_k1 = cs35l41_bst_k1_table[lbst_code][cbst_code];
-    regs->boost_bst_loop_coeff.bst_k2 = cs35l41_bst_k2_table[lbst_code][cbst_code];
-    regs->boost_lbst_slope.bst_lbst_val = lbst_code;
-    regs->boost_lbst_slope.bst_slope = cs35l41_bst_slope_table[lbst_code];
-
-    // Bounds check the Peak Current configuration
-    if ((amp->boost_ipeak_ma < 1600) || (amp->boost_ipeak_ma > 4500))
-    {
-        ret = CS35L41_STATUS_FAIL;
-    }
-    else
-    {
-        // Encoding corresponds to values in Datasheet Section 7.11.3
-        ipk_code = ((amp->boost_ipeak_ma - 1600) / 50) + 0x10;
-    }
-    regs->boost_bst_ipk_ctl.bst_ipk = ipk_code;
-
-    regs->boost_vbst_ctl_1.bst_ctl = amp->bst_ctl;
-    regs->tempmon_warn_limit_threshold.temp_warn_thld = amp->temp_warn_thld;
-
-    // Only if Class H is enabled, then apply Class H configurations
-    if (amp->classh_enable)
-    {
-        regs->boost_vbst_ctl_2.bst_ctl_sel = amp->bst_ctl_sel;
-        regs->boost_vbst_ctl_2.bst_ctl_lim_en = (amp->bst_ctl_lim_en ? 1 : 0);
-        regs->pwrmgmt_classh_config.ch_mem_depth = amp->ch_mem_depth;
-        regs->pwrmgmt_classh_config.ch_hd_rm = amp->ch_hd_rm;
-        regs->pwrmgmt_classh_config.ch_rel_rate = amp->ch_rel_rate;
-        if (amp->wkfet_amp_thld != CS35L41_WKFET_AMP_THLD_DISABLED)
+        // If there are unmasked IRQs, then process
+        if (flags_to_clear)
         {
-            regs->pwrmgmt_wkfet_amp_config.wkfet_amp_dly = amp->wkfet_amp_delay;
-            regs->pwrmgmt_wkfet_amp_config.wkfet_amp_thld = amp->wkfet_amp_thld;
+            // Clear any IRQ1 flags from first register
+            ret = cs35l41_write_reg(d, (IRQ1_IRQ1_EINT_1_REG + (i * 4)), flags_to_clear);
+            if (ret)
+            {
+                return ret;
+            }
         }
     }
 
-    /*
-     * apply block enable configurations
-     */
-    // Always enable the Amplifier section
-    regs->msm_block_enables.amp_en = 1;
-
-#ifdef INCLUDE_FW
-    // If DSP is booted, then turn on some blocks by default
-    if (driver->state == CS35L41_STATE_DSP_STANDBY)
+    if (!irq1_eint_1_flags_to_clear)
     {
-        // The DSP needs VMON/IMON data for CSPL
-        regs->msm_block_enables.vmon_en = 1;
-        regs->msm_block_enables.imon_en = 1;
-        // The DSP is using VPMON, CLASSH, and TEMPMON (see cs35l41_post_boot_config[])
-        regs->msm_block_enables.vpmon_en = 1;
-        regs->msm_block_enables2.classh_en = 1;
-        regs->msm_block_enables.tempmon_en = 1;
+        return CS35L41_STATUS_OK;
     }
-    // Otherwise, see if the blocks are being used somewhere in order to enable
-    else
-#endif // INCLUDE_FW
+
+    // IF there are no Boost-related Errors but are Speaker-Safe Mode errors, proceed to TOGGLE_ERR_RLS
+    if (irq_statuses[0] & CS35L41_INT1_SPEAKER_SAFE_MODE_IRQ_MASK)
     {
-        regs->msm_block_enables2.classh_en = 0;
-        if (amp->classh_enable)
+        // If there are Boost-related Errors, proceed to DISABLE_BOOST
+        if (irq_statuses[0] & CS35L41_INT1_BOOST_IRQ_MASK)
         {
-            regs->msm_block_enables2.classh_en = 1;
+            // Read which MSM Blocks are enabled
+            ret = cs35l41_read_reg(d, MSM_BLOCK_ENABLES_REG, &temp_reg_val);
+            if (ret)
+            {
+                return ret;
+            }
+            // Disable Boost converter
+            temp_reg_val &= ~(MSM_BLOCK_ENABLES_BST_EN_BITMASK);
+            ret = cs35l41_write_reg(d, MSM_BLOCK_ENABLES_REG, temp_reg_val);
+            if (ret)
+            {
+                return ret;
+            }
         }
 
-        regs->msm_block_enables.tempmon_en = 0;
-        if (cs35l41_private_functions_g->is_mixer_source_used(driver, CS35L41_INPUT_SRC_TEMPMON))
+        // Clear the Error Release register
+        ret = cs35l41_write_reg(d, MSM_ERROR_RELEASE_REG, 0);
+        if (ret)
         {
-            regs->msm_block_enables.tempmon_en = 1;
+            return ret;
+        }
+        // Set the Error Release register
+        ret = cs35l41_write_reg(d, MSM_ERROR_RELEASE_REG, CS35L41_ERR_RLS_SPEAKER_SAFE_MODE_MASK);
+        if (ret)
+        {
+            return ret;
+        }
+        // Clear the Error Release register
+        ret = cs35l41_write_reg(d, MSM_ERROR_RELEASE_REG, 0);
+        if (ret)
+        {
+            return ret;
         }
 
-        regs->msm_block_enables.vpmon_en = 0;
-        if (cs35l41_private_functions_g->is_mixer_source_used(driver, CS35L41_INPUT_SRC_VPMON))
+        // If there are Boost-related Errors, re-enable Boost
+        if (irq_statuses[0] & CS35L41_INT1_BOOST_IRQ_MASK)
         {
-            regs->msm_block_enables.vpmon_en = 1;
+            // Read register containing BST_EN
+            ret = cs35l41_read_reg(d, MSM_BLOCK_ENABLES_REG, &temp_reg_val);
+            if (ret)
+            {
+                return ret;
+            }
+            // Re-enable Boost Converter
+            temp_reg_val |= MSM_BLOCK_ENABLES_BST_EN_BITMASK;
+            ret = cs35l41_write_reg(d, MSM_BLOCK_ENABLES_REG, temp_reg_val);
+            if (ret)
+            {
+                return ret;
+            }
         }
     }
 
-    regs->msm_block_enables.vbstmon_en = 0;
-    if (cs35l41_private_functions_g->is_mixer_source_used(driver, CS35L41_INPUT_SRC_VBSTMON))
+    // Call BSP Notification Callback
+    cs35l41_bsp_config_t *b = &(d->config.bsp_config);
+    if (b->notification_cb != NULL)
     {
-        regs->msm_block_enables.vbstmon_en = 1;
+        uint32_t event_flags = cs35l41_irq_to_event_id(irq_statuses);
+        b->notification_cb(event_flags, b->notification_cb_arg);
     }
 
-    regs->msm_block_enables2.wkfet_amp_en = 0;
-    if (amp->wkfet_amp_thld != CS35L41_WKFET_AMP_THLD_DISABLED)
-    {
-        regs->msm_block_enables2.wkfet_amp_en = 1;
-    }
-
-    // Always configure as Boost converter enabled.
-    regs->msm_block_enables.bst_en = 0x2;
-
-    return ret;
-}
-
-/**
- * Checks all hardware mixer source selections for a specific source.
- *
- * Implementation of cs35l41_private_functions_t.is_mixer_source_used
- *
- */
-static bool cs35l41_is_mixer_source_used(cs35l41_t *driver, uint8_t source)
-{
-    cs35l41_routing_config_t *routing = &(driver->audio_config.routing);
-
-    if ((routing->dac_src == source) || \
-        (routing->asp_tx1_src == source) || \
-        (routing->asp_tx2_src == source) || \
-        (routing->asp_tx3_src == source) || \
-        (routing->asp_tx4_src == source) || \
-        (routing->dsp_rx1_src == source) || \
-        (routing->dsp_rx2_src == source))
-    {
-        return true;
-    }
-    else
-    {
-        return false;
-    }
+    return CS35L41_STATUS_OK;
 }
 
 /**
  * Puts device into hibernate
  *
- * Implementation of cs35l41_private_functions_t.hibernate
+ * @param [in] driver           Pointer to the driver state
+ *
+ * @return
+ * - CS35L41_STATUS_FAI         Control port activity fails
+ * - CS35L41_STATUS_OK          otherwise
  *
  */
 static uint32_t cs35l41_hibernate(cs35l41_t *driver)
 {
-    int i;
-    uint32_t disable_int = 0xFFFFFFFF;
-    uint32_t mbox_cmd_drv_shift = 1 << 20;
-    uint32_t mbox_cmd_fw_shift = 1 << 21;
+    uint32_t cs35l41_hibernate_patch[] =
+    {
+            IRQ1_IRQ1_MASK_1_REG, 0xFFFFFFFF,
+            IRQ2_IRQ2_EINT_2_REG, (1 << 20),
+            IRQ1_IRQ1_EINT_2_REG, (1 << 21),
+            PWRMGT_WAKESRC_CTL, 0x0088,
+            PWRMGT_WAKESRC_CTL, 0x0188,
+            DSP_VIRTUAL1_MBOX_DSP_VIRTUAL1_MBOX_1_REG, CS35L41_DSP_MBOX_CMD_HIBERNATE
+    };
 
-    cs35l41_private_functions_g->write_reg(driver,
-                                           IRQ1_IRQ1_MASK_1_REG,
-                                           disable_int,
-                                           true);
-    cs35l41_private_functions_g->write_reg(driver,
-                                           IRQ2_IRQ2_EINT_2_REG,
-                                           mbox_cmd_drv_shift,
-                                           true);
-    cs35l41_private_functions_g->write_reg(driver,
-                                           IRQ1_IRQ1_EINT_2_REG,
-                                           mbox_cmd_fw_shift,
-                                           true);
-    cs35l41_private_functions_g->write_reg(driver,
-                                           WAKESRC_CTL,
-                                           0x0088,
-                                           true);
-    cs35l41_private_functions_g->write_reg(driver,
-                                           WAKESRC_CTL,
-                                           0x0188,
-                                           true);
-    cs35l41_private_functions_g->write_reg(driver,
-                                           DSP_VIRTUAL1_MBOX_DSP_VIRTUAL1_MBOX_1_REG,
-                                           CS35L41_DSP_MBOX_CMD_HIBERNATE,
-                                           true);
-
-    driver->control_sm.state = CS35L41_SM_STATE_DONE;
+    for (uint32_t i = 0; i < (sizeof(cs35l41_hibernate_patch)/sizeof(uint32_t)); i += 2)
+    {
+        uint32_t ret;
+        ret = cs35l41_write_reg(driver, cs35l41_hibernate_patch[i], cs35l41_hibernate_patch[i + 1]);
+        if (ret)
+        {
+            return ret;
+        }
+    }
 
     return CS35L41_STATUS_OK;
 }
@@ -4157,21 +1745,205 @@ static uint32_t cs35l41_hibernate(cs35l41_t *driver)
  * @param [in] driver           Pointer to the driver state
  *
  * @return
- * - CS35L41_STATUS_FAIL        if no request is being processed, or if current request is invalid
+ * - CS35L41_STATUS_FAI         Control port activity fails
  * - CS35L41_STATUS_OK          otherwise
  *
  */
 static uint32_t cs35l41_wait_for_pwrmgt_sts(cs35l41_t *driver)
 {
-    int i, ret;
-    unsigned int wrpend_sts = 0x2;
+    uint32_t i;
+    uint32_t wrpend_sts = 0x2;
 
-    for (i = 0; (i < 10) && (wrpend_sts & 0x2); i++)
+    for (i = 0; (i < 10) && (wrpend_sts & PWRMGT_PWRMGT_STS_WR_PENDSTS_BITMASK); i++)
     {
-        ret = cs35l41_private_functions_g->read_reg(driver, PWRMGT_STS, wrpend_sts, true);
+        uint32_t ret;
+        ret = cs35l41_read_reg(driver, PWRMGT_PWRMGT_STS, &wrpend_sts);
+        if (ret)
+        {
+            return ret;
+        }
     }
 
-    return ret;
+    return CS35L41_STATUS_OK;
+}
+
+/**
+ * Apply trims read from OTP to bitfields indicated in OTP Map
+ *
+ * @param [in] driver           Pointer to the driver state
+ *
+ * @return
+ * - CS35L41_STATUS_FAI         Control port activity fails
+ * - CS35L41_STATUS_OK          otherwise
+ *
+ */
+static uint32_t cs35l41_otp_unpack(cs35l41_t *driver)
+{
+    uint32_t ret;
+    uint32_t temp_reg_val, i;
+
+    // Unlock register file to apply OTP trims
+    ret = cs35l41_write_reg(driver, CS35L41_CTRL_KEYS_TEST_KEY_CTRL_REG, CS35L41_TEST_KEY_CTRL_UNLOCK_1);
+    if (ret)
+    {
+        return ret;
+    }
+    ret = cs35l41_write_reg(driver, CS35L41_CTRL_KEYS_TEST_KEY_CTRL_REG, CS35L41_TEST_KEY_CTRL_UNLOCK_2);
+    if (ret)
+    {
+        return ret;
+    }
+
+    // Initialize OTP unpacking state - otp_bit_count.  There are bits in OTP to skip to reach the trims
+    uint16_t otp_bit_count = driver->otp_map->bit_offset;
+
+    for (i = 0; i < driver->otp_map->num_elements; i++)
+    {
+        // Get trim entry
+        cs35l41_otp_packed_entry_t temp_trim_entry = driver->otp_map->map[i];
+
+        // If the entry's 'reg' member is 0x0, it means skip that trim
+        if (temp_trim_entry.reg != 0x00000000)
+        {
+            // Read the first register to be trimmed
+            ret = cs35l41_read_reg(driver, temp_trim_entry.reg, &temp_reg_val);
+            if (ret)
+            {
+                return ret;
+            }
+
+            /*
+             * Apply OTP trim bit-field to recently read trim register value.  OTP contents is saved in
+             * cp_read_buffer + CS35L41_CP_REG_READ_LENGTH_BYTES
+             */
+            cs35l41_apply_trim_word((driver->config.bsp_config.cp_read_buffer + CS35L41_CP_REG_READ_LENGTH_BYTES),
+                                    otp_bit_count,
+                                    &temp_reg_val,
+                                    temp_trim_entry.shift,
+                                    temp_trim_entry.size);
+            // Write new trimmed register value back
+            ret = cs35l41_write_reg(driver, temp_trim_entry.reg, temp_reg_val);
+            if (ret)
+            {
+                return ret;
+            }
+        }
+
+        // Inrement the OTP unpacking state variable otp_bit_count
+        otp_bit_count += temp_trim_entry.size;
+    }
+
+    // Lock register file
+    ret = cs35l41_write_reg(driver, CS35L41_CTRL_KEYS_TEST_KEY_CTRL_REG, CS35L41_TEST_KEY_CTRL_LOCK_1);
+    if (ret)
+    {
+        return ret;
+    }
+    ret = cs35l41_write_reg(driver, CS35L41_CTRL_KEYS_TEST_KEY_CTRL_REG, CS35L41_TEST_KEY_CTRL_LOCK_2);
+    if (ret)
+    {
+        return ret;
+    }
+
+    return CS35L41_STATUS_OK;
+}
+
+/**
+ * Apply errata configuration
+ *
+ * @param [in] driver           Pointer to the driver state
+ *
+ * @return
+ * - CS35L41_STATUS_FAI         Control port activity fails
+ * - CS35L41_STATUS_OK          otherwise
+ *
+ */
+static uint32_t cs35l41_write_errata(cs35l41_t *driver)
+{
+    uint32_t i;
+
+    for (i = 1; i < cs35l41_revb0_errata_patch[0]; i += 2)
+    {
+        uint32_t ret;
+
+        ret = cs35l41_write_reg(driver, cs35l41_revb0_errata_patch[i], cs35l41_revb0_errata_patch[i + 1]);
+        if (ret)
+        {
+            return ret;
+        }
+    }
+
+    return CS35L41_STATUS_OK;
+}
+
+/**
+ * Apply configuration specifically required after loading HALO FW/COEFF files
+ *
+ * @param [in] driver           Pointer to the driver state
+ *
+ * @return
+ * - CS35L41_STATUS_FAI         Control port activity fails
+ * - CS35L41_STATUS_OK          otherwise
+ *
+ */
+static uint32_t cs35l41_write_post_boot_config(cs35l41_t *driver)
+{
+    uint32_t i, ret;
+
+    // Write first post-boot configuration
+    for (i = 0; i < (sizeof(cs35l41_post_boot_config)/sizeof(uint32_t)); i += 2)
+    {
+        ret = cs35l41_write_reg(driver, cs35l41_post_boot_config[i], cs35l41_post_boot_config[i + 1]);
+        if (ret)
+        {
+            return ret;
+        }
+    }
+
+    // Write configuration data
+    // Unlock the register file
+    ret = cs35l41_write_reg(driver, CS35L41_CTRL_KEYS_TEST_KEY_CTRL_REG, CS35L41_TEST_KEY_CTRL_UNLOCK_1);
+    if (ret)
+    {
+        return ret;
+    }
+    ret = cs35l41_write_reg(driver, CS35L41_CTRL_KEYS_TEST_KEY_CTRL_REG, CS35L41_TEST_KEY_CTRL_UNLOCK_2);
+    if (ret)
+    {
+        return ret;
+    }
+
+    for (i = 0; i < driver->config.syscfg_regs_total; i++)
+    {
+        uint32_t temp_reg_val;
+
+        ret = cs35l41_read_reg(driver, driver->config.syscfg_regs[i].address, &temp_reg_val);
+        if (ret)
+        {
+            return ret;
+        }
+        temp_reg_val &= ~(driver->config.syscfg_regs[i].mask);
+        temp_reg_val |= driver->config.syscfg_regs[i].value;
+        ret = cs35l41_write_reg(driver, driver->config.syscfg_regs[i].address, temp_reg_val);
+        if (ret)
+        {
+            return ret;
+        }
+    }
+
+    // Lock the register file
+    ret = cs35l41_write_reg(driver, CS35L41_CTRL_KEYS_TEST_KEY_CTRL_REG, CS35L41_TEST_KEY_CTRL_LOCK_1);
+    if (ret)
+    {
+        return ret;
+    }
+    ret = cs35l41_write_reg(driver, CS35L41_CTRL_KEYS_TEST_KEY_CTRL_REG, CS35L41_TEST_KEY_CTRL_LOCK_2);
+    if (ret)
+    {
+        return ret;
+    }
+
+    return CS35L41_STATUS_OK;
 }
 
 /**
@@ -4180,245 +1952,153 @@ static uint32_t cs35l41_wait_for_pwrmgt_sts(cs35l41_t *driver)
  * @param [in] driver           Pointer to the driver state
  *
  * @return
- * - CS35L41_STATUS_FAIL        if no request is being processed, or if current request is invalid
+ * - CS35L41_STATUS_FAI         Control port activity fails
  * - CS35L41_STATUS_OK          otherwise
  *
  */
 static uint32_t cs35l41_restore(cs35l41_t *driver)
 {
-    int ret, i;
-    uint32_t regid, reg_revid, mtl_revid, chipid_match;
-    cs35l41_otp_packed_entry_t temp_trim_entry;
-    const uint32_t *errata_write = driver->errata;
-    int len_errata = sizeof(cs35l41_revb0_errata_patch) / sizeof(driver->errata[0]);
-    int otp_len = sizeof(otp_map_1) / sizeof(driver->otp_map->map[0]);
-    int config_len = sizeof(cs35l41_config_register_addresses) / sizeof(cs35l41_config_register_addresses[0]);
+    uint32_t ret;
+    uint32_t mtl_revid, chipid_match;
 
-    ret = cs35l41_private_functions_g->read_reg(driver, CS35L41_SW_RESET_DEVID_REG, &regid, true);
-    if (ret == CS35L41_STATUS_FAIL)
-        return ret;
-
-    ret = cs35l41_private_functions_g->read_reg(driver, CS35L41_SW_RESET_REVID_REG, &reg_revid, true);
-    if (ret == CS35L41_STATUS_FAIL)
-        return ret;
-
-    mtl_revid = reg_revid & 0x0F;
+    mtl_revid = driver->revid & 0x0F;
     chipid_match = (mtl_revid % 2) ? CS35L41R_DEVID : CS35L41_DEVID;
-    if (regid != chipid_match)
+    if (driver->devid != chipid_match)
+    {
         return CS35L41_STATUS_FAIL;
-
-    cs35l41_private_functions_g->write_reg(driver, CS35L41_MIXER_DSP1RX5_INPUT_REG, CS35L41_INPUT_SRC_VPMON, true);
-    cs35l41_private_functions_g->write_reg(driver, CS35L41_MIXER_DSP1RX6_INPUT_REG, CS35L41_INPUT_SRC_CLASSH, true);
-    cs35l41_private_functions_g->write_reg(driver, CS35L41_MIXER_DSP1RX7_INPUT_REG, CS35L41_INPUT_SRC_TEMPMON, true);
-    cs35l41_private_functions_g->write_reg(driver, CS35L41_MIXER_DSP1RX8_INPUT_REG, CS35L41_INPUT_SRC_RSVD, true);
-
-    /* Apply errata */
-    for (int i = 1; i < len_errata; i+=2)
-    {
-        cs35l41_private_functions_g->write_reg(driver, *(errata_write + i), *(errata_write + i + 1), true);
     }
 
-    /* OTP unpack */
-    cs35l41_private_functions_g->write_reg(driver,
-                                           CS35L41_CTRL_KEYS_TEST_KEY_CTRL_REG,
-                                           CS35L41_TEST_KEY_CTRL_UNLOCK_1,
-                                           true);
-    cs35l41_private_functions_g->write_reg(driver,
-                                           CS35L41_CTRL_KEYS_TEST_KEY_CTRL_REG,
-                                           CS35L41_TEST_KEY_CTRL_UNLOCK_2,
-                                           true);
-    driver->otp_bit_count = driver->otp_map->bit_offset;
-    for (int i = 0; i < otp_len; i++)
+    // Send errata
+    ret = cs35l41_write_errata(driver);
+    if (ret)
     {
-        temp_trim_entry = driver->otp_map->map[i];
-        cs35l41_private_functions_g->read_reg(driver, temp_trim_entry.reg, &(driver->register_buffer), true);
-
-        if (temp_trim_entry.reg != 0x00000000)
-        {
-            /*
-             * Apply OTP trim bit-field to recently read trim register value.  OTP contents is saved in
-             * cp_read_buffer + CS35L41_CP_REG_READ_LENGTH_BYTES
-             */
-            ret = cs35l41_private_functions_g->apply_trim_word((driver->cp_read_buffer + \
-                                                                CS35L41_CP_REG_READ_LENGTH_BYTES),
-                                                                driver->otp_bit_count,
-                                                                &(driver->register_buffer),
-                                                                temp_trim_entry.shift,
-                                                                temp_trim_entry.size);
-            if (ret == CS35L41_STATUS_OK)
-            {
-                //Write new trimmed register value back
-                ret = cs35l41_private_functions_g->write_reg(driver,
-                                                             temp_trim_entry.reg,
-                                                             driver->register_buffer,
-                                                             true);
-                //Increment the OTP unpacking state variable otp_bit_count
-                driver->otp_bit_count += temp_trim_entry.size;
-            }
-        }
-        else
-        {
-            driver->otp_bit_count += temp_trim_entry.size;
-        }
-
+        return ret;
     }
 
-    cs35l41_private_functions_g->write_reg(driver,
-                                           CS35L41_CTRL_KEYS_TEST_KEY_CTRL_REG,
-                                           CS35L41_TEST_KEY_CTRL_LOCK_1,
-                                           true);
-    cs35l41_private_functions_g->write_reg(driver,
-                                           CS35L41_CTRL_KEYS_TEST_KEY_CTRL_REG,
-                                           CS35L41_TEST_KEY_CTRL_LOCK_2,
-                                           true);
-
-    for (i = 0; i < config_len; i++)
+    // OTP unpack
+    ret = cs35l41_otp_unpack(driver);
+    if (ret)
     {
-        ret = cs35l41_private_functions_g->write_reg(driver,
-                                                     cs35l41_config_register_addresses[i],
-                                                     driver->config_regs.words[i],
-                                                     true);
+        return ret;
+    }
+
+    // Write all post-boot configs
+    ret = cs35l41_write_post_boot_config(driver);
+    if (ret)
+    {
+        return ret;
     }
 
     return ret;
 }
 
 /**
- * Wakes device from hibernatee
+ * Wakes device from hibernate
  *
- * Implementation of cs35l41_private_functions_t.wake
+ * @param [in] driver           Pointer to the driver state
+ *
+ * @return
+ * - CS35L41_STATUS_FAI         Control port activity fails
+ * - CS35L41_STATUS_OK          otherwise
  *
  */
 static uint32_t cs35l41_wake(cs35l41_t *driver)
 {
-    int timeout = 10, ret;
-    unsigned int status;
-    int retries = 5;
+    uint32_t timeout = 10, ret;
+    uint32_t status;
+    int8_t retries = 5;
     uint32_t mbox_cmd_drv_shift = 1 << 20;
     uint32_t mbox_cmd_fw_shift = 1 << 21;
 
     do {
         do {
-            ret = cs35l41_private_functions_g->write_reg(driver,
-                                                         DSP_VIRTUAL1_MBOX_DSP_VIRTUAL1_MBOX_1_REG,
-                                                         CS35L41_DSP_MBOX_CMD_OUT_OF_HIBERNATE,
-                                                         true);
-            if (ret < 0)
-              ret = CS35L41_STATUS_FAIL;
+            ret = cs35l41_write_reg(driver,
+                                    DSP_VIRTUAL1_MBOX_DSP_VIRTUAL1_MBOX_1_REG,
+                                    CS35L41_DSP_MBOX_CMD_OUT_OF_HIBERNATE);
+            if (ret)
+            {
+                return ret;
+            }
 
             bsp_driver_if_g->set_timer(4, NULL, NULL);
 
-            ret = cs35l41_private_functions_g->read_reg(driver,
-                                                        DSP_MBOX_DSP_MBOX_2_REG,
-                                                        &status, true);
-            if (ret < 0)
-              ret = CS35L41_STATUS_FAIL;
+            ret = cs35l41_read_reg(driver, DSP_MBOX_DSP_MBOX_2_REG,  &status);
+            if (ret)
+            {
+                return ret;
+            }
         } while (status != CS35L41_DSP_MBOX_STATUS_PAUSED && --timeout > 0);
 
         if (timeout != 0)
+        {
             break;
-        cs35l41_wait_for_pwrmgt_sts(driver);
-        cs35l41_private_functions_g->write_reg(driver,
-                                               WAKESRC_CTL, 0x0088,
-                                               true);
-        cs35l41_wait_for_pwrmgt_sts(driver);
-        cs35l41_private_functions_g->write_reg(driver,
-                                               WAKESRC_CTL, 0x0188,
-                                               true);
-        cs35l41_wait_for_pwrmgt_sts(driver);
-        cs35l41_private_functions_g->write_reg(driver,
-                                               PWRMGT_CTL,
-                                               0x3,
-                                               true);
+        }
+
+        ret = cs35l41_wait_for_pwrmgt_sts(driver);
+        if (ret)
+        {
+            return ret;
+        }
+        ret = cs35l41_write_reg(driver, PWRMGT_WAKESRC_CTL, 0x0088);
+        if (ret)
+        {
+            return ret;
+        }
+        ret = cs35l41_wait_for_pwrmgt_sts(driver);
+        if (ret)
+        {
+            return ret;
+        }
+        ret = cs35l41_write_reg(driver, PWRMGT_WAKESRC_CTL, 0x0188);
+        if (ret)
+        {
+            return ret;
+        }
+        ret = cs35l41_wait_for_pwrmgt_sts(driver);
+        if (ret)
+        {
+            return ret;
+        }
+        ret = cs35l41_write_reg(driver, PWRMGT_PWRMGT_CTL, 0x3);
+        if (ret)
+        {
+            return ret;
+        }
 
         timeout = 10;
 
     } while (--retries > 0);
 
-    cs35l41_private_functions_g->write_reg(driver,
-                                           IRQ2_IRQ2_EINT_2_REG,
-                                           &(mbox_cmd_drv_shift),
-                                           true);
-    cs35l41_private_functions_g->write_reg(driver,
-                                           IRQ1_IRQ1_EINT_2_REG,
-                                           &(mbox_cmd_fw_shift),
-                                           true);
+    ret = cs35l41_write_reg(driver, IRQ2_IRQ2_EINT_2_REG, mbox_cmd_drv_shift);
+    if (ret)
+    {
+        return ret;
+    }
+    ret = cs35l41_write_reg(driver, IRQ1_IRQ1_EINT_2_REG, mbox_cmd_fw_shift);
+    if (ret)
+    {
+        return ret;
+    }
 
     retries = 5;
 
     do {
         ret = cs35l41_restore(driver);
+        if (ret)
+        {
+            return ret;
+        }
         bsp_driver_if_g->set_timer(4, NULL, NULL);
-    } while (ret < 0 && --retries > 0);
+    } while (ret != 0 && --retries > 0);
 
     if (retries < 0)
-      //Failed to wake
-      ret = CS35L41_STATUS_FAIL;
-
-    if (ret == CS35L41_STATUS_OK)
     {
-        driver->control_sm.state = CS35L41_SM_STATE_DONE;
-    }
-    else
-    {
-        driver->control_sm.state = CS35L41_SM_STATE_ERROR;
+        //Failed to wake
+        ret = CS35L41_STATUS_FAIL;
     }
 
     return ret;
 }
-
-/**
- * Function pointer table for Private API implementation
- *
- * @attention Although not const, this should never be changed run-time in an end-product.  It is implemented this
- * way to facilitate unit testing.
- *
- */
-static cs35l41_private_functions_t cs35l41_private_functions_s =
-{
-    .timer_callback = &cs35l41_timer_callback,
-    .cp_read_callback = &cs35l41_cp_read_callback,
-    .cp_write_callback = &cs35l41_cp_write_callback,
-    .irq_callback = &cs35l41_irq_callback,
-    .read_reg = &cs35l41_read_reg,
-    .write_reg = &cs35l41_write_reg,
-    .reset_sm = &cs35l41_reset_sm,
-#ifdef INCLUDE_FW
-    .boot_sm = &cs35l41_boot_sm,
-#endif // INCLUDE_FW
-    .power_up_sm = &cs35l41_power_up_sm,
-    .power_down_sm = &cs35l41_power_down_sm,
-    .configure_sm = &cs35l41_configure_sm,
-    .field_access_sm = &cs35l41_field_access_sm,
-#ifdef INCLUDE_FW
-    .calibration_sm = &cs35l41_calibration_sm,
-    .get_dsp_status_sm = &cs35l41_get_dsp_status_sm,
-#endif // INCLUDE_FW
-    .event_sm = &cs35l41_event_sm,
-    .get_errata = &cs35l41_get_errata,
-    .cp_bulk_read = &cs35l41_cp_bulk_read,
-    .cp_bulk_write = &cs35l41_cp_bulk_write,
-    .apply_trim_word = &cs35l41_apply_trim_word,
-#ifdef INCLUDE_FW
-    .validate_boot_config = &cs35l41_validate_boot_config,
-#endif // INCLUDE_FW
-    .control_q_copy = &cs35l41_control_q_copy,
-    .is_control_valid = &cs35l41_is_control_valid,
-    .load_control = &cs35l41_load_control,
-#ifdef INCLUDE_FW
-    .is_mbox_status_correct = &cs35l41_is_mbox_status_correct,
-#endif // INCLUDE_FW
-    .irq_to_event_id = &cs35l41_irq_to_event_id,
-    .apply_configs = &cs35l41_apply_configs,
-    .is_mixer_source_used = &cs35l41_is_mixer_source_used,
-    .hibernate = &cs35l41_hibernate,
-    .wake = &cs35l41_wake,
-};
-
-/**
- * Pointer to Private API implementation
- */
-cs35l41_private_functions_t *cs35l41_private_functions_g = &cs35l41_private_functions_s;
 
 /***********************************************************************************************************************
  * API FUNCTIONS
@@ -4426,8 +2106,6 @@ cs35l41_private_functions_t *cs35l41_private_functions_g = &cs35l41_private_func
 
 /**
  * Initialize driver state/handle
- *
- * Implementation of cs35l41_functions_t.initialize
  *
  */
 uint32_t cs35l41_initialize(cs35l41_t *driver)
@@ -4441,21 +2119,8 @@ uint32_t cs35l41_initialize(cs35l41_t *driver)
          * - 'state' is set to UNCONFIGURED
          */
         memset(driver, 0, sizeof(cs35l41_t));
-        // Initialize the Control Request Queue
-        ret = f_queue_if_g->initialize(&(driver->control_q),
-                                       CS35L41_CONTROL_REQUESTS_SIZE,
-                                       driver->control_requests,
-                                       sizeof(cs35l41_control_request_t),
-                                       cs35l41_private_functions_g->control_q_copy);
 
-        if (ret == F_QUEUE_STATUS_OK)
-        {
-            ret = CS35L41_STATUS_OK;
-        }
-        else
-        {
-            ret = CS35L41_STATUS_FAIL;
-        }
+        ret = CS35L41_STATUS_OK;
     }
 
     return ret;
@@ -4464,8 +2129,6 @@ uint32_t cs35l41_initialize(cs35l41_t *driver)
 /**
  * Configures driver state/handle
  *
- * Implementation of cs35l41_functions_t.configure
- *
  */
 uint32_t cs35l41_configure(cs35l41_t *driver, cs35l41_config_t *config)
 {
@@ -4473,32 +2136,16 @@ uint32_t cs35l41_configure(cs35l41_t *driver, cs35l41_config_t *config)
 
     if ((NULL != driver) && \
         (NULL != config) && \
-        (NULL != config->cp_write_buffer) && \
-        (NULL != config->cp_read_buffer))
+        (NULL != config->bsp_config.cp_write_buffer) && \
+        (NULL != config->bsp_config.cp_read_buffer))
     {
-        driver->bsp_dev_id = config->bsp_dev_id;
-        driver->bsp_reset_gpio_id = config->bsp_reset_gpio_id;
-        driver->bsp_int_gpio_id = config->bsp_int_gpio_id;
-        driver->bus_type = config->bus_type;
-        driver->cp_write_buffer = config->cp_write_buffer;
-        driver->cp_read_buffer = config->cp_read_buffer;
-        driver->notification_cb = config->notification_cb;
-        driver->notification_cb_arg = config->notification_cb_arg;
+        driver->config = *config;
+
         // Advance driver to CONFIGURED state
         driver->state = CS35L41_STATE_CONFIGURED;
 
-        driver->audio_config = config->audio_config;
-        driver->amp_config = config->amp_config;
-#ifdef INCLUDE_FW
-        /*
-         * Copy the Calibration data.  If it is not valid (is_valid = false), then it will not be sent to the device
-         * during boot()
-         */
-        driver->cal_data = config->cal_data;
-#endif // INCLUDE_FW
-
-        ret = bsp_driver_if_g->register_gpio_cb(driver->bsp_int_gpio_id,
-                                                cs35l41_private_functions_g->irq_callback,
+        ret = bsp_driver_if_g->register_gpio_cb(driver->config.bsp_config.bsp_int_gpio_id,
+                                                cs35l41_irq_callback,
                                                 driver);
 
         if (ret == BSP_STATUS_OK)
@@ -4513,40 +2160,19 @@ uint32_t cs35l41_configure(cs35l41_t *driver, cs35l41_config_t *config)
 /**
  * Processes driver state machines
  *
- * Implementation of cs35l41_functions_t.process
- *
  */
 uint32_t cs35l41_process(cs35l41_t *driver)
 {
-    uint32_t ret;
-    uint32_t status = CS35L41_STATUS_OK;
-    uint32_t sm_ret = CS35L41_STATUS_OK;
-
     // check for driver state
     if ((driver->state != CS35L41_STATE_UNCONFIGURED) && (driver->state != CS35L41_STATE_ERROR))
     {
         // check for driver mode
         if (driver->mode == CS35L41_MODE_HANDLING_EVENTS)
         {
-            // run through event sm
-            sm_ret = cs35l41_private_functions_g->event_sm(driver);
-
-            if (sm_ret == CS35L41_STATUS_OK)
+            // run through event handler
+            if (CS35L41_STATUS_OK == cs35l41_event_handler(driver))
             {
-                // check current status of Event SM
-                if (driver->event_sm.state == CS35L41_SM_STATE_DONE)
-                {
-                    driver->mode = CS35L41_MODE_HANDLING_CONTROLS;
-
-                    // If a control port transaction was interrupted, restart the current Control Request
-                    if (CS35L41_IS_FLAG_SET(driver->control_sm.flags, CS35L41_FLAGS_REQUEST_RESTART))
-                    {
-                        driver->event_sm.state = CS35L41_EVENT_SM_STATE_INIT;
-                        // Need to reset current Control SM here
-                        driver->control_sm.state = CS35L41_SM_STATE_INIT;
-                        driver->control_sm.flags = 0;
-                    }
-                }
+                driver->mode = CS35L41_MODE_HANDLING_CONTROLS;
             }
             else
             {
@@ -4554,143 +2180,302 @@ uint32_t cs35l41_process(cs35l41_t *driver)
             }
         }
 
-        // Instead of 'else' here, re-check driver mode in case Event Handler SM previously transitioned to DONE
-        if (driver->mode == CS35L41_MODE_HANDLING_CONTROLS)
-        {
-            bool is_new_request_loaded;
-
-            do
-            {
-                // Is currently loaded control valid?
-                status = cs35l41_private_functions_g->is_control_valid(driver);
-
-                // If invalid, unload it
-                if (status == CS35L41_STATUS_INVALID)
-                {
-                    // Unload control
-                    driver->control_sm.fp = NULL;
-                    // Call request callback with status
-                    cs35l41_control_request_t r = driver->current_request;
-                    if (r.cb != NULL)
-                    {
-                        r.cb(r.id, CS35L41_STATUS_INVALID, r.cb_arg);
-                    }
-                }
-                // Handle currently loaded request
-                else if (status == CS35L41_STATUS_OK)
-                {
-                    // Step through Control SM
-                    sm_ret = driver->control_sm.fp(driver);
-
-                    /*
-                     *  If Control SM is now in state DONE, update driver state based on which Control Request was
-                     *  processed
-                     */
-                    if (driver->control_sm.state == CS35L41_SM_STATE_DONE)
-                    {
-                        switch (driver->current_request.id)
-                        {
-                            case CS35L41_CONTROL_ID_RESET:
-#ifdef INCLUDE_FW
-                                if ((driver->state == CS35L41_STATE_CONFIGURED) ||
-                                    (driver->state == CS35L41_STATE_DSP_STANDBY))
-#else
-                                if (driver->state == CS35L41_STATE_CONFIGURED)
-#endif // INCLUDE_FW
-                                {
-                                    driver->state = CS35L41_STATE_STANDBY;
-                                }
-                                break;
-
-#ifdef INCLUDE_FW
-                            case CS35L41_CONTROL_ID_BOOT:
-                                if (driver->state == CS35L41_STATE_STANDBY)
-                                {
-                                    driver->state = CS35L41_STATE_DSP_STANDBY;
-                                }
-                                break;
-#endif // INCLUDE_FW
-
-                            case CS35L41_CONTROL_ID_POWER_UP:
-                                if (driver->state == CS35L41_STATE_STANDBY)
-                                {
-                                    driver->state = CS35L41_STATE_POWER_UP;
-                                }
-#ifdef INCLUDE_FW
-                                else if (driver->state == CS35L41_STATE_DSP_STANDBY)
-                                {
-                                    driver->state = CS35L41_STATE_DSP_POWER_UP;
-                                }
-#endif // INCLUDE_FW
-                                break;
-
-                            case CS35L41_CONTROL_ID_POWER_DOWN:
-                                if (driver->state == CS35L41_STATE_POWER_UP)
-                                {
-                                    driver->state = CS35L41_STATE_STANDBY;
-                                }
-#ifdef INCLUDE_FW
-                                else if (driver->state == CS35L41_STATE_DSP_POWER_UP)
-                                {
-                                    driver->state = CS35L41_STATE_DSP_STANDBY;
-                                }
-#endif // INCLUDE_FW
-                                break;
-
-                            case CS35L41_CONTROL_ID_CONFIGURE:
-                            default:
-                                break;
-                        }
-                    }
-
-                    // If current control SM finished or error, unload it
-                    if ((driver->control_sm.state == CS35L41_SM_STATE_DONE) || (sm_ret == CS35L41_STATUS_FAIL))
-                    {
-                        driver->control_sm.fp = NULL;
-                        // Call request callback with status
-                        cs35l41_control_request_t r = driver->current_request;
-                        if (r.cb != NULL)
-                        {
-                            r.cb(r.id, sm_ret, r.cb_arg);
-                        }
-
-                        if (sm_ret == CS35L41_STATUS_FAIL)
-                        {
-                            driver->state = CS35L41_STATE_ERROR;
-                        }
-                    }
-                }
-
-                // If previous SM finished without error, try to load a new request from the Control Request Queue
-                is_new_request_loaded = false;
-                if ((sm_ret != CS35L41_STATUS_FAIL) && (driver->control_sm.fp == NULL))
-                {
-                    if (CS35L41_STATUS_OK == cs35l41_private_functions_g->load_control(driver))
-                    {
-                        is_new_request_loaded = true;
-                    }
-                }
-            }
-            /*
-             * If the last Control SM finished OK and there is a new Control Request loaded, keep processing.  Since
-             * each state machine is designed as non-run to completion (i.e. the SM function exits if there is a
-             * wait state), then this loop should not take much time to complete.
-             */
-            while ((sm_ret == CS35L41_STATUS_OK) && is_new_request_loaded);
-        }
-
         if (driver->state == CS35L41_STATE_ERROR)
         {
-            uint32_t temp_event_flag = 0;
-            CS35L41_SET_FLAG(temp_event_flag, CS35L41_EVENT_FLAG_SM_ERROR);
-            if (driver->notification_cb != NULL)
+            driver->event_flags |= CS35L41_EVENT_FLAG_STATE_ERROR;
+        }
+
+        if (driver->event_flags)
+        {
+            cs35l41_bsp_config_t *b = &(driver->config.bsp_config);
+            if (b->notification_cb != NULL)
             {
-                driver->notification_cb(temp_event_flag, driver->notification_cb_arg);
+                b->notification_cb(driver->event_flags, b->notification_cb_arg);
             }
+
+            driver->event_flags = 0;
         }
     }
 
-    ret = sm_ret;
+    return CS35L41_STATUS_OK;
+}
+
+/**
+ * Reset the CS35L41 and prepare for HALO FW booting
+ *
+ */
+uint32_t cs35l41_reset(cs35l41_t *driver)
+{
+    uint32_t ret;
+    uint8_t i;
+    uint32_t temp_reg_val;
+
+    // Drive RESET low for at least T_RLPW (1ms)
+    bsp_driver_if_g->set_gpio(driver->config.bsp_config.bsp_reset_gpio_id, BSP_GPIO_LOW);
+    bsp_driver_if_g->set_timer(CS35L41_T_RLPW_MS, NULL, NULL);
+    // Drive RESET high and wait for at least T_IRS (1ms)
+    bsp_driver_if_g->set_gpio(driver->config.bsp_config.bsp_reset_gpio_id, BSP_GPIO_HIGH);
+    bsp_driver_if_g->set_timer(CS35L41_T_IRS_MS, NULL, NULL);
+
+    // Start polling OTP_BOOT_DONE bit every 10ms
+    for (i = 0; i < CS35L41_POLL_OTP_BOOT_DONE_MAX; i++)
+    {
+        ret = cs35l41_read_reg(driver, CS35L41_OTP_CTRL_OTP_CTRL8_REG, &temp_reg_val);
+        if (ret)
+        {
+            return ret;
+        }
+
+        // If OTP_BOOT_DONE is set
+        if (temp_reg_val & OTP_CTRL_OTP_CTRL8_OTP_BOOT_DONE_STS_BITMASK)
+        {
+            break;
+        }
+
+        bsp_driver_if_g->set_timer(CS35L41_POLL_OTP_BOOT_DONE_MS, NULL, NULL);
+    }
+
+    if (i >= CS35L41_POLL_OTP_BOOT_DONE_MAX)
+    {
+        return CS35L41_STATUS_FAIL;
+    }
+
+    // Read DEVID
+    ret = cs35l41_read_reg(driver, CS35L41_SW_RESET_DEVID_REG, &(driver->devid));
+    if (ret)
+    {
+        return ret;
+    }
+    // Read REVID
+    ret = cs35l41_read_reg(driver, CS35L41_SW_RESET_REVID_REG, &(driver->revid));
+    if (ret)
+    {
+        return ret;
+    }
+
+    // Only Support CS35L41 B2
+    if ((driver->devid != CS35L41_DEVID) || (driver->revid != CS35L41_REVID_B2))
+    {
+        return CS35L41_STATUS_FAIL;
+    }
+
+    // Send errata
+    ret = cs35l41_write_errata(driver);
+    if (ret)
+    {
+        return ret;
+    }
+
+    // Read OTPID
+    ret = cs35l41_read_reg(driver, CS35L41_SW_RESET_OTPID_REG, &temp_reg_val);
+    if (ret)
+    {
+        return ret;
+    }
+    temp_reg_val &= CS35L41_SW_RESET_OTPID_OTPID_BITMASK;
+
+    // Find correct OTP Map based on OTPID
+    for (uint8_t i = 0; i < (sizeof(cs35l41_otp_maps)/sizeof(cs35l41_otp_map_t)); i++)
+    {
+        if (cs35l41_otp_maps[i].id == temp_reg_val)
+        {
+            driver->otp_map = &(cs35l41_otp_maps[i]);
+        }
+    }
+
+    // If no OTP Map found, indicate ERROR
+    if (driver->otp_map == NULL)
+    {
+        return CS35L41_STATUS_FAIL;
+    }
+
+    // Read entire OTP trim contents
+    ret = cs35l41_cp_bulk_read(driver, CS35L41_OTP_IF_OTP_MEM0_REG, CS35L41_OTP_SIZE_WORDS);
+    if (ret)
+    {
+        return ret;
+    }
+
+    // OTP Unpack
+    ret = cs35l41_otp_unpack(driver);
+    if (ret)
+    {
+        return ret;
+    }
+
+    // Stop clocks to HALO DSP Core
+    ret = cs35l41_write_reg(driver, XM_UNPACKED24_DSP1_CCM_CORE_CONTROL_REG, 0);
+    if (ret)
+    {
+        return ret;
+    }
+
+    if ((driver->state == CS35L41_STATE_CONFIGURED) ||
+        (driver->state == CS35L41_STATE_DSP_STANDBY))
+    {
+        driver->state = CS35L41_STATE_STANDBY;
+    }
+
+    return CS35L41_STATUS_OK;
+}
+
+/**
+ * Write block of data to the CS35L41 register file
+ *
+ */
+uint32_t cs35l41_write_block(cs35l41_t *driver, uint32_t addr, uint8_t *data, uint32_t size)
+{
+    if (addr == 0 || data == NULL || size == 0 || size % 4 != 0)
+    {
+        return CS35L41_STATUS_FAIL;
+    }
+
+    return cs35l41_cp_bulk_write(driver, addr, data, size);
+}
+
+/**
+ * Finish booting the CS35L41
+ *
+ */
+uint32_t cs35l41_boot(cs35l41_t *driver, fw_img_v1_info_t *fw_info)
+{
+    uint32_t temp_reg;
+    uint32_t ret = CS35L41_STATUS_OK;
+
+    driver->fw_info = fw_info;
+
+    // Initializing fw_info is okay, but do not proceed
+    if (driver->fw_info == NULL)
+    {
+        return CS35L41_STATUS_OK;
+    }
+
+    // Write all post-boot configs
+    ret = cs35l41_write_post_boot_config(driver);
+    if (ret)
+    {
+        return ret;
+    }
+
+    // If calibration data is valid
+    if ((!driver->is_cal_boot) && (driver->config.cal_data.is_valid))
+    {
+        // Write calibrated load impedance
+        temp_reg = cs35l41_find_symbol(driver, CS35L41_SYM_CSPL_CAL_R);
+        if (!temp_reg)
+        {
+            return CS35L41_STATUS_FAIL;
+        }
+        ret = cs35l41_write_reg(driver, temp_reg, driver->config.cal_data.r);
+        if (ret)
+        {
+            return ret;
+        }
+
+        // Write CAL_STATUS
+        temp_reg = cs35l41_find_symbol(driver, CS35L41_SYM_CSPL_CAL_STATUS);
+        if (!temp_reg)
+        {
+            return CS35L41_STATUS_FAIL;
+        }
+        ret = cs35l41_write_reg(driver, temp_reg, CS35L41_CAL_STATUS_CALIB_SUCCESS);
+        if (ret)
+        {
+            return ret;
+        }
+
+        // Write CAL_CHECKSUM
+        temp_reg = cs35l41_find_symbol(driver, CS35L41_SYM_CSPL_CAL_CHECKSUM);
+        if (!temp_reg)
+        {
+            return CS35L41_STATUS_FAIL;
+        }
+        ret = cs35l41_write_reg(driver,  temp_reg, (driver->config.cal_data.r + CS35L41_CAL_STATUS_CALIB_SUCCESS));
+        if (ret)
+        {
+            return ret;
+        }
+    }
+
+    driver->state = CS35L41_STATE_DSP_STANDBY;
+
+    return CS35L41_STATUS_OK;
+}
+
+/**
+ * Change the power state
+ *
+ */
+uint32_t cs35l41_power(cs35l41_t *driver, uint32_t power_state)
+{
+    uint32_t ret;
+    uint32_t (*fp)(cs35l41_t *driver) = NULL;
+    uint32_t next_state = CS35L41_STATE_UNCONFIGURED;
+
+    switch (power_state)
+    {
+        case CS35L41_POWER_UP:
+            if ((driver->state == CS35L41_STATE_STANDBY) ||
+                (driver->state == CS35L41_STATE_DSP_STANDBY))
+            {
+                fp = &cs35l41_power_up;
+
+                if (driver->state == CS35L41_STATE_STANDBY)
+                {
+                    next_state = CS35L41_STATE_POWER_UP;
+                }
+                else
+                {
+                    next_state = CS35L41_STATE_DSP_POWER_UP;
+                }
+            }
+            break;
+
+        case CS35L41_POWER_DOWN:
+            if ((driver->state == CS35L41_STATE_POWER_UP) ||
+                (driver->state == CS35L41_STATE_DSP_POWER_UP))
+            {
+                fp = &cs35l41_power_down;
+
+                if (driver->state == CS35L41_STATE_STANDBY)
+                {
+                    next_state = CS35L41_STATE_STANDBY;
+                }
+                else
+                {
+                    next_state = CS35L41_STATE_DSP_STANDBY;
+                }
+            }
+            break;
+
+        case CS35L41_POWER_HIBERNATE:
+            if (driver->state == CS35L41_STATE_DSP_STANDBY)
+            {
+                fp = &cs35l41_hibernate;
+                next_state = CS35L41_STATE_HIBERNATE;
+            }
+            break;
+
+        case CS35L41_POWER_WAKE:
+            if (driver->state == CS35L41_STATE_HIBERNATE)
+            {
+                fp = &cs35l41_wake;
+                next_state = CS35L41_STATE_DSP_STANDBY;
+            }
+            break;
+    }
+
+    if (fp == NULL)
+    {
+        return CS35L41_STATUS_FAIL;
+    }
+
+    ret = fp(driver);
+
+    if (ret == CS35L41_STATUS_OK)
+    {
+        driver->state = next_state;
+    }
 
     return ret;
 }
@@ -4698,164 +2483,129 @@ uint32_t cs35l41_process(cs35l41_t *driver)
 /**
  * Submit a Control Request to the driver
  *
- * Implementation of cs35l41_functions_t.control
- *
  */
 uint32_t cs35l41_control(cs35l41_t *driver, cs35l41_control_request_t req)
 {
-    uint32_t ret = CS35L41_STATUS_FAIL;
+    uint32_t ret = CS35L41_STATUS_OK;
 
-    // Check for valid Control Request ID
-    if ((req.id > CS35L41_CONTROL_ID_NONE) && (req.id <= CS35L41_CONTROL_ID_MAX))
+    driver->current_request = req;
+
+    switch (req.id)
     {
-        // Insert new request into Control Request Queue
-        ret = f_queue_if_g->insert(&(driver->control_q), &req);
-        if (ret == F_QUEUE_STATUS_OK)
-        {
-            ret = CS35L41_STATUS_OK;
-        }
+        case CS35L41_CONTROL_ID_GET_VOLUME:
+        case CS35L41_CONTROL_ID_SET_VOLUME:
+        case CS35L41_CONTROL_ID_GET_HALO_HEARTBEAT:
+            if (CS35L41_CONTROL_ID_GET_CONTROL(req.id) <= CS35L41_CONTROL_ID_FA_MAX)
+            {
+                bool is_get = (CS35L41_CONTROL_ID_GET_HANDLER(req.id) == CS35L41_CONTROL_ID_HANDLER_FA_GET);
+                ret = cs35l41_field_access(driver, fa_list[CS35L41_CONTROL_ID_GET_CONTROL(req.id)], is_get);
+            }
+
+            break;
+
+        case CS35L41_CONTROL_ID_GET_DSP_STATUS:
+            ret = cs35l41_get_dsp_status(driver);
+            break;
+
+        default:
+            break;
     }
 
     return ret;
 }
 
-/**
- * Boot the CS35L41
- *
- * Implementation of cs35l41_functions_t.boot
- *
- */
-uint32_t cs35l41_boot(cs35l41_t *driver, cs35l41_control_callback_t cb, void *cb_arg)
-{
-    uint32_t ret = CS35L41_STATUS_FAIL;
-    cs35l41_control_request_t r;
-
-    // Submit request for RESET Control
-    r.id = CS35L41_CONTROL_ID_RESET;
-    r.cb = cb;
-    r.cb_arg = cb_arg;
-    ret = cs35l41_functions_g->control(driver, r);
-
-#ifdef INCLUDE_FW
-    // Check that RESET Control submitted and that there are blocks of FW to load
-    if ((ret == CS35L41_STATUS_OK) && (driver->boot_config->fw_blocks != NULL))
-    {
-        uint32_t temp_flags = 0;
-        r.id = CS35L41_CONTROL_ID_BOOT;
-        CS35L41_SET_FLAG(temp_flags, CS35L41_FLAGS_REQUEST_FW_BOOT);
-        // Check that there are blocks of COEFF to load
-        if (driver->boot_config->coeff_blocks != NULL)
-        {
-            CS35L41_SET_FLAG(temp_flags, CS35L41_FLAGS_REQUEST_COEFF_BOOT);
-        }
-        // Pass in flags for FW/COEFF boot to Control SM
-        r.arg = (void *) temp_flags;
-        // Submit request for BOOT Control
-        ret = cs35l41_functions_g->control(driver, r);
-    }
-#endif // INCLUDE_FW
-
-#ifndef I2S_CONFIG_SHORTCUT
-    // If everything is okay, submit request for CONFIGURE Control
-    if (ret == CS35L41_STATUS_OK)
-    {
-        r.id = CS35L41_CONTROL_ID_CONFIGURE;
-        ret = cs35l41_functions_g->control(driver, r);
-    }
-#endif
-
-    return ret;
-}
-
-/**
- * Change the power state
- *
- * Implementation of cs35l41_functions_t.power
- *
- */
-uint32_t cs35l41_power(cs35l41_t *driver, uint32_t power_state, cs35l41_control_callback_t cb, void *cb_arg)
-{
-    uint32_t ret = CS35L41_STATUS_FAIL;
-    cs35l41_control_request_t r;
-
-    // Submit the correct request based on power_state
-    r.cb = cb;
-    r.cb_arg = cb_arg;
-
-    switch (power_state)
-    {
-        case CS35L41_POWER_UP:
-            r.id = CS35L41_CONTROL_ID_POWER_UP;
-            break;
-
-        case CS35L41_POWER_DOWN:
-            r.id = CS35L41_CONTROL_ID_POWER_DOWN;
-            break;
-
-        case CS35L41_POWER_HIBERNATE:
-            r.id = CS35L41_CONTROL_ID_HIBERNATE;
-            break;
-
-        case CS35L41_POWER_WAKE:
-            r.id = CS35L41_CONTROL_ID_WAKE;
-            break;
-    }
-
-    ret = cs35l41_functions_g->control(driver, r);
-
-    return ret;
-}
-
-#ifdef INCLUDE_FW
 /**
  * Calibrate the HALO DSP Protection Algorithm
  *
- * Implementation of cs35l41_functions_t.calibrate
- *
  */
-uint32_t cs35l41_calibrate(cs35l41_t *driver,
-                           uint32_t ambient_temp_deg_c,
-                           cs35l41_control_callback_t cb,
-                           void *cb_arg)
+uint32_t cs35l41_calibrate(cs35l41_t *driver, uint32_t ambient_temp_deg_c)
 {
-    uint32_t ret = CS35L41_STATUS_FAIL;
-    cs35l41_control_request_t r;
+    uint32_t temp_reg_val, temp_reg_address;
+    uint32_t ret = CS35L41_STATUS_OK;
 
-    // Submit Control Request for CALIBRATION
-    r.id = CS35L41_CONTROL_ID_CALIBRATION;
-    r.cb = cb;
-    r.cb_arg = cb_arg;
-    // Pass in Ambient deg C to Control SM
-    r.arg = (void *) ambient_temp_deg_c;
-    ret = cs35l41_functions_g->control(driver, r);
+    // Set the Ambient Temp (deg C)
+    temp_reg_address = cs35l41_find_symbol(driver, CS35L41_SYM_CSPL_CAL_AMBIENT);
+    if (!temp_reg_address)
+    {
+        return CS35L41_STATUS_FAIL;
+    }
+    ret = cs35l41_write_reg(driver, temp_reg_address, ambient_temp_deg_c);
+    if (ret)
+    {
+        return ret;
+    }
 
-    return ret;
+    // Wait for at least 2 seconds while DSP FW performs calibration
+    bsp_driver_if_g->set_timer(BSP_TIMER_DURATION_2S, NULL, NULL);
+
+    // Read the Calibration Status
+    temp_reg_address = cs35l41_find_symbol(driver, CS35L41_SYM_CSPL_CAL_STATUS);
+    if (!temp_reg_address)
+    {
+        return CS35L41_STATUS_FAIL;
+    }
+    ret = cs35l41_read_reg(driver, temp_reg_address, &temp_reg_val);
+    if (ret)
+    {
+        return ret;
+    }
+
+    if (temp_reg_val == CS35L41_CAL_STATUS_CALIB_SUCCESS)
+    {
+        // Read the Calibration Load Impedance "R"
+        temp_reg_address = cs35l41_find_symbol(driver, CS35L41_SYM_CSPL_CAL_R);
+        if (!temp_reg_address)
+        {
+            return CS35L41_STATUS_FAIL;
+        }
+        ret = cs35l41_read_reg(driver, temp_reg_address, &temp_reg_val);
+        if (ret)
+        {
+            return ret;
+        }
+    }
+    else
+    {
+        return CS35L41_STATUS_FAIL;
+    }
+
+    driver->config.cal_data.r = temp_reg_val;
+    // Read the Calibration Checksum
+    temp_reg_address = cs35l41_find_symbol(driver, CS35L41_SYM_CSPL_CAL_CHECKSUM);
+    if (!temp_reg_address)
+    {
+        return CS35L41_STATUS_FAIL;
+    }
+    ret = cs35l41_read_reg(driver, temp_reg_address, &temp_reg_val);
+    if (ret)
+    {
+        return ret;
+    }
+
+    // Verify the Calibration Checksum
+    if (temp_reg_val == (driver->config.cal_data.r + CS35L41_CAL_STATUS_CALIB_SUCCESS))
+    {
+        driver->config.cal_data.is_valid = true;
+    }
+    else
+    {
+        return CS35L41_STATUS_FAIL;
+    }
+
+    return CS35L41_STATUS_OK;
 }
 
-
-#endif // INCLUDE_FW
-
-/**
- * Function pointer table for Public API implementation
+/*!
+ * \mainpage Introduction
  *
- * @attention Although not const, this should never be changed run-time in an end-product.  It is implemented this
- * way to facilitate unit testing.
+ * This document outlines the driver source code included in the MCU Driver Software Package for the CS35L41 Boosted
+ * Amplifier.  This guide is primarily intended for those involved in end-system implementation, integration, and
+ * testing, who will use the CS35L41 MCU Driver Software Package to integrate the CS35L41 driver source code into the
+ * end-system's host MCU software.  After reviewing this guide, the reader will be able to begin software integration
+ * of the CS35L41 MCU driver and then have the ability to initialize, reset, boot, configure, and service events from
+ * the CS35L41.  This guide should be used along with the CS35L41 Datasheet.
  *
+ *  In order to obtain any additional materials, and for any questions regarding this guide, the MCU Driver
+ *  Software Package, or CS40L25 system integration, please contact your Cirrus Logic Representative.
  */
-static cs35l41_functions_t cs35l41_functions_s =
-{
-    .initialize = &cs35l41_initialize,
-    .configure = &cs35l41_configure,
-    .process = &cs35l41_process,
-    .control = &cs35l41_control,
-    .boot = &cs35l41_boot,
-    .power = &cs35l41_power,
-#ifdef INCLUDE_FW
-    .calibrate = &cs35l41_calibrate,
-#endif // INCLUDE_FW
-};
 
-/**
- * Pointer to Public API implementation
- */
-cs35l41_functions_t *cs35l41_functions_g = &cs35l41_functions_s;

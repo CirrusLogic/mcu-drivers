@@ -16,36 +16,36 @@
  * INCLUDES
  **********************************************************************************************************************/
 #include <stddef.h>
-#include "system_test_hw_0_bsp.h"
+#include <stdlib.h>
+#include "hw_0_bsp.h"
 #include "FreeRTOS.h"
 #include "task.h"
 
 /***********************************************************************************************************************
  * LOCAL LITERAL SUBSTITUTIONS
  **********************************************************************************************************************/
-//#define ONLY_PB_THREAD
-//#define INCLUDE_CALIBRATION
+#define APP_STATE_CAL_PDN               (0)
+#define APP_STATE_CAL_BOOTED            (1)
+#define APP_STATE_CAL_PUP               (2)
+#define APP_STATE_CALIBRATED            (3)
+#define APP_STATE_PDN                   (4)
+#define APP_STATE_BOOTED                (5)
+#define APP_STATE_PUP                   (6)
+#define APP_STATE_MUTE                  (7)
+#define APP_STATE_UNMUTE                (8)
+#define APP_STATE_HIBERNATE             (9)
+#define APP_STATE_WAKE                  (10)
+#define APP_STATE_CHECK_PROCESSING      (11)
 
-#define APP_AUDIO_STATE_CALIBRATING         (0)
-#define APP_AUDIO_STATE_BOOTING             (1)
-#define APP_AUDIO_STATE_PDN                 (2)
-#define APP_AUDIO_STATE_PUP                 (3)
-#define APP_AUDIO_STATE_MUTE                (4)
-#define APP_AUDIO_STATE_UNMUTE              (5)
-#define APP_AUDIO_STATE_HIBERNATE           (6)
-#define APP_AUDIO_STATE_WAKE                (7)
-
-#define APP_AMP_AUDIO_THREAD_FLAG_PB_PRESSED    (1 << 0)
-#define APP_AMP_AUDIO_THREAD_FLAG_BSP_CB        (1 << 1)
+#define AMP_CONTROL_FLAG_PB_PRESSED         (1 << 0)
+#define APP_FLAG_BSP_NOTIFICATION           (1 << 1)
 
 /***********************************************************************************************************************
  * LOCAL VARIABLES
  **********************************************************************************************************************/
-static uint8_t app_audio_state = APP_AUDIO_STATE_PDN;
-static bool is_calibrated = false;
-static bool is_processing = false;
-static TaskHandle_t AppAmpAudioTaskHandle = NULL;
-static TaskHandle_t BspTaskHandle = NULL;
+static uint8_t app_audio_state = APP_STATE_CAL_PDN;
+static TaskHandle_t AmpControlTaskHandle = NULL;
+static TaskHandle_t AmpEventTaskHandle = NULL;
 
 /***********************************************************************************************************************
  * GLOBAL VARIABLES
@@ -54,7 +54,30 @@ static TaskHandle_t BspTaskHandle = NULL;
 /***********************************************************************************************************************
  * LOCAL FUNCTIONS
  **********************************************************************************************************************/
-void app_bsp_callback(uint32_t status, void *arg)
+void app_bsp_notification_callback(uint32_t status, void *arg)
+{
+    BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+
+    if (status == BSP_STATUS_FAIL)
+    {
+        exit(1);
+    }
+    else if (status == BSP_STATUS_DUT_EVENTS)
+    {
+        xTaskNotifyFromISR(AmpEventTaskHandle,
+                           (int32_t) arg,
+                            eSetBits,
+                            &xHigherPriorityTaskWoken);
+        if (xHigherPriorityTaskWoken == pdTRUE)
+        {
+            portYIELD();
+        }
+    }
+
+    return;
+}
+
+void app_bsp_pb_callback(uint32_t status, void *arg)
 {
     BaseType_t xHigherPriorityTaskWoken = pdFALSE;
 
@@ -63,36 +86,24 @@ void app_bsp_callback(uint32_t status, void *arg)
         exit(1);
     }
 
-    xTaskNotifyFromISR(AppAmpAudioTaskHandle,
+    xTaskNotifyFromISR(AmpControlTaskHandle,
                        (int32_t) arg,
-                        eSetBits,
-                        &xHigherPriorityTaskWoken);
+                       eSetBits,
+                       &xHigherPriorityTaskWoken);
 
     return;
 }
 
 void app_init(void)
 {
-    bsp_initialize(app_bsp_callback, (void *) APP_AMP_AUDIO_THREAD_FLAG_BSP_CB);
-    bsp_register_pb_cb(BSP_PB_ID_USER, app_bsp_callback, (void *) APP_AMP_AUDIO_THREAD_FLAG_PB_PRESSED);
-    bsp_amp_initialize();
-
-#ifdef INCLUDE_CALIBRATION
-    bsp_audio_play_record(BSP_PLAY_SILENCE);
-    bsp_amp_boot(BOOT_AMP_TYPE_CALIBRATION_TUNE);
-    is_calibrated = false;
-#else
-    bsp_audio_play_record(BSP_PLAY_STEREO_1KHZ_20DBFS);
-    bsp_amp_boot(BOOT_AMP_TYPE_NORMAL_TUNE);
-    is_calibrated = true;
-#endif
-    app_audio_state = APP_AUDIO_STATE_PDN;
+    bsp_initialize(app_bsp_notification_callback, (void *) APP_FLAG_BSP_NOTIFICATION);
+    bsp_register_pb_cb(BSP_PB_ID_USER, app_bsp_pb_callback, (void *) AMP_CONTROL_FLAG_PB_PRESSED);
+    bsp_dut_initialize();
 
     return;
 }
 
-#ifdef ONLY_PB_THREAD
-static void AppShowPbPressedThread(void *argument)
+static void AmpControlThread(void *argument)
 {
     uint32_t flags;
 
@@ -100,117 +111,144 @@ static void AppShowPbPressedThread(void *argument)
     {
         /* Wait to be notified of an interrupt. */
         xTaskNotifyWait(pdFALSE,    /* Don't clear bits on entry. */
-                        APP_AMP_AUDIO_THREAD_FLAG_PB_PRESSED,
-                        &flags, /* Stores the notified value. */
-                        portMAX_DELAY);
-        if (flags & APP_AMP_AUDIO_THREAD_FLAG_PB_PRESSED)
-        {
-            bsp_toggle_gpio(BSP_GPIO_ID_LD2);
-        }
-    }
-
-    return;
-}
-#else
-static void AppAmpAudioThread(void *argument)
-{
-    uint32_t flags;
-
-    for (;;)
-    {
-        /* Wait to be notified of an interrupt. */
-        xTaskNotifyWait(pdFALSE,    /* Don't clear bits on entry. */
-                        APP_AMP_AUDIO_THREAD_FLAG_PB_PRESSED | APP_AMP_AUDIO_THREAD_FLAG_BSP_CB,
+                        AMP_CONTROL_FLAG_PB_PRESSED,
                         &flags, /* Stores the notified value. */
                         portMAX_DELAY);
 
         switch (app_audio_state)
         {
-            case APP_AUDIO_STATE_CALIBRATING:
-                if (flags & APP_AMP_AUDIO_THREAD_FLAG_BSP_CB)
+            case APP_STATE_CAL_PDN:
+                if (flags & AMP_CONTROL_FLAG_PB_PRESSED)
                 {
-                    is_calibrated = true;
+                    bsp_audio_stop();
+                    bsp_audio_play_record(BSP_PLAY_SILENCE);
+                    bsp_dut_reset();
+                    bsp_dut_boot(true);
+                    app_audio_state = APP_STATE_CAL_BOOTED;
+                }
+                break;
+
+            case APP_STATE_CAL_BOOTED:
+                if (flags & AMP_CONTROL_FLAG_PB_PRESSED)
+                {
+                    bsp_dut_power_up();
+                    app_audio_state = APP_STATE_CAL_PUP;
+                }
+                break;
+
+            case APP_STATE_CAL_PUP:
+                if (flags & AMP_CONTROL_FLAG_PB_PRESSED)
+                {
+                    bsp_dut_calibrate();
+                    app_audio_state = APP_STATE_CALIBRATED;
+                }
+                break;
+
+            case APP_STATE_CALIBRATED:
+                if (flags & AMP_CONTROL_FLAG_PB_PRESSED)
+                {
+                    bsp_dut_power_down();
+                    app_audio_state = APP_STATE_PDN;
+                }
+                break;
+
+            case APP_STATE_PDN:
+                if (flags & AMP_CONTROL_FLAG_PB_PRESSED)
+                {
                     bsp_audio_stop();
                     bsp_audio_play_record(BSP_PLAY_STEREO_1KHZ_20DBFS);
-                    bsp_amp_boot(BOOT_AMP_TYPE_NORMAL_TUNE);
-                    app_audio_state = APP_AUDIO_STATE_BOOTING;
+                    bsp_dut_reset();
+                    bsp_dut_boot(false);
+                    app_audio_state = APP_STATE_BOOTED;
                 }
                 break;
 
-            case APP_AUDIO_STATE_BOOTING:
-                if (flags & APP_AMP_AUDIO_THREAD_FLAG_BSP_CB)
+            case APP_STATE_BOOTED:
+                if (flags & AMP_CONTROL_FLAG_PB_PRESSED)
                 {
-                    app_audio_state = APP_AUDIO_STATE_PDN;
+                    bsp_dut_power_up();
+                    app_audio_state = APP_STATE_CHECK_PROCESSING;
                 }
                 break;
 
-            case APP_AUDIO_STATE_PDN:
-                if (flags & APP_AMP_AUDIO_THREAD_FLAG_PB_PRESSED)
+            case APP_STATE_CHECK_PROCESSING:
+                if (flags & AMP_CONTROL_FLAG_PB_PRESSED)
                 {
-                    bsp_amp_power_up();
-                    app_audio_state = APP_AUDIO_STATE_PUP;
+                    bool is_processing = false;
+                    bsp_dut_is_processing(&is_processing);
+
+                    if (is_processing)
+                    {
+                        app_audio_state = APP_STATE_PUP;
+                    }
                 }
                 break;
 
-            case APP_AUDIO_STATE_PUP:
-                if ((flags & APP_AMP_AUDIO_THREAD_FLAG_PB_PRESSED) && (is_calibrated))
+            case APP_STATE_PUP:
+                if (flags & AMP_CONTROL_FLAG_PB_PRESSED)
                 {
-                    bsp_amp_mute(true);
-                    app_audio_state = APP_AUDIO_STATE_MUTE;
-                }
-                else if ((flags == APP_AMP_AUDIO_THREAD_FLAG_BSP_CB) && (!is_calibrated))
-                {
-                    bsp_amp_calibrate();
-                    app_audio_state = APP_AUDIO_STATE_CALIBRATING;
+                    bsp_dut_mute(true);
+                    app_audio_state = APP_STATE_MUTE;
                 }
                 break;
 
-            case APP_AUDIO_STATE_MUTE:
-                if (flags & APP_AMP_AUDIO_THREAD_FLAG_PB_PRESSED)
+            case APP_STATE_MUTE:
+                if (flags & AMP_CONTROL_FLAG_PB_PRESSED)
                 {
-                    bsp_amp_mute(false);
-                    app_audio_state = APP_AUDIO_STATE_UNMUTE;
+                    bsp_dut_mute(false);
+                    app_audio_state = APP_STATE_UNMUTE;
                 }
                 break;
 
-            case APP_AUDIO_STATE_UNMUTE:
-                if (flags & APP_AMP_AUDIO_THREAD_FLAG_PB_PRESSED)
+            case APP_STATE_UNMUTE:
+                if (flags & AMP_CONTROL_FLAG_PB_PRESSED)
                 {
-                    bsp_amp_power_down();
-                    app_audio_state = APP_AUDIO_STATE_HIBERNATE;
+                    bsp_dut_power_down();
+                    app_audio_state = APP_STATE_HIBERNATE;
                 }
                 break;
 
-            case APP_AUDIO_STATE_HIBERNATE:
-                if (flags & APP_AMP_AUDIO_THREAD_FLAG_PB_PRESSED)
+            case APP_STATE_HIBERNATE:
+                if (flags & AMP_CONTROL_FLAG_PB_PRESSED)
                 {
-                    bsp_amp_hibernate();
-                    app_audio_state = APP_AUDIO_STATE_WAKE;
+                    bsp_dut_hibernate();
+                    app_audio_state = APP_STATE_WAKE;
                 }
                 break;
 
-            case APP_AUDIO_STATE_WAKE:
-                if (flags & APP_AMP_AUDIO_THREAD_FLAG_PB_PRESSED)
+            case APP_STATE_WAKE:
+                if (flags & AMP_CONTROL_FLAG_PB_PRESSED)
                 {
-                    bsp_amp_wake();
-                    app_audio_state = APP_AUDIO_STATE_PDN;
+                    bsp_dut_wake();
+                    app_audio_state = APP_STATE_CAL_PDN;
                 }
                 break;
 
             default:
                 break;
         }
+
+        flags = 0;
     }
 }
 
-static void AppBspThread(void *argument)
+static void AmpEventThread(void *argument)
 {
+    uint32_t flags = 0;
+
     for (;;)
     {
-        bsp_amp_process();
+        /* Wait to be notified of an interrupt. */
+        xTaskNotifyWait(pdFALSE,    /* Don't clear bits on entry. */
+                        APP_FLAG_BSP_NOTIFICATION,
+                        &flags, /* Stores the notified value. */
+                        portMAX_DELAY);
+
+        bsp_dut_process();
+
+        flags = 0;
     }
 }
-#endif
 
 /***********************************************************************************************************************
  * API FUNCTIONS
@@ -220,29 +258,20 @@ int main(void)
 {
     int ret_val = 0;
 
-    app_init();
+    xTaskCreate(AmpControlThread,
+                "AmpControlTask",
+                configMINIMAL_STACK_SIZE,
+                (void *) NULL,
+                tskIDLE_PRIORITY,
+                &AmpControlTaskHandle);
+    xTaskCreate(AmpEventThread,
+                "AmpEventTask",
+                configMINIMAL_STACK_SIZE,
+                (void *) NULL,
+                tskIDLE_PRIORITY,
+                &AmpEventTaskHandle);
 
-#ifdef ONLY_PB_THREAD
-    xTaskCreate(AppShowPbPressedThread,
-                "AppShowPbPressedTask",
-                configMINIMAL_STACK_SIZE,
-                (void *) NULL,
-                tskIDLE_PRIORITY,
-                &AppAmpAudioTaskHandle);
-#else
-    xTaskCreate(AppAmpAudioThread,
-                "AppAmpAudioTask",
-                configMINIMAL_STACK_SIZE,
-                (void *) NULL,
-                tskIDLE_PRIORITY,
-                &AppAmpAudioTaskHandle);
-    xTaskCreate(AppBspThread,
-                "BspTask",
-                configMINIMAL_STACK_SIZE,
-                (void *) NULL,
-                tskIDLE_PRIORITY,
-                &BspTaskHandle);
-#endif
+    app_init();
 
     /* Start scheduler */
     vTaskStartScheduler();

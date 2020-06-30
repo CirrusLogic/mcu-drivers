@@ -1,10 +1,10 @@
 /**
- * @file version.h
+ * @file hw_0_bsp_dut.h
  *
- * @brief CS35L41 driver software version literals
+ * @brief Functions and prototypes exported by the BSP module for the system_test_hw_0 platform.
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2019 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2020 All Rights Reserved, http://www.cirrus.com/
  *
  * This code and information are provided 'as-is' without warranty of any
  * kind, either expressed or implied, including but not limited to the
@@ -13,8 +13,8 @@
  *
  */
 
-#ifndef VERSION_H
-#define VERSION_H
+#ifndef HW_0_BSP_DUT_H
+#define HW_0_BSP_DUT_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -23,30 +23,13 @@ extern "C" {
 /***********************************************************************************************************************
  * INCLUDES
  **********************************************************************************************************************/
+#include "bsp_driver_if.h"
+#include <stdbool.h>
 
 /***********************************************************************************************************************
  * LITERALS & CONSTANTS
  **********************************************************************************************************************/
-
-/**
- * @defgroup VERSION_
- * @brief Defines for the release version of the driver
- *
- * @details
- * Versions for the CS35L41 driver are defined as:
- * - Major - The interface of the firmware or module has changed in a way that breaks backwards compatibility. This
- * means that the module will not work as before if the old interface is used.
- * - Minor - The interface of the firmware or module has changed, but not in a way that breaks backwards compatibility.
- * This means that the module will work as before if the old interface is used.
- * - Patch - The function has changed without changing the interface, for instance for a bug fix.
- *
- * @{
- */
-#define VERSION_MAJOR   (2) ///< Release Major version
-#define VERSION_MINOR   (0) ///< Release Minor version
-#define VERSION_PATCH   (0) ///< Release Patch version
-/** @} */
-
+#define BSP_DUT_I2C_ADDRESS_8BIT                            (0x80)
 
 /***********************************************************************************************************************
  * MACROS
@@ -63,10 +46,21 @@ extern "C" {
 /***********************************************************************************************************************
  * API FUNCTIONS
  **********************************************************************************************************************/
+uint32_t bsp_dut_initialize(void);
+uint32_t bsp_dut_reset(void);
+uint32_t bsp_dut_boot(bool cal_boot);
+uint32_t bsp_dut_calibrate(void);
+uint32_t bsp_dut_power_up(void);
+uint32_t bsp_dut_power_down(void);
+uint32_t bsp_dut_mute(bool is_mute);
+uint32_t bsp_dut_is_processing(bool *is_processing);
+uint32_t bsp_dut_hibernate(void);
+uint32_t bsp_dut_wake(void);
+uint32_t bsp_dut_process(void);
 
 /**********************************************************************************************************************/
 #ifdef __cplusplus
 }
 #endif
 
-#endif // VERSION_H
+#endif // HW_0_BSP_DUT_H

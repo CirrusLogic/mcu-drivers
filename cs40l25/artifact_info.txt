@@ -1,18 +1,20 @@
 Artifact Info:
-Artifact           : CS40L25Alt-OS Driver: 0.2.0
+Artifact           : CS40L25 Alt-OS Driver: 1.0.0
 Test Target MCU SDK: STM32Cube_FW_F4: 1.24.1
 Target toolchain   : GNU Arm Embedded Toolchain: arm-none-eabi-gcc (GNU Tools for Arm Embedded Processors 8-2019-q3-update) 8.3.1 20190703 (release) [gcc-8-branch revision 273027]
-Build system       : make: GNU Make 4.2.1
-OS                 : Windows: 10
-Shell              : MSYS2: msys2-runtime 3.0.7-6
-Host toolchain     : MinGW GCC: gcc (Rev1, Built by MSYS2 project) 9.2.0
-Build Job          : princeh_alt_os_nightly: 85
-Git SHA            : 1694dcadcf7cd3045a403d74f93ba0b6c0da2c2d
+Build system       : make: GNU Make 3.82
+OS                 : Linux: 3.10.0-1127.el7.x86_64
+Shell              : bash: GNU bash, version 4.2.46(2)-release (x86_64-redhat-linux-gnu)
+Host toolchain     : MinGW GCC: gcc (GCC) 4.8.5 20150623 (Red Hat 4.8.5-39)
+Build Job          : princeh_alt_os_nightly: 129
+Git SHA            : c75af6bd12c38f4c6b9c04cd375660c3b08fa54f
 
 System resources:
-Library TEXT    : 13562 bytes
+
+Library name    : /var/lib/jenkins/jobs/princeh_alt_os_nightly/workspace/build_driver_lib_cm4/build/cs40l25/libcs40l25
+Library TEXT    : 6270 bytes
 Library BSS     : 0 bytes
-Library DATA    : 172 bytes
+Library DATA    : 0 bytes
 BSP RAM         : 0 bytes
 Compiler flags:
     -mcpu=cortex-m4

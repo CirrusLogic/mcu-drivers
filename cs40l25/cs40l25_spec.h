@@ -128,6 +128,24 @@ extern const uint8_t cs40l25_bst_k2_table[4][5];
 extern const uint8_t cs40l25_bst_slope_table[4];
 /** @} */
 
+
+/**
+ * @defgroup SECTION_4_13_AUDIO_SERIAL_PORT_DATA_INTERFACE
+ * @brief Register descriptions from datasheet
+ *
+ * @see Datasheet Section 4.13
+ *
+ * @{
+ */
+/**
+ * Beta value used to calculate value for CCM_FS_MON_0_REG
+ *
+ * @see Section 4.13.9
+ *
+ */
+#define CS40L25_FS_MON0_BETA                                                (6000000)
+/** @} */
+
 /**
  * @defgroup SECTION_7_1_SW_RESET
  * @brief Register descriptions from datasheet
@@ -227,6 +245,31 @@ typedef union
 } cs40l25_msm_block_enables2_t;
 
 #define MSM_ERROR_RELEASE_REG                                               (0x2034)        ///< @see Section 7.5.6
+/** @} */
+
+/**
+ * @defgroup SECTION_7_6_PAD_INTF
+ * @brief Register descriptions from datasheet
+ *
+ * @see Datasheet Section 7.6
+ *
+ * @{
+ */
+#define CS40L25_GPIO_PAD_CONTROL_REG                                        (0x242c)        ///< @see Section 7.6.3
+
+typedef union
+{
+    uint32_t word;
+
+    struct
+    {
+        uint32_t reserved_0                 : 16;
+        uint32_t gp1_ctrl                   : 3;
+        uint32_t reserved_1                 : 5;
+        uint32_t gp2_ctrl                   : 3;
+        uint32_t reserved_2                 : 5;
+    };
+} cs40l25_gpio_pad_control_t;
 /** @} */
 
 /**
@@ -747,6 +790,13 @@ typedef union
 #define DSP_VIRTUAL1_MBOX_DSP_VIRTUAL1_MBOX_1_REG                           (0x13020)       ///< @see Section 7.28.1
 #define DSP_VIRTUAL1_MBOX_DSP_VIRTUAL1_MBOX_2_REG                           (0x13024)       ///< @see Section 7.28.2
 #define DSP_VIRTUAL1_MBOX_DSP_VIRTUAL1_MBOX_4_REG                           (0x1302C)       ///< @see Section 7.28.4
+#define DSP_VIRTUAL1_MBOX_DSP_VIRTUAL1_MBOX_4_NONE                          (0x0)           ///< @see Section 7.28.4
+#define DSP_VIRTUAL1_MBOX_DSP_VIRTUAL1_MBOX_4_WAKEUP                        (0x2)           ///< @see Section 7.28.4
+#define DSP_VIRTUAL1_MBOX_DSP_VIRTUAL1_MBOX_4_FORCE_STANDBY                 (0x3)           ///< @see Section 7.28.4
+#define DSP_VIRTUAL1_MBOX_DSP_VIRTUAL1_MBOX_5_REG                           (0x13030)       ///< @see Section 7.28.5
+#define DSP_VIRTUAL1_MBOX_DSP_VIRTUAL1_MBOX_5_NONE                          (0x0)           ///< @see Section 7.28.5
+#define DSP_VIRTUAL1_MBOX_DSP_VIRTUAL1_MBOX_5_START_I2S                     (0x2)           ///< @see Section 7.28.5
+#define DSP_VIRTUAL1_MBOX_DSP_VIRTUAL1_MBOX_5_STOP_I2S                      (0x3)           ///< @see Section 7.28.5
 /** @} */
 
 /**

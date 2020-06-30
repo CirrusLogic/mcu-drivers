@@ -15,31 +15,31 @@
 /***********************************************************************************************************************
  * INCLUDES
  **********************************************************************************************************************/
-#include "system_test_hw_0_bsp.h"
+#include "hw_0_bsp.h"
 #include <stddef.h>
+#include <stdlib.h>
 
 /***********************************************************************************************************************
  * LOCAL LITERAL SUBSTITUTIONS
  **********************************************************************************************************************/
-//#define INCLUDE_CALIBRATION
+#define APP_STATE_CAL_PDN               (0)
+#define APP_STATE_CAL_BOOTED            (1)
+#define APP_STATE_CAL_PUP               (2)
+#define APP_STATE_CALIBRATED            (3)
+#define APP_STATE_PDN                   (4)
+#define APP_STATE_BOOTED                (5)
+#define APP_STATE_PUP                   (6)
+#define APP_STATE_MUTE                  (7)
+#define APP_STATE_UNMUTE                (8)
+#define APP_STATE_HIBERNATE             (9)
+#define APP_STATE_WAKE                  (10)
+#define APP_STATE_CHECK_PROCESSING      (11)
 
-#define APP_AUDIO_STATE_CALIBRATING         (0)
-#define APP_AUDIO_STATE_BOOTING             (1)
-#define APP_AUDIO_STATE_PDN                 (2)
-#define APP_AUDIO_STATE_PUP                 (3)
-#define APP_AUDIO_STATE_MUTE                (4)
-#define APP_AUDIO_STATE_UNMUTE              (5)
-#define APP_AUDIO_STATE_HIBERNATE           (6)
-#define APP_AUDIO_STATE_WAKE                (7)
-#define APP_AUDIO_STATE_CHECK_PROCESSING    (8)
 /***********************************************************************************************************************
  * LOCAL VARIABLES
  **********************************************************************************************************************/
-static uint8_t app_audio_state = APP_AUDIO_STATE_PDN;
-static bool app_bsp_cb_called = false;
+static uint8_t app_audio_state = APP_STATE_CAL_PDN;
 static bool bsp_pb_pressed = false;
-static bool is_calibrated = false;
-static bool is_processing = false;
 
 /***********************************************************************************************************************
  * GLOBAL VARIABLES
@@ -50,8 +50,6 @@ static bool is_processing = false;
  **********************************************************************************************************************/
 void app_bsp_callback(uint32_t status, void *arg)
 {
-    app_bsp_cb_called = true;
-
     if (status != BSP_STATUS_OK)
     {
         exit(1);
@@ -75,22 +73,11 @@ int main(void)
     int ret_val = 0;
 
     bsp_initialize(app_bsp_callback, NULL);
-    bsp_amp_initialize();
-
-#ifdef INCLUDE_CALIBRATION
-    bsp_audio_play_record(BSP_PLAY_SILENCE);
-    bsp_amp_boot(BOOT_AMP_TYPE_CALIBRATION_TUNE);
-    is_calibrated = false;
-#else
-    bsp_audio_play_record(BSP_PLAY_STEREO_1KHZ_20DBFS);
-    bsp_amp_boot(BOOT_AMP_TYPE_NORMAL_TUNE);
-    is_calibrated = true;
-#endif
-    app_audio_state = APP_AUDIO_STATE_PDN;
+    bsp_dut_initialize();
 
     while (1)
     {
-        bsp_amp_process();
+        bsp_dut_process();
         if (bsp_was_pb_pressed(BSP_PB_ID_USER))
         {
             bsp_pb_pressed = true;
@@ -98,87 +85,110 @@ int main(void)
 
         switch (app_audio_state)
         {
-            case APP_AUDIO_STATE_CALIBRATING:
-                if (app_bsp_cb_called)
+            case APP_STATE_CAL_PDN:
+                if (bsp_pb_pressed)
                 {
-                    is_calibrated = true;
+                    bsp_audio_stop();
+                    bsp_audio_play_record(BSP_PLAY_SILENCE);
+                    bsp_dut_reset();
+                    bsp_dut_boot(true);
+                    app_audio_state = APP_STATE_CAL_BOOTED;
+                }
+                break;
+
+            case APP_STATE_CAL_BOOTED:
+                if (bsp_pb_pressed)
+                {
+                    bsp_dut_power_up();
+                    app_audio_state = APP_STATE_CAL_PUP;
+                }
+                break;
+
+            case APP_STATE_CAL_PUP:
+                if (bsp_pb_pressed)
+                {
+                    bsp_dut_calibrate();
+                    app_audio_state = APP_STATE_CALIBRATED;
+                }
+                break;
+
+            case APP_STATE_CALIBRATED:
+                if (bsp_pb_pressed)
+                {
+                    bsp_dut_power_down();
+                    app_audio_state = APP_STATE_PDN;
+                }
+                break;
+
+            case APP_STATE_PDN:
+                if (bsp_pb_pressed)
+                {
                     bsp_audio_stop();
                     bsp_audio_play_record(BSP_PLAY_STEREO_1KHZ_20DBFS);
-                    bsp_amp_boot(BOOT_AMP_TYPE_NORMAL_TUNE);
-                    app_audio_state = APP_AUDIO_STATE_BOOTING;
+                    bsp_dut_reset();
+                    bsp_dut_boot(false);
+                    app_audio_state = APP_STATE_BOOTED;
                 }
                 break;
 
-            case APP_AUDIO_STATE_BOOTING:
-                if (app_bsp_cb_called)
-                {
-                    app_audio_state = APP_AUDIO_STATE_PDN;
-                }
-                break;
-
-            case APP_AUDIO_STATE_PDN:
+            case APP_STATE_BOOTED:
                 if (bsp_pb_pressed)
                 {
-                    bsp_amp_power_up();
-                    app_audio_state = APP_AUDIO_STATE_CHECK_PROCESSING;
+                    bsp_dut_power_up();
+                    app_audio_state = APP_STATE_CHECK_PROCESSING;
                 }
                 break;
 
-            case APP_AUDIO_STATE_CHECK_PROCESSING:
+            case APP_STATE_CHECK_PROCESSING:
                 if (bsp_pb_pressed)
                 {
-                    is_processing = false;
-                    bsp_amp_is_processing(&is_processing);
+                    bool is_processing = false;
+                    bsp_dut_is_processing(&is_processing);
 
                     if (is_processing)
                     {
-                        app_audio_state = APP_AUDIO_STATE_PUP;
+                        app_audio_state = APP_STATE_PUP;
                     }
                 }
                 break;
 
-            case APP_AUDIO_STATE_PUP:
-                if ((bsp_pb_pressed) && (is_calibrated))
+            case APP_STATE_PUP:
+                if (bsp_pb_pressed)
                 {
-                    bsp_amp_mute(true);
-                    app_audio_state = APP_AUDIO_STATE_MUTE;
-                }
-                else if ((app_bsp_cb_called) && (!is_calibrated))
-                {
-                    bsp_amp_calibrate();
-                    app_audio_state = APP_AUDIO_STATE_CALIBRATING;
+                    bsp_dut_mute(true);
+                    app_audio_state = APP_STATE_MUTE;
                 }
                 break;
 
-            case APP_AUDIO_STATE_MUTE:
+            case APP_STATE_MUTE:
                 if (bsp_pb_pressed)
                 {
-                    bsp_amp_mute(false);
-                    app_audio_state = APP_AUDIO_STATE_UNMUTE;
+                    bsp_dut_mute(false);
+                    app_audio_state = APP_STATE_UNMUTE;
                 }
                 break;
 
-            case APP_AUDIO_STATE_UNMUTE:
+            case APP_STATE_UNMUTE:
                 if (bsp_pb_pressed)
                 {
-                    bsp_amp_power_down();
-                    app_audio_state = APP_AUDIO_STATE_HIBERNATE;
+                    bsp_dut_power_down();
+                    app_audio_state = APP_STATE_HIBERNATE;
                 }
                 break;
 
-            case APP_AUDIO_STATE_HIBERNATE:
+            case APP_STATE_HIBERNATE:
                 if (bsp_pb_pressed)
                 {
-                    bsp_amp_hibernate();
-                    app_audio_state = APP_AUDIO_STATE_WAKE;
+                    bsp_dut_hibernate();
+                    app_audio_state = APP_STATE_WAKE;
                 }
                 break;
 
-            case APP_AUDIO_STATE_WAKE:
+            case APP_STATE_WAKE:
                 if (bsp_pb_pressed)
                 {
-                    bsp_amp_wake();
-                    app_audio_state = APP_AUDIO_STATE_PDN;
+                    bsp_dut_wake();
+                    app_audio_state = APP_STATE_CAL_PDN;
                 }
                 break;
 
@@ -186,7 +196,6 @@ int main(void)
                 break;
         }
 
-        app_bsp_cb_called = false;
         bsp_pb_pressed = false;
 
         bsp_sleep();

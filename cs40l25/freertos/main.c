@@ -16,33 +16,43 @@
  * INCLUDES
  **********************************************************************************************************************/
 #include <stddef.h>
-#include "system_test_hw_0_bsp.h"
+#include <stdlib.h>
+#include "hw_0_bsp.h"
 #include "FreeRTOS.h"
 #include "task.h"
 
 /***********************************************************************************************************************
  * LOCAL LITERAL SUBSTITUTIONS
  **********************************************************************************************************************/
-//#define ONLY_PB_THREAD
-//#define INCLUDE_CALIBRATION
+#define APP_STATE_UNINITIALIZED             (0)
+#define APP_STATE_PUP                       (1)
+#define APP_STATE_BUZZ                      (2)
+#define APP_STATE_PDN                       (3)
+#define APP_STATE_BOOTED_CAL                (4)
+#define APP_STATE_POWER_UP_CAL              (5)
+#define APP_STATE_CAL_DONE                  (6)
+#define APP_STATE_PDN_2                     (7)
+#define APP_STATE_BOOTED                    (8)
+#define APP_STATE_POWER_UP                  (9)
+#define APP_STATE_POWER_UP_NO_GPI           (10)
+#define APP_STATE_DYNAMIC_F0                (11)
+#define APP_STATE_POWER_UP_GPI              (12)
+#define APP_STATE_I2S_ENABLED               (13)
+#define APP_STATE_I2S_ENABLED_PLAY_TONE     (14)
+#define APP_STATE_I2S_DISABLED              (15)
+#define APP_STATE_AUDIO_STOPPED             (16)
+#define APP_STATE_HIBERNATE                 (17)
+#define APP_STATE_WAKE                      (18)
 
-#define APP_AUDIO_STATE_CALIBRATING     (0)
-#define APP_AUDIO_STATE_BOOTING         (1)
-#define APP_AUDIO_STATE_PDN             (2)
-#define APP_AUDIO_STATE_PUP             (3)
-#define APP_AUDIO_STATE_MUTE            (4)
-#define APP_AUDIO_STATE_UNMUTE          (5)
-
-#define APP_AMP_AUDIO_THREAD_FLAG_PB_PRESSED    (1 << 0)
-#define APP_AMP_AUDIO_THREAD_FLAG_BSP_CB        (1 << 1)
+#define HAPTIC_CONTROL_FLAG_PB_PRESSED      (1 << 0)
+#define APP_FLAG_BSP_NOTIFICATION           (1 << 1)
 
 /***********************************************************************************************************************
  * LOCAL VARIABLES
  **********************************************************************************************************************/
-static uint8_t app_audio_state = APP_AUDIO_STATE_PDN;
-static bool is_calibrated = false;
-static TaskHandle_t AppAmpAudioTaskHandle = NULL;
-static TaskHandle_t BspTaskHandle = NULL;
+static uint8_t app_state = APP_STATE_PUP;
+static TaskHandle_t HapticControlTaskHandle = NULL;
+static TaskHandle_t HapticEventTaskHandle = NULL;
 
 /***********************************************************************************************************************
  * GLOBAL VARIABLES
@@ -51,7 +61,30 @@ static TaskHandle_t BspTaskHandle = NULL;
 /***********************************************************************************************************************
  * LOCAL FUNCTIONS
  **********************************************************************************************************************/
-void app_bsp_callback(uint32_t status, void *arg)
+void app_bsp_notification_callback(uint32_t status, void *arg)
+{
+    BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+
+    if (status == BSP_STATUS_FAIL)
+    {
+        exit(1);
+    }
+    else if (status == BSP_STATUS_DUT_EVENTS)
+    {
+        xTaskNotifyFromISR(HapticEventTaskHandle,
+                           (int32_t) arg,
+                           eSetBits,
+                           &xHigherPriorityTaskWoken);
+        if (xHigherPriorityTaskWoken == pdTRUE)
+        {
+            portYIELD();
+        }
+    }
+
+    return;
+}
+
+void app_bsp_pb_callback(uint32_t status, void *arg)
 {
     BaseType_t xHigherPriorityTaskWoken = pdFALSE;
 
@@ -60,138 +93,232 @@ void app_bsp_callback(uint32_t status, void *arg)
         exit(1);
     }
 
-    xTaskNotifyFromISR(AppAmpAudioTaskHandle,
+    xTaskNotifyFromISR(HapticControlTaskHandle,
                        (int32_t) arg,
-                        eSetBits,
-                        &xHigherPriorityTaskWoken);
+                       eSetBits,
+                       &xHigherPriorityTaskWoken);
 
     return;
 }
 
 void app_init(void)
 {
-    bsp_initialize(app_bsp_callback, (void *) APP_AMP_AUDIO_THREAD_FLAG_BSP_CB);
-    bsp_register_pb_cb(BSP_PB_ID_USER, app_bsp_callback, (void *) APP_AMP_AUDIO_THREAD_FLAG_PB_PRESSED);
-    bsp_haptic_initialize(BOOT_HAPTIC_TYPE_WT);
+    bsp_initialize(app_bsp_notification_callback, (void *) APP_FLAG_BSP_NOTIFICATION);
+    bsp_register_pb_cb(BSP_PB_ID_USER, app_bsp_pb_callback, (void *) HAPTIC_CONTROL_FLAG_PB_PRESSED);
+    bsp_dut_initialize();
 
-#ifdef INCLUDE_CALIBRATION
-    bsp_audio_play_record(BSP_PLAY_SILENCE);
-    bsp_haptic_boot(false);
-    is_calibrated = false;
-#else
-    bsp_audio_play_record(BSP_PLAY_STEREO_1KHZ_20DBFS);
-    bsp_haptic_boot(false);
-    is_calibrated = true;
+    return;
+}
+
+static void HapticControlThread(void *argument)
+{
+    uint32_t flags = 0;
+
+    for (;;)
+    {
+
+        /* Wait to be notified of an interrupt. */
+        xTaskNotifyWait(pdFALSE,    /* Don't clear bits on entry. */
+                        HAPTIC_CONTROL_FLAG_PB_PRESSED,
+                        &flags, /* Stores the notified value. */
+                        portMAX_DELAY);
+
+        switch (app_state)
+        {
+            case APP_STATE_PUP:
+                if (flags & HAPTIC_CONTROL_FLAG_PB_PRESSED)
+                {
+#ifndef CONFIG_TEST_OPEN_LOOP
+                    bsp_dut_control(BSP_HAPTIC_CONTROL_SET_BHM_BUZZ_TRIGGER, (void *) 0x1);
 #endif
-    app_audio_state = APP_AUDIO_STATE_PDN;
+                    app_state++;
+                }
+                break;
 
-    return;
-}
-
-#ifdef ONLY_PB_THREAD
-static void AppShowPbPressedThread(void *argument)
-{
-    uint32_t flags;
-
-    for (;;)
-    {
-        /* Wait to be notified of an interrupt. */
-        xTaskNotifyWait(pdFALSE,    /* Don't clear bits on entry. */
-                        APP_AMP_AUDIO_THREAD_FLAG_PB_PRESSED,
-                        &flags, /* Stores the notified value. */
-                        portMAX_DELAY);
-        if (flags & APP_AMP_AUDIO_THREAD_FLAG_PB_PRESSED)
-        {
-            bsp_toggle_gpio(BSP_GPIO_ID_LD2);
-        }
-    }
-
-    return;
-}
-#else
-static void AppAmpAudioThread(void *argument)
-{
-    uint32_t flags;
-
-    for (;;)
-    {
-        /* Wait to be notified of an interrupt. */
-        xTaskNotifyWait(pdFALSE,    /* Don't clear bits on entry. */
-                        APP_AMP_AUDIO_THREAD_FLAG_PB_PRESSED | APP_AMP_AUDIO_THREAD_FLAG_BSP_CB,
-                        &flags, /* Stores the notified value. */
-                        portMAX_DELAY);
-
-        switch (app_audio_state)
-        {
-            case APP_AUDIO_STATE_CALIBRATING:
-                if (flags & APP_AMP_AUDIO_THREAD_FLAG_BSP_CB)
+            case APP_STATE_BUZZ:
+                if (flags & HAPTIC_CONTROL_FLAG_PB_PRESSED)
                 {
-                    is_calibrated = true;
-                    bsp_audio_stop();
+                    bsp_dut_power_down();
+                    app_state++;
+                }
+                break;
+
+            case APP_STATE_PDN:
+                if (flags & HAPTIC_CONTROL_FLAG_PB_PRESSED)
+                {
+                    bsp_dut_boot(true);
+                    app_state++;
+                }
+                break;
+
+            case APP_STATE_BOOTED_CAL:
+                if (flags & HAPTIC_CONTROL_FLAG_PB_PRESSED)
+                {
+                    bsp_dut_power_up();
+                    app_state++;
+                }
+                break;
+
+            case APP_STATE_POWER_UP_CAL:
+                if (flags & HAPTIC_CONTROL_FLAG_PB_PRESSED)
+                {
+                    bsp_dut_calibrate();
+                    app_state++;
+                }
+                break;
+
+            case APP_STATE_CAL_DONE:
+                if (flags & HAPTIC_CONTROL_FLAG_PB_PRESSED)
+                {
+                    bsp_dut_power_down();
+                    app_state++;
+                }
+                break;
+
+            case APP_STATE_PDN_2:
+                if (flags & HAPTIC_CONTROL_FLAG_PB_PRESSED)
+                {
+                    bsp_dut_boot(false);
+                    app_state++;
+                }
+                break;
+
+            case APP_STATE_BOOTED:
+                if (flags & HAPTIC_CONTROL_FLAG_PB_PRESSED)
+                {
+                    bsp_dut_power_up();
+                    app_state++;
+                }
+                break;
+
+            case APP_STATE_POWER_UP:
+                if (flags & HAPTIC_CONTROL_FLAG_PB_PRESSED)
+                {
+                    bsp_dut_control(BSP_HAPTIC_CONTROL_GET_HALO_HEARTBEAT, (void *) 0);
+                    bsp_dut_control(BSP_HAPTIC_CONTROL_SET_CLAB_ENABLED, (void *) 0x0);
+                    bsp_dut_control(BSP_HAPTIC_CONTROL_SET_TRIGGER_INDEX, (void *) 0x1);
+                    bsp_dut_control(BSP_HAPTIC_CONTROL_SET_GPIO_ENABLE, (void *) 0x0);
+                    bsp_dut_control(BSP_HAPTIC_CONTROL_SET_GPIO1_BUTTON_DETECT, (void *) 0x0);
+                    bsp_dut_control(BSP_HAPTIC_CONTROL_SET_GPIO2_BUTTON_DETECT, (void *) 0x0);
+                    bsp_dut_control(BSP_HAPTIC_CONTROL_SET_GPIO3_BUTTON_DETECT, (void *) 0x0);
+                    bsp_dut_control(BSP_HAPTIC_CONTROL_SET_GPIO4_BUTTON_DETECT, (void *) 0x0);
+                    bsp_dut_control(BSP_HAPTIC_CONTROL_SET_GPI_GAIN_CONTROL, (void *) 0x0);
+                    bsp_dut_control(BSP_HAPTIC_CONTROL_SET_CTRL_PORT_GAIN_CONTROL, (void *) 0x0);
+                    bsp_dut_control(BSP_HAPTIC_CONTROL_SET_GPIO1_INDEX_BUTTON_PRESS, (void *) 0x3);
+                    bsp_dut_control(BSP_HAPTIC_CONTROL_SET_GPIO1_INDEX_BUTTON_RELEASE, (void *) 0x4);
+                    app_state++;
+                }
+                break;
+
+            case APP_STATE_POWER_UP_NO_GPI:
+                if (flags & HAPTIC_CONTROL_FLAG_PB_PRESSED)
+                {
+                    bsp_dut_control(BSP_HAPTIC_CONTROL_SET_CLAB_ENABLED, (void *) 0x1);
+                    bsp_dut_control(BSP_HAPTIC_CONTROL_SET_TIMEOUT_MS, (void *) 1000);
+                    bsp_dut_control(BSP_HAPTIC_CONTROL_GET_HALO_HEARTBEAT, (void *) 0);
+                    bsp_dut_control(BSP_HAPTIC_CONTROL_SET_TRIGGER_MS, (void *) 0x0);
+                    bsp_dut_control(BSP_HAPTIC_CONTROL_SET_GPIO_ENABLE, (void *) 0x1);
+                    bsp_dut_control(BSP_HAPTIC_CONTROL_SET_GPIO1_BUTTON_DETECT, (void *) 0x1);
+                    bsp_dut_control(BSP_HAPTIC_CONTROL_SET_GPIO2_BUTTON_DETECT, (void *) 0x1);
+                    bsp_dut_control(BSP_HAPTIC_CONTROL_SET_GPIO3_BUTTON_DETECT, (void *) 0x1);
+                    bsp_dut_control(BSP_HAPTIC_CONTROL_SET_GPIO4_BUTTON_DETECT, (void *) 0x1);
+                    bsp_dut_control(BSP_HAPTIC_CONTROL_SET_GPIO1_INDEX_BUTTON_PRESS, (void *) 0x1);
+                    bsp_dut_control(BSP_HAPTIC_CONTROL_SET_GPIO1_INDEX_BUTTON_RELEASE, (void *) 0x2);
+                    app_state++;
+                }
+                break;
+
+            case APP_STATE_DYNAMIC_F0:
+                if (flags & HAPTIC_CONTROL_FLAG_PB_PRESSED)
+                {
+#ifdef DYNAMIC_F0_SUPPORTED
+                    bsp_dut_dynamic_calibrate();
+#endif
+                    app_state++;
+                }
+                break;
+
+            case APP_STATE_POWER_UP_GPI:
+                if (flags & HAPTIC_CONTROL_FLAG_PB_PRESSED)
+                {
+                    bsp_dut_start_i2s();
+                    app_state++;
+                }
+                break;
+
+            case APP_STATE_I2S_ENABLED:
+                if (flags & HAPTIC_CONTROL_FLAG_PB_PRESSED)
+                {
                     bsp_audio_play_record(BSP_PLAY_STEREO_1KHZ_20DBFS);
-                    bsp_haptic_boot(false);
-                    app_audio_state = APP_AUDIO_STATE_BOOTING;
+                    app_state++;
                 }
                 break;
 
-            case APP_AUDIO_STATE_BOOTING:
-                if (flags & APP_AMP_AUDIO_THREAD_FLAG_BSP_CB)
+            case APP_STATE_I2S_ENABLED_PLAY_TONE:
+                if (flags & HAPTIC_CONTROL_FLAG_PB_PRESSED)
                 {
-                    app_audio_state = APP_AUDIO_STATE_PDN;
+                    bsp_dut_stop_i2s();
+                    app_state++;
                 }
                 break;
 
-            case APP_AUDIO_STATE_PDN:
-                if (flags & APP_AMP_AUDIO_THREAD_FLAG_PB_PRESSED)
+            case APP_STATE_I2S_DISABLED:
+                if (flags & HAPTIC_CONTROL_FLAG_PB_PRESSED)
                 {
-                    bsp_haptic_power_up();
-                    app_audio_state = APP_AUDIO_STATE_PUP;
+                    bsp_audio_stop();
+                    app_state++;
                 }
                 break;
 
-            case APP_AUDIO_STATE_PUP:
-                if ((flags & APP_AMP_AUDIO_THREAD_FLAG_PB_PRESSED) && (is_calibrated))
+            case APP_STATE_AUDIO_STOPPED:
+                if (flags & HAPTIC_CONTROL_FLAG_PB_PRESSED)
                 {
-                    bsp_haptic_mute(true);
-                    app_audio_state = APP_AUDIO_STATE_MUTE;
-                }
-                else if ((flags == APP_AMP_AUDIO_THREAD_FLAG_BSP_CB) && (!is_calibrated))
-                {
-                    bsp_haptic_calibrate();
-                    app_audio_state = APP_AUDIO_STATE_CALIBRATING;
+                    bsp_dut_hibernate();
+                    app_state++;
                 }
                 break;
 
-            case APP_AUDIO_STATE_MUTE:
-                if (flags & APP_AMP_AUDIO_THREAD_FLAG_PB_PRESSED)
+            case APP_STATE_HIBERNATE:
+                if (flags & HAPTIC_CONTROL_FLAG_PB_PRESSED)
                 {
-                    bsp_haptic_mute(false);
-                    app_audio_state = APP_AUDIO_STATE_UNMUTE;
+                    bsp_dut_wake();
+                    app_state++;
                 }
                 break;
 
-            case APP_AUDIO_STATE_UNMUTE:
-                if (flags & APP_AMP_AUDIO_THREAD_FLAG_PB_PRESSED)
+            case APP_STATE_WAKE:
+                if (flags & HAPTIC_CONTROL_FLAG_PB_PRESSED)
                 {
-                    bsp_haptic_power_down();
-                    app_audio_state = APP_AUDIO_STATE_PDN;
+                    bsp_dut_power_down();
+                    app_state = APP_STATE_PDN;
                 }
                 break;
 
             default:
                 break;
         }
+
+        flags = 0;
     }
 }
 
-static void AppBspThread(void *argument)
+static void HapticEventThread(void *argument)
 {
+    uint32_t flags = 0;
+
     for (;;)
     {
-        bsp_haptic_process();
+        /* Wait to be notified of an interrupt. */
+        xTaskNotifyWait(pdFALSE,    /* Don't clear bits on entry. */
+                        APP_FLAG_BSP_NOTIFICATION,
+                        &flags, /* Stores the notified value. */
+                        portMAX_DELAY);
+
+        bsp_dut_process();
+
+        flags = 0;
     }
 }
-#endif
 
 /***********************************************************************************************************************
  * API FUNCTIONS
@@ -203,27 +330,21 @@ int main(void)
 
     app_init();
 
-#ifdef ONLY_PB_THREAD
-    xTaskCreate(AppShowPbPressedThread,
-                "AppShowPbPressedTask",
+    xTaskCreate(HapticControlThread,
+                "HapticControlTask",
                 configMINIMAL_STACK_SIZE,
                 (void *) NULL,
                 tskIDLE_PRIORITY,
-                &AppAmpAudioTaskHandle);
-#else
-    xTaskCreate(AppAmpAudioThread,
-                "AppAmpAudioTask",
+                &HapticControlTaskHandle);
+
+    xTaskCreate(HapticEventThread,
+                "HapticEventTask",
                 configMINIMAL_STACK_SIZE,
                 (void *) NULL,
-                tskIDLE_PRIORITY,
-                &AppAmpAudioTaskHandle);
-    xTaskCreate(AppBspThread,
-                "BspTask",
-                configMINIMAL_STACK_SIZE,
-                (void *) NULL,
-                tskIDLE_PRIORITY,
-                &BspTaskHandle);
-#endif
+                (tskIDLE_PRIORITY + 1),
+                &HapticEventTaskHandle);
+
+    bsp_dut_reset();
 
     /* Start scheduler */
     vTaskStartScheduler();

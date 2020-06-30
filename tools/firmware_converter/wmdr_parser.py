@@ -31,8 +31,9 @@
 import os
 import sys
 import io
-from wmfw_parser import wmfw_component, user_defined_name_text_block_type, \
-    halo_block_types_memory_region_u24, halo_block_types_memory_region_p32, halo_block_types_memory_region_u32
+from wmfw_parser import wmfw_component, user_defined_name_text_block_type, metadata_block_type, \
+    halo_block_types_memory_region_u24, halo_block_types_memory_region_p32, halo_block_types_memory_region_pm32, halo_block_types_memory_region_u32, \
+    informational_text_block_type
 
 #==========================================================================
 # VERSION
@@ -113,6 +114,8 @@ class wmdr_block:
         # Based on type, assign memory type
         if (self.fields['type'] in halo_block_types_memory_region_u24):
             self.memory_type = 'u24'
+        elif (self.fields['type'] in halo_block_types_memory_region_pm32):
+            self.memory_type = 'pm32'
         elif (self.fields['type'] in halo_block_types_memory_region_p32):
             self.memory_type = 'p32'
         elif (self.fields['type'] in halo_block_types_memory_region_u32):
@@ -165,13 +168,66 @@ class wmdr_user_defined_name_block(wmdr_block):
         output_str = output_str + "--text: " + self.text + "\n"
         return output_str
 
+class wmdr_metadata_block(wmdr_block):
+    def __init__(self, file):
+        wmdr_block.__init__(self, file)
+        self.text = ''
+        return
+
+    def parse(self, file):
+        wmdr_block.parse(self, file)
+
+        # Read padding bytes
+        # Padding bytes is 4 - ((length byte + name_length bytes) modulo 4)
+        padding_bytes_total = get_padding_bytes(self.fields['data_length'])
+        for i in range(0, padding_bytes_total):
+            self.get_next_int(file, 1)
+
+        # Convert data into text
+        self.text = b''.join(self.data).decode('utf-8')
+
+        return
+
+    def __str__(self):
+        output_str = component_to_string(self, 'User Defined Name Block')
+        output_str = output_str + "--meta: " + self.text + "\n"
+        return output_str
+
+
+class wmdr_informational_text_data_block(wmdr_block):
+
+    def __init__(self, file):
+        wmdr_block.__init__(self, file)
+        self.text = ''
+        return
+
+    def parse(self, file):
+        wmdr_block.parse(self, file)
+        
+        # Read padding bytes
+        # Padding bytes is 4 - ((length byte + name_length bytes) modulo 4)
+        padding_bytes_total = get_padding_bytes(self.fields['data_length'])
+        for i in range(0, padding_bytes_total):
+            self.get_next_int(file, 1)
+
+        # Convert data into text
+        self.text = b''.join(self.data).decode('utf-8')
+
+        return
+
+    def __str__(self):
+        output_str = component_to_string(self, 'Informational Text Data Block')
+        output_str = output_str + "--text: " + self.text + "\n"
+        return output_str
 
 class wmdr_parser:
 
     def __init__(self, filename):
         self.filename = filename
         self.user_defined_name_block = None
+        self.metadata_block = None
         self.coefficient_value_data_blocks = []
+        self.informational_text_blocks = []
 
         return
 
@@ -191,17 +247,26 @@ class wmdr_parser:
             if (temp_block_type == (user_defined_name_text_block_type << 8)):
                 self.user_defined_name_block = wmdr_user_defined_name_block(f)
                 self.user_defined_name_block.parse(f)
+            elif (temp_block_type == (metadata_block_type << 8)):
+                self.metadata_block = wmdr_metadata_block(f)
+                self.metadata_block.parse(f)
+            elif (temp_block_type == (informational_text_block_type << 8)):
+                self.informational_text_blocks.append(wmdr_informational_text_data_block(f))
+                self.informational_text_blocks[-1].parse(f)
             else:
                 self.coefficient_value_data_blocks.append(wmdr_block(f))
                 self.coefficient_value_data_blocks[-1].parse(f)
-
         return
 
     def __str__(self):
         output_str = str(self.header) + "\n"
         output_str = output_str + str(self.user_defined_name_block) + "\n"
+        if (self.metadata_block):
+            output_str = output_str + str(self.metadata_block) + "\n"
         for block in self.coefficient_value_data_blocks:
             output_str = output_str + str(block) + "\n"
+        for block in self.informational_text_blocks:
+            output_str = output_str + str(block) + "\n"        
 
         return output_str
 

@@ -45,7 +45,7 @@ header_file_template_str = """/**
  * kind, either expressed or implied, including but not limited to the
  * implied warranties of merchantability and/or fitness for a particular
  * purpose.
- *
+{metadata_text} *
  */
 
 #ifndef {part_number_uc}_FIRMWARE_H
@@ -269,6 +269,7 @@ class header_file:
         self.terms['include_coeff_0'] = ''
         self.terms['include_coeff_1'] = ''
         self.terms['fw_id'] = fw_meta['fw_id']
+        self.terms['metadata_text'] = ' *\n'
         self.algorithm_controls = dict()
         return
 
@@ -285,6 +286,10 @@ class header_file:
         if (self.algorithm_controls.get(algorithm_name, None) == None):
             self.algorithm_controls[algorithm_name] = []
         self.algorithm_controls[algorithm_name].append((control_name, address))
+        return
+        
+    def add_metadata_text_line(self, line):
+        self.terms['metadata_text'] = self.terms['metadata_text'] + ' * ' + line + '\n'
         return
 
     def __str__(self):
@@ -342,6 +347,8 @@ class header_file:
         output_str = output_str.replace('{total_fw_blocks}', self.terms['total_fw_blocks'])
         output_str = output_str.replace('{part_number_lc}', self.terms['part_number_lc'])
         output_str = output_str.replace('{part_number_uc}', self.terms['part_number_uc'])
+        
+        output_str = output_str.replace('{metadata_text}', self.terms['metadata_text'])
 
         output_str = output_str.replace('\n\n\n', '\n\n')
         return output_str
