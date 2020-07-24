@@ -141,18 +141,6 @@ typedef struct
     uint32_t (*set_gpio)(uint32_t gpio_id, uint8_t gpio_state);
 
     /**
-     * Toggle GPIO state
-     *
-     * @param [in] gpio_id      ID for GPIO to change - can be defined in implementation header
-     *
-     * @return
-     * - BSP_STATUS_FAIL        if gpio_id is invalid, or call to MCU HAL fails
-     * - BSP_STATUS_OK          otherwise
-     *
-     */
-    uint32_t (*toggle_gpio)(uint32_t gpio_id);
-
-    /**
      * Register GPIO Callback
      *
      * Register a callback for when a GPIO changes state.
@@ -282,6 +270,30 @@ typedef struct
                           uint32_t write_length_1,
                           bsp_callback_t cb,
                           void *cb_arg);
+
+    /**
+     * Global enable of interrupts
+     *
+     * Since this is MCU-platform specific, it is included as part of the BSP-Driver interface.
+     *
+     * @return
+     * - BSP_STATUS_FAIL            if bsp_dev_id is invalid, if any portion of I2C transaction failed
+     * - BSP_STATUS_OK              otherwise
+     *
+     */
+    uint32_t (*enable_irq)(void);
+
+    /**
+     * Global disable of interrupts
+     *
+     * Since this is MCU-platform specific, it is included as part of the BSP-Driver interface.
+     *
+     * @return
+     * - BSP_STATUS_FAIL            if bsp_dev_id is invalid, if any portion of I2C transaction failed
+     * - BSP_STATUS_OK              otherwise
+     *
+     */
+    uint32_t (*disable_irq)(void);
 } bsp_driver_if_t;
 
 /***********************************************************************************************************************

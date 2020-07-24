@@ -1351,7 +1351,6 @@ uint32_t bsp_register_pb_cb(uint32_t pb_id, bsp_app_callback_t cb, void *cb_arg)
 static bsp_driver_if_t bsp_driver_if_s =
 {
     .set_gpio = &bsp_set_gpio,
-    .toggle_gpio = &bsp_toggle_gpio,
     .register_gpio_cb = &bsp_register_gpio_cb,
     .set_timer = &bsp_set_timer,
     .i2c_read_repeated_start = &bsp_i2c_read_repeated_start,

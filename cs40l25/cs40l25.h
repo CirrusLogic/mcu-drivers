@@ -692,7 +692,7 @@ typedef struct
  * @param [in] driver           Pointer to the driver state
  *
  * @return
- * - CS40L25_STATUS_FAIL        if call to f_queue_if_t fails
+ * - CS40L25_STATUS_FAIL        if pointer to driver is NULL
  * - CS40L25_STATUS_OK          otherwise
  *
  */

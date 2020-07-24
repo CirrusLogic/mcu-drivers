@@ -299,20 +299,20 @@ static const uint32_t cs40l25_frame_sync_regs[] =
  */
 static const uint32_t cs40l25_config_register_symbols[CS40L25_CONFIG_REGISTERS_TOTAL] =
 {
-    CS40L25_SYM_GENERAL_GPIO_BUTTONDETECT,
-    CS40L25_SYM_GENERAL_GPIO_ENABLE,
-    CS40L25_SYM_GENERAL_GAIN_CONTROL,
-    CS40L25_SYM_GENERAL_INDEXBUTTONPRESS,
-    CS40L25_SYM_GENERAL_INDEXBUTTONPRESS,
-    CS40L25_SYM_GENERAL_INDEXBUTTONPRESS,
-    CS40L25_SYM_GENERAL_INDEXBUTTONPRESS,
-    CS40L25_SYM_GENERAL_INDEXBUTTONRELEASE,
-    CS40L25_SYM_GENERAL_INDEXBUTTONRELEASE,
-    CS40L25_SYM_GENERAL_INDEXBUTTONRELEASE,
-    CS40L25_SYM_GENERAL_INDEXBUTTONRELEASE,
+    CS40L25_SYM_FIRMWARE_PRINCE_HAPCTRL_RAM_REMAP_DF0_CLAB_GPIO_BUTTONDETECT,
+    CS40L25_SYM_FIRMWARE_PRINCE_HAPCTRL_RAM_REMAP_DF0_CLAB_GPIO_ENABLE,
+    CS40L25_SYM_FIRMWARE_PRINCE_HAPCTRL_RAM_REMAP_DF0_CLAB_GAIN_CONTROL,
+    CS40L25_SYM_FIRMWARE_PRINCE_HAPCTRL_RAM_REMAP_DF0_CLAB_INDEXBUTTONPRESS,
+    CS40L25_SYM_FIRMWARE_PRINCE_HAPCTRL_RAM_REMAP_DF0_CLAB_INDEXBUTTONPRESS,
+    CS40L25_SYM_FIRMWARE_PRINCE_HAPCTRL_RAM_REMAP_DF0_CLAB_INDEXBUTTONPRESS,
+    CS40L25_SYM_FIRMWARE_PRINCE_HAPCTRL_RAM_REMAP_DF0_CLAB_INDEXBUTTONPRESS,
+    CS40L25_SYM_FIRMWARE_PRINCE_HAPCTRL_RAM_REMAP_DF0_CLAB_INDEXBUTTONRELEASE,
+    CS40L25_SYM_FIRMWARE_PRINCE_HAPCTRL_RAM_REMAP_DF0_CLAB_INDEXBUTTONRELEASE,
+    CS40L25_SYM_FIRMWARE_PRINCE_HAPCTRL_RAM_REMAP_DF0_CLAB_INDEXBUTTONRELEASE,
+    CS40L25_SYM_FIRMWARE_PRINCE_HAPCTRL_RAM_REMAP_DF0_CLAB_INDEXBUTTONRELEASE,
     CS40L25_SYM_CLAB_CLAB_ENABLED,
     CS40L25_SYM_CLAB_PEAK_AMPLITUDE_CONTROL,
-    CS40L25_SYM_GENERAL_EVENTCONTROL,
+    CS40L25_SYM_FIRMWARE_PRINCE_HAPCTRL_RAM_REMAP_DF0_CLAB_EVENTCONTROL,
 };
 
 static const uint32_t cs40l25_wseq_regs[] =
@@ -361,20 +361,20 @@ static const uint32_t cs40l25_wseq_regs[] =
  */
 static const uint32_t cs40l25_dsp_status_symbols[CS40L25_DSP_STATUS_WORDS_TOTAL] =
 {
-        CS40L25_SYM_GENERAL_HALO_STATE,
-        CS40L25_SYM_GENERAL_HALO_HEARTBEAT
+        CS40L25_SYM_FIRMWARE_PRINCE_HAPCTRL_RAM_REMAP_DF0_CLAB_HALO_STATE,
+        CS40L25_SYM_FIRMWARE_PRINCE_HAPCTRL_RAM_REMAP_DF0_CLAB_HALO_HEARTBEAT
 };
 
 static const uint32_t cs40l2x_event_controls[CS40L25_EVENT_SOURCES] =
 {
-    CS40L25_SYM_GENERAL_HARDWAREEVENT, // For the Event Handler SM, HW Event handling must be first
-    CS40L25_SYM_GENERAL_GPIO1EVENT,
-    CS40L25_SYM_GENERAL_GPIO2EVENT,
-    CS40L25_SYM_GENERAL_GPIO3EVENT,
-    CS40L25_SYM_GENERAL_GPIO4EVENT,
-    CS40L25_SYM_GENERAL_GPIOPLAYBACKEVENT,
-    CS40L25_SYM_GENERAL_TRIGGERPLAYBACKEVENT,
-    CS40L25_SYM_GENERAL_RXREADYEVENT,
+    CS40L25_SYM_FIRMWARE_PRINCE_HAPCTRL_RAM_REMAP_DF0_CLAB_HARDWAREEVENT, // For the Event Handler SM, HW Event handling must be first
+    CS40L25_SYM_FIRMWARE_PRINCE_HAPCTRL_RAM_REMAP_DF0_CLAB_GPIO1EVENT,
+    CS40L25_SYM_FIRMWARE_PRINCE_HAPCTRL_RAM_REMAP_DF0_CLAB_GPIO2EVENT,
+    CS40L25_SYM_FIRMWARE_PRINCE_HAPCTRL_RAM_REMAP_DF0_CLAB_GPIO3EVENT,
+    CS40L25_SYM_FIRMWARE_PRINCE_HAPCTRL_RAM_REMAP_DF0_CLAB_GPIO4EVENT,
+    CS40L25_SYM_FIRMWARE_PRINCE_HAPCTRL_RAM_REMAP_DF0_CLAB_GPIOPLAYBACKEVENT,
+    CS40L25_SYM_FIRMWARE_PRINCE_HAPCTRL_RAM_REMAP_DF0_CLAB_TRIGGERPLAYBACKEVENT,
+    CS40L25_SYM_FIRMWARE_PRINCE_HAPCTRL_RAM_REMAP_DF0_CLAB_RXREADYEVENT,
 };
 
 static const unsigned int cs40l2x_event_masks[CS40L25_EVENT_SOURCES] =
@@ -755,7 +755,7 @@ static uint32_t cs40l25_power_up(cs40l25_t *driver)
     temp_reg_val |= XM_UNPACKED24_DSP1_CCM_CORE_CONTROL_DSP1_CCM_CORE_EN_BITMASK | XM_UNPACKED24_DSP1_CCM_CORE_CONTROL_DSP1_CCM_CORE_RESET_BITMASK;
     cs40l25_write_reg(driver, XM_UNPACKED24_DSP1_CCM_CORE_CONTROL_REG, temp_reg_val);
 
-    reg_address = cs40l25_find_symbol(driver, CS40L25_SYM_GENERAL_HALO_STATE);
+    reg_address = cs40l25_find_symbol(driver, CS40L25_SYM_FIRMWARE_PRINCE_HAPCTRL_RAM_REMAP_DF0_CLAB_HALO_STATE);
     if (!reg_address)
     {
         return CS40L25_STATUS_FAIL;
@@ -794,7 +794,7 @@ static uint32_t cs40l25_power_down(cs40l25_t *driver)
     // Force fw into standby
     if (driver->state == CS40L25_STATE_CAL_POWER_UP)
     {
-        reg_address = cs40l25_find_symbol(driver, CS40L25_SYM_GENERAL_SHUTDOWNREQUEST);
+        reg_address = cs40l25_find_symbol(driver, CS40L25_SYM_FIRMWARE_PRINCE_HAPCTRL_RAM_REMAP_CALIB_SHUTDOWNREQUEST);
         if (!reg_address)
         {
             return CS40L25_STATUS_FAIL;
@@ -953,7 +953,7 @@ static uint32_t cs40l25_hibernate(cs40l25_t *driver)
     uint32_t count = 0;
     uint32_t reg_address;
 
-    reg_address = cs40l25_find_symbol(driver, CS40L25_SYM_GENERAL_POWERONSEQUENCE);
+    reg_address = cs40l25_find_symbol(driver, CS40L25_SYM_FIRMWARE_PRINCE_HAPCTRL_RAM_REMAP_DF0_CLAB_POWERONSEQUENCE);
     if (!reg_address)
     {
         return CS40L25_STATUS_FAIL;
@@ -1048,7 +1048,7 @@ static uint32_t cs40l25_wake(cs40l25_t *driver)
                 // Read POWERSTATE
                 uint32_t reg_address;
 
-                reg_address = cs40l25_find_symbol(driver, CS40L25_SYM_GENERAL_POWERSTATE);
+                reg_address = cs40l25_find_symbol(driver, CS40L25_SYM_FIRMWARE_PRINCE_HAPCTRL_RAM_REMAP_DF0_CLAB_POWERSTATE);
                 if (!reg_address)
                 {
                     return CS40L25_STATUS_FAIL;
@@ -1290,20 +1290,28 @@ static uint32_t cs40l25_field_access_set(cs40l25_t *driver)
         reg_address = driver->field_accessor.address;
     }
 
-    // Read the value from the field address
-    cs40l25_read_reg(driver, reg_address, &temp_reg_val);
-    // Create bit-wise mask of the bit-field
-    uint32_t temp_mask = (~(0xFFFFFFFF << driver->field_accessor.size) << driver->field_accessor.shift);
-    uint32_t reg_val = temp_reg_val;
+    uint32_t reg_val;
+    if (driver->field_accessor.size < 32)
+    {
+        // Read the value from the field address
+        cs40l25_read_reg(driver, reg_address, &temp_reg_val);
+        // Create bit-wise mask of the bit-field
+        uint32_t temp_mask = (~(0xFFFFFFFF << driver->field_accessor.size) << driver->field_accessor.shift);
+        reg_val = temp_reg_val;
 
-    uint32_t field_val = (uint32_t) driver->current_request.arg;
-    // Shift new value to bit-field bit position
-    field_val <<= driver->field_accessor.shift;
-    field_val &= temp_mask;
-    // Mask off bit-field bit locations in memory's value
-    reg_val &= ~temp_mask;
-    // Add new value
-    reg_val |= field_val;
+        uint32_t field_val = (uint32_t) driver->current_request.arg;
+        // Shift new value to bit-field bit position
+        field_val <<= driver->field_accessor.shift;
+        field_val &= temp_mask;
+        // Mask off bit-field bit locations in memory's value
+        reg_val &= ~temp_mask;
+        // Add new value
+        reg_val |= field_val;
+    }
+    else
+    {
+        reg_val = (uint32_t) driver->current_request.arg;
+    }
 
     // Write new register/memory value
     cs40l25_write_reg(driver, reg_address, reg_val);
@@ -1348,7 +1356,7 @@ const cs40l25_field_accessor_t fa_list[] =
     },
     {
         .symbol = true,
-        .id = CS40L25_SYM_GENERAL_HALO_HEARTBEAT,
+        .id = CS40L25_SYM_FIRMWARE_PRINCE_HAPCTRL_RAM_REMAP_DF0_CLAB_HALO_HEARTBEAT,
         .shift = 0,
         .size = 32,
         .ack_ctrl = false,
@@ -1383,35 +1391,35 @@ const cs40l25_field_accessor_t fa_list[] =
     },
     {
         .symbol = true,
-        .id = CS40L25_SYM_GENERAL_GPIO_ENABLE,
+        .id = CS40L25_SYM_FIRMWARE_PRINCE_HAPCTRL_RAM_REMAP_DF0_CLAB_GPIO_ENABLE,
         .shift = 0,
         .size = 32,
         .ack_ctrl = false,
     },
     {
         .symbol = true,
-        .id = CS40L25_SYM_GENERAL_GPIO_BUTTONDETECT,
+        .id = CS40L25_SYM_FIRMWARE_PRINCE_HAPCTRL_RAM_REMAP_DF0_CLAB_GPIO_BUTTONDETECT,
         .shift = 0,
         .size = 1,
         .ack_ctrl = false,
     },
     {
         .symbol = true,
-        .id = CS40L25_SYM_GENERAL_GPIO_BUTTONDETECT,
+        .id = CS40L25_SYM_FIRMWARE_PRINCE_HAPCTRL_RAM_REMAP_DF0_CLAB_GPIO_BUTTONDETECT,
         .shift = 1,
         .size = 1,
         .ack_ctrl = false,
     },
     {
         .symbol = true,
-        .id = CS40L25_SYM_GENERAL_GPIO_BUTTONDETECT,
+        .id = CS40L25_SYM_FIRMWARE_PRINCE_HAPCTRL_RAM_REMAP_DF0_CLAB_GPIO_BUTTONDETECT,
         .shift = 2,
         .size = 1,
         .ack_ctrl = false,
     },
     {
         .symbol = true,
-        .id = CS40L25_SYM_GENERAL_GPIO_BUTTONDETECT,
+        .id = CS40L25_SYM_FIRMWARE_PRINCE_HAPCTRL_RAM_REMAP_DF0_CLAB_GPIO_BUTTONDETECT,
         .shift = 3,
         .size = 1,
         .ack_ctrl = false,
@@ -1420,26 +1428,26 @@ const cs40l25_field_accessor_t fa_list[] =
         .symbol = true,
         .id = CS40L25_SYM_CLAB_CLAB_ENABLED,
         .shift = 0,
-        .size = 1,
+        .size = 32,
         .ack_ctrl = false,
     },
     {
             .symbol = true,
-        .id = CS40L25_SYM_GENERAL_GAIN_CONTROL,
+        .id = CS40L25_SYM_FIRMWARE_PRINCE_HAPCTRL_RAM_REMAP_DF0_CLAB_GAIN_CONTROL,
         .shift = 14,
         .size = 10,
         .ack_ctrl = false,
     },
     {
         .symbol = true,
-        .id = CS40L25_SYM_GENERAL_GAIN_CONTROL,
+        .id = CS40L25_SYM_FIRMWARE_PRINCE_HAPCTRL_RAM_REMAP_DF0_CLAB_GAIN_CONTROL,
         .shift = 4,
         .size = 10,
         .ack_ctrl = false,
     },
     {
         .symbol = true,
-        .id = CS40L25_SYM_GENERAL_INDEXBUTTONPRESS,
+        .id = CS40L25_SYM_FIRMWARE_PRINCE_HAPCTRL_RAM_REMAP_DF0_CLAB_INDEXBUTTONPRESS,
         .address = 0,
         .shift = 0,
         .size = 32,
@@ -1447,7 +1455,7 @@ const cs40l25_field_accessor_t fa_list[] =
     },
     {
             .symbol = true,
-        .id = CS40L25_SYM_GENERAL_INDEXBUTTONPRESS,
+        .id = CS40L25_SYM_FIRMWARE_PRINCE_HAPCTRL_RAM_REMAP_DF0_CLAB_INDEXBUTTONPRESS,
         .address = 4,
         .shift = 0,
         .size = 32,
@@ -1455,7 +1463,7 @@ const cs40l25_field_accessor_t fa_list[] =
     },
     {
         .symbol = true,
-        .id = CS40L25_SYM_GENERAL_INDEXBUTTONPRESS,
+        .id = CS40L25_SYM_FIRMWARE_PRINCE_HAPCTRL_RAM_REMAP_DF0_CLAB_INDEXBUTTONPRESS,
         .address = 8,
         .shift = 0,
         .size = 32,
@@ -1463,7 +1471,7 @@ const cs40l25_field_accessor_t fa_list[] =
     },
     {
         .symbol = true,
-        .id = CS40L25_SYM_GENERAL_INDEXBUTTONPRESS,
+        .id = CS40L25_SYM_FIRMWARE_PRINCE_HAPCTRL_RAM_REMAP_DF0_CLAB_INDEXBUTTONPRESS,
         .address = 12,
         .shift = 0,
         .size = 32,
@@ -1471,7 +1479,7 @@ const cs40l25_field_accessor_t fa_list[] =
     },
     {
             .symbol = true,
-        .id = CS40L25_SYM_GENERAL_INDEXBUTTONRELEASE,
+        .id = CS40L25_SYM_FIRMWARE_PRINCE_HAPCTRL_RAM_REMAP_DF0_CLAB_INDEXBUTTONRELEASE,
         .address = 0,
         .shift = 0,
         .size = 32,
@@ -1479,7 +1487,7 @@ const cs40l25_field_accessor_t fa_list[] =
     },
     {
         .symbol = true,
-        .id = CS40L25_SYM_GENERAL_INDEXBUTTONRELEASE,
+        .id = CS40L25_SYM_FIRMWARE_PRINCE_HAPCTRL_RAM_REMAP_DF0_CLAB_INDEXBUTTONRELEASE,
         .address = 4,
         .shift = 0,
         .size = 32,
@@ -1487,7 +1495,7 @@ const cs40l25_field_accessor_t fa_list[] =
     },
     {
         .symbol = true,
-        .id = CS40L25_SYM_GENERAL_INDEXBUTTONRELEASE,
+        .id = CS40L25_SYM_FIRMWARE_PRINCE_HAPCTRL_RAM_REMAP_DF0_CLAB_INDEXBUTTONRELEASE,
         .address = 8,
         .shift = 0,
         .size = 32,
@@ -1495,7 +1503,7 @@ const cs40l25_field_accessor_t fa_list[] =
     },
     {
         .symbol = true,
-        .id = CS40L25_SYM_GENERAL_INDEXBUTTONRELEASE,
+        .id = CS40L25_SYM_FIRMWARE_PRINCE_HAPCTRL_RAM_REMAP_DF0_CLAB_INDEXBUTTONRELEASE,
         .address = 12,
         .shift = 0,
         .size = 32,
@@ -1893,14 +1901,14 @@ uint32_t cs40l25_boot(cs40l25_t *driver, fw_img_v1_info_t *fw_info)
 
         if (driver->config.cal_data.is_valid_f0)
         {
-            reg_address = cs40l25_find_symbol(driver, CS40L25_SYM_GENERAL_F0_STORED);
+            reg_address = cs40l25_find_symbol(driver, CS40L25_SYM_FIRMWARE_PRINCE_HAPCTRL_RAM_REMAP_DF0_CLAB_F0_STORED);
             if (!reg_address)
             {
                 return CS40L25_STATUS_FAIL;
             }
             cs40l25_write_reg(driver, reg_address, driver->config.cal_data.f0);
 
-            reg_address = cs40l25_find_symbol(driver, CS40L25_SYM_GENERAL_REDC_STORED);
+            reg_address = cs40l25_find_symbol(driver, CS40L25_SYM_FIRMWARE_PRINCE_HAPCTRL_RAM_REMAP_DF0_CLAB_REDC_STORED);
             if (!reg_address)
             {
                 return CS40L25_STATUS_FAIL;
@@ -1910,7 +1918,7 @@ uint32_t cs40l25_boot(cs40l25_t *driver, fw_img_v1_info_t *fw_info)
 
         if (driver->config.cal_data.is_valid_qest)
         {
-            reg_address = cs40l25_find_symbol(driver, CS40L25_SYM_GENERAL_Q_STORED);
+            reg_address = cs40l25_find_symbol(driver, CS40L25_SYM_FIRMWARE_PRINCE_HAPCTRL_RAM_REMAP_DF0_CLAB_Q_STORED);
             if (!reg_address)
             {
                 return CS40L25_STATUS_FAIL;
@@ -1932,12 +1940,15 @@ uint32_t cs40l25_boot(cs40l25_t *driver, fw_img_v1_info_t *fw_info)
 
     for (count = 0; count < driver->config.syscfg_regs_total; count++)
     {
-        uint32_t temp_reg_val;
+        uint32_t temp_reg_val, orig_val;
 
-        cs40l25_read_reg(driver, driver->config.syscfg_regs[count].address, &temp_reg_val);
-        temp_reg_val &= ~(driver->config.syscfg_regs[count].mask);
+        cs40l25_read_reg(driver, driver->config.syscfg_regs[count].address, &orig_val);
+        temp_reg_val = orig_val & ~(driver->config.syscfg_regs[count].mask);
         temp_reg_val |= driver->config.syscfg_regs[count].value;
-        cs40l25_write_reg(driver, driver->config.syscfg_regs[count].address, temp_reg_val);
+        if (orig_val != temp_reg_val)
+        {
+            cs40l25_write_reg(driver, driver->config.syscfg_regs[count].address, temp_reg_val);
+        }
     }
 
     // Write HALO configuration data
@@ -1972,7 +1983,7 @@ uint32_t cs40l25_boot(cs40l25_t *driver, fw_img_v1_info_t *fw_info)
     }
 
     // Apply IRQMASKSEQ Patch set
-    reg_address = cs40l25_find_symbol(driver, CS40L25_SYM_GENERAL_IRQMASKSEQUENCE);
+    reg_address = cs40l25_find_symbol(driver, CS40L25_SYM_FIRMWARE_PRINCE_HAPCTRL_RAM_REMAP_DF0_CLAB_IRQMASKSEQUENCE);
     if (!reg_address)
     {
         return CS40L25_STATUS_FAIL;
@@ -1983,7 +1994,7 @@ uint32_t cs40l25_boot(cs40l25_t *driver, fw_img_v1_info_t *fw_info)
         cs40l25_write_reg(driver, (reg_address + (count * 4)), cs40l25_irqmaskseq_patch[count]);
     }
 
-    reg_address = cs40l25_find_symbol(driver, CS40L25_SYM_GENERAL_IRQMASKSEQUENCE_VALID);
+    reg_address = cs40l25_find_symbol(driver, CS40L25_SYM_FIRMWARE_PRINCE_HAPCTRL_RAM_REMAP_DF0_CLAB_IRQMASKSEQUENCE_VALID);
     if (!reg_address)
     {
         return CS40L25_STATUS_FAIL;

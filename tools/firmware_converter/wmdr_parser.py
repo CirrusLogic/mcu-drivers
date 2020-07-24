@@ -33,7 +33,7 @@ import sys
 import io
 from wmfw_parser import wmfw_component, user_defined_name_text_block_type, metadata_block_type, \
     halo_block_types_memory_region_u24, halo_block_types_memory_region_p32, halo_block_types_memory_region_pm32, halo_block_types_memory_region_u32, \
-    informational_text_block_type
+    informational_text_block_type, absolute_addressing_data_block_type
 
 #==========================================================================
 # VERSION
@@ -220,6 +220,22 @@ class wmdr_informational_text_data_block(wmdr_block):
         output_str = output_str + "--text: " + self.text + "\n"
         return output_str
 
+class wmdr_absolute_addressing_data_block(wmdr_block):
+
+    def __init__(self, file):
+        wmdr_block.__init__(self, file)
+        self.text = ''
+        return
+        
+    def parse(self, file):
+        wmdr_block.parse(self, file)
+        return
+        
+    def __str__(self):
+        output_str = component_to_string(self, 'Absolute Addressing Data Block')
+        output_str += "--text: " + self.text + "\n"
+        return output_str
+
 class wmdr_parser:
 
     def __init__(self, filename):
@@ -228,6 +244,8 @@ class wmdr_parser:
         self.metadata_block = None
         self.coefficient_value_data_blocks = []
         self.informational_text_blocks = []
+        self.absolute_addressing_data_blocks = []
+        self.data_blocks = []
 
         return
 
@@ -254,8 +272,14 @@ class wmdr_parser:
                 self.informational_text_blocks.append(wmdr_informational_text_data_block(f))
                 self.informational_text_blocks[-1].parse(f)
             else:
-                self.coefficient_value_data_blocks.append(wmdr_block(f))
-                self.coefficient_value_data_blocks[-1].parse(f)
+                if (temp_block_type == (absolute_addressing_data_block_type << 8)):
+                    new_block = wmdr_absolute_addressing_data_block(f)
+                else:
+                    new_block = wmdr_block(f)
+                    
+                self.data_blocks.append(new_block)
+                self.data_blocks[-1].parse(f)
+
         return
 
     def __str__(self):
@@ -263,8 +287,10 @@ class wmdr_parser:
         output_str = output_str + str(self.user_defined_name_block) + "\n"
         if (self.metadata_block):
             output_str = output_str + str(self.metadata_block) + "\n"
-        for block in self.coefficient_value_data_blocks:
+        for block in self.data_blocks:
             output_str = output_str + str(block) + "\n"
+        for block in self.absolute_addressing_data_blocks:
+            output_str = output_str + str(block) + "\n" 
         for block in self.informational_text_blocks:
             output_str = output_str + str(block) + "\n"        
 

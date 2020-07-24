@@ -313,31 +313,6 @@ static const cs35l41_otp_packed_entry_t otp_map_1[] =
 };
 
 /**
- * List of possible OTP Maps for CS35L41 RevB2
- *
- * For CS35L41 RevB2, the following values of OTPID are possible:
- * - 0x1 - on used at first release of RevB2, this driver should not experience any in the field
- * - 0x8 - currently only common ID for this driver
- *
- * @see cs35l41_otp_map_t
- *
- */
-static const cs35l41_otp_map_t cs35l41_otp_maps[] = {
-    {
-        .id = 0x01,
-        .map = otp_map_1,
-        .num_elements = sizeof(otp_map_1)/sizeof(cs35l41_otp_packed_entry_t),
-        .bit_offset = 80,
-    },
-    {
-        .id = 0x08,
-        .map = otp_map_1,
-        .num_elements = sizeof(otp_map_1)/sizeof(cs35l41_otp_packed_entry_t),
-        .bit_offset = 80,
-    },
-};
-
-/**
  * Register configuration after HALO FW is loaded in Boot SM
  *
  * List is in the form:
@@ -515,8 +490,8 @@ static const uint32_t cs35l41_frame_sync_regs[] =
  */
 static const uint32_t cs35l41_dsp_status_controls[CS35L41_DSP_STATUS_WORDS_TOTAL] =
 {
-        CS35L41_SYM_GENERAL_HALO_STATE,
-        CS35L41_SYM_GENERAL_HALO_HEARTBEAT,
+        CS35L41_SYM_FIRMWARE_HALO_CSPL_HALO_STATE,
+        CS35L41_SYM_FIRMWARE_HALO_CSPL_HALO_HEARTBEAT,
         CS35L41_SYM_CSPL_CSPL_STATE,
         CS35L41_SYM_CSPL_CAL_SET_STATUS,
         CS35L41_SYM_CSPL_CAL_R_SELECTED,
@@ -541,7 +516,7 @@ static const cs35l41_field_accessor_t fa_list[] =
     },
     {
         .symbol = true,
-        .id = CS35L41_SYM_GENERAL_HALO_HEARTBEAT,
+        .id = CS35L41_SYM_FIRMWARE_HALO_CSPL_HALO_HEARTBEAT,
         .shift = 0,
         .size = 32,
     },
@@ -555,6 +530,31 @@ static const cs35l41_field_accessor_t fa_list[] =
 /***********************************************************************************************************************
  * GLOBAL VARIABLES
  **********************************************************************************************************************/
+
+/**
+ * List of possible OTP Maps for CS35L41 RevB2
+ *
+ * For CS35L41 RevB2, the following values of OTPID are possible:
+ * - 0x1 - on used at first release of RevB2, this driver should not experience any in the field
+ * - 0x8 - currently only common ID for this driver
+ *
+ * @see cs35l41_otp_map_t
+ *
+ */
+const cs35l41_otp_map_t cs35l41_otp_maps[] = {
+    {
+        .id = 0x01,
+        .map = otp_map_1,
+        .num_elements = sizeof(otp_map_1)/sizeof(cs35l41_otp_packed_entry_t),
+        .bit_offset = 80,
+    },
+    {
+        .id = 0x08,
+        .map = otp_map_1,
+        .num_elements = sizeof(otp_map_1)/sizeof(cs35l41_otp_packed_entry_t),
+        .bit_offset = 80,
+    },
+};
 
 /***********************************************************************************************************************
  * LOCAL FUNCTIONS
@@ -1139,6 +1139,7 @@ static uint32_t cs35l41_power_up(cs35l41_t *driver)
         }
     }
 
+    cs35l41_read_reg(driver, 0x00010098, &temp_reg_val); // Read IRQ1_STS_3
     if (i == 5)
     {
         return CS35L41_STATUS_FAIL;
@@ -1915,19 +1916,22 @@ static uint32_t cs35l41_write_post_boot_config(cs35l41_t *driver)
 
     for (i = 0; i < driver->config.syscfg_regs_total; i++)
     {
-        uint32_t temp_reg_val;
+        uint32_t temp_reg_val, orig_val;
 
-        ret = cs35l41_read_reg(driver, driver->config.syscfg_regs[i].address, &temp_reg_val);
+        ret = cs35l41_read_reg(driver, driver->config.syscfg_regs[i].address, &orig_val);
         if (ret)
         {
             return ret;
         }
-        temp_reg_val &= ~(driver->config.syscfg_regs[i].mask);
+        temp_reg_val = orig_val & ~(driver->config.syscfg_regs[i].mask);
         temp_reg_val |= driver->config.syscfg_regs[i].value;
-        ret = cs35l41_write_reg(driver, driver->config.syscfg_regs[i].address, temp_reg_val);
-        if (ret)
+        if (orig_val != temp_reg_val)
         {
-            return ret;
+            ret = cs35l41_write_reg(driver, driver->config.syscfg_regs[i].address, temp_reg_val);
+            if (ret)
+            {
+                return ret;
+            }
         }
     }
 

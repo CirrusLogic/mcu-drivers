@@ -29,6 +29,7 @@
 # IMPORTS
 #==========================================================================
 import string
+from firmware_exporter import firmware_exporter
 
 #==========================================================================
 # CONSTANTS/GLOBALS
@@ -305,11 +306,11 @@ class header_file:
             for key in self.algorithm_controls.keys():
                 temp_alg_str = temp_alg_str + "#define {part_number_uc}_ALGORITHM_" + key.upper() + "\n"
 
-                temp_ctl_str = temp_ctl_str + "#ifdef {part_number_uc}_ALGORITHM_" + key.upper() + "\n"
+                temp_ctl_str = temp_ctl_str + "//Definitions for " + key.upper() + " Controls\n"
                 for control in self.algorithm_controls[key]:
-                    temp_ctl_str = temp_ctl_str + "#define {part_number_uc}_" + control[0].upper() + " 0x" + "{0:{1}X}".format(control[1], 6) + "\n"
+                    temp_ctl_str = temp_ctl_str + "#define " + control[0].upper() + " 0x" + "{0:{1}X}".format(control[1], 6) + "\n"
 
-                temp_ctl_str = temp_ctl_str + "#endif\n\n"
+                temp_ctl_str = temp_ctl_str + "\n\n"
 
             self.terms['algorithm_defines'] = temp_alg_str
             output_str = output_str.replace('{algorithm_defines}\n', self.terms['algorithm_defines'])
@@ -450,6 +451,51 @@ class source_file:
 
         output_str = output_str.replace('\n\n\n', '\n\n')
         return output_str
+        
+class source_file_exporter(firmware_exporter):
+
+    def __init__(self, attributes):
+        firmware_exporter.__init__(self, attributes)
+        self.hf = header_file(self.attributes['part_number_str'], self.attributes['fw_meta'])
+        self.cf = source_file(self.attributes['part_number_str'])
+        
+        return
+        
+    def update_block_info(self, fw_block_total, coeff_block_totals):
+        return self.hf.update_block_info(fw_block_total, coeff_block_totals)
+    
+    def add_control(self, algorithm_name, algorithm_id, control_name, address):
+        return self.hf.add_control(algorithm_name, control_name, address)
+        
+    def add_metadata_text_line(self, line):
+        return self.hf.add_metadata_text_line(line)
+    
+    def add_fw_block(self, address, data_bytes):
+        return self.cf.add_fw_block(address, data_bytes)
+        
+    def add_coeff_block(self, index, address, data_bytes):
+        return self.cf.add_coeff_block(index, address, data_bytes)
+    
+    def to_file(self):
+        results_str = 'Exported to files:\n'
+
+        # Write output to filesystem
+        temp_filename = self.attributes['part_number_str'] + self.attributes['suffix'] + "_firmware.h"
+        f = open(temp_filename, 'w')
+        f.write(str(self.hf))
+        f.close()
+        results_str = results_str + temp_filename + '\n'
+
+        temp_filename = self.attributes['part_number_str'] + self.attributes['suffix'] + "_firmware.c"
+        f = open(temp_filename, 'w')
+        f.write(str(self.cf))
+        f.close()
+        results_str = results_str + temp_filename + '\n'
+        
+        return results_str
+        
+    def __str__(self):
+        return ''
 
 #==========================================================================
 # HELPER FUNCTIONS

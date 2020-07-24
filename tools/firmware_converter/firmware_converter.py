@@ -33,19 +33,17 @@ import sys
 import argparse
 from wmfw_parser import wmfw_parser, get_memory_region_from_type
 from wmdr_parser import wmdr_parser
-from c_h_file_templates import header_file, source_file
-from wisce_file_templates import wisce_script_file
-from fw_img_v1_templates import fw_img_v1_file
+from firmware_exporter_factory import firmware_exporter_factory
 
 #==========================================================================
 # VERSION
 #==========================================================================
-VERSION_STRING = "2.2.0"
+VERSION_STRING = "2.3.0"
 
 #==========================================================================
 # CONSTANTS/GLOBALS
 #==========================================================================
-supported_part_numbers = ['cs35l41', 'cs40l25', 'cs40l30', 'cs48l32']
+supported_part_numbers = ['cs35l41', 'cs40l25', 'cs40l30', 'cs48l32', 'cs47l63']
 supported_commands = ['print', 'export', 'wisce', 'fw_img_v1']
 
 supported_mem = {
@@ -109,7 +107,23 @@ supported_mem = {
         'pm': {
             'pm32': 0x3800000
         }
-    }
+    },
+    'cs47l63': {
+        'xm': {
+            'u24': 0x2800000,
+            'p32': 0x2000000,
+            'u32': 0x2400000,
+        },
+        'ym': {
+            'u24': 0x3400000,
+            'p32': 0x2C00000,
+            'u32': 0x3000000,
+
+        },
+        'pm': {
+            'pm32': 0x3800000
+        }
+    },
 }
 
 #==========================================================================
@@ -174,8 +188,10 @@ class fw_block_list(block_list):
 
         for block in data_blocks:
             temp_mem_region = get_memory_region_from_type(block.fields['type'])
-            temp_offset = block.fields['start_offset']
-            new_address = self.ar.resolve(temp_mem_region, block.memory_type, temp_offset)
+            if (temp_mem_region != 'abs'):
+                new_address = self.ar.resolve(temp_mem_region, block.memory_type, block.fields['start_offset'])
+            else:
+                new_address = block.fields['start_offset']
             self.blocks.append((new_address, block.data))
         return
 
@@ -185,14 +201,18 @@ class coeff_block_list(block_list):
 
         for block in data_blocks:
             temp_mem_region = get_memory_region_from_type(block.fields['type'])
-            # Coefficient value data blocks in WMDR files offsets are in terms of External Port address rather than
-            # in terms of algorithm memory region fields (i.e. XM/YM words), so calculation is different
-            temp_offset = fw_id_block.get_adjusted_offset(block.fields['algorithm_identification'],
-                                                          temp_mem_region,
-                                                          0)
-            new_address = self.ar.resolve(temp_mem_region, block.memory_type, temp_offset)
-            new_address = new_address + block.fields['start_offset']
+            if (temp_mem_region != 'abs'):
+                # Coefficient value data blocks in WMDR files offsets are in terms of External Port address rather than
+                # in terms of algorithm memory region fields (i.e. XM/YM words), so calculation is different
+                temp_offset = fw_id_block.get_adjusted_offset(block.fields['algorithm_identification'],
+                                                              temp_mem_region,
+                                                              0)
+                new_address = self.ar.resolve(temp_mem_region, block.memory_type, temp_offset)
+                new_address = new_address + block.fields['start_offset']
+            else:
+                new_address = block.fields['start_offset']
             self.blocks.append((new_address, block.data))
+
         return
 
 
@@ -204,7 +224,7 @@ def validate_environment():
 
     return result
 
-def get_args():
+def get_args(args):
     """Parse arguments"""
     parser = argparse.ArgumentParser(description='Parse command line arguments')
     parser.add_argument('-s', '--suffix', type=str, default='',
@@ -218,10 +238,11 @@ def get_args():
                         'parsed.')
     parser.add_argument('-i', '--i2c-address', type=str, default='0x80', dest='i2c_address', help='Specify I2C address for WISCE script output.')
     parser.add_argument('-b', '--block-size-limit', type=int, default='4140', dest='block_size_limit', help='Specify maximum byte size of block per control port transaction.')
-    parser.add_argument('--sym', dest='symbol_table', type=str, default=None, help='The location of the symbol table C header.')
+    parser.add_argument('--sym', dest='symbol_table', type=str, default=None, help='The location of the symbol table C header.  If not specified, a header is generated with all controls')
+    parser.add_argument('--binary', dest='binary_output', action="store_true", help='Request binary fw_img output format.')
+    parser.add_argument('--wmdr-only', dest='wmdr_only', action="store_true", help='Request to ONLY store WMDR files in fw_img.')    
 
-    args = parser.parse_args()
-    return args
+    return parser.parse_args(args[1:])
 
 def validate_args(args):
     # Check that WMFW path exists
@@ -265,6 +286,12 @@ def print_args(args):
         print("Suffix: " + args.suffix)
     else:
         print("No suffix")
+    
+    if (args.command == 'fw_img_v1'):
+        if (args.symbol_table):
+            print("Symbol ID Header: " + args.symbol_table)
+        else:
+            print("Symbol ID Header: None")
 
     return
 
@@ -292,7 +319,7 @@ def main(argv):
     if (not (validate_environment())):
         error_exit("Invalid Environment")
 
-    args = get_args()
+    args = get_args(argv)
 
     # validate arguments
     print_args(args)
@@ -330,35 +357,44 @@ def main(argv):
     coeff_data_block_lists = []
     if (process_wmdr):
         for wmdr in wmdrs:
-            coeff_data_block_list = coeff_block_list(wmdr.coefficient_value_data_blocks,
+            coeff_data_block_list = coeff_block_list(wmdr.data_blocks,
                                                      args.block_size_limit,
                                                      res,
                                                      wmfw.fw_id_block)
             coeff_data_block_list.rehash_blocks()
             coeff_data_block_lists.append(coeff_data_block_list)
 
-    # Create WISCE outputter
-    wf = wisce_script_file(args.part_number, args.i2c_address)
+    # Create firmware exporter factory
+    attributes = dict()
+    attributes['part_number_str'] = args.part_number
+    attributes['fw_meta'] = dict(fw_id = wmfw.fw_id_block.fields['firmware_id'], fw_rev = wmfw.fw_id_block.fields['firmware_revision'])
+    attributes['suffix'] = suffix
+    attributes['symbol_table'] = args.symbol_table
+    attributes['i2c_address'] = args.i2c_address
+    attributes['binary_output'] = args.binary_output
+    attributes['wmdr_only'] = args.wmdr_only
+    f = firmware_exporter_factory(attributes)
     
-    # Create C Header
-    hf = None
-    fw_v1 = None
+    # Based on command, add firmware exporters
     if (args.command == 'export'):
-        hf = header_file((args.part_number + suffix), dict(fw_id = wmfw.fw_id_block.fields['firmware_id']))
+        f.add_firmware_exporter('c_array')
     elif (args.command == 'fw_img_v1'):
-        fw_v1 = fw_img_v1_file(args.part_number, suffix, dict(fw_id = wmfw.fw_id_block.fields['firmware_id'], fw_rev = wmfw.fw_id_block.fields['firmware_revision']), args.symbol_table)
+        f.add_firmware_exporter('fw_img_v1')
+    elif (args.command == 'wisce'):
+        f.add_firmware_exporter('wisce')
+
+    # Update block info based on any WMDR present
     if (not process_wmdr):
-        if hf is not None:
-            hf.update_block_info(len(fw_data_block_list.blocks), None)
+        f.update_block_info(len(fw_data_block_list.blocks), None)
     else:
         coeff_data_block_list_lengths = []
-        if hf is not None:
-            for coeff_data_block_list in coeff_data_block_lists:
-                coeff_data_block_list_lengths.append(len(coeff_data_block_list.blocks))
-            hf.update_block_info(len(fw_data_block_list.blocks), coeff_data_block_list_lengths)
+        for coeff_data_block_list in coeff_data_block_lists:
+            coeff_data_block_list_lengths.append(len(coeff_data_block_list.blocks))
+        f.update_block_info(len(fw_data_block_list.blocks), coeff_data_block_list_lengths)
+
     # Add controls
     # For each algorithm information data block
-    for alg_block in wmfw.get_algorithm_information_data_blocks():
+    for alg_block in wmfw.get_algorithm_information_data_blocks():        
         # For each 'coefficient_descriptor', create control name and resolve address
         for coeff_desc in alg_block.fields['coefficient_descriptors']:
             temp_mem_region = get_memory_region_from_type(coeff_desc.fields['type'])
@@ -368,22 +404,23 @@ def main(argv):
             temp_coeff_address = res.resolve(temp_mem_region, 'u24', temp_coeff_offset)
 
             # Re-name if algorithm is the overall system control algorithms
-            if (alg_block.fields['algorithm_id'] == wmfw.fw_id_block.fields['firmware_id']):
-                algorithm_name = "GENERAL"
+            #if (alg_block.fields['algorithm_id'] == wmfw.fw_id_block.fields['firmware_id']):
+            #    algorithm_name = "GENERAL"
+            #else:
+            #    algorithm_name = alg_block.fields['algorithm_name']
+            
+            if ('_struct_t' in coeff_desc.fields['coefficient_name']):
+                control_name = alg_block.fields['algorithm_name'] + "_" + coeff_desc.fields['coefficient_name']
             else:
-                algorithm_name = alg_block.fields['algorithm_name']
+                control_name = coeff_desc.fields['full_coefficient_name']
+                
             # Add control
-            if hf is not None:
-                hf.add_control(algorithm_name, coeff_desc.fields['coefficient_name'], temp_coeff_address)
-            elif fw_v1 is not None:
-                fw_v1.add_control(algorithm_name, alg_block.fields['algorithm_id'], 
-                                  coeff_desc.fields['coefficient_name'], temp_coeff_address)
+            f.add_control(alg_block.fields['algorithm_name'], 
+                          alg_block.fields['algorithm_id'], 
+                          control_name, 
+                          temp_coeff_address)
         
-    # Add metadata text
-    wf = None
-    if (args.command == 'wisce'):
-        wf = wisce_script_file(args.part_number, args.i2c_address)
-        
+    # Add metadata text        
     metadata_text_lines = []
     metadata_text_lines.append('firmware_converter.py version: ' + VERSION_STRING)
     temp_line = ''
@@ -400,29 +437,16 @@ def main(argv):
             metadata_text_lines.append('')
             
     for line in metadata_text_lines:
-        if hf is not None:
-            hf.add_metadata_text_line(line)
-        elif wf is not None:
-            wf.add_metadata_text_line(line)
-        elif fw_v1 is not None:
-            fw_v1.add_metadata_text_line(line)
+        f.add_metadata_text_line(line)
 
-    # Create C Source
-    cf = None
-    if (args.command == 'export'):
-        cf = source_file(args.part_number + suffix)
-        
     # Add FW Blocks
     for block in fw_data_block_list.blocks:
         block_bytes = []
         for byte_str in block[1]:
             block_bytes.append(int.from_bytes(byte_str, 'little', signed=False))
-        if cf is not None:
-            cf.add_fw_block(block[0], block_bytes)
-        elif wf is not None:
-            wf.add_data_block(block[0], block_bytes)
-        elif fw_v1 is not None:
-            fw_v1.add_fw_block(block[0], block_bytes)
+            
+        f.add_fw_block(block[0], block_bytes)
+        
     # Add Coeff Blocks
     if (process_wmdr):
         coeff_block_list_count = 0
@@ -433,12 +457,8 @@ def main(argv):
                 for byte_str in block[1]:
                     block_bytes.append(int.from_bytes(byte_str, 'little', signed=False))
 
-                if cf is not None:
-                    cf.add_coeff_block(coeff_block_list_count, block[0], block_bytes)
-                elif wf is not None:
-                    wf.add_data_block(block[0], block_bytes)
-                elif fw_v1 is not None:
-                    fw_v1.add_coeff_block(coeff_block_list_count, block[0], block_bytes)
+                f.add_coeff_block(coeff_block_list_count, block[0], block_bytes)
+
             coeff_block_list_count = coeff_block_list_count + 1
 
     results_str = ''
@@ -452,34 +472,8 @@ def main(argv):
                 results_str = results_str + 'WMDR File: ' + args.wmdrs[wmdr_count] + '\n'
                 results_str = results_str + str(wmdr)
                 wmdr_count = wmdr_count + 1
-    elif (args.command == 'export'):
-        results_str = 'Exported to files:\n'
-
-        # Write output to filesystem
-        temp_filename = args.part_number + suffix + "_firmware.h"
-        f = open(temp_filename, 'w')
-        f.write(str(hf))
-        f.close()
-        results_str = results_str + temp_filename + '\n'
-
-        temp_filename = args.part_number + suffix + "_firmware.c"
-        f = open(temp_filename, 'w')
-        f.write(str(cf))
-        f.close()
-        results_str = results_str + temp_filename + '\n'
-    elif (args.command == 'wisce'):
-        results_str = "Exported to WISCE Script.\n"
-        
-        f = open('wisce_script_output.txt', 'w')
-        f.write(str(wf))
-        f.close()
-    elif (args.command == 'fw_img_v1'):
-        temp_filename = args.part_number + suffix + "_fw_img.h"
-        results_str = "Exported to " + temp_filename + "\n"
-        
-        f = open(temp_filename, 'w')
-        f.write(str(fw_v1))
-        f.close()
+    else:
+        results_str = f.to_file()
 
     print_results(results_str)
 

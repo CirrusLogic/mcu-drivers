@@ -31,12 +31,14 @@ CFLAGS = -DTARGET_CS40L25
 
 # Process command line variables per make goal
 ifeq ($(MAKECMDGOALS), driver_lib_cm4)
+	BULLSEYE_INCLUSIONS =
 	BULLSEYE_ON_CMD =
 	BULLSEYE_OFF_CMD =
 else
     ifeq ($(BULLSEYE), 1)
-    	BULLSEYE_ON_CMD = bullseye_on
-    	BULLSEYE_OFF_CMD = bullseye_off
+    	BULLSEYE_INCLUSIONS = bullseye_inclusions
+    	BULLSEYE_ON_CMD = cov01 --on
+    	BULLSEYE_OFF_CMD = cov01 --off
     else
     	BULLSEYE_ON_CMD =
     	BULLSEYE_OFF_CMD =
@@ -94,6 +96,9 @@ endif
 # Assign compiler, assembler, linker flags required per target
 ifeq ($(MAKECMDGOALS), unit_test)
     CFLAGS      += -g -std=c99
+ifeq ($(BULLSEYE), 1)
+	CFLAGS += -DUSE_BULLSEYE
+endif
     # include Calibration-related code
     CFLAGS += -DINCLUDE_CAL
     OUTPUT_NAME = unit_test
@@ -134,7 +139,7 @@ else ifeq ($(MAKECMDGOALS), system_test)
 
     # use = or += not := else dependencies expand to nil
     CFLAGS += -mcpu=cortex-m4 -mthumb -mfpu=fpv4-sp-d16 -mfloat-abi=hard --specs=nano.specs
-    CFLAGS += -Werror -Wall --std=gnu11
+    CFLAGS += --std=gnu11
     CFLAGS += -fno-diagnostics-show-caret
     CFLAGS += -fdata-sections -ffunction-sections -fstack-usage
     CFLAGS += -DUSE_HAL_DRIVER -DSTM32F401xE
@@ -143,6 +148,9 @@ else ifeq ($(MAKECMDGOALS), system_test)
     CFLAGS += -DSEGGER_RTT_SECTION=\"SEGGER_RTT_SECTION\"
     CFLAGS += -DNO_OS
     CFLAGS += -DUNITY_INCLUDE_CONFIG_H
+ifeq ($(BULLSEYE), 1)
+	CFLAGS += -DUSE_BULLSEYE
+endif
     OUTPUT_NAME =
     OUTPUT_EXT  =
     ARFLAGS     = rcs
@@ -231,22 +239,14 @@ INCLUDES += -I$(DRIVER_PATH) -I$(COMMON_PATH) -I$(HALO_FIRMWARE_PATH)
 DRIVER_LIBRARY = $(BUILD_DIR)/cs40l25/libcs40l25.a
 LIBS += $(DRIVER_LIBRARY)
 
-# Assign sources, includes, paths for Bullseye
-BULLSEYE_PATH = $(REPO_PATH)/third_party/bullseye
-BULLSEYE_SRCS = $BULLSEYE_PATH)/src/libcov-cirrusrtt.c
-BULLSEYE_INC = -I$(REPO_PATH)/third_party/bullseye/inc
-
 # Assign list of application source files required per target
 ifeq ($(MAKECMDGOALS), unit_test)
     APP_PATH = $(REPO_PATH)/cs40l25/unit_test
     C_SRCS += $(APP_PATH)/main.c
-    C_SRCS += $(APP_PATH)/test_cs40l25.c
     C_SRCS += $(APP_PATH)/mock_bsp.c
-    C_SRCS += $(APP_PATH)/mock_f_queue.c
-    C_SRCS += $(APP_PATH)/mock_driver.c
+    C_SRCS += $(APP_PATH)/test_cs40l25.c
     C_SRCS += $(REPO_PATH)/third_party/unity/unity.c
     C_SRCS += $(REPO_PATH)/third_party/unity/unity_fixture.c
-    C_SRCS += $(COMMON_PATH)/unit_test/test_f_queue.c
     INCLUDES += -I$(APP_PATH)
     INCLUDES += -I$(REPO_PATH)/third_party/unity
 endif
@@ -256,11 +256,11 @@ ifeq ($(MAKECMDGOALS), system_test)
     TEST_HW_PATH = $(COMMON_PATH)/system_test_hw_0
     C_SRCS += $(APP_PATH)/main.c
     C_SRCS += $(APP_PATH)/test_cs40l25.c
+    C_SRCS += $(TEST_HW_PATH)/hw_0_bsp.c
     C_SRCS += $(TEST_HW_PATH)/test_tone_tables.c
-    C_SRCS += $(REPO_PATH)/cs40l25/bsp/hw_0_bsp.c
-    C_SRCS += $(REPO_PATH)/cs40l25/bsp/hw_0_bsp_cs40l25.c
     C_SRCS += $(TEST_HW_PATH)/stm32f4xx_it.c
     C_SRCS += $(TEST_HW_PATH)/sysmem.c
+    C_SRCS += $(REPO_PATH)/cs40l25/bsp/hw_0_bsp_cs40l25.c
     C_SRCS += $(REPO_PATH)/third_party/st/STM32Cube_FW_F4_V1.24.1/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_cortex.c
     C_SRCS += $(REPO_PATH)/third_party/st/STM32Cube_FW_F4_V1.24.1/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_gpio.c
     C_SRCS += $(REPO_PATH)/third_party/st/STM32Cube_FW_F4_V1.24.1/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_i2c_ex.c
@@ -304,14 +304,14 @@ ifeq ($(MAKECMDGOALS), baremetal)
     APP_PATH = $(REPO_PATH)/cs40l25/baremetal
     TEST_HW_PATH = $(COMMON_PATH)/system_test_hw_0
     C_SRCS += $(APP_PATH)/main.c
+    C_SRCS += $(TEST_HW_PATH)/hw_0_bsp.c
     C_SRCS += $(TEST_HW_PATH)/test_tone_tables.c
-    C_SRCS += $(REPO_PATH)/cs40l25/bsp/hw_0_bsp.c
-    C_SRCS += $(REPO_PATH)/cs40l25/bsp/hw_0_bsp_cs40l25.c
     C_SRCS += $(TEST_HW_PATH)/stm32f4xx_it.c
 ifneq ($(SEMIHOSTING), 1)
     C_SRCS += $(TEST_HW_PATH)/syscalls.c
 endif
     C_SRCS += $(TEST_HW_PATH)/sysmem.c
+    C_SRCS += $(REPO_PATH)/cs40l25/bsp/hw_0_bsp_cs40l25.c
     C_SRCS += $(REPO_PATH)/third_party/st/STM32Cube_FW_F4_V1.24.1/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_cortex.c
     C_SRCS += $(REPO_PATH)/third_party/st/STM32Cube_FW_F4_V1.24.1/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_gpio.c
     C_SRCS += $(REPO_PATH)/third_party/st/STM32Cube_FW_F4_V1.24.1/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_i2c_ex.c
@@ -342,14 +342,14 @@ ifeq ($(MAKECMDGOALS), freertos)
     TEST_HW_PATH = $(COMMON_PATH)/system_test_hw_0
     FREERTOS_PATH = $(REPO_PATH)/third_party/st/STM32Cube_FW_F4_V1.24.1/Middlewares/Third_Party/FreeRTOS/Source
     C_SRCS += $(APP_PATH)/main.c
+    C_SRCS += $(TEST_HW_PATH)/hw_0_bsp.c
     C_SRCS += $(TEST_HW_PATH)/test_tone_tables.c
-    C_SRCS += $(REPO_PATH)/cs40l25/bsp/hw_0_bsp.c
-    C_SRCS += $(REPO_PATH)/cs40l25/bsp/hw_0_bsp_cs40l25.c
     C_SRCS += $(TEST_HW_PATH)/stm32f4xx_it.c
 ifneq ($(SEMIHOSTING), 1)
     C_SRCS += $(TEST_HW_PATH)/syscalls.c
 endif
     C_SRCS += $(TEST_HW_PATH)/sysmem.c
+    C_SRCS += $(REPO_PATH)/cs40l25/bsp/hw_0_bsp_cs40l25.c
     C_SRCS += $(REPO_PATH)/third_party/st/STM32Cube_FW_F4_V1.24.1/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_cortex.c
     C_SRCS += $(REPO_PATH)/third_party/st/STM32Cube_FW_F4_V1.24.1/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_gpio.c
     C_SRCS += $(REPO_PATH)/third_party/st/STM32Cube_FW_F4_V1.24.1/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_i2c_ex.c
@@ -463,8 +463,10 @@ $(foreach path,$(BUILD_PATHS),$(eval $(call mkdir_rule,$(path))))
 define driver_obj_rule
 $(1): $(2) $(MAKEFILE_PATH)/makefile create_syscfg_regs
 	@echo -------------------------------------------------------------------------------
-	@echo COMPILING $(2) #to $(1)
+	@echo COMPILING $(2)
+	$(BULLSEYE_ON_CMD)
 	$(CC) $(CFLAGS) $(INCLUDES) -frecord-gcc-switches -MD -MP -MT $(1) -MF $(subst .o,.d,$(1)) -c $(2) -o $(1)
+	$(BULLSEYE_OFF_CMD)
 endef
 $(foreach obj,$(DRIVER_OBJS),$(eval $(call driver_obj_rule,$(obj),$(subst $(BUILD_DIR),$(REPO_PATH),$(obj:.o=.c)))))
 
@@ -487,31 +489,27 @@ endef
 $(foreach obj,$(ASM_OBJS),$(eval $(call asm_obj_rule,$(obj),$(subst $(BUILD_DIR),$(REPO_PATH),$(obj:.o=.s)))))
 
 # Enable bullseye build
-bullseye_on:
+bullseye_inclusions:
 	@echo -------------------------------------------------------------------------------
-	@echo BULLSEYE ON
-	cov01 --on
+	@echo BULLSEYE INCLUSIONS
 	covselect --deleteAll
 	covselect --add $(REPO_PATH)/cs40l25/
+	covselect --add !$(REPO_PATH)/cs40l25/bsp/
 	covselect --add !$(REPO_PATH)/cs40l25/unit_test/
 	covselect --add !$(REPO_PATH)/cs40l25/system_test/
+	covselect --add $(REPO_PATH)/common/
+	covselect --add !$(REPO_PATH)/common/system_test_hw_0/
 	covselect --add !$(REPO_PATH)/build/
-	covselect --add !$(REPO_PATH)/common/
 	covselect --add !$(REPO_PATH)/tools/
 	covselect --add !$(REPO_PATH)/third_party/
-
-# Disable bullseye build
-bullseye_off:
-	@echo -------------------------------------------------------------------------------
-	@echo BULLSEYE OFF
-	cov01 --off
 	
-create_syscfg_regs: build_path create_syscfg_regs.c
+create_syscfg_regs: build_path ../common/create_syscfg_regs.c device_syscfg_regs.c 
 	@echo -------------------------------------------------------------------------------
 	@echo COMPILING create_syscfg_regs
 	gcc -Werror -Wall -w -I../common -c cs40l25_spec.c
-	gcc -Werror -Wall -std=c99 -I../common -c create_syscfg_regs.c
-	gcc -o create_syscfg_regs.exe create_syscfg_regs.o cs40l25_spec.o
+	gcc -Werror -Wall -w -I../common -c device_syscfg_regs.c
+	gcc -Werror -Wall -std=c99 -I../cs40l25 -c ../common/create_syscfg_regs.c -o ./create_syscfg_regs.o
+	gcc -o create_syscfg_regs.exe create_syscfg_regs.o device_syscfg_regs.o cs40l25_spec.o
 	@echo -------------------------------------------------------------------------------
 	@echo EXECUTING create_syscfg_regs	
 	./create_syscfg_regs.exe
@@ -526,22 +524,18 @@ driver_lib_cm4: build_path $(BUILD_PATHS) create_syscfg_regs $(DRIVER_OBJS)
 	@echo SIZE of $(DRIVER_LIBRARY)
 	$(SIZE) -t $(DRIVER_LIBRARY)
 
-unit_test_pre_build: build_path $(BUILD_PATHS) $(BULLSEYE_ON_CMD)
-
-unit_test_build: driver_lib_cm4 $(OBJS)
+unit_test: build_path $(BUILD_PATHS) $(BULLSEYE_INCLUSIONS) driver_lib_cm4 $(OBJS)
 	@echo -------------------------------------------------------------------------------
 	@echo LINKING $@
+	$(BULLSEYE_ON_CMD)
 	$(CC) $(LDFLAGS) $(OBJS) $(LIBS) -o $(BUILD_DIR)/unit_test.exe
-
-unit_test_post_build: $(BULLSEYE_OFF_CMD)
-
-unit_test: unit_test_pre_build unit_test_build unit_test_post_build
+	$(BULLSEYE_OFF_CMD)
 	@echo -------------------------------------------------------------------------------
 	@echo RUNNING $@
 	@echo -------------------------------------------------------------------------------
 	$(BUILD_DIR)/unit_test.exe
 
-system_test: build_path $(BUILD_PATHS) $(BULLSEYE_ON_CMD) driver_lib_cm4 $(OBJS) $(ASM_OBJS) $(BULLSEYE_OFF_CMD)
+system_test: build_path $(BUILD_PATHS) $(BULLSEYE_INCLUSIONS) driver_lib_cm4 $(OBJS) $(ASM_OBJS)
 	@echo -------------------------------------------------------------------------------
 	@echo LINKING $@
 	$(CC) $(LDFLAGS) $(OBJS) $(ASM_OBJS) $(LIBS) -o $(BUILD_DIR)/system_test.elf

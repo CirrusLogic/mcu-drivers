@@ -1,18 +1,18 @@
 Artifact Info:
-Artifact           : CS35L41 Alt-OS Driver: 2.0.0
+Artifact           : CS35L41Alt-OS Driver: 2.1.0
 Test Target MCU SDK: STM32Cube_FW_F4: 1.24.1
 Target toolchain   : GNU Arm Embedded Toolchain: arm-none-eabi-gcc (GNU Tools for Arm Embedded Processors 8-2019-q3-update) 8.3.1 20190703 (release) [gcc-8-branch revision 273027]
 Build system       : make: GNU Make 3.82
 OS                 : Linux: 3.10.0-1062.el7.x86_64
 Shell              : bash: GNU bash, version 4.2.46(2)-release (x86_64-redhat-linux-gnu)
 Host toolchain     : MinGW GCC: gcc (GCC) 4.8.5 20150623 (Red Hat 4.8.5-39)
-Build Job          : prince_alt_os_nightly: 337
-Git SHA            : c75af6bd12c38f4c6b9c04cd375660c3b08fa54f
+Build Job          : prince_alt_os_nightly: 362
+Git SHA            : 75f0c7bee5a0a839417774c474b5665e8c8c0ca8
 
 System resources:
 
-Library name    : /var/lib/jenkins/jobs/prince_alt_os_nightly/workspace/build_driver_lib_cm4/build/cs35l41/libcs35l41
-Library TEXT    : 5696 bytes
+Library name    : /home/svc_altos/workspace/prince_alt_os_nightly/build_driver_lib_cm4/build/cs35l41/libcs35l41
+Library TEXT    : 5724 bytes
 Library BSS     : 0 bytes
 Library DATA    : 0 bytes
 BSP RAM         : 0 bytes

@@ -3,6 +3,35 @@ Release Notes
 
 =============================================================================
 Summary:
+This is the release of Alt-OS Driver SDK v2.1.0
+Date: 2020/07/24
+
+Component Driver Versions:
+CS35L41 - v2.1.0
+CS40L25 - v1.1.0
+
+Component Tool Versions:
+firmware_converter - v2.3.0
+
+Architectures/Compilers Used:
+GNU Arm Embedded Toolchain: arm-none-eabi-gcc -mcpu=cortex-m4
+
+New Features/Changes:
+[SQA-1831] Added otp_unpacker library to L41 codebase
+[SQA-1827] Refactor common create_syscfg_regs code / Optimized I2C transactions when writing syscfg_regs
+[SQA-1825] Consolidated common BSP source / Removed toggle_gpio from bsp_driver_if_t
+[SQA-1705] firmware_converter - added binary output option for 'fw_img_v1'
+[SQA-1839] firmware_converter - added WMDR-only output to 'fw_img_v1'
+[SQA-1841] firmware_converter - add sym.h generation to 'fw_img_v1'
+[SQA-1847] firmware_converter - added support for absolute addressing blocks
+
+
+Fixed Bugs:
+None
+
+=============================================================================
+=============================================================================
+Summary:
 This is the release of Alt-OS Driver SDK v2.0.0
 Date: 2020/06/30
 

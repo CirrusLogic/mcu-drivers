@@ -12,12 +12,28 @@
  * purpose.
  *
  */
-/**************************************************************************************************
+/***********************************************************************************************************************
  * INCLUDES
- **************************************************************************************************/
+ **********************************************************************************************************************/
 #include <stddef.h>
 #include "fw_img_v1.h"
 
+/***********************************************************************************************************************
+ * LOCAL FUNCTIONS
+ **********************************************************************************************************************/
+
+/**
+ * Copy data from input block to fw_img state member or output block buffer
+ *
+ * @param [in] state            Pointer to the fw_img boot state
+ * @param [in,out] data         Pointer to output buffer
+ * @param [in] data_size        Total number of uint32_t words to copy
+ *
+ * @return
+ * - FW_IMG_STATUS_AGAIN        if copied all data from input buffer
+ * - FW_IMG_STATUS_NODATA       otherwise
+ *
+ */
 static uint32_t fw_img_copy_data(fw_img_boot_state_t *state, uint32_t *data, uint32_t data_size)
 {
     while ((state->count * sizeof(uint32_t)) < data_size &&
@@ -33,6 +49,23 @@ static uint32_t fw_img_copy_data(fw_img_boot_state_t *state, uint32_t *data, uin
         return FW_IMG_STATUS_NODATA;
 }
 
+/**
+ * Run through fw_img processing state machine
+ *
+ * The state machine will transition through reading the various sections of a fw_img file.
+ *
+ * @param [in] state            Pointer to the fw_img boot state
+ *
+ * @return
+ * - FW_IMG_STATUS_AGAIN        if all of the current section of the fw_img file was processed
+ * - FW_IMG_STATUS_FAIL if:
+ *      - output block data size is smaller than the size of processed input data block
+ *      - fw_img footer was incorrect
+ *      - unknown state machine state
+ * - FW_IMG_STATUS_DATA_READY   if output data block is ready
+ * - FW_IMG_STATUS_OK           if fw_img footer was correctly processed - processing is complete
+ *
+ */
 static uint32_t fw_img_process_data(fw_img_boot_state_t *state)
 {
     uint32_t ret = FW_IMG_STATUS_AGAIN;
@@ -113,6 +146,14 @@ static uint32_t fw_img_process_data(fw_img_boot_state_t *state)
     return ret;
 }
 
+/***********************************************************************************************************************
+ * API FUNCTIONS
+ **********************************************************************************************************************/
+
+/**
+ * Read fw_img header
+ *
+ */
 uint32_t fw_img_read_header(fw_img_boot_state_t *state)
 {
     uint32_t ret = FW_IMG_STATUS_OK;
@@ -138,6 +179,10 @@ uint32_t fw_img_read_header(fw_img_boot_state_t *state)
     return FW_IMG_STATUS_OK;
 }
 
+/**
+ * Process more fw_img bytes
+ *
+ */
 uint32_t fw_img_process(fw_img_boot_state_t *state)
 {
     uint32_t ret = FW_IMG_STATUS_OK;

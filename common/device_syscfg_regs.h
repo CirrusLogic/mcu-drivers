@@ -1,7 +1,7 @@
 /**
- * @file sdk_version.h
+ * @file device_syscfg_regs.h
  *
- * @brief Alt-OS SDK version literals
+ * @brief Driver Syscfg Regs module typedefs and function prototypes
  *
  * @copyright
  * Copyright (c) Cirrus Logic 2020 All Rights Reserved, http://www.cirrus.com/
@@ -13,8 +13,8 @@
  *
  */
 
-#ifndef SDK_VERSION_H
-#define SDK_VERSION_H
+#ifndef DEVICE_SYSCFG_REGS_H
+#define DEVICE_SYSCFG_REGS_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -23,30 +23,11 @@ extern "C" {
 /***********************************************************************************************************************
  * INCLUDES
  **********************************************************************************************************************/
+#include <stdio.h>
 
 /***********************************************************************************************************************
  * LITERALS & CONSTANTS
  **********************************************************************************************************************/
-
-/**
- * @defgroup SDK_VERSION_
- * @brief Defines for the release version of the SDK
- *
- * @details
- * Versions for the SDK are defined as:
- * - Major - The interface of the firmware or module has changed in a way that breaks backwards compatibility. This
- * means that the module will not work as before if the old interface is used.
- * - Minor - The interface of the firmware or module has changed, but not in a way that breaks backwards compatibility.
- * This means that the module will work as before if the old interface is used.
- * - Patch - The function has changed without changing the interface, for instance for a bug fix.
- *
- * @{
- */
-#define SDK_VERSION_MAJOR   (2) ///< Release Major version
-#define SDK_VERSION_MINOR   (1) ///< Release Minor version
-#define SDK_VERSION_PATCH   (0) ///< Release Patch version
-/** @} */
-
 
 /***********************************************************************************************************************
  * MACROS
@@ -55,6 +36,27 @@ extern "C" {
 /***********************************************************************************************************************
  * ENUMS, STRUCTS, UNIONS, TYPEDEFS
  **********************************************************************************************************************/
+typedef struct
+{
+    uint32_t address;
+    uint32_t mask;
+    uint32_t value;
+    char *name;
+} syscfg_reg_list_entry_t;
+
+typedef struct
+{
+    const char *chip_name_uc;
+    const char *chip_name_lc;
+    const char *header_filename;
+    const char *header_filename_uc;
+    const char *source_filename;
+
+    uint32_t *cleared_regs;
+    uint32_t *set_regs;
+    syscfg_reg_list_entry_t *reg_list;
+    uint32_t reg_list_total;
+} syscfg_reg_descriptor_t;
 
 /***********************************************************************************************************************
  * GLOBAL VARIABLES
@@ -63,10 +65,14 @@ extern "C" {
 /***********************************************************************************************************************
  * API FUNCTIONS
  **********************************************************************************************************************/
+void configure_syscfg_reg_descriptor(syscfg_reg_descriptor_t *d);
+void set_device_syscfg(void);
+uint32_t apply_device_syscfg(uint32_t *reg_vals);
+void add_device_header_defines(FILE *fp, syscfg_reg_descriptor_t *d);
 
 /**********************************************************************************************************************/
 #ifdef __cplusplus
 }
 #endif
 
-#endif // SDK_VERSION_H
+#endif // DEVICE_SYSCFG_REGS_H

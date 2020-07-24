@@ -30,9 +30,10 @@ extern "C" {
  *
  * @{
  */
-// Firmware - GENERAL
-#define CS35L41_SYM_GENERAL_HALO_STATE                                  (0x1)
-#define CS35L41_SYM_GENERAL_HALO_HEARTBEAT                              (0x2)
+// FIRMWARE_HALO_CSPL
+#define CS35L41_SYM_FIRMWARE_HALO_CSPL_HALO_STATE                       (0x1)
+#define CS35L41_SYM_FIRMWARE_HALO_CSPL_HALO_HEARTBEAT                   (0x2)
+
 // CSPL
 #define CS35L41_SYM_CSPL_CSPL_STATE                                     (0x3)
 #define CS35L41_SYM_CSPL_CSPL_TEMPERATURE                               (0x4)

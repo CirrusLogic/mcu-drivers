@@ -1,7 +1,7 @@
 /**
- * @file hw_0_bsp.h
+ * @file otp_unpacker.h
  *
- * @brief Functions and prototypes exported by the BSP module for the HW ID0 platform.
+ * @brief Functions and prototypes exported by the OTP Unpacker module
  *
  * @copyright
  * Copyright (c) Cirrus Logic 2020 All Rights Reserved, http://www.cirrus.com/
@@ -13,8 +13,8 @@
  *
  */
 
-#ifndef HW_0_BSP_H
-#define HW_0_BSP_H
+#ifndef OTP_UNPACKER
+#define OTP_UNPACKER
 
 #ifdef __cplusplus
 extern "C" {
@@ -23,67 +23,49 @@ extern "C" {
 /***********************************************************************************************************************
  * INCLUDES
  **********************************************************************************************************************/
-#include "bsp_driver_if.h"
+#include <stdint.h>
 #include <stdbool.h>
-#include "hw_0_bsp_dut.h"
+#include "cs35l41.h"
 
 /***********************************************************************************************************************
- * LITERALS & CONSTANTS
+ * LITERALS, CONSTANTS, MACROS
  **********************************************************************************************************************/
-#define BSP_DEV_ID_NULL                 (0)
-#define BSP_DUT_DEV_ID                  (1)
-#define BSP_LN2_DEV_ID                  (2)
+/**
+ * @defgroup OTP_UNPACKER_STATUS_
+ * @brief Return codes for OTP Unpacker API calls
+ *
+ * @{
+ */
+#define OTP_UNPACKER_STATUS_OK          (0)
+#define OTP_UNPACKER_STATUS_FAIL        (1)
+/** @} */
 
-#define BSP_GPIO_ID_DUT_RESET           (1)
-#define BSP_GPIO_ID_DUT_INT             (2)
+#define OTP_UNPACKER_OTP_ADDRESS        (CS35L41_OTP_IF_OTP_MEM0_REG)
 
-#define BSP_PB_ID_USER                  (0)
-
-#define BSP_PLAY_SILENCE                (0)
-#define BSP_PLAY_STEREO_1KHZ_20DBFS     (1)
-#define BSP_PLAY_STEREO_100HZ_20DBFS    (2)
-#define BSP_PLAY_STEREO_PATTERN         (3)
-
-#define BSP_BUS_TYPE_I2C                (0)
-
-#define BSP_STATUS_DUT_EVENTS           (2)
-
-/***********************************************************************************************************************
- * MACROS
- **********************************************************************************************************************/
+#define OTP_UNPACKER_OTP_SIZE_WORDS     (CS35L41_OTP_SIZE_WORDS)
 
 /***********************************************************************************************************************
  * ENUMS, STRUCTS, UNIONS, TYPEDEFS
  **********************************************************************************************************************/
-typedef void (*bsp_app_callback_t)(uint32_t status, void *arg);
 
 /***********************************************************************************************************************
  * GLOBAL VARIABLES
  **********************************************************************************************************************/
-extern bool trigger_audio_change;
+extern const cs35l41_otp_map_t cs35l41_otp_maps[2];  // Extern-ed from cs35l41.c
 
 /***********************************************************************************************************************
  * API FUNCTIONS
  **********************************************************************************************************************/
-uint32_t bsp_initialize(bsp_app_callback_t cb, void *cb_arg);
-uint32_t bsp_audio_play(uint8_t content);
-uint32_t bsp_audio_play_record(uint8_t content);
-uint32_t bsp_audio_pause(void);
-uint32_t bsp_audio_resume(void);
-uint32_t bsp_audio_stop(void);
-bool bsp_was_pb_pressed(uint8_t pb_id);
-void bsp_sleep(void);
-uint32_t bsp_register_pb_cb(uint32_t pb_id, bsp_app_callback_t cb, void *cb_arg);
-void bsp_notification_callback(uint32_t event_flags, void *arg);
-uint32_t bsp_i2c_write(uint32_t bsp_dev_id,
-                       uint8_t *write_buffer,
-                       uint32_t write_length,
-                       bsp_callback_t cb,
-                       void *cb_arg);
+uint32_t otp_unpacker_initialize(uint8_t otpid, uint8_t *otp_buffer);
+uint32_t otp_unpacker_deinitialize(void);
+uint32_t otp_unpacker_get_reg_list_total(uint8_t *total);
+uint32_t otp_unpacker_get_reg_address(uint32_t *address, uint8_t index);
+uint32_t otp_unpacker_set_reg_value(uint8_t index, uint32_t value);
+uint32_t otp_unpacker_get_unpacked_reg_list(uint32_t **reg_list, uint32_t *reg_list_total_words);
 
 /**********************************************************************************************************************/
 #ifdef __cplusplus
 }
 #endif
 
-#endif // HW_0_BSP_H
+#endif // OTP_UNPACKER

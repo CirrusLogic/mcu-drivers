@@ -29,6 +29,9 @@
 # IMPORTS
 #==========================================================================
 import re
+import os
+from firmware_exporter import firmware_exporter
+from fw_img_v1 import fw_img_v1
 
 #==========================================================================
 # CONSTANTS/GLOBALS
@@ -110,40 +113,85 @@ source_file_template_coeff_block_str = """{coeff_block_size} // COEFF_BLOCK_SIZE
 {coeff_block_addr} // COEFF_BLOCK_ADDR_{coeff_index}_{block_index}
 {block_bytes}"""
 
+symbol_id_header_file_template_str = """
+/**
+ * @file {part_number_lc}_sym.h
+ *
+ * @brief Master table of known firmware symbols for the {part_number_uc} Driver module
+ *
+ * @copyright
+ * Copyright (c) Cirrus Logic 2020 All Rights Reserved, http://www.cirrus.com/
+ *
+ * This code and information are provided 'as-is' without warranty of any
+ * kind, either expressed or implied, including but not limited to the
+ * implied warranties of merchantability and/or fitness for a particular
+ * purpose.
+ *
+ */
+
+#ifndef {part_number_uc}_SYM_H
+#define {part_number_uc}_SYM_H
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+/***********************************************************************************************************************
+ * LITERALS & CONSTANTS
+ **********************************************************************************************************************/
+
+/**
+ * @defgroup {part_number_uc}_SYM_
+ * @brief Single source of truth for firmware symbols known to the driver.
+ *
+ * @{
+ */
+{symbol_id_define_list}
+
+/** @} */
+
+/**********************************************************************************************************************/
+#ifdef __cplusplus
+}
+#endif
+
+#endif // {part_number_uc}_SYM_H
+
+"""
+
 #==========================================================================
 # CLASSES
 #==========================================================================
-class fw_img_v1_file:
-    def __init__(self, part_number_str, suffix, fw_meta, symbol_table):
+class fw_img_v1_file(firmware_exporter):
+    def __init__(self, attributes):
+        firmware_exporter.__init__(self, attributes)
         self.template_str = header_file_template_str
         self.includes_coeff = False
         self.output_str = ''
         self.terms = dict()
-        self.terms['part_uc'] = part_number_str.upper()
-        self.terms['part_lc'] = part_number_str.lower()
-        self.terms['part_number_lc'] = (part_number_str + suffix).lower()
-        self.terms['part_number_uc'] = (part_number_str + suffix).upper()
+        self.terms['part_uc'] = self.attributes['part_number_str'].upper()
+        self.terms['part_lc'] = self.attributes['part_number_str'].lower()
+        self.terms['part_number_lc'] = (self.attributes['part_number_str'] + self.attributes['suffix']).lower()
+        self.terms['part_number_uc'] = (self.attributes['part_number_str'] + self.attributes['suffix']).upper()
         self.terms['total_fw_blocks'] = 0
         self.terms['algorithm_defines'] = ''
         self.terms['control_defines'] = ''
         self.terms['include_coeff_0'] = ''
         self.terms['fw_block_arrays'] = ''
         self.terms['coeff_block_arrays'] = []
-        self.terms['fw_id'] = fw_meta['fw_id']
-        self.terms['fw_rev'] = fw_meta['fw_rev']
+        self.terms['fw_id'] = self.attributes['fw_meta']['fw_id']
+        self.terms['fw_rev'] = self.attributes['fw_meta']['fw_rev']
         self.terms['metadata_text'] = ' *\n'
         self.total_coeff_blocks = []
+        self.fw_data_block_list = []
+        self.coeff_data_block_list = []
         self.algorithms = dict()
         self.algorithm_controls = dict()
         self.uint8_per_line = 24
         self.img_size = 0
-        self.sym_table_file = symbol_table
-        if self.sym_table_file is None:
-            tmp = open("../" + self.terms['part_lc'] + "_sym.h", 'r')
-        else:
-            tmp = open(self.sym_table_file, 'r')
-        self.sym_header = tmp.read()
-        tmp.close()
+        self.sym_table_file = self.attributes['symbol_table']
+        
+        return
 
     def create_block_string(self, data_bytes):
         temp_data_str = ''
@@ -161,22 +209,29 @@ class fw_img_v1_file:
     def int_to_bytes(self, val):
         return self.create_block_string(val.to_bytes(4, byteorder='little'))
 
+    def update_block_info(self, fw_block_total, coeff_block_totals): pass
+
     def add_control(self, algorithm_name, algorithm_id, control_name, address):
-        if self.algorithms.get(algorithm_name, None) is None:
-            self.algorithms[algorithm_name] = algorithm_id
-            self.algorithm_controls[algorithm_name] = []
-        self.algorithm_controls[algorithm_name].append((control_name, address))
+        if (not self.attributes['wmdr_only']):
+            if self.algorithms.get(algorithm_name, None) is None:
+                self.algorithms[algorithm_name] = algorithm_id
+                self.algorithm_controls[algorithm_name] = []
+            self.algorithm_controls[algorithm_name].append((control_name, address))
 
     def add_fw_block(self, address, data_bytes):
-        # Create string for block data
-        temp_str = source_file_template_fw_block_str.replace('{block_index}', str(self.terms['total_fw_blocks']))
-        temp_str = temp_str.replace('{fw_block_size}', self.int_to_bytes(len(data_bytes)))
-        temp_str = temp_str.replace('{fw_block_addr}', self.int_to_bytes(address))
-        temp_str = temp_str.replace('{block_bytes}', self.create_block_string(data_bytes))
+        if (not self.attributes['wmdr_only']):
+            # Create entry into data block list
+            self.fw_data_block_list.append((len(data_bytes), address, data_bytes))
+            
+            # Create string for block data
+            temp_str = source_file_template_fw_block_str.replace('{block_index}', str(self.terms['total_fw_blocks']))
+            temp_str = temp_str.replace('{fw_block_size}', self.int_to_bytes(len(data_bytes)))
+            temp_str = temp_str.replace('{fw_block_addr}', self.int_to_bytes(address))
+            temp_str = temp_str.replace('{block_bytes}', self.create_block_string(data_bytes))
 
-        self.terms['fw_block_arrays'] = self.terms['fw_block_arrays'] + temp_str + '\n'
+            self.terms['fw_block_arrays'] = self.terms['fw_block_arrays'] + temp_str + '\n'
 
-        self.terms['total_fw_blocks'] = self.terms['total_fw_blocks'] + 1
+            self.terms['total_fw_blocks'] = self.terms['total_fw_blocks'] + 1
 
     def add_coeff_block(self, index, address, data_bytes):
         self.includes_coeff = True
@@ -186,6 +241,12 @@ class fw_img_v1_file:
             self.terms['coeff_block_arrays'].append('')
         if len(self.total_coeff_blocks) < (index + 1):
             self.total_coeff_blocks.append(0)
+            
+        # Create entry into data block list
+        if (len(self.coeff_data_block_list) < (index + 1)):
+            self.coeff_data_block_list.append([])
+            
+        self.coeff_data_block_list[index].append((len(data_bytes), address, data_bytes))
 
         # Create string for block data
         temp_str = source_file_template_coeff_block_str.replace('{block_index}', str(self.total_coeff_blocks[index]))
@@ -202,11 +263,141 @@ class fw_img_v1_file:
         self.terms['metadata_text'] = self.terms['metadata_text'] + ' * ' + line + '\n'
         return
 
-    def find_symbol_id(self, alg_name, sym_name):
-        matches = re.findall(r"^#define " + self.terms['part_uc'] + "_SYM_" + alg_name.upper() + "_" + sym_name.upper() + " .*", self.sym_header, re.M)
+    def find_symbol_id(self, sym_name):
+        matches = re.findall(r"^#define " + self.terms['part_uc'] + "_SYM_" + sym_name.upper() + " .*", self.sym_header, re.M)
         if len(matches) == 1:
             return int(re.sub(r"\).*$", "", re.sub(r"^.*\(", "", matches[0])), base=16)
         return 0
+        
+    def generate_symbol_header(self):
+        self.sym_table_file = self.terms['part_lc'] + '_sym.h'
+        f = open(self.sym_table_file, 'w')
+        
+        output_str = symbol_id_header_file_template_str
+        
+        # Iterate through algorithms and respective lists of controls and generate symbol id define list
+        temp_str = ''
+        # the count for control ids starts at 1 - the value 0 is a special value used by parsing library
+        control_id = 1
+        
+        if self.algorithms:
+            # First get all control strings and calculate the longest name
+            longest_str_len = 0
+            for alg_name, alg_id in self.algorithms.items():
+                for control in self.algorithm_controls[alg_name]:
+                    temp_ctl_str = "#define " + self.terms['part_uc'] + "_SYM_" + control[0]
+                    if (len(temp_ctl_str) > longest_str_len):
+                        longest_str_len = len(temp_ctl_str)
+                        
+            # Round up to nearest tab/4 spaces
+            longest_str_len += (4 - (longest_str_len % 4))
+            
+            # Create string of all symbol id defines
+            for alg_name, alg_id in self.algorithms.items():
+                temp_str += "// " + alg_name + "\n"
+                for control in self.algorithm_controls[alg_name]:
+                    temp_ctl_str = "#define " + self.terms['part_uc'] + "_SYM_" + control[0].upper()
+                    temp_ctl_str += ' ' * (longest_str_len - len(temp_ctl_str))
+                    temp_ctl_str += '(0x' + str(control_id) + ')\n'
+                    
+                    temp_str += temp_ctl_str
+                    
+                    control_id += 1
+        
+        # Replace symbol id define list
+        output_str = output_str.replace('{symbol_id_define_list}\n', temp_str)
+        
+        # Replace part number strings
+        output_str = output_str.replace('{part_number_lc}', self.terms['part_lc'])
+        output_str = output_str.replace('{part_number_uc}', self.terms['part_uc'])        
+        output_str = output_str.replace('\n\n\n', '\n\n')
+        
+        self.sym_header = output_str
+        
+        f.write(self.sym_header)
+        f.close()
+        
+        print("Generated " + self.sym_table_file)
+        
+        return
+        
+    def to_byte_array(self):
+        word_list = []
+        word_list.append(0x54b998ff)
+        word_list.append(0x1)
+        word_list.append(0)
+        
+        control_count = 0
+        temp_alg_words = []
+        temp_ctl_words = []
+        if self.algorithms:
+            for alg_name, alg_id in self.algorithms.items():
+                temp_alg_words.append(alg_id)
+
+                for control in self.algorithm_controls[alg_name]:
+                    sym_id = self.find_symbol_id(control[0])
+                    if sym_id:
+                        temp_ctl_words.append(sym_id)
+                        temp_ctl_words.append(control[1])
+
+                        control_count = control_count + 1
+            
+            word_list.append(control_count)
+            word_list.append(len(self.algorithms))
+        else:
+            word_list.append(0)
+            word_list.append(0)
+            
+        word_list.append(self.terms['fw_id'])
+        word_list.append(self.terms['fw_rev'])
+
+        total_data_blocks = len(self.fw_data_block_list)
+        data_block_words = []
+        for f in self.fw_data_block_list:
+            data_block_words.append(f[0])
+            data_block_words.append(f[1])
+            
+            for i in range(0, len(f[2]), 4):
+                temp_word = f[2][i]
+                temp_word = temp_word | (f[2][i + 1] << 8)
+                temp_word = temp_word | (f[2][i + 2] << 16)
+                temp_word = temp_word | (f[2][i + 3] << 24)
+                data_block_words.append(temp_word)
+                
+        for coeff_blocks in self.coeff_data_block_list:
+        
+            total_data_blocks = total_data_blocks + len(coeff_blocks)
+            
+            for coeff_block in coeff_blocks:
+                data_block_words.append(coeff_block[0])
+                data_block_words.append(coeff_block[1])
+                
+                for i in range(0,  len(coeff_block[2]), 4):
+                    temp_word = coeff_block[2][i]
+                    temp_word = temp_word | (coeff_block[2][i + 1] << 8)
+                    temp_word = temp_word | (coeff_block[2][i + 2] << 16)
+                    temp_word = temp_word | (coeff_block[2][i + 3] << 24)
+                    data_block_words.append(temp_word)
+
+        word_list.append(total_data_blocks)
+        
+        word_list.extend(temp_ctl_words)
+        word_list.extend(temp_alg_words)
+        
+        word_list.extend(data_block_words)
+
+        word_list.append(0x936be2a6)
+        word_list.append(0xf0f00f0f)
+        
+        # Compute image size
+        word_list[2] = len(word_list) * 4
+        
+        # Convert to byte array
+        byte_list = []
+        for w in word_list:
+            byte_list.extend(w.to_bytes(4, byteorder="little", signed=False))
+        
+        return bytearray(byte_list)
 
     def __str__(self):
         output_str = self.template_str
@@ -224,9 +415,9 @@ class fw_img_v1_file:
                 temp_alg_str = temp_alg_str + self.int_to_bytes(alg_id) + " // " + alg_name + "\n"
 
                 for control in self.algorithm_controls[alg_name]:
-                    sym_id = self.find_symbol_id(alg_name, control[0])
+                    sym_id = self.find_symbol_id(control[0])
                     if sym_id:
-                        temp_ctl_str = temp_ctl_str + self.int_to_bytes(sym_id) + " // " + control[0] + "\n" \
+                        temp_ctl_str = temp_ctl_str + self.int_to_bytes(sym_id) + " // " + control[0].upper() + "\n" \
                             + self.int_to_bytes(control[1]) + " // " + hex(control[1]) + "\n"
                         control_count = control_count + 1
 
@@ -237,6 +428,7 @@ class fw_img_v1_file:
             self.terms['control_defines'] = temp_ctl_str
             output_str = output_str.replace('{sym_table}\n', self.terms['control_defines'])
         else:
+            output_str = output_str.replace('{sym_table_size}', self.int_to_bytes(0))
             output_str = output_str.replace('{alg_list}\n', '')
             output_str = output_str.replace('{sym_table}\n', '')
 
@@ -273,6 +465,30 @@ class fw_img_v1_file:
         
         output_str = output_str.replace('\n\n\n', '\n\n')
         return output_str
+        
+    def to_file(self):
+        temp_filename = self.attributes['part_number_str'] + self.attributes['suffix'] + "_fw_img"
+        
+        # Open or generate the symbol id header
+        if self.sym_table_file is None:
+            self.generate_symbol_header()
+        tmp = open(self.sym_table_file, 'r')
+        self.sym_header = tmp.read()
+        tmp.close()
+        
+        if (not self.attributes['binary_output']):
+            temp_filename = temp_filename + ".h"
+            
+            f = open(temp_filename, 'w')
+            f.write(self.__str__())
+            f.close()
+        else:
+            temp_filename = temp_filename + ".bin"
+            f = open(temp_filename, "wb")
+            f.write(self.to_byte_array())
+            f.close()
+        
+        return "Exported to " + temp_filename
 
 #==========================================================================
 # HELPER FUNCTIONS

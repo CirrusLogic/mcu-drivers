@@ -29,6 +29,7 @@
 # IMPORTS
 #==========================================================================
 import string
+from firmware_exporter import firmware_exporter
 
 #==========================================================================
 # CONSTANTS/GLOBALS
@@ -60,15 +61,16 @@ END
 #==========================================================================
 # CLASSES
 #==========================================================================
-class wisce_script_file:
-    def __init__(self, part_number_str, i2c_address):
+class wisce_script_file(firmware_exporter):
+    def __init__(self, attributes):
+        firmware_exporter.__init__(self, attributes)
         self.template_str = wisce_script_template_str
         self.output_str = ''
         self.terms = dict()
-        self.terms['part_number_lc'] = part_number_str.lower()
-        self.terms['part_number_uc'] = part_number_str.upper()
+        self.terms['part_number_lc'] = self.attributes['part_number_str'].lower()
+        self.terms['part_number_uc'] = self.attributes['part_number_str'].upper()
         self.terms['wisce_blocks'] = ''
-        self.terms['i2c_address'] = i2c_address
+        self.terms['i2c_address'] = self.attributes['i2c_address']
         self.terms['metadata_text'] = ''
         self.block_write_32dat_per_line = 8
         return
@@ -91,6 +93,9 @@ class wisce_script_file:
                     temp_data_str = temp_data_str + "\n"
 
         return temp_data_str
+        
+    def update_block_info(self, fw_block_total, coeff_block_totals): pass
+    def add_control(self, algorithm_name, algorithm_id, control_name, address): pass
 
     def add_data_block(self, address, data_bytes):
         # Create string for block data
@@ -101,6 +106,12 @@ class wisce_script_file:
         self.terms['wisce_blocks'] = self.terms['wisce_blocks'] + temp_str + '\n'
 
         return
+        
+    def add_fw_block(self, address, data_bytes):
+        return self.add_data_block(address, data_bytes)
+        
+    def add_coeff_block(self, index, address, data_bytes):
+        return self.add_data_block(address, data_bytes)
             
     def add_metadata_text_line(self, line):
         self.terms['metadata_text'] = self.terms['metadata_text'] + '* ' + line + '\n'
@@ -119,6 +130,18 @@ class wisce_script_file:
 
         output_str = output_str.replace('\n\n\n', '\n\n')
         return output_str
+        
+        
+    def to_file(self):
+        temp_filename = self.attributes['part_number_str'] + self.attributes['suffix'] + "_wisce_script_output.txt"
+        results_str = "Exported to " + temp_filename + "\n"
+        
+        f = open(temp_filename, 'w')
+        f.write(str(self))
+        f.close()
+        
+        return results_str
+        
 #==========================================================================
 # HELPER FUNCTIONS
 #==========================================================================

@@ -82,6 +82,7 @@ informational_text_block_type = 0xFF
 algorithm_information_data_block = 0xF2
 user_defined_name_text_block_type = 0xFE
 metadata_block_type = 0xFC
+absolute_addressing_data_block_type = 0xF0
 
 #==========================================================================
 # CLASSES
@@ -663,6 +664,8 @@ def get_memory_region_from_type(type):
         ret = 'ym'
     elif (type in halo_block_types_memory_region_pm):
         ret = 'pm'
+    elif (type == (absolute_addressing_data_block_type << 8)):
+        ret = 'abs'
 
     return ret
 

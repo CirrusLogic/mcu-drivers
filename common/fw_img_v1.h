@@ -26,11 +26,22 @@ extern "C" {
 #include <stdint.h>
 #include <stdbool.h>
 
+/***********************************************************************************************************************
+ * LITERALS, CONSTANTS, MACROS
+ **********************************************************************************************************************/
+
+/**
+ * @defgroup FW_IMG_STATUS_
+ * @brief Return codes for fw_img API calls
+ *
+ * @{
+ */
 #define FW_IMG_STATUS_OK                               (0)
 #define FW_IMG_STATUS_FAIL                             (1)
 #define FW_IMG_STATUS_AGAIN                            (2)
 #define FW_IMG_STATUS_NODATA                           (4)
 #define FW_IMG_STATUS_DATA_READY                       (5)
+/** @} */
 
 /**
  * @defgroup FW_IMG_BOOT_STATE_
@@ -60,6 +71,10 @@ extern "C" {
 #define FW_IMG_BOOT_FW_IMG_V1_MAGIC_1                  (0x54b998ff)
 #define FW_IMG_BOOT_FW_IMG_V1_MAGIC_2                  (0x936be2a6)
  /** @} */
+
+/***********************************************************************************************************************
+ * ENUMS, STRUCTS, UNIONS, TYPEDEFS
+ **********************************************************************************************************************/
 
 /**
  * Footer for fw_img_v1
@@ -133,7 +148,43 @@ typedef struct
     fw_img_v1_footer_t footer;
 } fw_img_boot_state_t;
 
+/***********************************************************************************************************************
+ * API FUNCTIONS
+ **********************************************************************************************************************/
+
+/**
+ * Read fw_img header
+ *
+ * Reads all members into fw_img_boot_state_t member fw_info.header
+ *
+ * @param [in] state            Pointer to the fw_img boot state
+ *
+ * @return
+ * - FW_IMG_STATUS_FAIL if:
+ *      - any NULL pointers
+ *      - fw_img_blocks_size is 0
+ *      - header magic number is incorrect
+ * - FW_IMG_STATUS_OK           otherwise
+ *
+ */
 extern uint32_t fw_img_read_header(fw_img_boot_state_t *state);
+
+/**
+ * Process more fw_img bytes
+ *
+ * Continues processing fw_img bytes and updating the fw_img_boot_state_t according to the state machine.
+ *
+ * @param [in] state            Pointer to the fw_img boot state
+ *
+ * @return
+ * - FW_IMG_STATUS_FAIL if:
+ *      - any NULL pointers
+ *      - any errors processing fw_img data
+ * - FW_IMG_STATUS_NODATA       fw_img_process() requires input of another block of fw_img data
+ * - FW_IMG_STATUS_DATA_READY   an output block of data is ready to be sent to the device
+ * - FW_IMG_STATUS_OK           Once finished reading the fw_img footer
+ *
+ */
 extern uint32_t fw_img_process(fw_img_boot_state_t *state);
 
 /**********************************************************************************************************************/
