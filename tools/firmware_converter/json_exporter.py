@@ -1,8 +1,8 @@
 #==========================================================================
 # (c) 2020 Cirrus Logic, Inc.
 #--------------------------------------------------------------------------
-# Project : Firmware Exporter Factory class
-# File    : firmware_exporter_factory.py
+# Project : Exporter for JSON file format
+# File    : json_exporter.py
 #--------------------------------------------------------------------------
 # Redistribution and use of this file in source and binary forms, with
 # or without modification, are permitted.
@@ -28,94 +28,77 @@
 #==========================================================================
 # IMPORTS
 #==========================================================================
+import string
 from firmware_exporter import firmware_exporter
-from c_h_file_templates import source_file_exporter
-from wisce_file_templates import wisce_script_file
-from fw_img_v1_templates import fw_img_v1_file
-from json_exporter import json_exporter
+import json
+import datetime
 
 #==========================================================================
 # CONSTANTS/GLOBALS
 #==========================================================================
-exporter_types = ['c_array', 'fw_img_v1', 'wisce', 'json']
 
 #==========================================================================
 # CLASSES
 #==========================================================================
-class firmware_exporter_factory(firmware_exporter):
-
+class json_exporter(firmware_exporter):
     def __init__(self, attributes):
         firmware_exporter.__init__(self, attributes)
-        self.exporters = []
-        self.attributes = attributes
-        return
         
-    def add_firmware_exporter(self, type):
-        if (type not in exporter_types):
-            exit(1)
+        self.fw_export = dict()
+        
+        self.fw_export['tool_info'] = dict()
+        self.fw_export['tool_info']['timestamp'] = '{:%Y-%m-%d %H:%M:%S}'.format(datetime.datetime.now())
+        self.fw_export['tool_info']['metadata_text'] = []
+        
+        self.fw_export['fw_info'] = self.attributes['fw_meta']
+        for key in  self.fw_export['fw_info'].keys():
+            if (isinstance(self.fw_export['fw_info'][key], int)):
+                self.fw_export['fw_info'][key] = hex(self.fw_export['fw_info'][key])
             
-        if (type == 'c_array'):
-            e = source_file_exporter(self.attributes)
-            self.exporters.append(e)
-        elif (type == 'fw_img_v1'):
-            e = fw_img_v1_file(self.attributes)
-            self.exporters.append(e)
-        elif (type == 'wisce'):
-            e = wisce_script_file(self.attributes)
-            self.exporters.append(e)
-        elif (type == 'json'):
-            e = json_exporter(self.attributes)
-            self.exporters.append(e)
-        else:
-            print('Unknown firmware exporter type!')
-            exit(1)
-        
+        self.fw_export['controls'] = dict()
+               
         return
         
     def update_block_info(self, fw_block_total, coeff_block_totals):
-        for e in self.exporters:
-            e.update_block_info(fw_block_total, coeff_block_totals)
-            
         return
-        
+    
     def add_control(self, algorithm_name, algorithm_id, control_name, address):
-        for e in self.exporters:
-            e.add_control(algorithm_name, algorithm_id, control_name, address)
-            
+        if (algorithm_name not in self.fw_export['controls']):
+            self.fw_export['controls'][algorithm_name] = dict()
+            self.fw_export['controls'][algorithm_name]['id'] = hex(algorithm_id)
+            self.fw_export['controls'][algorithm_name]['controls'] = dict()           
+        
+        self.fw_export['controls'][algorithm_name]['controls'][control_name] = hex(address)
+        
         return
         
     def add_metadata_text_line(self, line):
-        for e in self.exporters:
-            e.add_metadata_text_line(line)
-            
+        self.fw_export['tool_info']['metadata_text'].append(line)
         return
-        
+    
     def add_fw_block(self, address, data_bytes):
-        for e in self.exporters:
-            e.add_fw_block(address, data_bytes)
-            
         return
         
     def add_coeff_block(self, index, address, data_bytes):
-        for e in self.exporters:
-            e.add_coeff_block(index, address, data_bytes)
-            
         return
+    
+    def to_file(self):
+        results_str = 'Exported to files:\n'
+        
+        json_filename = self.attributes['part_number_str'] + '.json'
+        try:
+            f = open(json_filename, 'w')
+            #f.write(json.dumps(self.fw_export))
+            f.write(json.dumps(self.fw_export, sort_keys=False, indent=4))
+            
+            results_str += json_filename + '\n'
+        except:
+            error_exit('Failure writing output file!')    
+            
+        return results_str
         
     def __str__(self):
-        output_str = ''
-        
-        for e in self.exporters:
-            output_str = output_str + str(e)
-            
-        return output_str
-        
-    def to_file(self):
-        results_str = ''
-        for e in self.exporters:
-            results_str = results_str + e.to_file()
-        
-        return results_str
+        return "WMFW Info:\n" + json.dumps(self.fw_export, sort_keys=True, indent=4)
 
 #==========================================================================
 # HELPER FUNCTIONS

@@ -38,16 +38,17 @@ from firmware_exporter_factory import firmware_exporter_factory
 #==========================================================================
 # VERSION
 #==========================================================================
-VERSION_STRING = "2.3.0"
+VERSION_STRING = "2.4.0"
 
 #==========================================================================
 # CONSTANTS/GLOBALS
 #==========================================================================
-supported_part_numbers = ['cs35l41', 'cs40l25', 'cs40l30', 'cs48l32', 'cs47l63']
-supported_commands = ['print', 'export', 'wisce', 'fw_img_v1']
+supported_part_numbers = ['cs35l41', 'cs40l25', 'cs40l30', 'cs48l32', 'cs47l63', 'cs47l66']
+supported_commands = ['print', 'export', 'wisce', 'fw_img_v1', 'json']
 
-supported_mem = {
-    'cs35l41': {
+supported_mem_maps = {
+    'halo_type_0': {
+        'parts': ['cs35l41', 'cs40l25', 'cs40l30', 'cs48l32', 'cs47l63', 'cs47l66'],
         'xm': {
             'u24': 0x2800000,
             'p32': 0x2000000,
@@ -61,69 +62,7 @@ supported_mem = {
         'pm': {
             'pm32': 0x3800000,
         }
-    },
-    'cs40l25': {
-        'xm': {
-            'u24': 0x2800000,
-            'p32': 0x2000000,
-            'u32': 0x2400000,
-        },
-        'ym': {
-            'u24': 0x3400000,
-            'p32': 0x2C00000,
-            'u32': 0x3000000,
-        },
-        'pm': {
-            'pm32': 0x3800000,
-        }
-    },
-    'cs40l30': {
-        'xm': {
-            'u24': 0x2800000,
-            'p32': 0x2000000,
-            'u32': 0x2400000,
-        },
-        'ym': {
-            'u24': 0x3400000,
-            'p32': 0x2C00000,
-            'u32': 0x3000000,
-        },
-        'pm': {
-            'pm32': 0x3800000,
-        }
-    },
-    'cs48l32': {
-        'xm': {
-            'u24': 0x2800000,
-            'p32': 0x2000000,
-            'u32': 0x2400000,
-        },
-        'ym': {
-            'u24': 0x3400000,
-            'p32': 0x2C00000,
-            'u32': 0x3000000,
-
-        },
-        'pm': {
-            'pm32': 0x3800000
-        }
-    },
-    'cs47l63': {
-        'xm': {
-            'u24': 0x2800000,
-            'p32': 0x2000000,
-            'u32': 0x2400000,
-        },
-        'ym': {
-            'u24': 0x3400000,
-            'p32': 0x2C00000,
-            'u32': 0x3000000,
-
-        },
-        'pm': {
-            'pm32': 0x3800000
-        }
-    },
+    }
 }
 
 #==========================================================================
@@ -131,7 +70,9 @@ supported_mem = {
 #==========================================================================
 class address_resolver:
     def __init__(self, part_number):
-        self.mem_map = supported_mem[part_number]
+        for key in supported_mem_maps.keys():
+            if (part_number in supported_mem_maps[key]['parts']):
+                self.mem_map = supported_mem_maps[key]
 
         return
 
@@ -382,6 +323,8 @@ def main(argv):
         f.add_firmware_exporter('fw_img_v1')
     elif (args.command == 'wisce'):
         f.add_firmware_exporter('wisce')
+    elif (args.command == 'json'):
+        f.add_firmware_exporter('json')
 
     # Update block info based on any WMDR present
     if (not process_wmdr):

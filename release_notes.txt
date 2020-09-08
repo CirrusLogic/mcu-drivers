@@ -3,6 +3,29 @@ Release Notes
 
 =============================================================================
 Summary:
+This is the release of Alt-OS Driver SDK v2.2.0
+Date: 2020/09/08
+
+Component Driver Versions:
+CS35L41 - v2.1.0
+CS40L25 - v1.1.0
+
+Component Tool Versions:
+firmware_converter - v2.4.0
+
+Architectures/Compilers Used:
+GNU Arm Embedded Toolchain: arm-none-eabi-gcc -mcpu=cortex-m4
+
+New Features/Changes:
+[SQA-1899] firmware_converter - added exporting to JSON
+[SQA-1900] firmware_converter - added cs47l66 memory map
+
+Fixed Bugs:
+None
+
+=============================================================================
+=============================================================================
+Summary:
 This is the release of Alt-OS Driver SDK v2.1.0
 Date: 2020/07/24
 
