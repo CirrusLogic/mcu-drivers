@@ -4,21 +4,17 @@
 # Project : Parser for WMFW files
 # File    : wmfw_parser.py
 #--------------------------------------------------------------------------
-# Redistribution and use of this file in source and binary forms, with
-# or without modification, are permitted.
+# Licensed under the Apache License, Version 2.0 (the License); you may
+# not use this file except in compliance with the License.
+# You may obtain a copy of the License at
 #
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
-# FOR A PARTICULAR PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE
-# COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
-# INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-# BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-# LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-# CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
-# LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
-# ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-# POSSIBILITY OF SUCH DAMAGE.
+# www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an AS IS BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 #--------------------------------------------------------------------------
 #
 # Environment Requirements: None
@@ -203,7 +199,7 @@ class wmdr_informational_text_data_block(wmdr_block):
 
     def parse(self, file):
         wmdr_block.parse(self, file)
-        
+
         # Read padding bytes
         # Padding bytes is 4 - ((length byte + name_length bytes) modulo 4)
         padding_bytes_total = get_padding_bytes(self.fields['data_length'])
@@ -226,11 +222,11 @@ class wmdr_absolute_addressing_data_block(wmdr_block):
         wmdr_block.__init__(self, file)
         self.text = ''
         return
-        
+
     def parse(self, file):
         wmdr_block.parse(self, file)
         return
-        
+
     def __str__(self):
         output_str = component_to_string(self, 'Absolute Addressing Data Block')
         output_str += "--text: " + self.text + "\n"
@@ -276,7 +272,7 @@ class wmdr_parser:
                     new_block = wmdr_absolute_addressing_data_block(f)
                 else:
                     new_block = wmdr_block(f)
-                    
+
                 self.data_blocks.append(new_block)
                 self.data_blocks[-1].parse(f)
 
@@ -290,9 +286,9 @@ class wmdr_parser:
         for block in self.data_blocks:
             output_str = output_str + str(block) + "\n"
         for block in self.absolute_addressing_data_blocks:
-            output_str = output_str + str(block) + "\n" 
+            output_str = output_str + str(block) + "\n"
         for block in self.informational_text_blocks:
-            output_str = output_str + str(block) + "\n"        
+            output_str = output_str + str(block) + "\n"
 
         return output_str
 

@@ -1,24 +1,20 @@
-#==========================================================================
+ #==========================================================================
 # (c) 2019 Cirrus Logic, Inc.
 #--------------------------------------------------------------------------
 # Project : Convert from WMFW/WMDR ("BIN") Files to C Header/Source
 # File    : firmware_converter.py
 #--------------------------------------------------------------------------
-# Redistribution and use of this file in source and binary forms, with
-# or without modification, are permitted.
+# Licensed under the Apache License, Version 2.0 (the License); you may
+# not use this file except in compliance with the License.
+# You may obtain a copy of the License at
 #
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
-# FOR A PARTICULAR PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE
-# COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
-# INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-# BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-# LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-# CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
-# LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
-# ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-# POSSIBILITY OF SUCH DAMAGE.
+# www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an AS IS BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 #--------------------------------------------------------------------------
 #
 # Environment Requirements: None
@@ -38,7 +34,7 @@ from firmware_exporter_factory import firmware_exporter_factory
 #==========================================================================
 # VERSION
 #==========================================================================
-VERSION_STRING = "2.4.0"
+VERSION_STRING = "3.0.0"
 
 #==========================================================================
 # CONSTANTS/GLOBALS
@@ -168,20 +164,21 @@ def validate_environment():
 def get_args(args):
     """Parse arguments"""
     parser = argparse.ArgumentParser(description='Parse command line arguments')
+    parser.add_argument(dest='command', type=str, choices=supported_commands, help='The command you wish to execute.')
+    parser.add_argument(dest='part_number', type=str, choices=supported_part_numbers,
+                        help='The part number that the wmfw is targeted at.')
+    parser.add_argument(dest='wmfw', type=str,help='The wmfw (or \'firmware\') file to be parsed.')
+    parser.add_argument('--wmdr', dest='wmdrs', type=str, nargs='*', help='The wmdr (or \'bin\') file(s) to be '\
+                        'parsed.')
     parser.add_argument('-s', '--suffix', type=str, default='',
                         dest='suffix', help='Add a suffix to filenames, variables and defines.')
-    parser.add_argument('command', type=str, choices=supported_commands,
-                        help='The command you wish to execute.')
-    parser.add_argument('part_number', type=str, choices=supported_part_numbers,
-                        help='The part number that the wmfw is targeted at.')
-    parser.add_argument('wmfw', type=str, help='The wmfw (or \'firmware\') file to be parsed.')
-    parser.add_argument('wmdrs', type=str, nargs='*', help='The wmdr (or \'bin\') file(s) to be '\
-                        'parsed.')
     parser.add_argument('-i', '--i2c-address', type=str, default='0x80', dest='i2c_address', help='Specify I2C address for WISCE script output.')
     parser.add_argument('-b', '--block-size-limit', type=int, default='4140', dest='block_size_limit', help='Specify maximum byte size of block per control port transaction.')
-    parser.add_argument('--sym', dest='symbol_table', type=str, default=None, help='The location of the symbol table C header.  If not specified, a header is generated with all controls')
+    parser.add_argument('--sym-input', dest='symbol_id_input', type=str, default=None, help='The location of the symbol table C header(s).  If not specified, a header is generated with all controls.')
+    parser.add_argument('--sym-output', dest='symbol_id_output', type=str, default=None, help='The location of the output symbol table C header.  Only used when no --sym-input is specified.')
     parser.add_argument('--binary', dest='binary_output', action="store_true", help='Request binary fw_img output format.')
-    parser.add_argument('--wmdr-only', dest='wmdr_only', action="store_true", help='Request to ONLY store WMDR files in fw_img.')    
+    parser.add_argument('--wmdr-only', dest='wmdr_only', action="store_true", help='Request to ONLY store WMDR files in fw_img.')
+    parser.add_argument('--generic-sym', dest='generic_sym', action="store_true", help='Use generic algorithm name for \'FIRMWARE_*\' algorithm controls')
 
     return parser.parse_args(args[1:])
 
@@ -190,13 +187,19 @@ def validate_args(args):
     if (not os.path.exists(args.wmfw)):
         print("Invalid wmfw path: " + args.wmfw)
         return False
-    if (len(args.wmdrs) == 0):
-        return True
-    # Check that WMDR path(s) exists
-    for wmdr in args.wmdrs:
-        if (not os.path.exists(wmdr)):
-            print("Invalid wmdr path: " + wmdr)
+    if (args.wmdrs is not None):
+        # Check that WMDR path(s) exists
+        for wmdr in args.wmdrs:
+            if (not os.path.exists(wmdr)):
+                print("Invalid wmdr path: " + wmdr)
+                return False
+
+    # Check that all symbol id header files exist
+    if ((args.command == 'fw_img_v1') and (args.symbol_id_input is not None)):
+        if (not os.path.exists(args.symbol_id_input)):
+            print("Invalid Symbol Header path: " + args.symbol_id_input)
             return False
+
 
     # Check that block_size_limit <= 4140
     if (args.block_size_limit > 4140):
@@ -219,7 +222,7 @@ def print_args(args):
     print("Command: " + args.command)
     print("Part Number: " + args.part_number)
     print("WMFW Path: " + args.wmfw)
-    if (len(args.wmdrs) > 0):
+    if (args.wmdrs is not None):
         for wmdr in args.wmdrs:
             print("WMDR Path: " + wmdr)
 
@@ -227,12 +230,15 @@ def print_args(args):
         print("Suffix: " + args.suffix)
     else:
         print("No suffix")
-    
+
     if (args.command == 'fw_img_v1'):
-        if (args.symbol_table):
-            print("Symbol ID Header: " + args.symbol_table)
+        if (args.symbol_id_input is not None):
+            print("Input Symbol ID Header: " + args.symbol_id_input)
         else:
-            print("Symbol ID Header: None")
+            print("Input Symbol ID Header: None")
+
+        if (args.symbol_id_output is not None):
+            print("Output Symbol ID Header: " + args.symbol_id_output)
 
     return
 
@@ -267,7 +273,7 @@ def main(argv):
     if (not (validate_args(args))):
         error_exit("Invalid Arguments")
 
-    if (len(args.wmdrs) > 0):
+    if (args.wmdrs is not None):
         process_wmdr = True
     else:
         process_wmdr = False
@@ -310,12 +316,13 @@ def main(argv):
     attributes['part_number_str'] = args.part_number
     attributes['fw_meta'] = dict(fw_id = wmfw.fw_id_block.fields['firmware_id'], fw_rev = wmfw.fw_id_block.fields['firmware_revision'])
     attributes['suffix'] = suffix
-    attributes['symbol_table'] = args.symbol_table
+    attributes['symbol_id_input'] = args.symbol_id_input
     attributes['i2c_address'] = args.i2c_address
     attributes['binary_output'] = args.binary_output
     attributes['wmdr_only'] = args.wmdr_only
+    attributes['symbol_id_output'] = args.symbol_id_output
     f = firmware_exporter_factory(attributes)
-    
+
     # Based on command, add firmware exporters
     if (args.command == 'export'):
         f.add_firmware_exporter('c_array')
@@ -337,7 +344,7 @@ def main(argv):
 
     # Add controls
     # For each algorithm information data block
-    for alg_block in wmfw.get_algorithm_information_data_blocks():        
+    for alg_block in wmfw.get_algorithm_information_data_blocks():
         # For each 'coefficient_descriptor', create control name and resolve address
         for coeff_desc in alg_block.fields['coefficient_descriptors']:
             temp_mem_region = get_memory_region_from_type(coeff_desc.fields['type'])
@@ -346,24 +353,25 @@ def main(argv):
                                                                      coeff_desc.fields['start_offset'])
             temp_coeff_address = res.resolve(temp_mem_region, 'u24', temp_coeff_offset)
 
-            # Re-name if algorithm is the overall system control algorithms
-            #if (alg_block.fields['algorithm_id'] == wmfw.fw_id_block.fields['firmware_id']):
-            #    algorithm_name = "GENERAL"
-            #else:
-            #    algorithm_name = alg_block.fields['algorithm_name']
-            
-            if ('_struct_t' in coeff_desc.fields['coefficient_name']):
-                control_name = alg_block.fields['algorithm_name'] + "_" + coeff_desc.fields['coefficient_name']
+            # If generic_sym CLI argument specified and this is the 'general' algorith, replace the algorithm name
+            if ((args.generic_sym) and (alg_block.fields['algorithm_id'] == wmfw.fw_id_block.fields['firmware_id'])):
+                algorithm_name = "FIRMWARE"
             else:
-                control_name = coeff_desc.fields['full_coefficient_name']
-                
+                algorithm_name = alg_block.fields['algorithm_name']
+
+            # If this is the 'struct_t' control, it's full name doesn't have the algo name, so add it
+            if ('_struct_t' in coeff_desc.fields['coefficient_name']):
+                control_name = algorithm_name + "_" + coeff_desc.fields['coefficient_name']
+            else:
+                control_name = coeff_desc.fields['full_coefficient_name'].replace(alg_block.fields['algorithm_name'], algorithm_name)
+
             # Add control
-            f.add_control(alg_block.fields['algorithm_name'], 
-                          alg_block.fields['algorithm_id'], 
-                          control_name, 
+            f.add_control(algorithm_name,
+                          alg_block.fields['algorithm_id'],
+                          control_name,
                           temp_coeff_address)
-        
-    # Add metadata text        
+
+    # Add metadata text
     metadata_text_lines = []
     metadata_text_lines.append('firmware_converter.py version: ' + VERSION_STRING)
     temp_line = ''
@@ -378,7 +386,7 @@ def main(argv):
                 for line in block.text.splitlines():
                     metadata_text_lines.append('    ' + line)
             metadata_text_lines.append('')
-            
+
     for line in metadata_text_lines:
         f.add_metadata_text_line(line)
 
@@ -387,9 +395,9 @@ def main(argv):
         block_bytes = []
         for byte_str in block[1]:
             block_bytes.append(int.from_bytes(byte_str, 'little', signed=False))
-            
+
         f.add_fw_block(block[0], block_bytes)
-        
+
     # Add Coeff Blocks
     if (process_wmdr):
         coeff_block_list_count = 0

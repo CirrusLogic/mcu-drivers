@@ -6,21 +6,26 @@
  * @copyright
  * Copyright (c) Cirrus Logic 2019 All Rights Reserved, http://www.cirrus.com/
  *
- * This code and information are provided 'as-is' without warranty of any
- * kind, either expressed or implied, including but not limited to the
- * implied warranties of merchantability and/or fitness for a particular
- * purpose.
+ * Licensed under the Apache License, Version 2.0 (the License); you may
+ * not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an AS IS BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  *
  */
 /***********************************************************************************************************************
  * INCLUDES
  **********************************************************************************************************************/
-#include <stddef.h>
-#include <stdlib.h>
 #include <string.h>
 #include "hw_0_bsp.h"
-#include "stm32f4xx_hal.h"
 #include "cs40l25.h"
+#include "cs40l25_ext.h"
 #include "cs40l25_syscfg_regs.h"
 #include "cs40l25_fw_img.h"
 #include "cs40l25_cal_fw_img.h"
@@ -36,16 +41,10 @@ static cs40l25_t cs40l25_driver;
 static fw_img_boot_state_t boot_state;
 static uint8_t transmit_buffer[32];
 static uint8_t receive_buffer[256];
-
+static uint32_t current_halo_heartbeat = 0;
 #ifdef CS40L25_ALGORITHM_DYNAMIC_F0
 static cs40l25_dynamic_f0_table_entry_t dynamic_f0;
 static uint32_t dynamic_redc;
-#endif
-
-#ifndef USE_MALLOC
-static uint32_t fw_info_sym_table[CS40L25_SYM_Q_ESTIMATION_Q_EST * 2];
-static uint32_t fw_info_alg_id_list[10];
-static uint8_t fw_img_boot_state_block_data[4140];
 #endif
 
 static cs40l25_bsp_config_t bsp_config =
@@ -58,6 +57,34 @@ static cs40l25_bsp_config_t bsp_config =
     .cp_read_buffer = receive_buffer,
     .notification_cb = &bsp_notification_callback,
     .notification_cb_arg = NULL
+};
+
+static cs40l25_haptic_config_t cs40l25_haptic_configs[] =
+{
+    {
+        .cp_gain_control = 0,
+        .gpio_enable = false,
+        .gpio_gain_control = 0,
+        .gpio_trigger_config =
+        {
+            { .enable = false, .button_press_index = 3, .button_release_index = 4},
+            { .enable = false, .button_press_index = 0, .button_release_index = 0},
+            { .enable = false, .button_press_index = 0, .button_release_index = 0},
+            { .enable = false, .button_press_index = 0, .button_release_index = 0}
+        }
+    },
+    {
+        .cp_gain_control = 0,
+        .gpio_enable = true,
+        .gpio_gain_control = 0,
+        .gpio_trigger_config =
+        {
+            { .enable = true, .button_press_index = 3, .button_release_index = 4},
+            { .enable = true, .button_press_index = 0, .button_release_index = 0},
+            { .enable = true, .button_press_index = 0, .button_release_index = 0},
+            { .enable = true, .button_press_index = 0, .button_release_index = 0}
+        }
+    }
 };
 
 /***********************************************************************************************************************
@@ -87,25 +114,6 @@ uint32_t bsp_dut_initialize(void)
 
         haptic_config.syscfg_regs = cs40l25_syscfg_regs;
         haptic_config.syscfg_regs_total = CS40L25_SYSCFG_REGS_TOTAL;
-
-        haptic_config.dsp_config_ctrls.dsp_gpio1_button_detect_enable = true;
-        haptic_config.dsp_config_ctrls.dsp_gpio2_button_detect_enable = true;
-        haptic_config.dsp_config_ctrls.dsp_gpio3_button_detect_enable = true;
-        haptic_config.dsp_config_ctrls.dsp_gpio4_button_detect_enable = true;
-        haptic_config.dsp_config_ctrls.dsp_gpio_enable = true;
-        haptic_config.dsp_config_ctrls.dsp_gpi_gain_control = 0;
-        haptic_config.dsp_config_ctrls.dsp_ctrl_gain_control = 0;
-        haptic_config.dsp_config_ctrls.dsp_gpio1_index_button_press = 1;
-        haptic_config.dsp_config_ctrls.dsp_gpio2_index_button_press = 1;
-        haptic_config.dsp_config_ctrls.dsp_gpio3_index_button_press = 1;
-        haptic_config.dsp_config_ctrls.dsp_gpio4_index_button_press = 1;
-        haptic_config.dsp_config_ctrls.dsp_gpio1_index_button_release = 2;
-        haptic_config.dsp_config_ctrls.dsp_gpio2_index_button_release = 2;
-        haptic_config.dsp_config_ctrls.dsp_gpio3_index_button_release = 2;
-        haptic_config.dsp_config_ctrls.dsp_gpio4_index_button_release = 2;
-
-        haptic_config.dsp_config_ctrls.clab_enable = true;
-        haptic_config.dsp_config_ctrls.peak_amplitude = 0x400000;
 
         haptic_config.event_control.hardware = 1;
         haptic_config.event_control.playback_end_suspend = 1;
@@ -138,8 +146,13 @@ uint32_t bsp_dut_reset()
         return BSP_STATUS_FAIL;
     }
 
+    current_halo_heartbeat = 0;
+
     return BSP_STATUS_OK;
 }
+
+uint32_t bsp_dut_update_haptic_config(uint8_t config_index);
+uint32_t bsp_dut_enable_haptic_processing(bool enable);
 
 uint32_t bsp_dut_boot(bool cal_boot)
 {
@@ -151,12 +164,12 @@ uint32_t bsp_dut_boot(bool cal_boot)
     if (!cal_boot)
     {
         fw_img = cs40l25_fw_img;
-        fw_img_end = cs40l25_fw_img + sizeof(cs40l25_fw_img);
+        fw_img_end = cs40l25_fw_img + FW_IMG_SIZE(cs40l25_fw_img);
     }
     else
     {
         fw_img = cs40l25_cal_fw_img;
-        fw_img_end = cs40l25_cal_fw_img + sizeof(cs40l25_cal_fw_img);
+        fw_img_end = cs40l25_cal_fw_img + FW_IMG_SIZE(cs40l25_cal_fw_img);
     }
 
     // Inform the driver that any current firmware is no longer available by passing a NULL
@@ -167,15 +180,13 @@ uint32_t bsp_dut_boot(bool cal_boot)
         return ret;
     }
 
-#ifdef USE_MALLOC
     // Free anything malloc'ed in previous boots
     if (boot_state.fw_info.sym_table)
-        free(boot_state.fw_info.sym_table);
+        bsp_free(boot_state.fw_info.sym_table);
     if (boot_state.fw_info.alg_id_list)
-        free(boot_state.fw_info.alg_id_list);
+        bsp_free(boot_state.fw_info.alg_id_list);
     if (boot_state.block_data)
-        free(boot_state.block_data);
-#endif
+        bsp_free(boot_state.block_data);
 
     // Ensure your fw_img_boot_state_t struct is initialised to zero.
     memset(&boot_state, 0, sizeof(fw_img_boot_state_t));
@@ -197,38 +208,26 @@ uint32_t bsp_dut_boot(bool cal_boot)
 
     // malloc enough memory to hold the symbol table, using sym_table_size in the previously
     // read in fw_img header
-#ifdef USE_MALLOC
-    boot_state.fw_info.sym_table = (fw_img_v1_sym_table_t *)malloc(boot_state.fw_info.header.sym_table_size *
+    boot_state.fw_info.sym_table = (fw_img_v1_sym_table_t *)bsp_malloc(boot_state.fw_info.header.sym_table_size *
                                                                    sizeof(fw_img_v1_sym_table_t));
     if (boot_state.fw_info.sym_table == NULL)
     {
         return BSP_STATUS_FAIL;
     }
-#else
-    boot_state.fw_info.sym_table = (fw_img_v1_sym_table_t *) fw_info_sym_table;
-#endif
 
     // malloc enough memory to hold the alg_id list, using the alg_id_list_size in the fw_img header
-#ifdef USE_MALLOC
-    boot_state.fw_info.alg_id_list = (uint32_t *) malloc(boot_state.fw_info.header.alg_id_list_size * sizeof(uint32_t));
+    boot_state.fw_info.alg_id_list = (uint32_t *) bsp_malloc(boot_state.fw_info.header.alg_id_list_size * sizeof(uint32_t));
     if (boot_state.fw_info.alg_id_list == NULL)
     {
         return BSP_STATUS_FAIL;
     }
-#else
-    boot_state.fw_info.alg_id_list = (uint32_t *) fw_info_alg_id_list;
-#endif
 
     // Finally malloc enough memory to hold the largest data block in the fw_img being processed.
     // This may have been configured during fw_img creation.
     // If your control interface has specific memory requirements (dma-able, etc), then this memory
     // should adhere to them.
     boot_state.block_data_size = 4140;
-#ifdef USE_MALLOC
-    boot_state.block_data = (uint8_t *) malloc(boot_state.block_data_size);
-#else
-    boot_state.block_data = (uint8_t *) fw_img_boot_state_block_data;
-#endif
+    boot_state.block_data = (uint8_t *) bsp_malloc(boot_state.block_data_size);
     if (boot_state.block_data == NULL)
     {
         return BSP_STATUS_FAIL;
@@ -280,6 +279,8 @@ uint32_t bsp_dut_boot(bool cal_boot)
 
     // fw_img processing is complete, so inform the driver and pass it the fw_info block
     ret = cs40l25_boot(&cs40l25_driver, &boot_state.fw_info);
+
+    current_halo_heartbeat = 0;
 
     return ret;
 }
@@ -396,59 +397,134 @@ uint32_t bsp_dut_stop_i2s(void)
     }
 }
 
-uint32_t bsp_dut_control(uint32_t id, void *arg)
+uint32_t bsp_dut_has_processed(bool *has_processed)
 {
+    uint32_t temp_hb;
     uint32_t ret;
-    cs40l25_control_request_t req;
 
-    req.id = id;
-    req.arg = arg;
-
-    if (req.id != BSP_HAPTIC_CONTROL_GET_HALO_HEARTBEAT)
+    if (has_processed == NULL)
     {
-        req.id |= CS40L25_CONTROL_ID_FA_SET_MASK;
+        return BSP_STATUS_FAIL;
     }
 
-    ret = cs40l25_control(&cs40l25_driver, req);
-
+    ret = cs40l25_get_halo_heartbeat(&cs40l25_driver, &temp_hb);
     if (ret != CS40L25_STATUS_OK)
     {
         return BSP_STATUS_FAIL;
     }
 
+    if ((temp_hb == current_halo_heartbeat) || (temp_hb == 0))
+    {
+        *has_processed = false;
+    }
+    else
+    {
+        *has_processed = true;
+    }
+
+    current_halo_heartbeat = temp_hb;
+
     return BSP_STATUS_OK;
 }
 
-uint32_t bsp_haptic_dynamic_calibrate(void)
+uint32_t bsp_dut_update_haptic_config(uint8_t config_index)
 {
-#ifdef CS40L25_ALGORITHM_DYNAMIC_F0
     uint32_t ret;
-    cs40l25_control_request_t req;
 
-    // Enable Dynamic F0
-    req.id = CS40L25_CONTROL_ID_ENABLE_DYNAMIC_F0;
-    req.arg = (void *) 1;
+    if (config_index > sizeof(cs40l25_haptic_configs)/sizeof(cs40l25_haptic_config_t))
+    {
+        return BSP_STATUS_FAIL;
+    }
 
-    ret = cs40l25_control(&cs40l25_driver, req);
+    ret = cs40l25_update_haptic_config(&cs40l25_driver, &(cs40l25_haptic_configs[config_index]));
 
-    // Read Dynamic F0 from WT Index 0
-    req.id = CS40L25_CONTROL_ID_GET_DYNAMIC_F0;
-    dynamic_f0.index = 0;
-    req.arg = &dynamic_f0;
+    if (ret == CS40L25_STATUS_OK)
+    {
+        return BSP_STATUS_OK;
+    }
+    else
+    {
+        return BSP_STATUS_FAIL;
+    }
+}
 
-    ret = cs40l25_control(&cs40l25_driver, req);
+uint32_t bsp_dut_enable_haptic_processing(bool enable)
+{
+    uint32_t ret;
 
-    // Get Dynamic ReDC
-    req.id = CS40L25_CONTROL_ID_GET_DYNAMIC_REDC;
-    req.arg = &dynamic_redc;
+#ifdef CS40L25_ALGORITHM_CLAB
+    ret = cs40l25_set_clab_enable(&cs40l25_driver, enable);
+    if (ret != CS40L25_STATUS_OK)
+    {
+        return BSP_STATUS_FAIL;
+    }
 
-    ret = cs40l25_control(&cs40l25_driver, req);
-
+    ret = cs40l25_set_clab_peak_amplitude(&cs40l25_driver, 0x400000);
     if (ret != CS40L25_STATUS_OK)
     {
         return BSP_STATUS_FAIL;
     }
 #endif
+
+#ifdef CS40L25_ALGORITHM_DYNAMIC_F0
+    // Enable Dynamic F0
+    ret = cs40l25_set_dynamic_f0_enable(&cs40l25_driver, enable);
+
+    if (ret == CS40L25_STATUS_OK)
+    {
+        return BSP_STATUS_OK;
+    }
+#endif
+    else
+    {
+        return BSP_STATUS_FAIL;
+    }
+}
+
+uint32_t bsp_dut_trigger_haptic(uint8_t waveform, uint32_t duration_ms)
+{
+    uint32_t ret;
+
+    if (waveform == BSP_DUT_TRIGGER_HAPTIC_POWER_ON)
+    {
+        ret = cs40l25_trigger_bhm(&cs40l25_driver);
+    }
+    else
+    {
+        ret = cs40l25_trigger(&cs40l25_driver, waveform, duration_ms);
+    }
+
+    if (ret == CS40L25_STATUS_OK)
+    {
+        return BSP_STATUS_OK;
+    }
+    else
+    {
+        return BSP_STATUS_FAIL;
+    }
+}
+
+uint32_t bsp_dut_dynamic_calibrate(void)
+{
+#ifdef CS40L25_ALGORITHM_DYNAMIC_F0
+    uint32_t ret;
+
+    // Read Dynamic F0 from WT Index 0
+    dynamic_f0.index = 0;
+    ret = cs40l25_get_dynamic_f0(&cs40l25_driver, &dynamic_f0);
+    if (ret != CS40L25_STATUS_OK)
+    {
+        return BSP_STATUS_FAIL;
+    }
+
+    // Get Dynamic ReDC
+    ret = cs40l25_get_dynamic_redc(&cs40l25_driver, &dynamic_redc);
+    if (ret != CS40L25_STATUS_OK)
+    {
+        return BSP_STATUS_FAIL;
+    }
+#endif
+
     return BSP_STATUS_OK;
 }
 

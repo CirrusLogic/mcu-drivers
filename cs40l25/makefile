@@ -3,10 +3,17 @@
 # Makefile for CS40L25 Alt-OS driver
 #
 ##############################################################################
-# TODO:  enter license info
+# Licensed under the Apache License, Version 2.0 (the License); you may
+# not use this file except in compliance with the License.
+# You may obtain a copy of the License at
 #
+# www.apache.org/licenses/LICENSE-2.0
 #
-#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an AS IS BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 #
 
 # Variables for shell commands
@@ -27,7 +34,6 @@ INCLUDES =
 LIBS =
 
 # Initialize toolchain arguments
-CFLAGS = -DTARGET_CS40L25
 
 # Process command line variables per make goal
 ifeq ($(MAKECMDGOALS), driver_lib_cm4)
@@ -43,6 +49,12 @@ else
     	BULLSEYE_ON_CMD =
     	BULLSEYE_OFF_CMD =
     endif
+endif
+
+ifdef WISCE_SCRIPT
+	CREATE_SYSCFG_REGS_TARGET = wisce_script_converter
+else
+    CREATE_SYSCFG_REGS_TARGET = create_syscfg_regs
 endif
 
 # Assign toolchain, shell executable names required per target
@@ -99,8 +111,8 @@ ifeq ($(MAKECMDGOALS), unit_test)
 ifeq ($(BULLSEYE), 1)
 	CFLAGS += -DUSE_BULLSEYE
 endif
-    # include Calibration-related code
-    CFLAGS += -DINCLUDE_CAL
+    # Build switches for driver library
+
     OUTPUT_NAME = unit_test
     OUTPUT_EXT  = exe
     LIBS        = -lm
@@ -110,8 +122,7 @@ endif
 else ifeq ($(MAKECMDGOALS), driver_lib_cm4)
     OPTIMIZATION_OPTIONS += -Os
 
-    # include Calibration-related code
-    CFLAGS += -DINCLUDE_CAL
+    # Build switches for driver library
 
     # stop winging about type-punned pointers breaking strict-aliasing rules
     CFLAGS += -fno-strict-aliasing
@@ -134,8 +145,7 @@ else ifeq ($(MAKECMDGOALS), system_test)
     DEBUG_OPTIONS += -DDEBUG
     DEBUG_OPTIONS += -g3
 
-    # include Calibration-related code
-    CFLAGS += -DINCLUDE_CAL
+    # Build switches for driver library
 
     # use = or += not := else dependencies expand to nil
     CFLAGS += -mcpu=cortex-m4 -mthumb -mfpu=fpv4-sp-d16 -mfloat-abi=hard --specs=nano.specs
@@ -166,8 +176,7 @@ else ifeq ($(MAKECMDGOALS), baremetal)
     DEBUG_OPTIONS += -DDEBUG
     DEBUG_OPTIONS += -g3
 
-    # include Calibration-related code
-    CFLAGS += -DINCLUDE_CAL
+    # Build switches for driver library
 
     # use = or += not := else dependencies expand to nil
     CFLAGS += -mcpu=cortex-m4 -mthumb -mfpu=fpv4-sp-d16 -mfloat-abi=hard --specs=nano.specs
@@ -199,8 +208,7 @@ else ifeq ($(MAKECMDGOALS), freertos)
     DEBUG_OPTIONS += -DDEBUG
     DEBUG_OPTIONS += -g3
 
-    # include Calibration-related code
-    CFLAGS += -DINCLUDE_CAL
+    # Build switches for driver library
 
     # use = or += not := else dependencies expand to nil
     CFLAGS += -mcpu=cortex-m4 -mthumb -mfpu=fpv4-sp-d16 -mfloat-abi=hard --specs=nano.specs
@@ -233,8 +241,15 @@ endif
 # Assign sources, includes, paths for driver library
 DRIVER_PATH = $(REPO_PATH)/cs40l25
 COMMON_PATH = $(REPO_PATH)/common
-HALO_FIRMWARE_PATH = $(REPO_PATH)/cs40l25/fw_8_5_2
+HALO_FIRMWARE_PATH = $(REPO_PATH)/cs40l25/fw_8_6_1
 DRIVER_SRCS = $(DRIVER_PATH)/cs40l25.c $(DRIVER_PATH)/cs40l25_syscfg_regs.c $(COMMON_PATH)/fw_img_v1.c
+ifeq ($(MAKECMDGOALS), system_test)
+DRIVER_SRCS += $(DRIVER_PATH)/cs40l25_ext.c
+else ifeq ($(MAKECMDGOALS), baremetal)
+DRIVER_SRCS += $(DRIVER_PATH)/cs40l25_ext.c
+else ifeq ($(MAKECMDGOALS), freertos)
+DRIVER_SRCS += $(DRIVER_PATH)/cs40l25_ext.c
+endif
 INCLUDES += -I$(DRIVER_PATH) -I$(COMMON_PATH) -I$(HALO_FIRMWARE_PATH)
 DRIVER_LIBRARY = $(BUILD_DIR)/cs40l25/libcs40l25.a
 LIBS += $(DRIVER_LIBRARY)
@@ -261,6 +276,7 @@ ifeq ($(MAKECMDGOALS), system_test)
     C_SRCS += $(TEST_HW_PATH)/stm32f4xx_it.c
     C_SRCS += $(TEST_HW_PATH)/sysmem.c
     C_SRCS += $(REPO_PATH)/cs40l25/bsp/hw_0_bsp_cs40l25.c
+    C_SRCS += $(HALO_FIRMWARE_PATH)/cs40l25_fw_img.c $(HALO_FIRMWARE_PATH)/cs40l25_cal_fw_img.c
     C_SRCS += $(REPO_PATH)/third_party/st/STM32Cube_FW_F4_V1.24.1/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_cortex.c
     C_SRCS += $(REPO_PATH)/third_party/st/STM32Cube_FW_F4_V1.24.1/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_gpio.c
     C_SRCS += $(REPO_PATH)/third_party/st/STM32Cube_FW_F4_V1.24.1/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_i2c_ex.c
@@ -312,6 +328,7 @@ ifneq ($(SEMIHOSTING), 1)
 endif
     C_SRCS += $(TEST_HW_PATH)/sysmem.c
     C_SRCS += $(REPO_PATH)/cs40l25/bsp/hw_0_bsp_cs40l25.c
+    C_SRCS += $(HALO_FIRMWARE_PATH)/cs40l25_fw_img.c $(HALO_FIRMWARE_PATH)/cs40l25_cal_fw_img.c
     C_SRCS += $(REPO_PATH)/third_party/st/STM32Cube_FW_F4_V1.24.1/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_cortex.c
     C_SRCS += $(REPO_PATH)/third_party/st/STM32Cube_FW_F4_V1.24.1/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_gpio.c
     C_SRCS += $(REPO_PATH)/third_party/st/STM32Cube_FW_F4_V1.24.1/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_i2c_ex.c
@@ -350,6 +367,7 @@ ifneq ($(SEMIHOSTING), 1)
 endif
     C_SRCS += $(TEST_HW_PATH)/sysmem.c
     C_SRCS += $(REPO_PATH)/cs40l25/bsp/hw_0_bsp_cs40l25.c
+    C_SRCS += $(HALO_FIRMWARE_PATH)/cs40l25_fw_img.c $(HALO_FIRMWARE_PATH)/cs40l25_cal_fw_img.c
     C_SRCS += $(REPO_PATH)/third_party/st/STM32Cube_FW_F4_V1.24.1/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_cortex.c
     C_SRCS += $(REPO_PATH)/third_party/st/STM32Cube_FW_F4_V1.24.1/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_gpio.c
     C_SRCS += $(REPO_PATH)/third_party/st/STM32Cube_FW_F4_V1.24.1/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_i2c_ex.c
@@ -371,7 +389,7 @@ endif
     C_SRCS += $(FREERTOS_PATH)/queue.c
     C_SRCS += $(FREERTOS_PATH)/portable/GCC/ARM_CM4F/port.c
     C_SRCS += $(FREERTOS_PATH)/list.c
-    C_SRCS += $(FREERTOS_PATH)/portable/MemMang/heap_1.c
+    C_SRCS += $(FREERTOS_PATH)/portable/MemMang/heap_4.c
     ASM_SRCS += $(REPO_PATH)/third_party/st/STM32Cube_FW_F4_V1.24.1/Drivers/CMSIS/Device/ST/STM32F4xx/Source/Templates/gcc/startup_stm32f401xe.s
     INCLUDES += -I$(APP_PATH)
     INCLUDES += -I$(REPO_PATH)/cs40l25/bsp
@@ -434,6 +452,8 @@ $(info ASM_FLAGS: $(addprefix $(newline),$(ASM_FLAGS)))
 $(info -------------------------------------------------------------------------------)
 $(info LDFLAGS: $(addprefix $(newline),$(LDFLAGS)))
 $(info -------------------------------------------------------------------------------)
+$(info CREAT_SYSCFG_REGS_TARGET: $(CREATE_SYSCFG_REGS_TARGET))
+$(info -------------------------------------------------------------------------------)
 $(info BULLSEYE: $(BULLSEYE))
 $(info ===============================================================================)
 $(info )
@@ -461,7 +481,7 @@ $(foreach path,$(BUILD_PATHS),$(eval $(call mkdir_rule,$(path))))
 
 # Create a target for each .o files, depending on its corresponding .c file
 define driver_obj_rule
-$(1): $(2) $(MAKEFILE_PATH)/makefile create_syscfg_regs
+$(1): $(2) $(MAKEFILE_PATH)/makefile $(CREATE_SYSCFG_REGS_TARGET)
 	@echo -------------------------------------------------------------------------------
 	@echo COMPILING $(2)
 	$(BULLSEYE_ON_CMD)
@@ -472,7 +492,7 @@ $(foreach obj,$(DRIVER_OBJS),$(eval $(call driver_obj_rule,$(obj),$(subst $(BUIL
 
 # Create a target for each .o files, depending on its corresponding .c file
 define obj_rule
-$(1): $(2) $(MAKEFILE_PATH)/makefile create_syscfg_regs
+$(1): $(2) $(MAKEFILE_PATH)/makefile $(CREATE_SYSCFG_REGS_TARGET)
 	@echo -------------------------------------------------------------------------------
 	@echo COMPILING $(2) #to $(1)
 	$(CC) $(CFLAGS) $(INCLUDES) -MD -MP -MT $(1) -MF $(subst .o,.d,$(1)) -c $(2) -o $(1)
@@ -502,8 +522,8 @@ bullseye_inclusions:
 	covselect --add !$(REPO_PATH)/build/
 	covselect --add !$(REPO_PATH)/tools/
 	covselect --add !$(REPO_PATH)/third_party/
-	
-create_syscfg_regs: build_path ../common/create_syscfg_regs.c device_syscfg_regs.c 
+
+create_syscfg_regs: build_path ../common/create_syscfg_regs.c device_syscfg_regs.c
 	@echo -------------------------------------------------------------------------------
 	@echo COMPILING create_syscfg_regs
 	gcc -Werror -Wall -w -I../common -c cs40l25_spec.c
@@ -511,12 +531,17 @@ create_syscfg_regs: build_path ../common/create_syscfg_regs.c device_syscfg_regs
 	gcc -Werror -Wall -std=c99 -I../cs40l25 -c ../common/create_syscfg_regs.c -o ./create_syscfg_regs.o
 	gcc -o create_syscfg_regs.exe create_syscfg_regs.o device_syscfg_regs.o cs40l25_spec.o
 	@echo -------------------------------------------------------------------------------
-	@echo EXECUTING create_syscfg_regs	
+	@echo EXECUTING create_syscfg_regs
 	./create_syscfg_regs.exe
-	rm -f *.o *.exe	
+	rm -f *.o *.exe
+	
+wisce_script_converter:
+	@echo -------------------------------------------------------------------------------
+	@echo GENERATING cs35l41_syscfg_regs
+	python ../tools/wisce_script_converter/wisce_script_converter.py -c c_array -p cs35l41 -i $(WISCE_SCRIPT) -o .
 
 # Create the driver static library and print the resource usage
-driver_lib_cm4: build_path $(BUILD_PATHS) create_syscfg_regs $(DRIVER_OBJS)
+driver_lib_cm4: build_path $(BUILD_PATHS) $(CREATE_SYSCFG_REGS_TARGET) $(DRIVER_OBJS)
 	@echo -------------------------------------------------------------------------------
 	@echo ARCHIVING $(DRIVER_LIBRARY)
 	$(AR) $(ARFLAGS) $(DRIVER_LIBRARY) $(DRIVER_OBJS)

@@ -6,10 +6,17 @@
  * @copyright
  * Copyright (c) Cirrus Logic 2019, 2020 All Rights Reserved, http://www.cirrus.com/
  *
- * This code and information are provided 'as-is' without warranty of any
- * kind, either expressed or implied, including but not limited to the
- * implied warranties of merchantability and/or fitness for a particular
- * purpose.
+ * Licensed under the Apache License, Version 2.0 (the License); you may
+ * not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an AS IS BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  *
  */
 /***********************************************************************************************************************
@@ -132,27 +139,12 @@
 #define CS35L41_DSP_MBOX_CMD_UNKNOWN            (-1)
 /** @} */
 
-/**
- * Data structure to describe a field to read via the Field Access SM
- *
- * @see cs35l41_field_access
- */
-typedef struct
-{
-    bool symbol;        ///< If True, field is in firmware and only the id is known
-    uint32_t address;   ///< Control Port address of field to access
-    uint32_t id;        ///< Id of symbol in symbol table
-    uint32_t value;     ///< Value to write/value read
-    uint8_t size;       ///< Bitwise size of field to access in register
-    uint8_t shift;      ///< Bitwise shift of field to access in register
-} cs35l41_field_accessor_t;
-
 /***********************************************************************************************************************
  * LOCAL VARIABLES
  **********************************************************************************************************************/
 
 /**
- * CS35L41 RevB0 Register Patch Errata
+ * CS35L41 RevB2 Register Patch Errata
  *
  * The array is in the form:
  * - word0 - Length of rest of patch in words (i.e. NOT including this word)
@@ -173,9 +165,9 @@ typedef struct
  * @note To simplify the Reset SM, this includes the configuration for IRQ1 and INTb GPIO
  *
  */
-static const uint32_t cs35l41_revb0_errata_patch[] =
+static const uint32_t cs35l41_revb2_errata_patch[] =
 {
-    0x0000001A, //
+    0x00000018, //
     CS35L41_CTRL_KEYS_TEST_KEY_CTRL_REG, CS35L41_TEST_KEY_CTRL_UNLOCK_1,
     CS35L41_CTRL_KEYS_TEST_KEY_CTRL_REG, CS35L41_TEST_KEY_CTRL_UNLOCK_2,
     0x00004100, 0x00000000,
@@ -184,7 +176,6 @@ static const uint32_t cs35l41_revb0_errata_patch[] =
     0x0000381C, 0x00000051,
     0x02BC20E0, 0x00000000,
     0x02BC2020, 0x00000000,
-    0x00004854, 0x01010000,
     IRQ1_IRQ1_MASK_1_REG, CS35L41_INT1_MASK_DEFAULT,    // Unmask IRQs
     PAD_INTF_GPIO_PAD_CONTROL_REG, 0x04000000,          // Set GPIO2 for INTb function
     CS35L41_CTRL_KEYS_TEST_KEY_CTRL_REG, CS35L41_TEST_KEY_CTRL_LOCK_1,
@@ -499,32 +490,6 @@ static const uint32_t cs35l41_dsp_status_controls[CS35L41_DSP_STATUS_WORDS_TOTAL
         CS35L41_SYM_CSPL_CAL_STATUS,
         CS35L41_SYM_CSPL_CAL_CHECKSUM,
         CS35L41_SYM_CSPL_CSPL_TEMPERATURE
-};
-
-/**
- * List of fields able to be accessed via cs35l41_control calls
- *
- * @see cs35l41_field_accessor_t
- *
- */
-static const cs35l41_field_accessor_t fa_list[] =
-{
-    {
-        .address = CS35L41_INTP_AMP_CTRL_REG,
-        .shift = CS35L41_INTP_AMP_CTRL_AMP_VOL_PCM_BITOFFSET,
-        .size = CS35L41_INTP_AMP_CTRL_AMP_VOL_PCM_BITWIDTH,
-    },
-    {
-        .symbol = true,
-        .id = CS35L41_SYM_FIRMWARE_HALO_CSPL_HALO_HEARTBEAT,
-        .shift = 0,
-        .size = 32,
-    },
-    {
-        .address = CS35L41_FIRMWARE_REVISION,
-        .shift = 0,
-        .size = 32,
-    },
 };
 
 /***********************************************************************************************************************
@@ -1381,7 +1346,7 @@ static uint32_t cs35l41_field_access(cs35l41_t *driver, cs35l41_field_accessor_t
     uint32_t temp_reg_val;
     uint32_t ret = CS35L41_STATUS_OK;
 
-    if (fa.symbol)
+    if (fa.id)
     {
         fa.address = cs35l41_find_symbol(driver, fa.id);
         if (!fa.address)
@@ -1403,7 +1368,7 @@ static uint32_t cs35l41_field_access(cs35l41_t *driver, cs35l41_field_accessor_t
     // If this is only a GET request
     if (is_get)
     {
-        uint32_t *reg_ptr = (uint32_t *) driver->current_request.arg;
+        uint32_t *reg_ptr = (uint32_t *) fa.value;
         // Mask off bit-field and shift down to LS-Bit
         temp_reg_val &= temp_mask;
         temp_reg_val >>= fa.shift;
@@ -1411,7 +1376,7 @@ static uint32_t cs35l41_field_access(cs35l41_t *driver, cs35l41_field_accessor_t
     }
     else
     {
-        uint32_t field_val = (uint32_t) driver->current_request.arg;
+        uint32_t field_val = fa.value;
         // Shift new value to bit-field bit position
         field_val <<= fa.shift;
         field_val &= temp_mask;
@@ -1863,11 +1828,11 @@ static uint32_t cs35l41_write_errata(cs35l41_t *driver)
 {
     uint32_t i;
 
-    for (i = 1; i < cs35l41_revb0_errata_patch[0]; i += 2)
+    for (i = 1; i < cs35l41_revb2_errata_patch[0]; i += 2)
     {
         uint32_t ret;
 
-        ret = cs35l41_write_reg(driver, cs35l41_revb0_errata_patch[i], cs35l41_revb0_errata_patch[i + 1]);
+        ret = cs35l41_write_reg(driver, cs35l41_revb2_errata_patch[i], cs35l41_revb2_errata_patch[i + 1]);
         if (ret)
         {
             return ret;
@@ -2496,16 +2461,25 @@ uint32_t cs35l41_control(cs35l41_t *driver, cs35l41_control_request_t req)
 
     switch (req.id)
     {
-        case CS35L41_CONTROL_ID_GET_VOLUME:
-        case CS35L41_CONTROL_ID_SET_VOLUME:
-        case CS35L41_CONTROL_ID_GET_HALO_HEARTBEAT:
-            if (CS35L41_CONTROL_ID_GET_CONTROL(req.id) <= CS35L41_CONTROL_ID_FA_MAX)
-            {
-                bool is_get = (CS35L41_CONTROL_ID_GET_HANDLER(req.id) == CS35L41_CONTROL_ID_HANDLER_FA_GET);
-                ret = cs35l41_field_access(driver, fa_list[CS35L41_CONTROL_ID_GET_CONTROL(req.id)], is_get);
-            }
+        case CS35L41_CONTROL_ID_GET_REG:
+        case CS35L41_CONTROL_ID_SET_REG:
+        {
+            bool is_get = (CS35L41_CONTROL_ID_GET_HANDLER(req.id) == CS35L41_CONTROL_ID_HANDLER_FA_GET);
+            cs35l41_field_accessor_t *fa = (cs35l41_field_accessor_t *) req.arg;
 
+            fa->id = 0;
+            ret = cs35l41_field_access(driver, *fa, is_get);
             break;
+        }
+
+        case CS35L41_CONTROL_ID_GET_SYM:
+        case CS35L41_CONTROL_ID_SET_SYM:
+        {
+            bool is_get = (CS35L41_CONTROL_ID_GET_HANDLER(req.id) == CS35L41_CONTROL_ID_HANDLER_FA_GET);
+            cs35l41_field_accessor_t *fa = (cs35l41_field_accessor_t *) req.arg;
+            ret = cs35l41_field_access(driver, *fa, is_get);
+            break;
+        }
 
         case CS35L41_CONTROL_ID_GET_DSP_STATUS:
             ret = cs35l41_get_dsp_status(driver);
@@ -2542,6 +2516,19 @@ uint32_t cs35l41_calibrate(cs35l41_t *driver, uint32_t ambient_temp_deg_c)
     // Wait for at least 2 seconds while DSP FW performs calibration
     bsp_driver_if_g->set_timer(BSP_TIMER_DURATION_2S, NULL, NULL);
 
+    // Read the Calibration Load Impedance "R"
+    temp_reg_address = cs35l41_find_symbol(driver, CS35L41_SYM_CSPL_CAL_R);
+    if (!temp_reg_address)
+    {
+        return CS35L41_STATUS_FAIL;
+    }
+    ret = cs35l41_read_reg(driver, temp_reg_address, &temp_reg_val);
+    if (ret)
+    {
+        return ret;
+    }
+    driver->config.cal_data.r = temp_reg_val;
+
     // Read the Calibration Status
     temp_reg_address = cs35l41_find_symbol(driver, CS35L41_SYM_CSPL_CAL_STATUS);
     if (!temp_reg_address)
@@ -2554,26 +2541,11 @@ uint32_t cs35l41_calibrate(cs35l41_t *driver, uint32_t ambient_temp_deg_c)
         return ret;
     }
 
-    if (temp_reg_val == CS35L41_CAL_STATUS_CALIB_SUCCESS)
-    {
-        // Read the Calibration Load Impedance "R"
-        temp_reg_address = cs35l41_find_symbol(driver, CS35L41_SYM_CSPL_CAL_R);
-        if (!temp_reg_address)
-        {
-            return CS35L41_STATUS_FAIL;
-        }
-        ret = cs35l41_read_reg(driver, temp_reg_address, &temp_reg_val);
-        if (ret)
-        {
-            return ret;
-        }
-    }
-    else
+    if (temp_reg_val != CS35L41_CAL_STATUS_CALIB_SUCCESS)
     {
         return CS35L41_STATUS_FAIL;
     }
 
-    driver->config.cal_data.r = temp_reg_val;
     // Read the Calibration Checksum
     temp_reg_address = cs35l41_find_symbol(driver, CS35L41_SYM_CSPL_CAL_CHECKSUM);
     if (!temp_reg_address)

@@ -6,19 +6,29 @@
  * @copyright
  * Copyright (c) Cirrus Logic 2020 All Rights Reserved, http://www.cirrus.com/
  *
- * This code and information are provided 'as-is' without warranty of any
- * kind, either expressed or implied, including but not limited to the
- * implied warranties of merchantability and/or fitness for a particular
- * purpose.
+ * Licensed under the Apache License, Version 2.0 (the License); you may
+ * not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an AS IS BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  *
  */
 /***********************************************************************************************************************
  * INCLUDES
  **********************************************************************************************************************/
-#include <stddef.h>
+#include <stdlib.h>
 #include "hw_0_bsp.h"
 #include "stm32f4xx_hal.h"
 #include "test_tone_tables.h"
+#ifndef NO_OS
+#include "FreeRTOS.h"
+#endif
 
 /***********************************************************************************************************************
  * LOCAL LITERAL SUBSTITUTIONS
@@ -1346,6 +1356,24 @@ uint32_t bsp_register_pb_cb(uint32_t pb_id, bsp_app_callback_t cb, void *cb_arg)
     {
         return BSP_STATUS_FAIL;
     }
+}
+
+void* bsp_malloc(size_t size)
+{
+#ifdef NO_OS
+    return malloc(size);
+#else
+    return pvPortMalloc(size);
+#endif
+}
+
+void bsp_free(void* ptr)
+{
+#ifdef NO_OS
+    return free(ptr);
+#else
+    return vPortFree(ptr);
+#endif
 }
 
 static bsp_driver_if_t bsp_driver_if_s =

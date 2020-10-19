@@ -6,10 +6,17 @@
  * @copyright
  * Copyright (c) Cirrus Logic 2020 All Rights Reserved, http://www.cirrus.com/
  *
- * This code and information are provided 'as-is' without warranty of any
- * kind, either expressed or implied, including but not limited to the
- * implied warranties of merchantability and/or fitness for a particular
- * purpose.
+ * Licensed under the Apache License, Version 2.0 (the License); you may
+ * not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an AS IS BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  *
  */
 /***********************************************************************************************************************
@@ -24,7 +31,7 @@
 /***********************************************************************************************************************
  * LOCAL LITERAL SUBSTITUTIONS
  **********************************************************************************************************************/
-#define CS35L41_CONFIG_REGISTERS_TOTAL                  (32)    ///< Total registers modified during configure
+#define CS35L41_CONFIG_REGISTERS_TOTAL                  (35)    ///< Total registers modified during configure
 
 /**
  * Data Routing value to indicate 'disabled'
@@ -140,6 +147,15 @@ typedef struct
 } cs35l41_amp_config_t;
 
 /**
+ * GPIO-related configurations
+ */
+typedef struct
+{
+    bool gp1_input_enable;
+    bool gp2_input_enable;
+} cs35l41_gpio_config_t;
+
+/**
  * Driver configuration data structure
  *
  * @see cs35l41_functions_t member configure
@@ -148,6 +164,7 @@ typedef struct
 {
     cs35l41_audio_config_t audio_config;                ///< Amplifier audio-related configuration
     cs35l41_amp_config_t amp_config;                    ///< Amplifier amp-related configuration
+    cs35l41_gpio_config_t gpio_config;
 } cs35l41_syscfg_t;
 
 /**
@@ -200,6 +217,9 @@ typedef union
         cs35l41_tempmon_warn_limit_threshold_t tempmon_warn_limit_threshold;
         cs35l41_pwrmgmt_classh_config_t pwrmgmt_classh_config;
         cs35l41_pwrmgmt_wkfet_amp_config_t pwrmgmt_wkfet_amp_config;
+        cs35l41_pad_intf_gpio_pad_control_t pad_intf_gpio_pad_control;
+        cs35l41_gpio_ctrl1_t gpio1_ctrl1;
+        cs35l41_gpio_ctrl1_t gpio2_ctrl1;
     };
 } cs35l41_config_registers_t;
 
@@ -242,6 +262,9 @@ static syscfg_reg_list_entry_t syscfg_reg_list[CS35L41_CONFIG_REGISTERS_TOTAL] =
     {.address = TEMPMON_WARN_LIMIT_THRESHOLD_REG, .name = "TEMPMON_WARN_LIMIT_THRESHOLD"},
     {.address = PWRMGMT_CLASSH_CONFIG_REG, .name = "PWRMGMT_CLASSH_CONFIG"},
     {.address = PWRMGMT_WKFET_AMP_CONFIG_REG, .name = "PWRMGMT_WKFET_AMP_CONFIG"},
+    {.address = PAD_INTF_GPIO_PAD_CONTROL_REG, .name = "PAD_INTF_GPIO_PAD_CONTROL_REG"},
+    {.address = GPIO_GPIO1_CTRL1_REG, .name = "GPIO_GPIO1_CTRL1_REG"},
+    {.address = GPIO_GPIO2_CTRL1_REG, .name = "GPIO_GPIO2_CTRL1_REG"},
 };
 
 /***********************************************************************************************************************
@@ -306,6 +329,7 @@ void set_device_syscfg(void)
     cs35l41_syscfg.audio_config.hw.fsync_inv = false;
     cs35l41_syscfg.audio_config.hw.is_master_mode = false;
     cs35l41_syscfg.audio_config.hw.ng_enable = false;
+    cs35l41_syscfg.audio_config.hw.amp_gain_pcm = CS35L41_DRE_AMP_GAIN_DEFAULT;
 
     cs35l41_syscfg.audio_config.clock.global_fs = 48000;
     cs35l41_syscfg.audio_config.clock.refclk_freq = 3072000;
@@ -328,7 +352,7 @@ void set_device_syscfg(void)
     cs35l41_syscfg.audio_config.routing.asp_tx3_src = CS35L41_INPUT_SRC_DISABLE;
     cs35l41_syscfg.audio_config.routing.asp_tx4_src = CS35L41_INPUT_SRC_DISABLE;
     cs35l41_syscfg.audio_config.routing.dsp_rx1_src = CS35L41_INPUT_SRC_ASPRX1;
-    cs35l41_syscfg.audio_config.routing.dsp_rx2_src = CS35L41_INPUT_SRC_DISABLE;
+    cs35l41_syscfg.audio_config.routing.dsp_rx2_src = CS35L41_INPUT_SRC_ASPRX2;
 
     cs35l41_syscfg.amp_config.boost_inductor_value_nh = 1000;   // 1uH on Prince DC
     cs35l41_syscfg.amp_config.boost_capacitor_value_uf = 10;    // 10uF on Prince DC
@@ -343,6 +367,8 @@ void set_device_syscfg(void)
     cs35l41_syscfg.amp_config.wkfet_amp_delay = 0x4; // 100ms
     cs35l41_syscfg.amp_config.wkfet_amp_thld = 0x1; // 0.05V
     cs35l41_syscfg.amp_config.temp_warn_thld = 0x2; // 125C
+
+    cs35l41_syscfg.gpio_config.gp1_input_enable = true;
 
     return;
 }
@@ -644,6 +670,25 @@ uint32_t apply_device_syscfg(uint32_t *reg_vals)
 
     // Always configure as Boost converter enabled.
     regs->msm_block_enables.bst_en = 0x2;
+
+    /*
+     * Apply GPIO related configurations
+     */
+    cs35l41_gpio_config_t *gpio = &(cs35l41_syscfg.gpio_config);
+
+    if (gpio->gp1_input_enable)
+    {
+        regs->pad_intf_gpio_pad_control.gp1_ctrl = 0x1;
+        regs->gpio1_ctrl1.gp_dir = 1;
+        regs->gpio1_ctrl1.gp_db = 1;
+    }
+
+    if (gpio->gp2_input_enable)
+    {
+        regs->pad_intf_gpio_pad_control.gp2_ctrl = 0x1;
+        regs->gpio2_ctrl1.gp_dir = 1;
+        regs->gpio2_ctrl1.gp_db = 1;
+    }
 
     return ret;
 }

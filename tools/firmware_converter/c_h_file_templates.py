@@ -4,21 +4,17 @@
 # Project : Templates for C Source and Header files
 # File    : c_h_file_templates.py
 #--------------------------------------------------------------------------
-# Redistribution and use of this file in source and binary forms, with
-# or without modification, are permitted.
+# Licensed under the Apache License, Version 2.0 (the License); you may
+# not use this file except in compliance with the License.
+# You may obtain a copy of the License at
 #
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
-# FOR A PARTICULAR PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE
-# COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
-# INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-# BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-# LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-# CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
-# LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
-# ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-# POSSIBILITY OF SUCH DAMAGE.
+# www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an AS IS BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 #--------------------------------------------------------------------------
 #
 # Environment Requirements: None
@@ -42,10 +38,17 @@ header_file_template_str = """/**
  * @copyright
  * Copyright (c) Cirrus Logic 2020 All Rights Reserved, http://www.cirrus.com/
  *
- * This code and information are provided 'as-is' without warranty of any
- * kind, either expressed or implied, including but not limited to the
- * implied warranties of merchantability and/or fitness for a particular
- * purpose.
+ * Licensed under the Apache License, Version 2.0 (the License); you may
+ * not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an AS IS BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
 {metadata_text} *
  */
 
@@ -166,10 +169,17 @@ source_file_template_str = """/**
  * @copyright
  * Copyright (c) Cirrus Logic 2020 All Rights Reserved, http://www.cirrus.com/
  *
- * This code and information are provided 'as-is' without warranty of any
- * kind, either expressed or implied, including but not limited to the
- * implied warranties of merchantability and/or fitness for a particular
- * purpose.
+ * Licensed under the Apache License, Version 2.0 (the License); you may
+ * not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an AS IS BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  *
  */
 
@@ -204,7 +214,7 @@ const halo_boot_block_t {part_number_lc}_fw_blocks[] = {
 /***********************************************************************************************************************
  * LOCAL FUNCTIONS
  **********************************************************************************************************************/
- 
+
 /***********************************************************************************************************************
  * API FUNCTIONS
  **********************************************************************************************************************/
@@ -281,21 +291,21 @@ class header_file:
             for coeff_block_total in coeff_block_totals:
                 self.terms['total_coeff_blocks'].append(str(coeff_block_total))
 
-        return        
+        return
 
     def add_control(self, algorithm_name, control_name, address):
         if (self.algorithm_controls.get(algorithm_name, None) == None):
             self.algorithm_controls[algorithm_name] = []
         self.algorithm_controls[algorithm_name].append((control_name, address))
         return
-        
+
     def add_metadata_text_line(self, line):
         self.terms['metadata_text'] = self.terms['metadata_text'] + ' * ' + line + '\n'
         return
 
     def __str__(self):
         output_str = self.template_str
-        
+
         # Update firmware metadata
         fw_id_str = " 0x" + "{0:{1}X}".format(self.terms['fw_id'], 6)
         output_str = output_str.replace('{fw_id}', fw_id_str)
@@ -348,7 +358,7 @@ class header_file:
         output_str = output_str.replace('{total_fw_blocks}', self.terms['total_fw_blocks'])
         output_str = output_str.replace('{part_number_lc}', self.terms['part_number_lc'])
         output_str = output_str.replace('{part_number_uc}', self.terms['part_number_uc'])
-        
+
         output_str = output_str.replace('{metadata_text}', self.terms['metadata_text'])
 
         output_str = output_str.replace('\n\n\n', '\n\n')
@@ -451,31 +461,31 @@ class source_file:
 
         output_str = output_str.replace('\n\n\n', '\n\n')
         return output_str
-        
+
 class source_file_exporter(firmware_exporter):
 
     def __init__(self, attributes):
         firmware_exporter.__init__(self, attributes)
         self.hf = header_file(self.attributes['part_number_str'], self.attributes['fw_meta'])
         self.cf = source_file(self.attributes['part_number_str'])
-        
+
         return
-        
+
     def update_block_info(self, fw_block_total, coeff_block_totals):
         return self.hf.update_block_info(fw_block_total, coeff_block_totals)
-    
+
     def add_control(self, algorithm_name, algorithm_id, control_name, address):
         return self.hf.add_control(algorithm_name, control_name, address)
-        
+
     def add_metadata_text_line(self, line):
         return self.hf.add_metadata_text_line(line)
-    
+
     def add_fw_block(self, address, data_bytes):
         return self.cf.add_fw_block(address, data_bytes)
-        
+
     def add_coeff_block(self, index, address, data_bytes):
         return self.cf.add_coeff_block(index, address, data_bytes)
-    
+
     def to_file(self):
         results_str = 'Exported to files:\n'
 
@@ -491,9 +501,9 @@ class source_file_exporter(firmware_exporter):
         f.write(str(self.cf))
         f.close()
         results_str = results_str + temp_filename + '\n'
-        
+
         return results_str
-        
+
     def __str__(self):
         return ''
 

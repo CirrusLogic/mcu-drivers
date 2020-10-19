@@ -1,3 +1,4 @@
+
 /**
  * @file cs40l25_sym.h
  *
@@ -6,10 +7,21 @@
  * @copyright
  * Copyright (c) Cirrus Logic 2020 All Rights Reserved, http://www.cirrus.com/
  *
- * This code and information are provided 'as-is' without warranty of any
- * kind, either expressed or implied, including but not limited to the
- * implied warranties of merchantability and/or fitness for a particular
- * purpose.
+ * Licensed under the Apache License, Version 2.0 (the License); you may
+ * not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an AS IS BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * firmware_converter.py version: 3.0.0
+ * Command:  ..\..\tools\firmware_converter\firmware_converter.py --command fw_img_v1 --part cs40l25 --sym-input ..\cs40l25_sym.h --sym-output ..\cs40l25_sym.h --generic-sym --wmfw prince_haptics_ctrl_ram_remap_clab_0A0101.wmfw --wmdr default_wt.bin
+ *
  *
  */
 
@@ -25,50 +37,53 @@ extern "C" {
  **********************************************************************************************************************/
 
 /**
+ * @defgroup CS40L25_ALGORITHMS
+ * @brief Defines indicating presence of HALO Core Algorithms
+ *
+ * @{
+ */
+#define CS40L25_ALGORITHM_FIRMWARE
+#define CS40L25_ALGORITHM_VIBEGEN
+#define CS40L25_ALGORITHM_CLAB
+/** @} */
+
+/**
  * @defgroup CS40L25_SYM_
  * @brief Single source of truth for firmware symbols known to the driver.
  *
  * @{
  */
-// FIRMWARE_PRINCE_HAPCTRL_RAM_REMAP_DF0_CLAB
-#define CS40L25_SYM_FIRMWARE_PRINCE_HAPCTRL_RAM_REMAP_DF0_CLAB_HALO_STATE                                  (0x1)
-#define CS40L25_SYM_FIRMWARE_PRINCE_HAPCTRL_RAM_REMAP_DF0_CLAB_HALO_HEARTBEAT                              (0x2)
-#define CS40L25_SYM_FIRMWARE_PRINCE_HAPCTRL_RAM_REMAP_DF0_CLAB_EVENTCONTROL                                (0x3)
-#define CS40L25_SYM_FIRMWARE_PRINCE_HAPCTRL_RAM_REMAP_DF0_CLAB_GPIO1EVENT                                  (0x4)
-#define CS40L25_SYM_FIRMWARE_PRINCE_HAPCTRL_RAM_REMAP_DF0_CLAB_GPIO2EVENT                                  (0x5)
-#define CS40L25_SYM_FIRMWARE_PRINCE_HAPCTRL_RAM_REMAP_DF0_CLAB_GPIO3EVENT                                  (0x6)
-#define CS40L25_SYM_FIRMWARE_PRINCE_HAPCTRL_RAM_REMAP_DF0_CLAB_GPIO4EVENT                                  (0x7)
-#define CS40L25_SYM_FIRMWARE_PRINCE_HAPCTRL_RAM_REMAP_DF0_CLAB_GPIOPLAYBACKEVENT                           (0x8)
-#define CS40L25_SYM_FIRMWARE_PRINCE_HAPCTRL_RAM_REMAP_DF0_CLAB_TRIGGERPLAYBACKEVENT                        (0x9)
-#define CS40L25_SYM_FIRMWARE_PRINCE_HAPCTRL_RAM_REMAP_DF0_CLAB_RXREADYEVENT                                (0xA)
-#define CS40L25_SYM_FIRMWARE_PRINCE_HAPCTRL_RAM_REMAP_DF0_CLAB_HARDWAREEVENT                               (0xB)
-#define CS40L25_SYM_FIRMWARE_PRINCE_HAPCTRL_RAM_REMAP_DF0_CLAB_INDEXBUTTONPRESS                            (0xC)
-#define CS40L25_SYM_FIRMWARE_PRINCE_HAPCTRL_RAM_REMAP_DF0_CLAB_INDEXBUTTONRELEASE                          (0xD)
-#define CS40L25_SYM_FIRMWARE_PRINCE_HAPCTRL_RAM_REMAP_DF0_CLAB_GPIO_BUTTONDETECT                           (0xE)
-#define CS40L25_SYM_FIRMWARE_PRINCE_HAPCTRL_RAM_REMAP_DF0_CLAB_GAIN_CONTROL                                (0xF)
-#define CS40L25_SYM_FIRMWARE_PRINCE_HAPCTRL_RAM_REMAP_DF0_CLAB_GPIO_ENABLE                                 (0x10)
-#define CS40L25_SYM_FIRMWARE_PRINCE_HAPCTRL_RAM_REMAP_DF0_CLAB_POWERSTATE                                  (0x11)
-#define CS40L25_SYM_FIRMWARE_PRINCE_HAPCTRL_RAM_REMAP_DF0_CLAB_POWERONSEQUENCE                             (0x12)
-#define CS40L25_SYM_FIRMWARE_PRINCE_HAPCTRL_RAM_REMAP_DF0_CLAB_F0_STORED                                   (0x13)
-#define CS40L25_SYM_FIRMWARE_PRINCE_HAPCTRL_RAM_REMAP_DF0_CLAB_Q_STORED                                    (0x14)
-#define CS40L25_SYM_FIRMWARE_PRINCE_HAPCTRL_RAM_REMAP_DF0_CLAB_IRQMASKSEQUENCE                             (0x15)
-#define CS40L25_SYM_FIRMWARE_PRINCE_HAPCTRL_RAM_REMAP_DF0_CLAB_IRQMASKSEQUENCE_VALID                       (0x16)
-#define CS40L25_SYM_FIRMWARE_PRINCE_HAPCTRL_RAM_REMAP_DF0_CLAB_REDC_STORED                                 (0x17)
-// FIRMWARE_PRINCE_HAPCTRL_RAM_REMAP_CALIB
-#define CS40L25_SYM_FIRMWARE_PRINCE_HAPCTRL_RAM_REMAP_CALIB_SHUTDOWNREQUEST                             (0x18)
+// FIRMWARE
+#define CS40L25_SYM_FIRMWARE_HALO_STATE             (0x1)
+#define CS40L25_SYM_FIRMWARE_HALO_HEARTBEAT         (0x2)
+#define CS40L25_SYM_FIRMWARE_EVENTCONTROL           (0x3)
+#define CS40L25_SYM_FIRMWARE_GPIO1EVENT             (0x4)
+#define CS40L25_SYM_FIRMWARE_GPIO2EVENT             (0x5)
+#define CS40L25_SYM_FIRMWARE_GPIO3EVENT             (0x6)
+#define CS40L25_SYM_FIRMWARE_GPIO4EVENT             (0x7)
+#define CS40L25_SYM_FIRMWARE_GPIOPLAYBACKEVENT      (0x8)
+#define CS40L25_SYM_FIRMWARE_TRIGGERPLAYBACKEVENT   (0x9)
+#define CS40L25_SYM_FIRMWARE_RXREADYEVENT           (0xa)
+#define CS40L25_SYM_FIRMWARE_HARDWAREEVENT          (0xb)
+#define CS40L25_SYM_FIRMWARE_INDEXBUTTONPRESS       (0xc)
+#define CS40L25_SYM_FIRMWARE_INDEXBUTTONRELEASE     (0xd)
+#define CS40L25_SYM_FIRMWARE_GPIO_BUTTONDETECT      (0xe)
+#define CS40L25_SYM_FIRMWARE_GAIN_CONTROL           (0xf)
+#define CS40L25_SYM_FIRMWARE_GPIO_ENABLE            (0x10)
+#define CS40L25_SYM_FIRMWARE_POWERSTATE             (0x11)
+#define CS40L25_SYM_FIRMWARE_POWERONSEQUENCE        (0x12)
+#define CS40L25_SYM_FIRMWARE_F0_STORED              (0x13)
+#define CS40L25_SYM_FIRMWARE_REDC_STORED            (0x14)
+#define CS40L25_SYM_FIRMWARE_IRQMASKSEQUENCE        (0x15)
+#define CS40L25_SYM_FIRMWARE_IRQMASKSEQUENCE_VALID  (0x16)
+#define CS40L25_SYM_FIRMWARE_Q_STORED               (0x17)
+#define CS40L25_SYM_FIRMWARE_FEATURE_BITMAP         (0x18)
 // VIBEGEN
-#define CS40L25_SYM_VIBEGEN_TIMEOUT_MS                                  (0x19)
+#define CS40L25_SYM_VIBEGEN_TIMEOUT_MS              (0x19)
+#define CS40L25_SYM_VIBEGEN_COMPENSATION_ENABLE     (0x1a)
 // CLAB
-#define CS40L25_SYM_CLAB_CLAB_ENABLED                                   (0x1A)
-#define CS40L25_SYM_CLAB_PEAK_AMPLITUDE_CONTROL                         (0x1B)
-// CAL Firmware - F0_TRACKING
-#define CS40L25_SYM_F0_TRACKING_F0                                      (0x1C)
-#define CS40L25_SYM_F0_TRACKING_CLOSED_LOOP                             (0x1D)
-#define CS40L25_SYM_F0_TRACKING_REDC                                    (0x1E)
-#define CS40L25_SYM_F0_TRACKING_F0_TRACKING_ENABLE                      (0x1F)
-#define CS40L25_SYM_F0_TRACKING_MAXBACKEMF                              (0x20)
-// CAL Firmware - Q_ESTIMATION
-#define CS40L25_SYM_Q_ESTIMATION_Q_EST                                  (0x21)
+#define CS40L25_SYM_CLAB_CLAB_ENABLED               (0x1b)
+#define CS40L25_SYM_CLAB_PEAK_AMPLITUDE_CONTROL     (0x1c)
 
 /** @} */
 
@@ -78,3 +93,4 @@ extern "C" {
 #endif
 
 #endif // CS40L25_SYM_H
+

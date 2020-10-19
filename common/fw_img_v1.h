@@ -6,10 +6,17 @@
  * @copyright
  * Copyright (c) Cirrus Logic 2020 All Rights Reserved, http://www.cirrus.com/
  *
- * This code and information are provided 'as-is' without warranty of any
- * kind, either expressed or implied, including but not limited to the
- * implied warranties of merchantability and/or fitness for a particular
- * purpose.
+ * Licensed under the Apache License, Version 2.0 (the License); you may
+ * not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an AS IS BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  *
  */
 
@@ -71,6 +78,11 @@ extern "C" {
 #define FW_IMG_BOOT_FW_IMG_V1_MAGIC_1                  (0x54b998ff)
 #define FW_IMG_BOOT_FW_IMG_V1_MAGIC_2                  (0x936be2a6)
  /** @} */
+
+#define FW_IMG_SIZE(A)                                 (*(A + 8) + \
+                                                        (*(A + 9) << 8) + \
+                                                        (*(A + 10) << 16) + \
+                                                        (*(A + 11) << 24))
 
 /***********************************************************************************************************************
  * ENUMS, STRUCTS, UNIONS, TYPEDEFS

@@ -6,10 +6,17 @@
  * @copyright
  * Copyright (c) Cirrus Logic 2020 All Rights Reserved, http://www.cirrus.com/
  *
- * This code and information are provided 'as-is' without warranty of any
- * kind, either expressed or implied, including but not limited to the
- * implied warranties of merchantability and/or fitness for a particular
- * purpose.
+ * Licensed under the Apache License, Version 2.0 (the License); you may
+ * not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an AS IS BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  *
  */
 
@@ -27,6 +34,7 @@ extern "C" {
 #include <stdbool.h>
 #include "fw_img_v1.h"
 #include "cs40l25_sym.h"
+#include "cs40l25_cal_sym.h"
 #include "cs40l25_spec.h"
 #include "cs40l25_syscfg_regs.h"
 
@@ -42,15 +50,13 @@ extern "C" {
  */
 #define CS40L25_STATUS_OK                               (0)
 #define CS40L25_STATUS_FAIL                             (1)
-#define CS40L25_STATUS_BOOT_REQUEST                     (2)
-#define CS40L25_STATUS_INVALID                          (3)
 /** @} */
 
 /**
  * @defgroup CS40L25_BUS_TYPE_
  * @brief Types of serial bus to control the CS40L25
  *
- * @see cs40l25_config_t member bus_type
+ * @see cs40l25_bsp_config_t member bus_type
  *
  * @{
  */
@@ -91,80 +97,17 @@ extern "C" {
 /** @} */
 
 /**
- * @defgroup CS40L25_SM_STATE_
- * @brief Generic states used for all child state machines
- *
- * @see cs40l25_sm_t member state
- *
- * @{
- */
-#define CS40L25_SM_STATE_INIT                           (0)
-#define CS40L25_SM_STATE_DONE                           (0xFF)
-#define CS40L25_SM_STATE_ERROR                          (0xFE)
-
-
-/**
- * @defgroup CS40L25_EVENT_SM_STATE_
- * @brief States for the Event Handler state machine
- *
- * @see cs40l25_event_sm
- *
- * @{
- */
-#define CS40L25_EVENT_SM_STATE_INIT                     (CS40L25_SM_STATE_INIT)
-#define CS40L25_EVENT_SM_STATE_READ_SCRATCH             (1)
-#define CS40L25_EVENT_SM_STATE_READ_EVENT               (2)
-#define CS40L25_EVENT_SM_STATE_CLEAR_EVENT              (3)
-#define CS40L25_EVENT_SM_STATE_READ_IRQ_STATUS          (4)
-#define CS40L25_EVENT_SM_STATE_CLEAR_IRQ_FLAGS          (5)
-#define CS40L25_EVENT_SM_STATE_DISABLE_BOOST            (6)
-#define CS40L25_EVENT_SM_STATE_TOGGLE_ERR_RLS           (7)
-#define CS40L25_EVENT_SM_STATE_ENABLE_BOOST             (8)
-#define CS40L25_EVENT_SM_STATE_WRITE_WAKE               (9)
-#define CS40L25_EVENT_SM_STATE_DONE                     (CS40L25_SM_STATE_DONE)
-#define CS40L25_EVENT_SM_STATE_ERROR                    (CS40L25_SM_STATE_ERROR)
-/** @} */
-
-/**
- * @defgroup CS40L25_FLAGS_
- * @brief Flags set by ISRs used to trigger transitions in state machines
- *
- * @see cs40l25_sm_t member flags
- *
- * @{
- */
-#define CS40L25_FLAGS_TIMEOUT                           (0) ///< Flag for BSP timer timeout
-#define CS40L25_FLAGS_CP_RW_DONE                        (1) ///< Flag for BSP Control Port Read/Write done
-#define CS40L25_FLAGS_CP_RW_ERROR                       (2) ///< Flag for BSP Control Port Read/Write error
-#define CS40L25_FLAGS_REQUEST_FW_BOOT                   (3) ///< Flag to indicate a request to boot firmware
-#define CS40L25_FLAGS_REQUEST_COEFF_BOOT                (4) ///< Flag to indicate a request to boot coeff
-#define CS40L25_FLAGS_REQUEST_CAL_BOOT                  (5) ///< Flag to indicate a request to boot calibration firmware
-#define CS40L25_FLAGS_IS_GET_REQUEST                    (6) ///< Flag to indicate Field Access GET request
-/** @} */
-
-#define CS40L25_POLL_ACK_CTRL_MS                        (10)    ///< Delay in ms between polling OTP_BOOT_DONE
-#define CS40L25_POLL_ACK_CTRL_MAX                       (10)    ///< Maximum number of times to poll OTP_BOOT_DONE
-
-#define CS40L25_POLL_OTP_BOOT_DONE_MS                   (10)    ///< Delay in ms between polling OTP_BOOT_DONE
-#define CS40L25_POLL_OTP_BOOT_DONE_MAX                  (10)    ///< Maximum number of times to poll OTP_BOOT_DONE
-#define CS40L25_OTP_SIZE_WORDS                          (32)    ///< Total size of CS40L25 OTP in 32-bit words
-
-#define CS40L25_CP_BULK_READ_LENGTH_BYTES               (CS40L25_OTP_SIZE_WORDS * 4)
-///< Maximum size of Control Port Bulk Read
-#define CS40L25_CP_REG_READ_LENGTH_BYTES                (4) ///< Length of Control Port Read of registers
-/**
  * Length of Control Port Read buffer
  *
- * @attention The BSP is required to allocate a buffer of this length before initializing the driver.
+ * @attention The BSP is required to allocate a buffer of at least this length before initializing the driver.
  */
-#define CS40L25_CP_READ_BUFFER_LENGTH_BYTES             (CS40L25_CP_BULK_READ_LENGTH_BYTES + \
-                                                         CS40L25_CP_REG_READ_LENGTH_BYTES)
+#define CS40L25_CP_READ_BUFFER_LENGTH_BYTES             (4)
 
 /**
  * @defgroup CS40L25_CONTROL_ID_
  * @brief ID to indicate the type of Control Request
  *
- * @see cs40l25_functions_t member control
+ * @see cs40l25_control
  * @see cs40l25_control_request_t member id
  *
  * @{
@@ -174,86 +117,26 @@ extern "C" {
 #define CS40L25_CONTROL_ID_HANDLER_FA_GET               (0)
 #define CS40L25_CONTROL_ID_HANDLER_FA_SET               (1)
 #define CS40L25_CONTROL_ID_HANDLER_DSP_STATUS           (2)
-#define CS40L25_CONTROL_ID_HANDLER_DYNAMIC_F0           (3)
 #define CS40L25_CONTROL_ID_FA_GET_MASK                  (CS40L25_CONTROL_ID_HANDLER_FA_GET << 28)
 #define CS40L25_CONTROL_ID_FA_SET_MASK                  (CS40L25_CONTROL_ID_HANDLER_FA_SET << 28)
 #define CS40L25_CONTROL_ID_DSP_STATUS_MASK              (CS40L25_CONTROL_ID_HANDLER_DSP_STATUS << 28)
-#define CS40L25_CONTROL_ID_DYNAMIC_F0_MASK              (CS40L25_CONTROL_ID_HANDLER_DYNAMIC_F0 << 28)
-#define CS40L25_CONTROL_ID_FA_GET(A)                      (A | CS40L25_CONTROL_ID_FA_GET_MASK)
-#define CS40L25_CONTROL_ID_FA_SET(A)                      (A | CS40L25_CONTROL_ID_FA_SET_MASK)
-#define CS40L25_CONTROL_ID_DSP_STATUS(A)                  (A | CS40L25_CONTROL_ID_DSP_STATUS_MASK)
-#define CS40L25_CONTROL_ID_DYNAMIC_F0(A)                  (A | CS40L25_CONTROL_ID_DYNAMIC_F0_MASK)
+#define CS40L25_CONTROL_ID_FA_GET(A)                    (A | CS40L25_CONTROL_ID_FA_GET_MASK)
+#define CS40L25_CONTROL_ID_FA_SET(A)                    (A | CS40L25_CONTROL_ID_FA_SET_MASK)
+#define CS40L25_CONTROL_ID_DSP_STATUS(A)                (A | CS40L25_CONTROL_ID_DSP_STATUS_MASK)
 
-#define CS40L25_CONTROL_ID_NONE                           (0)
+#define CS40L25_CONTROL_ID_GET_REG                      CS40L25_CONTROL_ID_FA_GET(0)
+#define CS40L25_CONTROL_ID_SET_REG                      CS40L25_CONTROL_ID_FA_SET(0)
+#define CS40L25_CONTROL_ID_GET_SYM                      CS40L25_CONTROL_ID_FA_GET(1)
+#define CS40L25_CONTROL_ID_SET_SYM                      CS40L25_CONTROL_ID_FA_SET(1)
 
 #define CS40L25_CONTROL_ID_GET_DSP_STATUS               CS40L25_CONTROL_ID_DSP_STATUS(0)
-
-#define CS40L25_CONTROL_ID_GET_DYNAMIC_F0               CS40L25_CONTROL_ID_DYNAMIC_F0(0)
-#define CS40L25_CONTROL_ID_GET_DYNAMIC_REDC             CS40L25_CONTROL_ID_DYNAMIC_F0(1)
-#define CS40L25_CONTROL_ID_ENABLE_DYNAMIC_F0            CS40L25_CONTROL_ID_DYNAMIC_F0(2)
-
-#define CS40L25_CONTROL_ID_GET_VOLUME                   CS40L25_CONTROL_ID_FA_GET(0)
-#define CS40L25_CONTROL_ID_SET_VOLUME                   CS40L25_CONTROL_ID_FA_SET(0)
-#define CS40L25_CONTROL_ID_GET_BHM_HALO_HEARTBEAT       CS40L25_CONTROL_ID_FA_GET(1)
-#define CS40L25_CONTROL_ID_GET_RAM_HALO_HEARTBEAT       CS40L25_CONTROL_ID_FA_GET(2)
-#define CS40L25_CONTROL_ID_SET_BHM_BUZZ_TRIGGER         CS40L25_CONTROL_ID_FA_SET(3)
-#define CS40L25_CONTROL_ID_SET_TRIGGER_INDEX            CS40L25_CONTROL_ID_FA_SET(4)
-#define CS40L25_CONTROL_ID_SET_TRIGGER_MS               CS40L25_CONTROL_ID_FA_SET(5)
-#define CS40L25_CONTROL_ID_SET_TIMEOUT_MS               CS40L25_CONTROL_ID_FA_SET(6)
-#define CS40L25_CONTROL_ID_SET_GPIO_ENABLE              CS40L25_CONTROL_ID_FA_SET(7)
-#define CS40L25_CONTROL_ID_SET_GPIO1_BUTTON_DETECT      CS40L25_CONTROL_ID_FA_SET(8)
-#define CS40L25_CONTROL_ID_SET_GPIO2_BUTTON_DETECT      CS40L25_CONTROL_ID_FA_SET(9)
-#define CS40L25_CONTROL_ID_SET_GPIO3_BUTTON_DETECT      CS40L25_CONTROL_ID_FA_SET(10)
-#define CS40L25_CONTROL_ID_SET_GPIO4_BUTTON_DETECT      CS40L25_CONTROL_ID_FA_SET(11)
-#define CS40L25_CONTROL_ID_SET_CLAB_ENABLED             CS40L25_CONTROL_ID_FA_SET(12)
-#define CS40L25_CONTROL_ID_SET_GPI_GAIN_CONTROL         CS40L25_CONTROL_ID_FA_SET(13)
-#define CS40L25_CONTROL_ID_SET_CTRL_PORT_GAIN_CONTROL   CS40L25_CONTROL_ID_FA_SET(14)
-#define CS40L25_CONTROL_ID_SET_GPIO1_INDEX_BUTTON_PRESS CS40L25_CONTROL_ID_FA_SET(15)
-#define CS40L25_CONTROL_ID_SET_GPIO2_INDEX_BUTTON_PRESS CS40L25_CONTROL_ID_FA_SET(16)
-#define CS40L25_CONTROL_ID_SET_GPIO3_INDEX_BUTTON_PRESS CS40L25_CONTROL_ID_FA_SET(17)
-#define CS40L25_CONTROL_ID_SET_GPIO4_INDEX_BUTTON_PRESS CS40L25_CONTROL_ID_FA_SET(18)
-#define CS40L25_CONTROL_ID_SET_GPIO1_INDEX_BUTTON_RELEASE CS40L25_CONTROL_ID_FA_SET(19)
-#define CS40L25_CONTROL_ID_SET_GPIO2_INDEX_BUTTON_RELEASE CS40L25_CONTROL_ID_FA_SET(20)
-#define CS40L25_CONTROL_ID_SET_GPIO3_INDEX_BUTTON_RELEASE CS40L25_CONTROL_ID_FA_SET(21)
-#define CS40L25_CONTROL_ID_SET_GPIO4_INDEX_BUTTON_RELEASE CS40L25_CONTROL_ID_FA_SET(22)
-#define CS40L25_CONTROL_ID_GET_FW_REVISION              CS40L25_CONTROL_ID_FA_GET(23)
-#define CS40L25_CONTROL_ID_FA_MAX                       (23)
-
-#define CS40L25_CONTROL_ID_GET_HALO_HEARTBEAT           (24)
-/** @} */
-
-/**
- * @defgroup CS40L25_DSP_MBOX_STATUS_
- * @brief Statuses of the HALO DSP Mailbox
- *
- * @{
- */
-#define CS40L25_DSP_MBOX_STATUS_RUNNING                 (0)
-#define CS40L25_DSP_MBOX_STATUS_PAUSED                  (1)
-#define CS40L25_DSP_MBOX_STATUS_RDY_FOR_REINIT          (2)
-/** @} */
-
-/**
- * @defgroup CS40L25_DSP_MBOX_CMD_
- * @brief HALO DSP Mailbox commands
- *
- * @see cs40l25_t member mbox_cmd
- *
- * @{
- */
-#define CS40L25_DSP_MBOX_CMD_NONE                       (0)
-#define CS40L25_DSP_MBOX_CMD_PAUSE                      (1)
-#define CS40L25_DSP_MBOX_CMD_RESUME                     (2)
-#define CS40L25_DSP_MBOX_CMD_REINIT                     (3)
-#define CS40L25_DSP_MBOX_CMD_STOP_PRE_REINIT            (4)
-#define CS40L25_DSP_MBOX_CMD_UNKNOWN                    (-1)
 /** @} */
 
 /**
  * @defgroup CS40L25_POWER_
  * @brief Power states passed on to power() API argument power_state
  *
- * @see cs40l25_functions_t member power
+ * @see cs40l25_power
  *
  * @{
  */
@@ -267,7 +150,7 @@ extern "C" {
  * @defgroup CS40L25_CALIB_
  * @brief Calibration options passed on to calibrate() API argument calib_type
  *
- * @see cs40l25_functions_t member calibrate
+ * @see cs40l25_calibrate
  *
  * @{
  */
@@ -291,9 +174,8 @@ extern "C" {
 #define CS40L25_EVENT_FLAG_BOOST_INDUCTOR_SHORT         (1 << 27)
 #define CS40L25_EVENT_FLAG_BOOST_UNDERVOLTAGE           (1 << 26)
 #define CS40L25_EVENT_FLAG_BOOST_OVERVOLTAGE            (1 << 25)
-#define CS40L25_EVENT_FLAG_STATE_ERROR                  (1 << 13)
-#define CS40L25_EVENT_FLAG_READY_FOR_DATA               (1 << 12)
-#define CS40L25_EVENT_FLAG_RESUME_PLAYBACK              (1 << 11)
+#define CS40L25_EVENT_FLAG_STATE_ERROR                  (1 << 12)
+#define CS40L25_EVENT_FLAG_READY_FOR_DATA               (1 << 11)
 #define CS40L25_EVENT_FLAG_CP_PLAYBACK_DONE             (0x1 << 9)
 #define CS40L25_EVENT_FLAG_CP_PLAYBACK_SUSPEND          (0x2 << 9)
 #define CS40L25_EVENT_FLAG_CP_PLAYBACK_RESUME           (0x3 << 9)
@@ -306,39 +188,15 @@ extern "C" {
 #define CS40L25_EVENT_FLAG_GPIO_2_PRESS                 (1 << 2)
 #define CS40L25_EVENT_FLAG_GPIO_1_RELEASE               (1 << 1)
 #define CS40L25_EVENT_FLAG_GPIO_1_PRESS                 (1 << 0)
-
 /** @} */
 
-#define CS40L25_CONFIG_REGISTERS_TOTAL                  (14)    ///< Total registers modified during Configure SM
-
-#define CS40L25_INPUT_SRC_DISABLE                       (0x00)  ///< Data Routing value to indicate 'disabled'
-
-#ifdef INCLUDE_CAL
-#define DSP_REG(X)                                      (driver->state == CS40L25_STATE_DSP_POWER_UP || driver->state == CS40L25_STATE_DSP_STANDBY ? CS40L25_ ## X : CS40L25_CAL_ ## X)
-#else
-#define DSP_REG(X)                                      (CS40L25_ ## X)
-#endif // INCLUDE_CAL
+#define CS40L25_CONFIG_REGISTERS_TOTAL                  (2)     ///< Total registers modified during cs40l25_boot
 #define CS40L25_DSP_STATUS_WORDS_TOTAL                  (2)     ///< Total registers to read for Get DSP Status control
-
 #define CS40L25_WSEQ_MAX_ENTRIES                        (48)    ///< Maximum registers written on wakeup from hibernate
+
 /***********************************************************************************************************************
  * MACROS
  **********************************************************************************************************************/
-
-/**
- * @defgroup CS40L25_FLAG_MACROS
- * @brief Macros to get/set bitfield flags
- *
- * @{
- */
-#define CS40L25_FLAG_TO_MASK(A)                (0x1 << A)
-#define CS40L25_FLAG_VAL_TO_MASK(A, B)         (B << A)
-#define CS40L25_SET_FLAG(A, B)                 (A |= CS40L25_FLAG_TO_MASK(B))
-#define CS40L25_CLEAR_FLAG(A, B)               (A &= ~(CS40L25_FLAG_TO_MASK(B)))
-#define CS40L25_IS_FLAG_SET(A, B)              ((A & CS40L25_FLAG_TO_MASK(B)) == CS40L25_FLAG_TO_MASK(B))
-#define CS40L25_IS_FLAG_CLEAR(A, B)            ((A & CS40L25_FLAG_TO_MASK(B)) == 0)
-#define CS40L25_CHANGE_FLAG(A, B, C)           (A = ((A & ~CS40L25_FLAG_TO_MASK(B)) | CS40L25_FLAG_VAL_TO_MASK(B, C)))
-/** @} */
 
 /**
  * debug printf safe to use when semihosting is disabled
@@ -354,33 +212,13 @@ extern "C" {
  **********************************************************************************************************************/
 
 /**
- * Function pointer to driver control state machine implementation.
- *
- * @param [in] driver           Pointer to the driver state
- *
- * @return General driver API call status
- */
-typedef uint32_t (*cs40l25_sm_fp_t)(void *driver);
-
-/**
- * Data structure describing driver control state machine implementation
- */
-typedef struct
-{
-    uint8_t state;      ///< Current state of state machine
-    uint32_t flags;     ///< Current event/notification flags the state machine should process
-    uint8_t count;      ///< Counter allocated to simplify number of states
-    cs40l25_sm_fp_t fp; ///< Pointer to state machine implementation
-} cs40l25_sm_t;
-
-/**
  * Function pointer to Notification Callback
  *
  * @details
  * This callback will be registered at driver configuration.  This callback is called whenever the driver has detected
  * a significant event has occurred, such as an over-temperature condition.
  *
- * @see cs40l25_functions_t member configure
+ * @see cs40l25_configure
  *
  * @param [in] event_flags      Flags to indicate which events have occurred
  * @param [in] arg              Callback arg registered by upper layer
@@ -390,51 +228,37 @@ typedef struct
 typedef void (*cs40l25_notification_callback_t)(uint32_t event_flags, void *arg);
 
 /**
- * Function pointer to Control Request Callback
- *
- * @details
- * This callback will be registered when the Control Request is requested, i.e. via control(), boot() API.
- *
- * @see cs40l25_functions_t member control
- *
- * @param [in] id               Control ID just completed
- * @param [in] status           Status of Control Request
- * @param [in] arg              Callback arg registered by upper layer
- *
- * @return none
- */
-typedef void (*cs40l25_control_callback_t)(uint8_t id, uint32_t status, void *arg);
-
-/**
  * Data structure to describe a Control Request
  *
- * @see cs40l25_functions_t member control
+ * @see cs40l25_control
  */
 typedef struct
 {
-    uint32_t id;                     ///< Control ID
-    void *arg;                      ///< Argument for Control Request (nature depends on type of request)
+    uint32_t id;    ///< Control ID
+    void *arg;      ///< Argument for Control Request (nature depends on type of request)
 } cs40l25_control_request_t;
 
 /**
- * Data structure to describe a field to read via the Field Access SM
+ * Data structure to describe a field to read via cs40l25_field_access
  *
- * @see cs40l25_load_control
+ * @see cs40l25_field_access
  */
 typedef struct
 {
-    bool symbol;        ///< If True, field is in firmware and only the id is known
     uint32_t address;   ///< Control Port address of field to access
-    uint32_t id;                    ///< Id of symbol in symbol table
+    uint32_t id;        ///< Id of symbol in symbol table
     uint32_t value;     ///< Value to write/value read
     uint8_t size;       ///< Bitwise size of field to access in register
     uint8_t shift;      ///< Bitwise shift of field to access in register
     bool ack_ctrl;      ///< (True) Signal field is an acknowledge control
-    uint32_t ack_reset;     ///< The value the field should reset to on ack (only valid for ack ctrls)
+    uint32_t ack_reset; ///< The value the field should reset to on ack (only valid for ack ctrls)
 } cs40l25_field_accessor_t;
 
-
-
+/**
+ * Data structure to provide access to bit-fields to enable Event Control sources
+ *
+ * @see cs40l25_config_registers_t
+ */
 typedef struct
 {
     union
@@ -456,41 +280,15 @@ typedef struct
     };
 } cs40l25_event_control_t;
 
-/**
- * Registers modified for amplifier configuration.
+/** Data structure for entry in Wake Write Sequencer (WSEQ)
  *
- * List of registers can be accessed via bitfields (when mapping from driver config/state), or indexed via words
- * (when reading/writing via Control Port).
+ * Each entry corresponds to 16-bits of address and 32-bits of data.  Only 16-bits of address is needed due to the Wake
+ * handling in HALO Core DSP firmware only needing to restore hardware addresses up to 0xFFFF.
  *
- * All register types are defined according to the datasheet and specified in cs40l25_spec.h.
+ * The shuffling of members is to facilitate when writing values to HALO Core packed 24-bit memory.
  *
- * @warning  The list of registers MUST correspond to the addresses in cs40l25_config_register_addresses.
- *
- * @see cs40l25_config_register_addresses
+ * @see cs40l25_wseq_table_update
  */
-typedef union
-{
-    uint32_t words[CS40L25_CONFIG_REGISTERS_TOTAL];
-
-    struct
-    {
-        dsp_gpio_button_detect_reg_t dsp_gpio_button_detect;
-        dsp_reg_t dsp_gpio_enable;
-        dsp_gain_control_reg_t dsp_gain_control;
-        dsp_reg_t dsp_gpio1_index_button_press;
-        dsp_reg_t dsp_gpio2_index_button_press;
-        dsp_reg_t dsp_gpio3_index_button_press;
-        dsp_reg_t dsp_gpio4_index_button_press;
-        dsp_reg_t dsp_gpio1_index_button_release;
-        dsp_reg_t dsp_gpio2_index_button_release;
-        dsp_reg_t dsp_gpio3_index_button_release;
-        dsp_reg_t dsp_gpio4_index_button_release;
-        dsp_reg_t clab_enabled;
-        dsp_reg_t peak_amplitude_control;
-        cs40l25_event_control_t event_control;
-    };
-} cs40l25_config_registers_t;
-
 typedef struct
 {
     union
@@ -512,45 +310,18 @@ typedef struct
     uint8_t changed : 1;
 } cs40l25_wseq_entry_t;
 
-/** List of firmware controls configured through cs40l25_config_t
- *
- * These values will be mapped to a register in cs40l25_config_registers_t;
- *
- * @see cs40l25_config_registers_t
- */
-typedef struct
-{
-    bool dsp_gpio1_button_detect_enable;
-    bool dsp_gpio2_button_detect_enable;
-    bool dsp_gpio3_button_detect_enable;
-    bool dsp_gpio4_button_detect_enable;
-    bool dsp_gpio_enable;
-    uint16_t dsp_gpi_gain_control;
-    uint16_t dsp_ctrl_gain_control;
-    uint32_t dsp_gpio1_index_button_press;
-    uint32_t dsp_gpio2_index_button_press;
-    uint32_t dsp_gpio3_index_button_press;
-    uint32_t dsp_gpio4_index_button_press;
-    uint32_t dsp_gpio1_index_button_release;
-    uint32_t dsp_gpio2_index_button_release;
-    uint32_t dsp_gpio3_index_button_release;
-    uint32_t dsp_gpio4_index_button_release;
-    bool clab_enable;          ///< Whether Closed-loop Active Braking shoud be enabled.
-    uint32_t peak_amplitude;   ///< Clab braking pulses are scaled down if they exceed this amplitude. Q2.22
-} cs40l25_dsp_config_controls_t;
-
 /**
  * State of HALO FW Calibration
  *
  */
 typedef struct
 {
-    bool is_valid_f0;    ///< (True) Calibration state is valid
-    uint32_t f0;      ///< Encoded resonant frequency (f0) determined by Calibration procedure.
-    uint32_t redc;    ///< Encoded DC resistance (ReDC) determined by Calibration procedure.
-    uint32_t backemf; ///< Encoded Back EMF determined by Calibration procedure.
-    bool is_valid_qest;    ///< (True) Calibration state is valid
-    uint32_t qest;   ///< Encoded estimated Q value (Q Est) determined by Calibration procedure.
+    bool is_valid_f0;   ///< (True) Calibration state is valid
+    uint32_t f0;        ///< Encoded resonant frequency (f0) determined by Calibration procedure.
+    uint32_t redc;      ///< Encoded DC resistance (ReDC) determined by Calibration procedure.
+    uint32_t backemf;   ///< Encoded Back EMF determined by Calibration procedure.
+    bool is_valid_qest; ///< (True) Calibration state is valid
+    uint32_t qest;      ///< Encoded estimated Q value (Q Est) determined by Calibration procedure.
 } cs40l25_calibration_t;
 
 /**
@@ -570,22 +341,17 @@ typedef struct
         uint32_t words[CS40L25_DSP_STATUS_WORDS_TOTAL];
         struct
         {
-            uint32_t halo_state;
-            uint32_t halo_heartbeat;
-            uint32_t cspl_state;
-            uint32_t cal_set_status;
-            uint32_t cal_r_selected;
-            uint32_t cal_r;
-            uint32_t cal_status;
-            uint32_t cal_checksum;
-            uint32_t cspl_temperature;
+            uint32_t halo_state;        ///< Most recent HALO STATE
+            uint32_t halo_heartbeat;    ///< Most recent HALO HEARTBEAT value
         };
     } data;                         ///< Data read from Control Port
     bool is_hb_inc;                 ///< (True) The HALO HEARTBEAT is incrementing
-    bool is_calibration_applied;    ///< (True) Calibration values are applied
-    bool is_temp_changed;           ///< (True) Monitored temperature is varying.
 } cs40l25_dsp_status_t;
 
+/**
+ * Data structure for HALO Core DSP Firmware Revision
+ *
+ */
 typedef struct
 {
     union
@@ -601,6 +367,9 @@ typedef struct
     };
 } cs40l25_fw_revision_t;
 
+/**
+ * Configuration parameters required for calls to BSP-Driver Interface
+ */
 typedef struct
 {
     uint8_t bsp_dev_id;                                 ///< Used to ID CS40L25 in bsp_driver_if calls
@@ -616,66 +385,65 @@ typedef struct
 /**
  * Driver configuration data structure
  *
- * @see cs40l25_functions_t member configure
+ * @see cs40l25_configure
  */
 typedef struct
 {
-    cs40l25_bsp_config_t bsp_config;
-    const syscfg_reg_t *syscfg_regs;
-    uint32_t syscfg_regs_total;
-    cs40l25_calibration_t cal_data;                     ///< Calibration data from previous calibration sequence
-    cs40l25_dsp_config_controls_t dsp_config_ctrls;     ///< Configurable DSP controls
-    cs40l25_event_control_t event_control;              ///< Event Control configuration
+    cs40l25_bsp_config_t bsp_config;                ///< BSP Configuration
+    const syscfg_reg_t *syscfg_regs;                ///< Pointer to system configuration table
+    uint32_t syscfg_regs_total;                     ///< Total entries in system configuration table
+    cs40l25_calibration_t cal_data;                 ///< Calibration data from previous calibration sequence
+    cs40l25_event_control_t event_control;          ///< Event Control configuration
 } cs40l25_config_t;
+
+/**
+ * Configuration of HALO FW GPIO Triggering controls
+ *
+ * @see cs40l25_haptic_config_t
+ */
+typedef struct
+{
+    bool enable;                    ///< Enable for this specific GPIO
+    uint32_t button_press_index;    ///< Index in wavetable of wave to play upon button press
+    uint32_t button_release_index;  ///< Index in wavetable of wave to play upon button release
+} cs40l25_gpio_trigger_config_t;
+
+/**
+ * Configuration of HALO FW Haptic controls
+ *
+ * @see cs40l25_update_haptic_config
+ */
+typedef struct
+{
+    uint32_t cp_gain_control;                               ///< Gain for Control Port triggered effects
+    bool gpio_enable;                                       ///< Global enable for triggering via GPIO
+    uint32_t gpio_gain_control;                             ///< Gain for GPIO triggered effects
+    cs40l25_gpio_trigger_config_t gpio_trigger_config[4];   ///< Triggering configuration for GPIO1-GPIO4
+} cs40l25_haptic_config_t;
 
 /**
  * Driver state data structure
  *
  * This is the type used for the handle to the driver for all driver public API calls.  This structure must be
- * instantiated outside the scope of the driver source and initialized by the initialize() public API.
+ * instantiated outside the scope of the driver source and initialized by the cs40l25_initialize public API.
  */
 typedef struct
 {
-    // Primary driver state fields
-    uint32_t state;             ///< General driver state - @see CS40L25_STATE_
-    uint32_t mode;              ///< General driver mode - @see CS40L25_MODE_
-    cs40l25_sm_t control_sm;    ///< Control State Machine for current Control Request
-
-    // Control Request handling fields
-    cs40l25_control_request_t current_request;                                  ///< Current Control Request
-
-    // Extra state material used by Control and Event Handler SMs
+    uint32_t state;                             ///< General driver state - @see CS40L25_STATE_
+    uint32_t mode;                              ///< General driver mode - @see CS40L25_MODE_
+    cs40l25_control_request_t current_request;  ///< Current Control Request
     uint32_t devid;                             ///< CS40L25 DEVID of current device
     uint32_t revid;                             ///< CS40L25 REVID of current device
-    cs40l25_config_registers_t config_regs;     ///< Contents of Control Port registers to configure
-    cs40l25_wseq_entry_t wseq_table[CS40L25_WSEQ_MAX_ENTRIES];  ///< List of register address/value pairs to write on wake up from hibernate
+    /*
+     * List of register address/value pairs to write on wake up from hibernate
+     */
+    cs40l25_wseq_entry_t wseq_table[CS40L25_WSEQ_MAX_ENTRIES];
     uint8_t wseq_num_entries;                   ///< Number of entries currently in wseq_table
     bool wseq_initialized;                      ///< Flag indicating if the wseq_table has been initialized
-    uint32_t calib_pcm_vol;
-    cs40l25_field_accessor_t field_accessor;    ///< Current Control Port field to access
-
-    // Driver configuration fields - see cs40l25_config_t
-    cs40l25_config_t config;
-
-    fw_img_v1_info_t *fw_info;     ///< Current HALO FW/Coefficient boot configuration
-
-    uint32_t event_flags;
-    uint32_t event_counter;
+    cs40l25_config_t config;                    ///< Driver configuration fields - see cs40l25_config_t
+    fw_img_v1_info_t *fw_info;                  ///< Current HALO FW/Coefficient boot configuration
+    uint32_t event_flags;                       ///< Most recent event_flags reported to BSP Notification callback
 } cs40l25_t;
-
-typedef struct
-{
-    union
-    {
-        uint32_t word;
-        struct
-        {
-            uint32_t f0                         : 13; ///< F0 in Q10.3 format
-            uint32_t index                      : 10; ///< Index in Wave Table
-            uint32_t reserved                   : 9;
-        };
-    };
-} cs40l25_dynamic_f0_table_entry_t;
 
 /***********************************************************************************************************************
  * GLOBAL VARIABLES
@@ -687,7 +455,7 @@ typedef struct
 /**
  * Initialize driver state/handle
  *
- * Sets all driver state members to 0, and initializes Control Request Queue.
+ * Sets all driver state members to 0
  *
  * @param [in] driver           Pointer to the driver state
  *
@@ -717,21 +485,16 @@ uint32_t cs40l25_initialize(cs40l25_t *driver);
 uint32_t cs40l25_configure(cs40l25_t *driver, cs40l25_config_t *config);
 
 /**
- * Processes driver state machines
+ * Processes driver events and notifications
  *
- * This implements the 'CS40L25 Process Flowchart' found in the driver Tech Note.  This includes:
- * - calling Event Handler SM if in HANDLING_EVENTS mode
- * - calling current Control SM if in HANLDING_CONTROLS mode
- * - loading new controls and checking validity per driver state
- * - calling BSP callbacks upon completion of Control Requests
- * - handling Control Request errors
+ * This implements Event Handling and BSP Notification
  *
  * @param [in] driver           Pointer to the driver state
  *
  * @return
  * - if in UNCONFIGURED or ERROR state, returns CS40L25_STATUS_OK
- * - else if in HANDLING_CONTROLS mode and not currently processing Control SM< returns CS40L25_STATUS_OK
- * - otherwise, returns status from any state machine executed (either Event Handler or Control SM)
+ * - else if in HANDLING_CONTROLS mode, returns CS40L25_STATUS_OK
+ * - otherwise, returns status Event Handler
  *
  * @warning This MUST be placed either in baremetal or RTOS task while (1)
  *
@@ -742,16 +505,13 @@ uint32_t cs40l25_process(cs40l25_t *driver);
  * Submit a Control Request to the driver
  *
  * Caller will initialize a cs40l25_control_request_t 'req' based on the control it wishes to access.  This request
- * will then be added to the Control Request Queue, and the callback given in 'req' will be called once either:
- * - the Control Request has completed successfully
- * - there was an ERROR when executing the Control Request
- * - the Control Request is invalid for the current driver state
+ * will then be processed and any return values will be available via the 'req' parameter.
  *
  * @param [in] driver           Pointer to the driver state
  * @param [in] req              data structure for control request \b passed by value
  *
  * @return
- * - CS40L25_STATUS_FAIL        if Control Request ID is invalid OR if insertion into Control Request Queue failed
+ * - CS40L25_STATUS_FAIL        if Control Request ID is invalid OR if processing of control fails
  * - CS40L25_STATUS_OK          otherwise
  *
  * @see cs40l25_control_request_t
@@ -762,51 +522,60 @@ uint32_t cs40l25_control(cs40l25_t *driver, cs40l25_control_request_t req);
 /**
  * Reset the CS40L25
  *
- * Reset will include stepping through the following state machine:
- * - Reset SM - toggle RESET GPIO, identify device
- *
- * This function is essentially an alias for a call to cs40l25_control
- *
- * @attention It should be noted that the callback \b cb will be called upon completion (either successful or
- * unsuccessful) of the Reset Control Request when resetting.
+ * This call performs all necessary reset of the CS40L25 from power-on-reset to being able to process haptics in
+ * Basic Haptics Mode (BHM).
+ * - toggling RESET line
+ * - verifying entry to BHM is successful
  *
  * @param [in] driver           Pointer to the driver state
  *
  * @return
- * - CS40L25_STATUS_FAIL        if any submission of Control Request failed
- * - CS40L25_STATUS_OK          otherwise
+ * - CS40L25_STATUS_FAIL if:
+ *      - any control port activity fails
+ *      - any status bit polling times out
+ *      - the part is not supported
+ * - otherwise, returns CS40L25_STATUS_OK
  *
  */
 uint32_t cs40l25_reset(cs40l25_t *driver);
 
-/**
- * Write a fw block to the DSP's memory.
+/*
+ * Write block of data to the CS40L25 register file
  *
- * This function writes a data block to the firmware's memory.
+ * This call is used to load the HALO FW/COEFF files to HALO RAM.
  *
  * @param [in] driver           Pointer to the driver state
- * @param [in] addr             The address to which the data should be written
- * @param [in] data             The data to be written out to the bus
- * @param [in] size             The size of the data block pointed to by 'data'
+ * @param [in] addr             Starting address of loading destination
+ * @param [in] data             Pointer to array of bytes to be written
+ * @param [in] size             Size of array of bytes to be written
  *
  * @return
- * - CS40L25_STATUS_FAIL        if any submission of Control Request failed
- * - CS40L25_STATUS_OK          otherwise
+ * - CS40L25_STATUS_FAIL if:
+ *      - Any pointers are NULL
+ *      - size is not multiple of 4
+ *      - Control port activity fails
+ * - otherwise, returns CS40L25_STATUS_OK
  *
  */
 uint32_t cs40l25_write_block(cs40l25_t *driver, uint32_t addr, uint8_t *data, uint32_t size);
 
 /**
- * Boot the CS40L25
+ * Finish booting the CS40L25
  *
- * This function informs the driver that a firmware has been loaded, and is described by the
- * passed in fw_img_v1_info_t struct.
+ * While cs35l41_write_block loads the actual FW/COEFF data into HALO RAM, cs35l41_boot will finish the boot process
+ * by:
+ * - loading the fw_img_v1_info_t fw_info member of the driver handle
+ * - Performing any post-boot configuration writes
+ * - Loading Calibration data (if valid)
  *
  * @param [in] driver           Pointer to the driver state
- * @param [in] fw_info          Pointer to the current fw's info
+ * @param [in] fw_info          Pointer to FW information and FW Control Symbol Table
  *
  * @return
- * - CS40L25_STATUS_FAIL        if any submission of Control Request failed
+ * - CS40L25_STATUS_FAIL if:
+ *      - Any pointers are null
+ *      - Control port activity fails
+ *      - Required FW Control symbols are not found in the symbol table
  * - CS40L25_STATUS_OK          otherwise
  *
  */
@@ -815,22 +584,24 @@ uint32_t cs40l25_boot(cs40l25_t *driver, fw_img_v1_info_t *fw_info);
 /**
  * Change the power state
  *
- * This submits a Control Request to either Power Up or Power Down the CS40L25.  Although there is no checking here
- * for whether the request is invalid (i.e. Power Down when the driver state is already STANDBY), this checking will
- * be performed once the request is loaded in cs40l25_process().
+ * Based on the current driver state, this call will change the driver state and call the appropriate power up/down
+ * function.  This can result in the part exiting/entering any of the following power states:  Power Up, Standby,
+ * Hibernate, Wake.
+ *
+ * @see CS40L25_POWER_
  *
  * @param [in] driver           Pointer to the driver state
  * @param [in] power_state      New power state
  *
  * @return
- * - CS40L25_STATUS_FAIL        if submission of Control Request failed
+ * - CS40L25_STATUS_FAIL        if requested power_state is invalid, or if the call to change power state fails
  * - CS40L25_STATUS_OK          otherwise
  *
  */
 uint32_t cs40l25_power(cs40l25_t *driver, uint32_t power_state);
 
 /**
- * Calibrate the HALO DSP Protection Algorithm
+ * Calibrate the HALO Core DSP Protection Algorithm
  *
  * This performs the calibration procedure for Prince Haptic Control firmwares.
  * This calibration information (cs40l25_calibration_t) will be saved in the driver state
@@ -852,7 +623,7 @@ uint32_t cs40l25_calibrate(cs40l25_t *driver, uint32_t calib_type);
 /**
  * Start I2S Streaming Mode
  *
- * Performas all register/memory field address updates required to put the HALO DSP
+ * Performas all register/memory field address updates required to put the HALO Core DSP
  * in to I2S Streaming Mode
  *
  * @param [in] driver           Pointer to the driver state
@@ -868,7 +639,7 @@ uint32_t cs40l25_start_i2s(cs40l25_t *driver);
 /**
  * Stop I2S Streaming Mode
  *
- * Performas all register/memory field address updates required to pull the HALO DSP
+ * Performas all register/memory field address updates required to pull the HALO Core DSP
  * out of I2S Streaming Mode
  *
  * @param [in] driver           Pointer to the driver state

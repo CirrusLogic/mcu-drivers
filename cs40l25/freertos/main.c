@@ -6,10 +6,17 @@
  * @copyright
  * Copyright (c) Cirrus Logic 2019 All Rights Reserved, http://www.cirrus.com/
  *
- * This code and information are provided 'as-is' without warranty of any
- * kind, either expressed or implied, including but not limited to the
- * implied warranties of merchantability and/or fitness for a particular
- * purpose.
+ * Licensed under the Apache License, Version 2.0 (the License); you may
+ * not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an AS IS BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  *
  */
 /***********************************************************************************************************************
@@ -37,8 +44,8 @@
 #define APP_STATE_POWER_UP_NO_GPI           (10)
 #define APP_STATE_DYNAMIC_F0                (11)
 #define APP_STATE_POWER_UP_GPI              (12)
-#define APP_STATE_I2S_ENABLED               (13)
-#define APP_STATE_I2S_ENABLED_PLAY_TONE     (14)
+#define APP_STATE_PLAY_TONE                 (13)
+#define APP_STATE_PLAY_TONE_I2S_ENABLED     (14)
 #define APP_STATE_I2S_DISABLED              (15)
 #define APP_STATE_AUDIO_STOPPED             (16)
 #define APP_STATE_HIBERNATE                 (17)
@@ -129,7 +136,7 @@ static void HapticControlThread(void *argument)
                 if (flags & HAPTIC_CONTROL_FLAG_PB_PRESSED)
                 {
 #ifndef CONFIG_TEST_OPEN_LOOP
-                    bsp_dut_control(BSP_HAPTIC_CONTROL_SET_BHM_BUZZ_TRIGGER, (void *) 0x1);
+                    bsp_dut_trigger_haptic(BSP_DUT_TRIGGER_HAPTIC_POWER_ON, 0);
 #endif
                     app_state++;
                 }
@@ -179,6 +186,8 @@ static void HapticControlThread(void *argument)
                 if (flags & HAPTIC_CONTROL_FLAG_PB_PRESSED)
                 {
                     bsp_dut_boot(false);
+                    bsp_dut_update_haptic_config(0);
+                    bsp_dut_enable_haptic_processing(false);
                     app_state++;
                 }
                 break;
@@ -194,18 +203,9 @@ static void HapticControlThread(void *argument)
             case APP_STATE_POWER_UP:
                 if (flags & HAPTIC_CONTROL_FLAG_PB_PRESSED)
                 {
-                    bsp_dut_control(BSP_HAPTIC_CONTROL_GET_HALO_HEARTBEAT, (void *) 0);
-                    bsp_dut_control(BSP_HAPTIC_CONTROL_SET_CLAB_ENABLED, (void *) 0x0);
-                    bsp_dut_control(BSP_HAPTIC_CONTROL_SET_TRIGGER_INDEX, (void *) 0x1);
-                    bsp_dut_control(BSP_HAPTIC_CONTROL_SET_GPIO_ENABLE, (void *) 0x0);
-                    bsp_dut_control(BSP_HAPTIC_CONTROL_SET_GPIO1_BUTTON_DETECT, (void *) 0x0);
-                    bsp_dut_control(BSP_HAPTIC_CONTROL_SET_GPIO2_BUTTON_DETECT, (void *) 0x0);
-                    bsp_dut_control(BSP_HAPTIC_CONTROL_SET_GPIO3_BUTTON_DETECT, (void *) 0x0);
-                    bsp_dut_control(BSP_HAPTIC_CONTROL_SET_GPIO4_BUTTON_DETECT, (void *) 0x0);
-                    bsp_dut_control(BSP_HAPTIC_CONTROL_SET_GPI_GAIN_CONTROL, (void *) 0x0);
-                    bsp_dut_control(BSP_HAPTIC_CONTROL_SET_CTRL_PORT_GAIN_CONTROL, (void *) 0x0);
-                    bsp_dut_control(BSP_HAPTIC_CONTROL_SET_GPIO1_INDEX_BUTTON_PRESS, (void *) 0x3);
-                    bsp_dut_control(BSP_HAPTIC_CONTROL_SET_GPIO1_INDEX_BUTTON_RELEASE, (void *) 0x4);
+                    bool has_processed;
+                    bsp_dut_has_processed(&has_processed);
+                    bsp_dut_trigger_haptic(0x1, 0);
                     app_state++;
                 }
                 break;
@@ -213,17 +213,11 @@ static void HapticControlThread(void *argument)
             case APP_STATE_POWER_UP_NO_GPI:
                 if (flags & HAPTIC_CONTROL_FLAG_PB_PRESSED)
                 {
-                    bsp_dut_control(BSP_HAPTIC_CONTROL_SET_CLAB_ENABLED, (void *) 0x1);
-                    bsp_dut_control(BSP_HAPTIC_CONTROL_SET_TIMEOUT_MS, (void *) 1000);
-                    bsp_dut_control(BSP_HAPTIC_CONTROL_GET_HALO_HEARTBEAT, (void *) 0);
-                    bsp_dut_control(BSP_HAPTIC_CONTROL_SET_TRIGGER_MS, (void *) 0x0);
-                    bsp_dut_control(BSP_HAPTIC_CONTROL_SET_GPIO_ENABLE, (void *) 0x1);
-                    bsp_dut_control(BSP_HAPTIC_CONTROL_SET_GPIO1_BUTTON_DETECT, (void *) 0x1);
-                    bsp_dut_control(BSP_HAPTIC_CONTROL_SET_GPIO2_BUTTON_DETECT, (void *) 0x1);
-                    bsp_dut_control(BSP_HAPTIC_CONTROL_SET_GPIO3_BUTTON_DETECT, (void *) 0x1);
-                    bsp_dut_control(BSP_HAPTIC_CONTROL_SET_GPIO4_BUTTON_DETECT, (void *) 0x1);
-                    bsp_dut_control(BSP_HAPTIC_CONTROL_SET_GPIO1_INDEX_BUTTON_PRESS, (void *) 0x1);
-                    bsp_dut_control(BSP_HAPTIC_CONTROL_SET_GPIO1_INDEX_BUTTON_RELEASE, (void *) 0x2);
+                    bool has_processed;
+                    bsp_dut_has_processed(&has_processed);
+                    bsp_dut_update_haptic_config(1);
+                    bsp_dut_enable_haptic_processing(true);
+                    bsp_dut_trigger_haptic(0x0, 1000);
                     app_state++;
                 }
                 break;
@@ -231,9 +225,7 @@ static void HapticControlThread(void *argument)
             case APP_STATE_DYNAMIC_F0:
                 if (flags & HAPTIC_CONTROL_FLAG_PB_PRESSED)
                 {
-#ifdef DYNAMIC_F0_SUPPORTED
                     bsp_dut_dynamic_calibrate();
-#endif
                     app_state++;
                 }
                 break;
@@ -241,20 +233,20 @@ static void HapticControlThread(void *argument)
             case APP_STATE_POWER_UP_GPI:
                 if (flags & HAPTIC_CONTROL_FLAG_PB_PRESSED)
                 {
-                    bsp_dut_start_i2s();
-                    app_state++;
-                }
-                break;
-
-            case APP_STATE_I2S_ENABLED:
-                if (flags & HAPTIC_CONTROL_FLAG_PB_PRESSED)
-                {
                     bsp_audio_play_record(BSP_PLAY_STEREO_1KHZ_20DBFS);
                     app_state++;
                 }
                 break;
 
-            case APP_STATE_I2S_ENABLED_PLAY_TONE:
+            case APP_STATE_PLAY_TONE:
+                if (flags & HAPTIC_CONTROL_FLAG_PB_PRESSED)
+                {
+                    bsp_dut_start_i2s();
+                    app_state++;
+                }
+                break;
+
+            case APP_STATE_PLAY_TONE_I2S_ENABLED:
                 if (flags & HAPTIC_CONTROL_FLAG_PB_PRESSED)
                 {
                     bsp_dut_stop_i2s();

@@ -6,10 +6,17 @@
  * @copyright
  * Copyright (c) Cirrus Logic 2020 All Rights Reserved, http://www.cirrus.com/
  *
- * This code and information are provided 'as-is' without warranty of any
- * kind, either expressed or implied, including but not limited to the
- * implied warranties of merchantability and/or fitness for a particular
- * purpose.
+ * Licensed under the Apache License, Version 2.0 (the License); you may
+ * not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an AS IS BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  *
  */
 
@@ -25,6 +32,7 @@ extern "C" {
  **********************************************************************************************************************/
 #include "bsp_driver_if.h"
 #include <stdbool.h>
+#include <stddef.h>
 #include "hw_0_bsp_dut.h"
 
 /***********************************************************************************************************************
@@ -80,6 +88,8 @@ uint32_t bsp_i2c_write(uint32_t bsp_dev_id,
                        uint32_t write_length,
                        bsp_callback_t cb,
                        void *cb_arg);
+void* bsp_malloc(size_t size);
+void bsp_free(void* ptr);
 
 /**********************************************************************************************************************/
 #ifdef __cplusplus

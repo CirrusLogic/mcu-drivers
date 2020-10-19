@@ -6,10 +6,17 @@
  * @copyright
  * Copyright (c) Cirrus Logic 2020 All Rights Reserved, http://www.cirrus.com/
  *
- * This code and information are provided 'as-is' without warranty of any
- * kind, either expressed or implied, including but not limited to the
- * implied warranties of merchantability and/or fitness for a particular
- * purpose.
+ * Licensed under the Apache License, Version 2.0 (the License); you may
+ * not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an AS IS BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  *
  */
 /***********************************************************************************************************************
@@ -45,7 +52,7 @@ static void fprint_c_copyright(FILE *fp, syscfg_reg_descriptor_t *d)
     fprintf(fp, "\
 /**\n\
  * @file ");
-    fprintf(fp, d->source_filename);
+    fprintf(fp, "%s", d->source_filename);
     fprintf(fp, "\n\
  *\n\
  * @brief Register values to be applied after %s Driver boot().\n\
@@ -53,10 +60,17 @@ static void fprint_c_copyright(FILE *fp, syscfg_reg_descriptor_t *d)
  * @copyright\n\
  * Copyright (c) Cirrus Logic 2020 All Rights Reserved, http://www.cirrus.com/\n\
  *\n\
- * This code and information are provided 'as-is' without warranty of any\n\
- * kind, either expressed or implied, including but not limited to the\n\
- * implied warranties of merchantability and/or fitness for a particular\n\
- * purpose.\n\
+ * Licensed under the Apache License, Version 2.0 (the License); you may\n\
+ * not use this file except in compliance with the License.\n\
+ * You may obtain a copy of the License at\n\
+ *\n\
+ * www.apache.org/licenses/LICENSE-2.0\n\
+ *\n\
+ * Unless required by applicable law or agreed to in writing, software\n\
+ * distributed under the License is distributed on an AS IS BASIS, WITHOUT\n\
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n\
+ * See the License for the specific language governing permissions and\n\
+ * limitations under the License. \n\
  *\n\
  */\n\
 ", d->chip_name_uc);
@@ -68,7 +82,7 @@ static void fprint_h_copyright(FILE *fp, syscfg_reg_descriptor_t *d)
     fprintf(fp, "\
 /**\n\
  * @file ");
-    fprintf(fp, d->header_filename);
+    fprintf(fp, "%s", d->header_filename);
     fprintf(fp, "\n\
  *\n\
  * @brief Register values to be applied after %s Driver boot().\n\
@@ -76,10 +90,17 @@ static void fprint_h_copyright(FILE *fp, syscfg_reg_descriptor_t *d)
  * @copyright\n\
  * Copyright (c) Cirrus Logic 2020 All Rights Reserved, http://www.cirrus.com/\n\
  *\n\
- * This code and information are provided 'as-is' without warranty of any\n\
- * kind, either expressed or implied, including but not limited to the\n\
- * implied warranties of merchantability and/or fitness for a particular\n\
- * purpose.\n\
+ * Licensed under the Apache License, Version 2.0 (the License); you may\n\
+ * not use this file except in compliance with the License.\n\
+ * You may obtain a copy of the License at\n\
+ *\n\
+ * www.apache.org/licenses/LICENSE-2.0\n\
+ *\n\
+ * Unless required by applicable law or agreed to in writing, software\n\
+ * distributed under the License is distributed on an AS IS BASIS, WITHOUT\n\
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n\
+ * See the License for the specific language governing permissions and\n\
+ * limitations under the License. \n\
  *\n\
  */\n\
 ", d->chip_name_uc);
@@ -208,7 +229,7 @@ static void export_source_file(syscfg_reg_descriptor_t *d)
     fprint_c_copyright(fp, d);
     fprint_includes(fp);
     fprintf(fp, "#include \"");
-    fprintf(fp, d->header_filename);
+    fprintf(fp, "%s", d->header_filename);
     fprintf(fp, "\"\n");
     fprintf(fp, "#include \"%s_spec.h\"\n\n", d->chip_name_lc);
     fprint_globals(fp);

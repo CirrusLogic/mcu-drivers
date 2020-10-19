@@ -6,10 +6,17 @@
  * @copyright
  * Copyright (c) Cirrus Logic 2020 All Rights Reserved, http://www.cirrus.com/
  *
- * This code and information are provided 'as-is' without warranty of any
- * kind, either expressed or implied, including but not limited to the
- * implied warranties of merchantability and/or fitness for a particular
- * purpose.
+ * Licensed under the Apache License, Version 2.0 (the License); you may
+ * not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an AS IS BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  *
  */
 
@@ -31,28 +38,7 @@ extern "C" {
  **********************************************************************************************************************/
 #define BSP_DUT_I2C_ADDRESS_8BIT                            (0x80)
 
-#define BSP_HAPTIC_CONTROL_SET_BHM_BUZZ_TRIGGER             (3)
-#define BSP_HAPTIC_CONTROL_SET_TRIGGER_INDEX                (4)
-#define BSP_HAPTIC_CONTROL_SET_TRIGGER_MS                   (5)
-#define BSP_HAPTIC_CONTROL_SET_TIMEOUT_MS                   (6)
-#define BSP_HAPTIC_CONTROL_SET_GPIO_ENABLE                  (7)
-#define BSP_HAPTIC_CONTROL_SET_GPIO1_BUTTON_DETECT          (8)
-#define BSP_HAPTIC_CONTROL_SET_GPIO2_BUTTON_DETECT          (9)
-#define BSP_HAPTIC_CONTROL_SET_GPIO3_BUTTON_DETECT          (10)
-#define BSP_HAPTIC_CONTROL_SET_GPIO4_BUTTON_DETECT          (11)
-#define BSP_HAPTIC_CONTROL_SET_CLAB_ENABLED                 (12)
-#define BSP_HAPTIC_CONTROL_SET_GPI_GAIN_CONTROL             (13)
-#define BSP_HAPTIC_CONTROL_SET_CTRL_PORT_GAIN_CONTROL       (14)
-#define BSP_HAPTIC_CONTROL_SET_GPIO1_INDEX_BUTTON_PRESS     (15)
-#define BSP_HAPTIC_CONTROL_SET_GPIO2_INDEX_BUTTON_PRESS     (16)
-#define BSP_HAPTIC_CONTROL_SET_GPIO3_INDEX_BUTTON_PRESS     (17)
-#define BSP_HAPTIC_CONTROL_SET_GPIO4_INDEX_BUTTON_PRESS     (18)
-#define BSP_HAPTIC_CONTROL_SET_GPIO1_INDEX_BUTTON_RELEASE   (19)
-#define BSP_HAPTIC_CONTROL_SET_GPIO2_INDEX_BUTTON_RELEASE   (20)
-#define BSP_HAPTIC_CONTROL_SET_GPIO3_INDEX_BUTTON_RELEASE   (21)
-#define BSP_HAPTIC_CONTROL_SET_GPIO4_INDEX_BUTTON_RELEASE   (22)
-
-#define BSP_HAPTIC_CONTROL_GET_HALO_HEARTBEAT               (24)
+#define BSP_DUT_TRIGGER_HAPTIC_POWER_ON                     (0xFF)
 
 /***********************************************************************************************************************
  * MACROS
@@ -79,8 +65,11 @@ uint32_t bsp_dut_hibernate(void);
 uint32_t bsp_dut_wake(void);
 uint32_t bsp_dut_start_i2s(void);
 uint32_t bsp_dut_stop_i2s(void);
-uint32_t bsp_dut_control(uint32_t id, void *arg);
-uint32_t bsp_haptic_dynamic_calibrate(void);
+uint32_t bsp_dut_trigger_haptic(uint8_t waveform, uint32_t duration_ms);
+uint32_t bsp_dut_has_processed(bool *has_processed);
+uint32_t bsp_dut_update_haptic_config(uint8_t config_index);
+uint32_t bsp_dut_enable_haptic_processing(bool enable);
+uint32_t bsp_dut_dynamic_calibrate(void);
 uint32_t bsp_dut_process(void);
 
 /**********************************************************************************************************************/

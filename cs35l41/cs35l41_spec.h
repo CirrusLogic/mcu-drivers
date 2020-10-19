@@ -6,10 +6,17 @@
  * @copyright
  * Copyright (c) Cirrus Logic 2019, 2020 All Rights Reserved, http://www.cirrus.com/
  *
- * This code and information are provided 'as-is' without warranty of any
- * kind, either expressed or implied, including but not limited to the
- * implied warranties of merchantability and/or fitness for a particular
- * purpose.
+ * Licensed under the Apache License, Version 2.0 (the License); you may
+ * not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an AS IS BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  *
  */
 
@@ -221,6 +228,26 @@ typedef union
  * @{
  */
 #define PAD_INTF_GPIO_PAD_CONTROL_REG                                       (0x242C)        ///< @see Section 7.3.3
+/**
+ * Register definition for PAD_INTF_GPIO_PAD_CONTROL_REG
+ *
+ * @see PAD_INTF_GPIO_PAD_CONTROL_REG
+ * @see Section 7.3.3
+ *
+ */
+typedef union
+{
+    uint32_t word;
+
+    struct
+    {
+        uint32_t reserved_0                 : 16;
+        uint32_t gp1_ctrl                   : 3;
+        uint32_t reserved_1                 : 5;
+        uint32_t gp2_ctrl                   : 3;
+        uint32_t reserved_2                 : 5;
+    };
+} cs35l41_pad_intf_gpio_pad_control_t;
 /** @} */
 
 /**
@@ -731,7 +758,8 @@ typedef union
  */
 #define CS35L41_INTP_AMP_CTRL_REG                                           (0x6000)        ///< @see Section 7.12.1
 #define CS35L41_INTP_AMP_CTRL_AMP_VOL_PCM_BITOFFSET                         (0x3)           ///< @see Section 7.12.1
-#define CS35L41_INTP_AMP_CTRL_AMP_VOL_PCM_BITWIDTH                          (0xb)           ///< @see Section 7.12.1
+#define CS35L41_INTP_AMP_CTRL_AMP_VOL_PCM_BITWIDTH                          (0xB)           ///< @see Section 7.12.1
+#define CS35L41_INTP_AMP_CTRL_AMP_VOL_PCM_BITMASK                           (0x3FF8)        ///< @see Section 7.12.1
 
 #define CS35L41_AMP_VOLUME_MUTE                                             (0x400)         ///< @see Section 7.12.1
 #define CS35L41_AMP_VOLUME_0DB                                              (0)             ///< @see Section 7.12.1
@@ -822,6 +850,7 @@ typedef union
  * @{
  */
 #define CS35L41_DRE_AMP_GAIN_REG                                            (0x6C04)        ///< @see Section 7.15.1
+#define CS35L41_DRE_AMP_GAIN_DEFAULT                                        (0x13)          ///< @see Section 7.15.1
 /**
  * Register definition for CS35L41_DRE_AMP_GAIN_REG
  *
@@ -886,7 +915,53 @@ typedef union
  *
  * @{
  */
+#define GPIO_STATUS1_REG                                                    (0x11000)       ///< @see Section 7.20.1
+/**
+ * Register definition for GPIO_STATUS1_REG
+ *
+ * @see GPIO_STATUS1_REG
+ * @see Sections 7.20.1
+ *
+ */
+typedef union
+{
+    uint32_t word;
+
+    struct
+    {
+        uint32_t gp1_sts                    : 1;
+        uint32_t gp2_sts                    : 1;
+        uint32_t gp3_sts                    : 1;
+        uint32_t gp4_sts                    : 1;
+        uint32_t reserved                   : 28;
+    };
+} cs35l41_gpio_status1_t;
+
+#define GPIO_GPIO1_CTRL1_REG                                                (0x11008)       ///< @see Section 7.20.2
 #define GPIO_GPIO2_CTRL1_REG                                                (0x1100C)       ///< @see Section 7.20.3
+/**
+ * Register definition for GPIO_GPIOx_CTRL1_REG
+ *
+ * @see GPIO_GPIO1_CTRL1_REG
+ * @see Sections 7.20.1
+ *
+ */
+typedef union
+{
+    uint32_t word;
+
+    struct
+    {
+        uint32_t reserved_0                 : 12;
+        uint32_t gp_pol                     : 1;
+        uint32_t gp_db                      : 1;
+        uint32_t reserved_1                 : 1;
+        uint32_t gp_lvl                     : 1;
+        uint32_t gp_dbtime                  : 4;
+        uint32_t reserved_2                 : 11;
+        uint32_t gp_dir                     : 1;
+    };
+} cs35l41_gpio_ctrl1_t;
 /** @} */
 
 /**

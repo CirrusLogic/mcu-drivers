@@ -4,21 +4,17 @@
 # Project : Templates for C Source and Header files
 # File    : fw_img_v1_templates.py
 #--------------------------------------------------------------------------
-# Redistribution and use of this file in source and binary forms, with
-# or without modification, are permitted.
+# Licensed under the Apache License, Version 2.0 (the License); you may
+# not use this file except in compliance with the License.
+# You may obtain a copy of the License at
 #
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
-# FOR A PARTICULAR PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE
-# COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
-# INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-# BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-# LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-# CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
-# LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
-# ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-# POSSIBILITY OF SUCH DAMAGE.
+# www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an AS IS BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 #--------------------------------------------------------------------------
 #
 # Environment Requirements: None
@@ -44,11 +40,18 @@ header_file_template_str = """/**
  * @copyright
  * Copyright (c) Cirrus Logic 2020 All Rights Reserved, http://www.cirrus.com/
  *
- * This code and information are provided 'as-is' without warranty of any
- * kind, either expressed or implied, including but not limited to the
- * implied warranties of merchantability and/or fitness for a particular
- * purpose.
-{metadata_text} *
+ * Licensed under the Apache License, Version 2.0 (the License); you may
+ * not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an AS IS BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
  */
 
 #ifndef {part_number_uc}_FW_IMG_H
@@ -58,6 +61,45 @@ header_file_template_str = """/**
  * INCLUDES
  **********************************************************************************************************************/
 #include <stdint.h>
+
+/***********************************************************************************************************************
+ * FW_IMG
+ **********************************************************************************************************************/
+
+extern const uint8_t {part_number_lc}_fw_img[];
+
+/**********************************************************************************************************************/
+
+#endif // {part_number_uc}_FW_IMG_H
+
+"""
+
+source_file_template_str = """/**
+ * @file {part_number_lc}_fw_img.c
+ *
+ * @brief {part_number_uc} FW IMG Source File
+ *
+ * @copyright
+ * Copyright (c) Cirrus Logic 2020 All Rights Reserved, http://www.cirrus.com/
+ *
+ * Licensed under the Apache License, Version 2.0 (the License); you may
+ * not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an AS IS BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+{metadata_text} *
+ */
+
+/***********************************************************************************************************************
+ * INCLUDES
+ **********************************************************************************************************************/
+#include "{part_number_lc}_fw_img.h"
 
 /***********************************************************************************************************************
  * FW_IMG
@@ -96,8 +138,6 @@ const uint8_t {part_number_lc}_fw_img[] = {
 
 /**********************************************************************************************************************/
 
-#endif // {part_number_uc}_FW_IMG_H
-
 """
 
 source_file_template_fw_block_str = """{fw_block_size} // FW_BLOCK_SIZE_{block_index}
@@ -122,10 +162,18 @@ symbol_id_header_file_template_str = """
  * @copyright
  * Copyright (c) Cirrus Logic 2020 All Rights Reserved, http://www.cirrus.com/
  *
- * This code and information are provided 'as-is' without warranty of any
- * kind, either expressed or implied, including but not limited to the
- * implied warranties of merchantability and/or fitness for a particular
- * purpose.
+ * Licensed under the Apache License, Version 2.0 (the License); you may
+ * not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an AS IS BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+{metadata_text} *
  *
  */
 
@@ -139,6 +187,15 @@ extern "C" {
 /***********************************************************************************************************************
  * LITERALS & CONSTANTS
  **********************************************************************************************************************/
+
+/**
+ * @defgroup {part_number_uc}_ALGORITHMS
+ * @brief Defines indicating presence of HALO Core Algorithms
+ *
+ * @{
+ */
+{algorithm_defines}
+/** @} */
 
 /**
  * @defgroup {part_number_uc}_SYM_
@@ -165,7 +222,6 @@ extern "C" {
 class fw_img_v1_file(firmware_exporter):
     def __init__(self, attributes):
         firmware_exporter.__init__(self, attributes)
-        self.template_str = header_file_template_str
         self.includes_coeff = False
         self.output_str = ''
         self.terms = dict()
@@ -182,6 +238,7 @@ class fw_img_v1_file(firmware_exporter):
         self.terms['fw_id'] = self.attributes['fw_meta']['fw_id']
         self.terms['fw_rev'] = self.attributes['fw_meta']['fw_rev']
         self.terms['metadata_text'] = ' *\n'
+        self.terms['algorithm_defines'] = ''
         self.total_coeff_blocks = []
         self.fw_data_block_list = []
         self.coeff_data_block_list = []
@@ -189,8 +246,9 @@ class fw_img_v1_file(firmware_exporter):
         self.algorithm_controls = dict()
         self.uint8_per_line = 24
         self.img_size = 0
-        self.sym_table_file = self.attributes['symbol_table']
-        
+        self.sym_id_input = self.attributes['symbol_id_input']
+        self.sym_id_output = self.attributes['symbol_id_output']
+
         return
 
     def create_block_string(self, data_bytes):
@@ -222,7 +280,7 @@ class fw_img_v1_file(firmware_exporter):
         if (not self.attributes['wmdr_only']):
             # Create entry into data block list
             self.fw_data_block_list.append((len(data_bytes), address, data_bytes))
-            
+
             # Create string for block data
             temp_str = source_file_template_fw_block_str.replace('{block_index}', str(self.terms['total_fw_blocks']))
             temp_str = temp_str.replace('{fw_block_size}', self.int_to_bytes(len(data_bytes)))
@@ -241,11 +299,11 @@ class fw_img_v1_file(firmware_exporter):
             self.terms['coeff_block_arrays'].append('')
         if len(self.total_coeff_blocks) < (index + 1):
             self.total_coeff_blocks.append(0)
-            
+
         # Create entry into data block list
         if (len(self.coeff_data_block_list) < (index + 1)):
             self.coeff_data_block_list.append([])
-            
+
         self.coeff_data_block_list[index].append((len(data_bytes), address, data_bytes))
 
         # Create string for block data
@@ -258,75 +316,104 @@ class fw_img_v1_file(firmware_exporter):
         self.terms['coeff_block_arrays'][index] = self.terms['coeff_block_arrays'][index] + temp_str + '\n'
 
         self.total_coeff_blocks[index] = self.total_coeff_blocks[index] + 1
-        
+
     def add_metadata_text_line(self, line):
         self.terms['metadata_text'] = self.terms['metadata_text'] + ' * ' + line + '\n'
         return
 
     def find_symbol_id(self, sym_name):
-        matches = re.findall(r"^#define " + self.terms['part_uc'] + "_SYM_" + sym_name.upper() + " .*", self.sym_header, re.M)
+        matches = re.findall(r"^#define " + self.terms['part_number_uc'] + "_SYM_" + sym_name.upper() + " .*", self.sym_header, re.M)
         if len(matches) == 1:
             return int(re.sub(r"\).*$", "", re.sub(r"^.*\(", "", matches[0])), base=16)
         return 0
-        
-    def generate_symbol_header(self):
-        self.sym_table_file = self.terms['part_lc'] + '_sym.h'
-        f = open(self.sym_table_file, 'w')
-        
+
+    def generate_symbol_header(self, symbol_id_list):
         output_str = symbol_id_header_file_template_str
-        
+
         # Iterate through algorithms and respective lists of controls and generate symbol id define list
         temp_str = ''
         # the count for control ids starts at 1 - the value 0 is a special value used by parsing library
         control_id = 1
-        
+
+        alg_list_str = ''
         if self.algorithms:
             # First get all control strings and calculate the longest name
             longest_str_len = 0
             for alg_name, alg_id in self.algorithms.items():
                 for control in self.algorithm_controls[alg_name]:
-                    temp_ctl_str = "#define " + self.terms['part_uc'] + "_SYM_" + control[0]
-                    if (len(temp_ctl_str) > longest_str_len):
-                        longest_str_len = len(temp_ctl_str)
-                        
+                    temp_ctl_str = self.terms['part_number_uc'] + "_SYM_" + control[0].upper()
+
+                    if ((symbol_id_list is None) or
+                        ((symbol_id_list is not None) and (temp_ctl_str in symbol_id_list))):
+                        temp_ctl_str = "#define " + temp_ctl_str
+                        if (len(temp_ctl_str) > longest_str_len):
+                            longest_str_len = len(temp_ctl_str)
+
             # Round up to nearest tab/4 spaces
             longest_str_len += (4 - (longest_str_len % 4))
-            
+
             # Create string of all symbol id defines
             for alg_name, alg_id in self.algorithms.items():
-                temp_str += "// " + alg_name + "\n"
+                temp_alg_str = ""
                 for control in self.algorithm_controls[alg_name]:
-                    temp_ctl_str = "#define " + self.terms['part_uc'] + "_SYM_" + control[0].upper()
-                    temp_ctl_str += ' ' * (longest_str_len - len(temp_ctl_str))
-                    temp_ctl_str += '(0x' + str(control_id) + ')\n'
-                    
-                    temp_str += temp_ctl_str
-                    
-                    control_id += 1
+                    temp_ctl_str = self.terms['part_number_uc'] + "_SYM_" + control[0].upper()
+                    if ((symbol_id_list is None) or
+                        ((symbol_id_list is not None) and (temp_ctl_str in symbol_id_list))):
+                        temp_ctl_str = "#define " + temp_ctl_str
+                        temp_ctl_str += ' ' * (longest_str_len - len(temp_ctl_str))
+                        temp_ctl_str += '(' + hex(control_id) + ')\n'
+
+                        temp_alg_str += temp_ctl_str
+
+                        control_id += 1
+                if (temp_alg_str != ""):
+                    alg_list_str += "#define {part_number_uc}_ALGORITHM_" + alg_name.upper() + "\n"
+                    temp_str += "// " + alg_name + "\n" + temp_alg_str
+
+        # Replace algorithm list
+        output_str = output_str.replace('{algorithm_defines}\n', alg_list_str)        
         
         # Replace symbol id define list
         output_str = output_str.replace('{symbol_id_define_list}\n', temp_str)
-        
+
+        # Replace metadata
+        output_str = output_str.replace('{metadata_text}', self.terms['metadata_text'])
+
         # Replace part number strings
-        output_str = output_str.replace('{part_number_lc}', self.terms['part_lc'])
-        output_str = output_str.replace('{part_number_uc}', self.terms['part_uc'])        
+        output_str = output_str.replace('{part_number_lc}', self.terms['part_number_lc'])
+        output_str = output_str.replace('{part_number_uc}', self.terms['part_number_uc'])
         output_str = output_str.replace('\n\n\n', '\n\n')
-        
-        self.sym_header = output_str
-        
-        f.write(self.sym_header)
+
+        if (self.sym_id_input is None):
+            if (self.sym_id_output is None):
+                self.sym_id_output = self.terms['part_number_lc'] + '_sym.h'
+            f = open(self.sym_id_output, 'w')
+            f.write(output_str)
+            f.close()
+
+            print("Generated Symbol ID Header " + self.sym_id_output)
+
+        return output_str
+
+    def extract_symbol_ids(self, filename):
+        symbol_id_list = []
+        f = open(filename, 'r')
+        lines = f.readlines()
+        for line in lines:
+            words = line.split()
+            if (len(words) == 3):
+                if ((words[0] == '#define') and ('_SYM_' in words[1]) and (words[1] not in symbol_id_list)):
+                    symbol_id_list.append(words[1])
         f.close()
-        
-        print("Generated " + self.sym_table_file)
-        
-        return
-        
+
+        return symbol_id_list
+
     def to_byte_array(self):
         word_list = []
         word_list.append(0x54b998ff)
         word_list.append(0x1)
         word_list.append(0)
-        
+
         control_count = 0
         temp_alg_words = []
         temp_ctl_words = []
@@ -341,13 +428,13 @@ class fw_img_v1_file(firmware_exporter):
                         temp_ctl_words.append(control[1])
 
                         control_count = control_count + 1
-            
+
             word_list.append(control_count)
             word_list.append(len(self.algorithms))
         else:
             word_list.append(0)
             word_list.append(0)
-            
+
         word_list.append(self.terms['fw_id'])
         word_list.append(self.terms['fw_rev'])
 
@@ -356,22 +443,22 @@ class fw_img_v1_file(firmware_exporter):
         for f in self.fw_data_block_list:
             data_block_words.append(f[0])
             data_block_words.append(f[1])
-            
+
             for i in range(0, len(f[2]), 4):
                 temp_word = f[2][i]
                 temp_word = temp_word | (f[2][i + 1] << 8)
                 temp_word = temp_word | (f[2][i + 2] << 16)
                 temp_word = temp_word | (f[2][i + 3] << 24)
                 data_block_words.append(temp_word)
-                
+
         for coeff_blocks in self.coeff_data_block_list:
-        
+
             total_data_blocks = total_data_blocks + len(coeff_blocks)
-            
+
             for coeff_block in coeff_blocks:
                 data_block_words.append(coeff_block[0])
                 data_block_words.append(coeff_block[1])
-                
+
                 for i in range(0,  len(coeff_block[2]), 4):
                     temp_word = coeff_block[2][i]
                     temp_word = temp_word | (coeff_block[2][i + 1] << 8)
@@ -380,27 +467,30 @@ class fw_img_v1_file(firmware_exporter):
                     data_block_words.append(temp_word)
 
         word_list.append(total_data_blocks)
-        
+
         word_list.extend(temp_ctl_words)
         word_list.extend(temp_alg_words)
-        
+
         word_list.extend(data_block_words)
 
         word_list.append(0x936be2a6)
         word_list.append(0xf0f00f0f)
-        
+
         # Compute image size
         word_list[2] = len(word_list) * 4
-        
+
         # Convert to byte array
         byte_list = []
         for w in word_list:
             byte_list.extend(w.to_bytes(4, byteorder="little", signed=False))
-        
+
         return bytearray(byte_list)
 
     def __str__(self):
-        output_str = self.template_str
+        return ''
+
+    def create_source_file_text(self):
+        output_str = source_file_template_str
 
         # Update firmware metadata
         output_str = output_str.replace('{magic_number_1}', self.int_to_bytes(0x54b998ff))
@@ -460,35 +550,53 @@ class fw_img_v1_file(firmware_exporter):
         output_str = output_str.replace('{img_checksum}', self.int_to_bytes(0xf0f00f0f))
         # need to add 4 to include the img_size field itself.
         output_str = output_str.replace('{img_size}', self.int_to_bytes(self.img_size + 4))
-        
+
         output_str = output_str.replace('{metadata_text}', self.terms['metadata_text'])
-        
+
         output_str = output_str.replace('\n\n\n', '\n\n')
         return output_str
-        
+
+    def create_header_file_text(self):
+        output_str = header_file_template_str
+
+        output_str = output_str.replace('{part_number_lc}', self.terms['part_number_lc'])
+        output_str = output_str.replace('{part_number_uc}', self.terms['part_number_uc'])
+
+        output_str = output_str.replace('\n\n\n', '\n\n')
+        return output_str
+
     def to_file(self):
+        results_str = 'Exported to files:\n'
+
         temp_filename = self.attributes['part_number_str'] + self.attributes['suffix'] + "_fw_img"
-        
+
         # Open or generate the symbol id header
-        if self.sym_table_file is None:
-            self.generate_symbol_header()
-        tmp = open(self.sym_table_file, 'r')
-        self.sym_header = tmp.read()
-        tmp.close()
-        
+        symbol_id_list = None
+        if (self.sym_id_input is not None):
+            symbol_id_list = self.extract_symbol_ids(self.sym_id_input)
+        self.sym_header = self.generate_symbol_header(symbol_id_list)
+
         if (not self.attributes['binary_output']):
-            temp_filename = temp_filename + ".h"
-            
-            f = open(temp_filename, 'w')
-            f.write(self.__str__())
+            self.template_str = header_file_template_str
+            f = open(temp_filename + ".h", 'w')
+            f.write(self.create_header_file_text())
             f.close()
+            results_str = results_str + temp_filename + '.h\n'
+
+            self.template_str = source_file_template_str
+            f = open(temp_filename + ".c", 'w')
+            f.write(self.create_source_file_text())
+            f.close()
+            results_str = results_str + temp_filename + '.c\n'
+
         else:
             temp_filename = temp_filename + ".bin"
             f = open(temp_filename, "wb")
             f.write(self.to_byte_array())
             f.close()
-        
-        return "Exported to " + temp_filename
+            results_str = results_str + temp_filename + '\n'
+
+        return results_str
 
 #==========================================================================
 # HELPER FUNCTIONS

@@ -3,6 +3,48 @@ Release Notes
 
 =============================================================================
 Summary:
+This is the release of Alt-OS Driver SDK v3.0.0
+Date: 2020/10/19
+
+Component Driver Versions:
+CS35L41 - v3.0.0
+CS40L25 - v2.0.0
+
+Component Tool Versions:
+firmware_converter - v3.0.0
+wisce_script_converter - v1.0.0
+
+Architectures/Compilers Used:
+GNU Arm Embedded Toolchain: arm-none-eabi-gcc -mcpu=cortex-m4
+
+New Features/Changes:
+[SQA-1829] Fixed use of malloc in FreeRTOS example
+[SQA-1869] L41 - Update errata per latest Linux driver B2 errata
+[SQA-1870] Added WISCE script workflow - wisce_script_converter
+[SQA-1872] firmware_converter - fw_img_v1 output header and source
+[SQA-1874] L41 - BSP boot using separate fw_img for FW, TUNE, CAL
+[SQA-1880] L41 - fixed BSP mixing/added set dig gain
+[SQA-1880] L41 - read CAL_R even if failed
+[SQA-1889] Standardized *_control() API and hardware register/firmware control access
+[SQA-1889] L25 - Move haptic trigger/config code from BSP to driver
+[SQA-1892] All drivers - added helpers, removed fa_list[]
+[SQA-1893] firmware_converter - can specify sym-output
+[SQA-1901] Created Extended Public API *_ext.h for algo-specific API
+[SQA-1905] firmware_converter - added generic FW algo symbol
+[SQA-1913] L41 - add Ext API to get GPI level
+[SQA-1914] L25 - Bypass DSP if FW doesn't support I2S streaming
+[SQA-1830] Changed the license sections to Apache 2.0
+
+Fixed Bugs:
+[SQA-1868] L41 - Fixed Calibration always return 0x2
+[SQA-1870] Fix printf bug in create_syscfg_regs
+[SQA-1896] L25 - Removed get_dsp_status unused cal data members
+[SQA-1902] L25 - Fixed boot IRQMASKSEQ config
+[SQA-1905] L25 - change I2S streaming to use CLAB instead of DF0_CLAB FW
+
+=============================================================================
+=============================================================================
+Summary:
 This is the release of Alt-OS Driver SDK v2.2.0
 Date: 2020/09/08
 

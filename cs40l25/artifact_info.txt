@@ -1,18 +1,18 @@
 Artifact Info:
-Artifact           : CS40L25Alt-OS Driver: 1.1.0
+Artifact           : CS40L25Alt-OS Driver: 2.0.0
 Test Target MCU SDK: STM32Cube_FW_F4: 1.24.1
 Target toolchain   : GNU Arm Embedded Toolchain: arm-none-eabi-gcc (GNU Tools for Arm Embedded Processors 8-2019-q3-update) 8.3.1 20190703 (release) [gcc-8-branch revision 273027]
 Build system       : make: GNU Make 3.82
 OS                 : Linux: 3.10.0-1127.el7.x86_64
 Shell              : bash: GNU bash, version 4.2.46(2)-release (x86_64-redhat-linux-gnu)
 Host toolchain     : MinGW GCC: gcc (GCC) 4.8.5 20150623 (Red Hat 4.8.5-39)
-Build Job          : princeh_alt_os_nightly: 205
-Git SHA            : 33bb622318825f066e44ebf0941f1b61fa644366
+Build Job          : princeh_alt_os_nightly: 247
+Git SHA            : 7ad6a1528e3701e6e084c5612d6b98819a11b218
 
 System resources:
 
-Library name    : /home/svc_altos/workspace/princeh_alt_os_nightly/build_driver_lib_cm4/build/cs40l25/libcs40l25
-Library TEXT    : 6286 bytes
+Library name    : /var/lib/jenkins/jobs/princeh_alt_os_nightly/workspace/build_driver_lib_cm4/build/cs40l25/libcs40l25
+Library TEXT    : 5396 bytes
 Library BSS     : 0 bytes
 Library DATA    : 0 bytes
 BSP RAM         : 0 bytes
@@ -30,3 +30,11 @@ Compiler flags:
     -funsigned-char
     -funsigned-bitfields
     -frecord-gcc-switches
+
+Library name    : /var/lib/jenkins/jobs/princeh_alt_os_nightly/workspace@3/build_baremetal/build/cs40l25/libcs40l25
+Library TEXT    : 0 bytes
+Library BSS     : 0 bytes
+Library DATA    : 0 bytes
+BSP RAM         : 0 bytes
+Compiler flags:
+

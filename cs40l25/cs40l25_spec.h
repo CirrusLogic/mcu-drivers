@@ -6,10 +6,17 @@
  * @copyright
  * Copyright (c) Cirrus Logic 2019, 2020 All Rights Reserved, http://www.cirrus.com/
  *
- * This code and information are provided 'as-is' without warranty of any
- * kind, either expressed or implied, including but not limited to the
- * implied warranties of merchantability and/or fitness for a particular
- * purpose.
+ * Licensed under the Apache License, Version 2.0 (the License); you may
+ * not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an AS IS BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  *
  */
 
@@ -186,6 +193,9 @@ extern const uint8_t cs40l25_bst_slope_table[4];
  *
  * @{
  */
+#define MSM_GLOBAL_ENABLES_REG                                              (0x2014)        ///< @see Section 7.5.1
+#define MSM_GLOBAL_ENABLES_GLOBAL_EN_BITMASK                                (0x1)           ///< @see Section 7.5.1
+
 #define MSM_BLOCK_ENABLES_REG                                               (0x2018)        ///< @see Section 7.5.2
 #define MSM_BLOCK_ENABLES_BST_EN_BITMASK                                    (0x30)          ///< @see Section 7.5.2
 /**

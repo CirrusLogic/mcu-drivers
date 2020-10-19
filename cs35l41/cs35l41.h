@@ -6,10 +6,17 @@
  * @copyright
  * Copyright (c) Cirrus Logic 2019, 2020 All Rights Reserved, http://www.cirrus.com/
  *
- * This code and information are provided 'as-is' without warranty of any
- * kind, either expressed or implied, including but not limited to the
- * implied warranties of merchantability and/or fitness for a particular
- * purpose.
+ * Licensed under the Apache License, Version 2.0 (the License); you may
+ * not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an AS IS BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  *
  */
 
@@ -121,11 +128,10 @@ extern "C" {
 #define CS35L41_CONTROL_ID_FA_SET_MASK                  (CS35L41_CONTROL_ID_HANDLER_FA_SET << 28)
 #define CS35L41_CONTROL_ID_FA_GET(A)                    (A | CS35L41_CONTROL_ID_FA_GET_MASK)
 #define CS35L41_CONTROL_ID_FA_SET(A)                    (A | CS35L41_CONTROL_ID_FA_SET_MASK)
-#define CS35L41_CONTROL_ID_GET_VOLUME                   CS35L41_CONTROL_ID_FA_GET(0)
-#define CS35L41_CONTROL_ID_SET_VOLUME                   CS35L41_CONTROL_ID_FA_SET(0)
-#define CS35L41_CONTROL_ID_GET_HALO_HEARTBEAT           CS35L41_CONTROL_ID_FA_GET(1)
-#define CS35L41_CONTROL_ID_GET_FW_REVISION              CS35L41_CONTROL_ID_FA_GET(2)
-#define CS35L41_CONTROL_ID_FA_MAX                       (2)
+#define CS35L41_CONTROL_ID_GET_REG                      CS35L41_CONTROL_ID_FA_GET(0)
+#define CS35L41_CONTROL_ID_SET_REG                      CS35L41_CONTROL_ID_FA_SET(0)
+#define CS35L41_CONTROL_ID_GET_SYM                      CS35L41_CONTROL_ID_FA_GET(1)
+#define CS35L41_CONTROL_ID_SET_SYM                      CS35L41_CONTROL_ID_FA_SET(1)
 
 #define CS35L41_CONTROL_ID_DSP_STATUS_MASK              (CS35L41_CONTROL_ID_HANDLER_DSP_STATUS << 28)
 #define CS35L41_CONTROL_ID_DSP_STATUS(A)                (A | CS35L41_CONTROL_ID_DSP_STATUS_MASK)
@@ -163,6 +169,8 @@ extern "C" {
 /** @} */
 
 #define CS35L41_DSP_STATUS_WORDS_TOTAL                  (9)     ///< Total registers to read for Get DSP Status control
+
+#define CS35L41_CONTROL_PORT_MAX_PAYLOAD_BYTES          (4140)  ///< Maximum bytes CS35L41 can transfer
 
 /***********************************************************************************************************************
  * MACROS
@@ -235,6 +243,20 @@ typedef struct
     uint32_t id;    ///< Control ID
     void *arg;      ///< Argument for Control Request (nature depends on type of request)
 } cs35l41_control_request_t;
+
+/**
+ * Data structure to describe a field to read via the Field Access SM
+ *
+ * @see cs35l41_field_access
+ */
+typedef struct
+{
+    uint32_t id;        ///< Id of symbol in symbol table.  If 0, indicates fixed address
+    uint32_t address;   ///< Control Port address of field to access
+    uint32_t value;     ///< Value to write/value read
+    uint8_t size;       ///< Bitwise size of field to access in register
+    uint8_t shift;      ///< Bitwise shift of field to access in register
+} cs35l41_field_accessor_t;
 
 /**
  * State of HALO FW Calibration

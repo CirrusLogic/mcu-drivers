@@ -3,10 +3,17 @@
 # Makefile for OTP Unpacker
 #
 ##############################################################################
-# TODO:  enter license info
+# Licensed under the Apache License, Version 2.0 (the License); you may
+# not use this file except in compliance with the License.
+# You may obtain a copy of the License at
 #
+# www.apache.org/licenses/LICENSE-2.0
 #
-#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an AS IS BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 #
 
 # Variables for shell commands
@@ -102,7 +109,7 @@ DRIVER_PATH = $(REPO_PATH)/cs35l41
 COMMON_PATH = $(REPO_PATH)/common
 OTP_UNPACKER_PATH = $(REPO_PATH)/cs35l41/otp_unpacker
 OTP_UNPACKER_SRCS = $(OTP_UNPACKER_PATH)/otp_unpacker.c $(DRIVER_PATH)/cs35l41.c
-INCLUDES += -I$(COMMON_PATH) -I$(DRIVER_PATH) -I$(OTP_UNPACKER_PATH)  
+INCLUDES += -I$(COMMON_PATH) -I$(DRIVER_PATH) -I$(OTP_UNPACKER_PATH)
 OTP_UNPACKER_LIBRARY = $(BUILD_DIR)/cs35l41/otp_unpacker/libotp_unpacker.a
 LIBS += $(OTP_UNPACKER_LIBRARY)
 
