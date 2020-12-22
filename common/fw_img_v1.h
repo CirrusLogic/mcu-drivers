@@ -63,8 +63,9 @@ extern "C" {
 #define FW_IMG_BOOT_STATE_READ_ALGIDS                  (2)
 #define FW_IMG_BOOT_STATE_READ_DATA_HEADER             (3)
 #define FW_IMG_BOOT_STATE_WRITE_DATA                   (4)
-#define FW_IMG_BOOT_STATE_READ_FOOTER                  (5)
-#define FW_IMG_BOOT_STATE_DONE                         (6)
+#define FW_IMG_BOOT_STATE_READ_MAGICNUM2               (5)
+#define FW_IMG_BOOT_STATE_READ_CHECKSUM                (6)
+#define FW_IMG_BOOT_STATE_DONE                         (7)
  /** @} */
 
 /**
@@ -84,18 +85,12 @@ extern "C" {
                                                         (*(A + 10) << 16) + \
                                                         (*(A + 11) << 24))
 
+#define FW_IMG_MODVAL                                   ((1 << 16) - 1)
+
 /***********************************************************************************************************************
  * ENUMS, STRUCTS, UNIONS, TYPEDEFS
  **********************************************************************************************************************/
 
-/**
- * Footer for fw_img_v1
- */
-typedef struct
-{
-    uint32_t img_magic_number_2;
-    uint32_t img_checksum;
-} fw_img_v1_footer_t;
 
 /**
  * Header for fw_img_v1 data blocks
@@ -116,12 +111,19 @@ typedef struct
 } fw_img_v1_sym_table_t;
 
 /**
- * Header for fw_img_v1
+ * Pre-header for fw_img
  */
 typedef struct
 {
     uint32_t img_magic_number_1;
     uint32_t img_format_rev;
+} fw_img_preheader_t;
+
+/**
+ * Header for fw_img_v1
+ */
+typedef struct
+{
     uint32_t img_size;
     uint32_t sym_table_size;
     uint32_t alg_id_list_size;
@@ -131,14 +133,30 @@ typedef struct
 } fw_img_v1_header_t;
 
 /**
+ * Header for fw_img_v2
+ */
+typedef struct
+{
+    uint32_t img_size;
+    uint32_t sym_table_size;
+    uint32_t alg_id_list_size;
+    uint32_t fw_id;
+    uint32_t fw_version;
+    uint32_t data_blocks;
+    uint32_t max_block_size;
+    uint32_t fw_img_release;
+} fw_img_v2_header_t;
+
+/**
  * Data structure to describe HALO firmware info
  */
 typedef struct
 {
-    fw_img_v1_header_t header;
+    fw_img_preheader_t preheader;
+    fw_img_v2_header_t header;
     fw_img_v1_sym_table_t *sym_table;
     uint32_t *alg_id_list;
-} fw_img_v1_info_t;
+} fw_img_info_t;
 
 /**
  * Data structure to describe HALO firmware and coefficient download.
@@ -156,8 +174,13 @@ typedef struct
     uint32_t block_data_size;                   // Initialised by user after fw_img_read_header()
     uint8_t *block_data;                        // Initialised by user after fw_img_read_header()
 
-    fw_img_v1_info_t fw_info;
-    fw_img_v1_footer_t footer;
+    fw_img_info_t fw_info;
+
+    uint32_t img_magic_number_2;
+    uint32_t img_checksum;
+
+    uint32_t c0;                                // Component 0, used for calculation of the fw_img's fletcher-32 checksum
+    uint32_t c1;                                // Component 1, used for calculation of the fw_img's fletcher-32 checksum
 } fw_img_boot_state_t;
 
 /***********************************************************************************************************************
@@ -194,7 +217,7 @@ extern uint32_t fw_img_read_header(fw_img_boot_state_t *state);
  *      - any errors processing fw_img data
  * - FW_IMG_STATUS_NODATA       fw_img_process() requires input of another block of fw_img data
  * - FW_IMG_STATUS_DATA_READY   an output block of data is ready to be sent to the device
- * - FW_IMG_STATUS_OK           Once finished reading the fw_img footer
+ * - FW_IMG_STATUS_OK           Once finished reading the fw_img checksum
  *
  */
 extern uint32_t fw_img_process(fw_img_boot_state_t *state);

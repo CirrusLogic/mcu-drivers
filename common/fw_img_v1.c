@@ -29,6 +29,34 @@
  * LOCAL FUNCTIONS
  **********************************************************************************************************************/
 
+static uint32_t fw_img_copy_data_cs(fw_img_boot_state_t *state, uint32_t *data, uint32_t data_size, bool update_checksum)
+{
+    while ((state->count * sizeof(uint32_t)) < data_size &&
+            state->fw_img_blocks < state->fw_img_blocks_end)
+    {
+        data[state->count++] = *(uint32_t *)state->fw_img_blocks;
+        if (update_checksum && state->fw_info.preheader.img_format_rev != 1)
+        {
+            /* calculate checksum */
+            state->c0 = (state->c0 + *(uint16_t *)state->fw_img_blocks) % FW_IMG_MODVAL;
+            state->c1 = (state->c1 + state->c0) % FW_IMG_MODVAL;
+            state->fw_img_blocks += sizeof(uint16_t);
+            state->c0 = (state->c0 + *(uint16_t *)state->fw_img_blocks) % FW_IMG_MODVAL;
+            state->c1 = (state->c1 + state->c0) % FW_IMG_MODVAL;
+            state->fw_img_blocks += sizeof(uint16_t);
+        }
+        else
+        {
+            state->fw_img_blocks += sizeof(uint32_t);
+        }
+    }
+
+    if ((state->count * sizeof(uint32_t)) == data_size)
+        return FW_IMG_STATUS_AGAIN;
+    else
+        return FW_IMG_STATUS_NODATA;
+}
+
 /**
  * Copy data from input block to fw_img state member or output block buffer
  *
@@ -43,17 +71,7 @@
  */
 static uint32_t fw_img_copy_data(fw_img_boot_state_t *state, uint32_t *data, uint32_t data_size)
 {
-    while ((state->count * sizeof(uint32_t)) < data_size &&
-            state->fw_img_blocks < state->fw_img_blocks_end)
-    {
-        data[state->count++] = *(uint32_t *)state->fw_img_blocks;
-        state->fw_img_blocks += sizeof(uint32_t);
-    }
-
-    if ((state->count * sizeof(uint32_t)) == data_size)
-        return FW_IMG_STATUS_AGAIN;
-    else
-        return FW_IMG_STATUS_NODATA;
+    return fw_img_copy_data_cs(state, data, data_size, true);
 }
 
 /**
@@ -67,16 +85,17 @@ static uint32_t fw_img_copy_data(fw_img_boot_state_t *state, uint32_t *data, uin
  * - FW_IMG_STATUS_AGAIN        if all of the current section of the fw_img file was processed
  * - FW_IMG_STATUS_FAIL if:
  *      - output block data size is smaller than the size of processed input data block
- *      - fw_img footer was incorrect
+ *      - fw_img magic numbers were incorrect
+ *      - fw_img checksum was incorrect
  *      - unknown state machine state
  * - FW_IMG_STATUS_DATA_READY   if output data block is ready
- * - FW_IMG_STATUS_OK           if fw_img footer was correctly processed - processing is complete
+ * - FW_IMG_STATUS_OK           if fw_img checksum was correctly processed - processing is complete
  *
  */
 static uint32_t fw_img_process_data(fw_img_boot_state_t *state)
 {
     uint32_t ret = FW_IMG_STATUS_AGAIN;
-    fw_img_v1_info_t *fw_info = &state->fw_info;
+    fw_img_info_t *fw_info = &state->fw_info;
 
     switch (state->state)
     {
@@ -99,7 +118,7 @@ static uint32_t fw_img_process_data(fw_img_boot_state_t *state)
             }
             else
             {
-                state->state = FW_IMG_BOOT_STATE_READ_FOOTER - 1; // Will be incremented
+                state->state = FW_IMG_BOOT_STATE_READ_MAGICNUM2 - 1; // Will be incremented
             }
             break;
 
@@ -119,11 +138,26 @@ static uint32_t fw_img_process_data(fw_img_boot_state_t *state)
             }
             break;
 
-        case FW_IMG_BOOT_STATE_READ_FOOTER:
-            ret = fw_img_copy_data(state, (uint32_t *)&state->footer, sizeof(state->footer));
+        case FW_IMG_BOOT_STATE_READ_MAGICNUM2:
+            ret = fw_img_copy_data(state, (uint32_t *)&state->img_magic_number_2, sizeof(state->img_magic_number_2));
             if (ret == FW_IMG_STATUS_AGAIN)
             {
-                if (state->footer.img_magic_number_2 != FW_IMG_BOOT_FW_IMG_V1_MAGIC_2)
+                if (state->img_magic_number_2 != FW_IMG_BOOT_FW_IMG_V1_MAGIC_2)
+                {
+                    ret = FW_IMG_STATUS_FAIL;
+                }
+                else
+                {
+                    state->state = FW_IMG_BOOT_STATE_READ_CHECKSUM - 1; // Will be incremented
+                }
+            }
+            break;
+
+        case FW_IMG_BOOT_STATE_READ_CHECKSUM:
+            ret = fw_img_copy_data_cs(state, (uint32_t *)&state->img_checksum, sizeof(state->img_checksum), false);
+            if (ret == FW_IMG_STATUS_AGAIN)
+            {
+                if (fw_info->preheader.img_format_rev != 1 && state->img_checksum != (state->c0 + (state->c1 << 16)))
                 {
                     ret = FW_IMG_STATUS_FAIL;
                 }
@@ -164,7 +198,7 @@ static uint32_t fw_img_process_data(fw_img_boot_state_t *state)
 uint32_t fw_img_read_header(fw_img_boot_state_t *state)
 {
     uint32_t ret = FW_IMG_STATUS_OK;
-    fw_img_v1_info_t *fw_info = &state->fw_info;
+    fw_img_info_t *fw_info = &state->fw_info;
 
     if (state == NULL || state->fw_img_blocks == NULL || state->fw_img_blocks_size ==  0)
     {
@@ -173,15 +207,38 @@ uint32_t fw_img_read_header(fw_img_boot_state_t *state)
 
     state->fw_img_blocks_end = state->fw_img_blocks + state->fw_img_blocks_size;
 
-    ret = fw_img_copy_data(state, (uint32_t *)&fw_info->header, sizeof(fw_info->header));
+    ret = fw_img_copy_data(state, (uint32_t *)&fw_info->preheader, sizeof(fw_img_preheader_t));
     if (ret != FW_IMG_STATUS_AGAIN ||
-        fw_info->header.img_magic_number_1 != FW_IMG_BOOT_FW_IMG_V1_MAGIC_1)
+        fw_info->preheader.img_magic_number_1 != FW_IMG_BOOT_FW_IMG_V1_MAGIC_1)
     {
         ret = FW_IMG_STATUS_FAIL;
     }
-
-    state->fw_img_blocks_end = NULL;
-    state->count = 0;
+    else
+    {
+        state->count = 0;
+        switch (fw_info->preheader.img_format_rev)
+        {
+            case 1:
+                ret = fw_img_copy_data(state, (uint32_t *)(&fw_info->header), sizeof(fw_img_v1_header_t));
+                if (ret != FW_IMG_STATUS_AGAIN)
+                {
+                    ret = FW_IMG_STATUS_FAIL;
+                }
+                state->count = 0;
+                break;
+            case 2:
+                ret = fw_img_copy_data(state, (uint32_t *)(&fw_info->header), sizeof(fw_img_v2_header_t));
+                if (ret != FW_IMG_STATUS_AGAIN)
+                {
+                    ret = FW_IMG_STATUS_FAIL;
+                }
+                state->count = 0;
+                break;
+            default:
+                ret = FW_IMG_STATUS_FAIL;
+                break;
+        }
+    }
 
     return FW_IMG_STATUS_OK;
 }

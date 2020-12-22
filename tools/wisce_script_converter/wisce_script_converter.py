@@ -33,7 +33,7 @@ from wisce_script_exporter_factory import wisce_script_exporter_factory, exporte
 # ==========================================================================
 # VERSION
 # ==========================================================================
-VERSION_STRING = "1.0.0"
+VERSION_STRING = "1.1.0"
 
 # ==========================================================================
 # CONSTANTS/GLOBALS

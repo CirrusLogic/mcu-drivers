@@ -441,7 +441,7 @@ typedef struct
     uint8_t wseq_num_entries;                   ///< Number of entries currently in wseq_table
     bool wseq_initialized;                      ///< Flag indicating if the wseq_table has been initialized
     cs40l25_config_t config;                    ///< Driver configuration fields - see cs40l25_config_t
-    fw_img_v1_info_t *fw_info;                  ///< Current HALO FW/Coefficient boot configuration
+    fw_img_info_t *fw_info;                     ///< Current HALO FW/Coefficient boot configuration
     uint32_t event_flags;                       ///< Most recent event_flags reported to BSP Notification callback
 } cs40l25_t;
 
@@ -564,7 +564,7 @@ uint32_t cs40l25_write_block(cs40l25_t *driver, uint32_t addr, uint8_t *data, ui
  *
  * While cs35l41_write_block loads the actual FW/COEFF data into HALO RAM, cs35l41_boot will finish the boot process
  * by:
- * - loading the fw_img_v1_info_t fw_info member of the driver handle
+ * - loading the fw_img_info_t fw_info member of the driver handle
  * - Performing any post-boot configuration writes
  * - Loading Calibration data (if valid)
  *
@@ -579,7 +579,7 @@ uint32_t cs40l25_write_block(cs40l25_t *driver, uint32_t addr, uint8_t *data, ui
  * - CS40L25_STATUS_OK          otherwise
  *
  */
-uint32_t cs40l25_boot(cs40l25_t *driver, fw_img_v1_info_t *fw_info);
+uint32_t cs40l25_boot(cs40l25_t *driver, fw_img_info_t *fw_info);
 
 /**
  * Change the power state

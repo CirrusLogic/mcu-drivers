@@ -291,6 +291,7 @@ ifeq ($(MAKECMDGOALS), system_test)
     C_SRCS += $(REPO_PATH)/third_party/st/STM32Cube_FW_F4_V1.24.1/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_dma.c
     C_SRCS += $(REPO_PATH)/third_party/st/STM32Cube_FW_F4_V1.24.1/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_i2s_ex.c
     C_SRCS += $(REPO_PATH)/third_party/st/STM32Cube_FW_F4_V1.24.1/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_i2s.c
+    C_SRCS += $(REPO_PATH)/third_party/st/STM32Cube_FW_F4_V1.24.1/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_spi.c
     C_SRCS += $(REPO_PATH)/third_party/st/STM32Cube_FW_F4_V1.24.1/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal.c
     C_SRCS += $(REPO_PATH)/third_party/st/STM32Cube_FW_F4_V1.24.1/Drivers/CMSIS/Device/ST/STM32F4xx/Source/Templates/system_stm32f4xx.c
     C_SRCS += $(REPO_PATH)/third_party/rtt/gcc_io.c
@@ -343,6 +344,7 @@ endif
     C_SRCS += $(REPO_PATH)/third_party/st/STM32Cube_FW_F4_V1.24.1/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_dma.c
     C_SRCS += $(REPO_PATH)/third_party/st/STM32Cube_FW_F4_V1.24.1/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_i2s_ex.c
     C_SRCS += $(REPO_PATH)/third_party/st/STM32Cube_FW_F4_V1.24.1/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_i2s.c
+    C_SRCS += $(REPO_PATH)/third_party/st/STM32Cube_FW_F4_V1.24.1/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_spi.c
     C_SRCS += $(REPO_PATH)/third_party/st/STM32Cube_FW_F4_V1.24.1/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal.c
     C_SRCS += $(REPO_PATH)/third_party/st/STM32Cube_FW_F4_V1.24.1/Drivers/CMSIS/Device/ST/STM32F4xx/Source/Templates/system_stm32f4xx.c
     ASM_SRCS += $(REPO_PATH)/third_party/st/STM32Cube_FW_F4_V1.24.1/Drivers/CMSIS/Device/ST/STM32F4xx/Source/Templates/gcc/startup_stm32f401xe.s
@@ -382,6 +384,7 @@ endif
     C_SRCS += $(REPO_PATH)/third_party/st/STM32Cube_FW_F4_V1.24.1/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_dma.c
     C_SRCS += $(REPO_PATH)/third_party/st/STM32Cube_FW_F4_V1.24.1/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_i2s_ex.c
     C_SRCS += $(REPO_PATH)/third_party/st/STM32Cube_FW_F4_V1.24.1/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_i2s.c
+    C_SRCS += $(REPO_PATH)/third_party/st/STM32Cube_FW_F4_V1.24.1/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_spi.c
     C_SRCS += $(REPO_PATH)/third_party/st/STM32Cube_FW_F4_V1.24.1/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal.c
     C_SRCS += $(REPO_PATH)/third_party/st/STM32Cube_FW_F4_V1.24.1/Drivers/CMSIS/Device/ST/STM32F4xx/Source/Templates/system_stm32f4xx.c
     C_SRCS += $(FREERTOS_PATH)/CMSIS_RTOS/cmsis_os.c

@@ -42,8 +42,12 @@ extern "C" {
 #define BSP_DUT_DEV_ID                  (1)
 #define BSP_LN2_DEV_ID                  (2)
 
+#define BSP_GPIO_ID_NULL                (0)
 #define BSP_GPIO_ID_DUT_RESET           (1)
 #define BSP_GPIO_ID_DUT_INT             (2)
+#define BSP_GPIO_ID_LN2_RESET           (3)
+
+#define BSP_SUPPLY_ID_LN2_DCVDD         (1)
 
 #define BSP_PB_ID_USER                  (0)
 
@@ -53,8 +57,12 @@ extern "C" {
 #define BSP_PLAY_STEREO_PATTERN         (3)
 
 #define BSP_BUS_TYPE_I2C                (0)
+#define BSP_BUS_TYPE_SPI                (1)
 
 #define BSP_STATUS_DUT_EVENTS           (2)
+
+#define BSP_AUDIO_FS_48000_HZ           (48000)
+#define BSP_AUDIO_FS_44100_HZ           (44100)
 
 /***********************************************************************************************************************
  * MACROS
@@ -74,11 +82,13 @@ extern bool trigger_audio_change;
  * API FUNCTIONS
  **********************************************************************************************************************/
 uint32_t bsp_initialize(bsp_app_callback_t cb, void *cb_arg);
+uint32_t bsp_audio_set_fs(uint32_t fs_hz);
 uint32_t bsp_audio_play(uint8_t content);
 uint32_t bsp_audio_play_record(uint8_t content);
 uint32_t bsp_audio_pause(void);
 uint32_t bsp_audio_resume(void);
 uint32_t bsp_audio_stop(void);
+uint32_t bsp_set_timer(uint32_t duration_ms, bsp_callback_t cb, void *cb_arg);
 bool bsp_was_pb_pressed(uint8_t pb_id);
 void bsp_sleep(void);
 uint32_t bsp_register_pb_cb(uint32_t pb_id, bsp_app_callback_t cb, void *cb_arg);

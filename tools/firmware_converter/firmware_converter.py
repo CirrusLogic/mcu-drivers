@@ -34,13 +34,13 @@ from firmware_exporter_factory import firmware_exporter_factory
 #==========================================================================
 # VERSION
 #==========================================================================
-VERSION_STRING = "3.0.0"
+VERSION_STRING = "3.1.0"
 
 #==========================================================================
 # CONSTANTS/GLOBALS
 #==========================================================================
-supported_part_numbers = ['cs35l41', 'cs40l25', 'cs40l30', 'cs48l32', 'cs47l63', 'cs47l66']
-supported_commands = ['print', 'export', 'wisce', 'fw_img_v1', 'json']
+supported_part_numbers = ['cs35l41', 'cs40l25', 'cs40l30', 'cs48l32', 'cs47l63', 'cs47l66', 'cs47l15']
+supported_commands = ['print', 'export', 'wisce', 'fw_img_v1', 'fw_img_v2', 'json']
 
 supported_mem_maps = {
     'halo_type_0': {
@@ -58,6 +58,21 @@ supported_mem_maps = {
         'pm': {
             'pm32': 0x3800000,
         }
+    },
+    'adsp_type_0': {
+        'parts': ['cs47l15'],
+        'xm': {
+            'u24': 0xa0000,
+        },
+        'ym': {
+            'u24': 0xc0000,
+        },
+        'zm': {
+            'u24': 0xe0000,
+        },
+        'pm': {
+            'pm32': 0x80000,
+        }
     }
 }
 
@@ -69,23 +84,31 @@ class address_resolver:
         for key in supported_mem_maps.keys():
             if (part_number in supported_mem_maps[key]['parts']):
                 self.mem_map = supported_mem_maps[key]
+                self.core = key
 
         return
 
     def resolve(self, mem_region, mem_type, offset):
         address = None
         if ((mem_region in self.mem_map) and (mem_type in self.mem_map[mem_region])):
-            if (mem_type == 'u24'):
-                addresses_per_word = 4
-            elif (mem_type == 'p32'):
-                addresses_per_word = 3
-            elif (mem_type == 'pm32'):
-                addresses_per_word = 5
+            if (self.core == 'halo_type_0'):
+                if (mem_type == 'u24'):
+                    addresses_per_word = 4
+                elif (mem_type == 'p32'):
+                    addresses_per_word = 3
+                elif (mem_type == 'pm32'):
+                    addresses_per_word = 5
+            else:
+                if (mem_type == 'u24'):
+                    addresses_per_word = 2
+                elif (mem_type == 'pm32'):
+                    addresses_per_word = 3
 
             address = self.mem_map[mem_region][mem_type] + offset * addresses_per_word
 
-            # All addresses must be on 4-byte boundaries
-            address = address & ~0x3
+            # Packed addresses must be on 4-byte boundaries
+            if (self.core == 'halo_type_0' and mem_type == 'p32'):
+                address = address & ~0x3
 
         return address
 
@@ -179,6 +202,7 @@ def get_args(args):
     parser.add_argument('--binary', dest='binary_output', action="store_true", help='Request binary fw_img output format.')
     parser.add_argument('--wmdr-only', dest='wmdr_only', action="store_true", help='Request to ONLY store WMDR files in fw_img.')
     parser.add_argument('--generic-sym', dest='generic_sym', action="store_true", help='Use generic algorithm name for \'FIRMWARE_*\' algorithm controls')
+    parser.add_argument('--fw-img-version', type=lambda x: int(x,0), default='0', dest='fw_img_version', help='Release version for the fw_img that ties together a WMFW fw revision with releases of BIN files. Accepts type int of any base.')
 
     return parser.parse_args(args[1:])
 
@@ -195,7 +219,7 @@ def validate_args(args):
                 return False
 
     # Check that all symbol id header files exist
-    if ((args.command == 'fw_img_v1') and (args.symbol_id_input is not None)):
+    if ((args.command == 'fw_img_v1' or args.command == 'fw_img_v2') and (args.symbol_id_input is not None)):
         if (not os.path.exists(args.symbol_id_input)):
             print("Invalid Symbol Header path: " + args.symbol_id_input)
             return False
@@ -231,7 +255,7 @@ def print_args(args):
     else:
         print("No suffix")
 
-    if (args.command == 'fw_img_v1'):
+    if (args.command == 'fw_img_v1' or args.command == 'fw_img_v2'):
         if (args.symbol_id_input is not None):
             print("Input Symbol ID Header: " + args.symbol_id_input)
         else:
@@ -315,12 +339,14 @@ def main(argv):
     attributes = dict()
     attributes['part_number_str'] = args.part_number
     attributes['fw_meta'] = dict(fw_id = wmfw.fw_id_block.fields['firmware_id'], fw_rev = wmfw.fw_id_block.fields['firmware_revision'])
+    attributes['fw_img_version'] = args.fw_img_version
     attributes['suffix'] = suffix
     attributes['symbol_id_input'] = args.symbol_id_input
     attributes['i2c_address'] = args.i2c_address
     attributes['binary_output'] = args.binary_output
     attributes['wmdr_only'] = args.wmdr_only
     attributes['symbol_id_output'] = args.symbol_id_output
+    attributes['max_block_size'] = args.block_size_limit
     f = firmware_exporter_factory(attributes)
 
     # Based on command, add firmware exporters
@@ -328,6 +354,8 @@ def main(argv):
         f.add_firmware_exporter('c_array')
     elif (args.command == 'fw_img_v1'):
         f.add_firmware_exporter('fw_img_v1')
+    elif (args.command == 'fw_img_v2'):
+        f.add_firmware_exporter('fw_img_v2')
     elif (args.command == 'wisce'):
         f.add_firmware_exporter('wisce')
     elif (args.command == 'json'):

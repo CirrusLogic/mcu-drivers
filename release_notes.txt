@@ -3,6 +3,32 @@ Release Notes
 
 =============================================================================
 Summary:
+This is the release of Alt-OS Driver SDK v3.1.0
+Date: 2020/12/21
+
+Component Driver Versions:
+CS35L41 - v3.1.0
+CS40L25 - v2.1.0
+CS47L15 - v1.0.0
+
+Component Tool Versions:
+firmware_converter - v3.1.0
+wisce_script_converter - v1.1.0
+
+Architectures/Compilers Used:
+GNU Arm Embedded Toolchain: arm-none-eabi-gcc -mcpu=cortex-m4
+
+New Features/Changes:
+[SQA-1936] fw_img: Add fw_img v2
+[SQA-1977] Implement first release of CS47L15 driver
+[SQA-1995] L41 - Implemented fast Fs switching
+
+Fixed Bugs:
+None
+
+=============================================================================
+=============================================================================
+Summary:
 This is the release of Alt-OS Driver SDK v3.0.0
 Date: 2020/10/19
 

@@ -227,8 +227,8 @@ endif
 # Assign sources, includes, paths for driver library
 DRIVER_PATH = $(REPO_PATH)/cs35l41
 COMMON_PATH = $(REPO_PATH)/common
-HALO_FIRMWARE_PATH = $(REPO_PATH)/cs35l41/fw_6_31_0_cspl
-DRIVER_SRCS = $(DRIVER_PATH)/cs35l41.c $(DRIVER_PATH)/cs35l41_syscfg_regs.c $(COMMON_PATH)/fw_img_v1.c
+HALO_FIRMWARE_PATH = $(REPO_PATH)/cs35l41/fw_6_43_0_cspl
+DRIVER_SRCS = $(DRIVER_PATH)/cs35l41.c $(DRIVER_PATH)/cs35l41_fs_switch_syscfg.c $(DRIVER_PATH)/cs35l41_syscfg_regs.c $(COMMON_PATH)/fw_img_v1.c
 ifeq ($(MAKECMDGOALS), system_test)
 DRIVER_SRCS += $(DRIVER_PATH)/cs35l41_ext.c
 else ifeq ($(MAKECMDGOALS), baremetal)
@@ -263,6 +263,7 @@ ifeq ($(MAKECMDGOALS), system_test)
     C_SRCS += $(TEST_HW_PATH)/sysmem.c
     C_SRCS += $(REPO_PATH)/cs35l41/bsp/hw_0_bsp_cs35l41.c
     C_SRCS += $(HALO_FIRMWARE_PATH)/cs35l41_fw_img.c $(HALO_FIRMWARE_PATH)/cs35l41_tune_fw_img.c $(HALO_FIRMWARE_PATH)/cs35l41_cal_fw_img.c
+    C_SRCS += $(HALO_FIRMWARE_PATH)/cs35l41_tune_48_fw_img.c $(HALO_FIRMWARE_PATH)/cs35l41_tune_44p1_fw_img.c
     C_SRCS += $(REPO_PATH)/third_party/st/STM32Cube_FW_F4_V1.24.1/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_cortex.c
     C_SRCS += $(REPO_PATH)/third_party/st/STM32Cube_FW_F4_V1.24.1/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_gpio.c
     C_SRCS += $(REPO_PATH)/third_party/st/STM32Cube_FW_F4_V1.24.1/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_i2c_ex.c
@@ -277,6 +278,7 @@ ifeq ($(MAKECMDGOALS), system_test)
     C_SRCS += $(REPO_PATH)/third_party/st/STM32Cube_FW_F4_V1.24.1/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_dma.c
     C_SRCS += $(REPO_PATH)/third_party/st/STM32Cube_FW_F4_V1.24.1/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_i2s_ex.c
     C_SRCS += $(REPO_PATH)/third_party/st/STM32Cube_FW_F4_V1.24.1/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_i2s.c
+    C_SRCS += $(REPO_PATH)/third_party/st/STM32Cube_FW_F4_V1.24.1/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_spi.c
     C_SRCS += $(REPO_PATH)/third_party/st/STM32Cube_FW_F4_V1.24.1/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal.c
     C_SRCS += $(REPO_PATH)/third_party/st/STM32Cube_FW_F4_V1.24.1/Drivers/CMSIS/Device/ST/STM32F4xx/Source/Templates/system_stm32f4xx.c
     C_SRCS += $(REPO_PATH)/third_party/rtt/gcc_io.c
@@ -313,6 +315,7 @@ ifeq ($(MAKECMDGOALS), baremetal)
     C_SRCS += $(TEST_HW_PATH)/sysmem.c
     C_SRCS += $(REPO_PATH)/cs35l41/bsp/hw_0_bsp_cs35l41.c
     C_SRCS += $(HALO_FIRMWARE_PATH)/cs35l41_fw_img.c $(HALO_FIRMWARE_PATH)/cs35l41_tune_fw_img.c $(HALO_FIRMWARE_PATH)/cs35l41_cal_fw_img.c
+    C_SRCS += $(HALO_FIRMWARE_PATH)/cs35l41_tune_48_fw_img.c $(HALO_FIRMWARE_PATH)/cs35l41_tune_44p1_fw_img.c
     C_SRCS += $(REPO_PATH)/third_party/st/STM32Cube_FW_F4_V1.24.1/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_cortex.c
     C_SRCS += $(REPO_PATH)/third_party/st/STM32Cube_FW_F4_V1.24.1/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_gpio.c
     C_SRCS += $(REPO_PATH)/third_party/st/STM32Cube_FW_F4_V1.24.1/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_i2c_ex.c
@@ -327,6 +330,7 @@ ifeq ($(MAKECMDGOALS), baremetal)
     C_SRCS += $(REPO_PATH)/third_party/st/STM32Cube_FW_F4_V1.24.1/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_dma.c
     C_SRCS += $(REPO_PATH)/third_party/st/STM32Cube_FW_F4_V1.24.1/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_i2s_ex.c
     C_SRCS += $(REPO_PATH)/third_party/st/STM32Cube_FW_F4_V1.24.1/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_i2s.c
+    C_SRCS += $(REPO_PATH)/third_party/st/STM32Cube_FW_F4_V1.24.1/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_spi.c
     C_SRCS += $(REPO_PATH)/third_party/st/STM32Cube_FW_F4_V1.24.1/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal.c
     C_SRCS += $(REPO_PATH)/third_party/st/STM32Cube_FW_F4_V1.24.1/Drivers/CMSIS/Device/ST/STM32F4xx/Source/Templates/system_stm32f4xx.c
     ASM_SRCS += $(REPO_PATH)/third_party/st/STM32Cube_FW_F4_V1.24.1/Drivers/CMSIS/Device/ST/STM32F4xx/Source/Templates/gcc/startup_stm32f401xe.s
@@ -350,6 +354,7 @@ ifeq ($(MAKECMDGOALS), freertos)
     C_SRCS += $(TEST_HW_PATH)/sysmem.c
     C_SRCS += $(REPO_PATH)/cs35l41/bsp/hw_0_bsp_cs35l41.c
     C_SRCS += $(HALO_FIRMWARE_PATH)/cs35l41_fw_img.c $(HALO_FIRMWARE_PATH)/cs35l41_tune_fw_img.c $(HALO_FIRMWARE_PATH)/cs35l41_cal_fw_img.c
+    C_SRCS += $(HALO_FIRMWARE_PATH)/cs35l41_tune_48_fw_img.c $(HALO_FIRMWARE_PATH)/cs35l41_tune_44p1_fw_img.c
     C_SRCS += $(REPO_PATH)/third_party/st/STM32Cube_FW_F4_V1.24.1/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_cortex.c
     C_SRCS += $(REPO_PATH)/third_party/st/STM32Cube_FW_F4_V1.24.1/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_gpio.c
     C_SRCS += $(REPO_PATH)/third_party/st/STM32Cube_FW_F4_V1.24.1/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_i2c_ex.c
@@ -364,6 +369,7 @@ ifeq ($(MAKECMDGOALS), freertos)
     C_SRCS += $(REPO_PATH)/third_party/st/STM32Cube_FW_F4_V1.24.1/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_dma.c
     C_SRCS += $(REPO_PATH)/third_party/st/STM32Cube_FW_F4_V1.24.1/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_i2s_ex.c
     C_SRCS += $(REPO_PATH)/third_party/st/STM32Cube_FW_F4_V1.24.1/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_i2s.c
+    C_SRCS += $(REPO_PATH)/third_party/st/STM32Cube_FW_F4_V1.24.1/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_spi.c
     C_SRCS += $(REPO_PATH)/third_party/st/STM32Cube_FW_F4_V1.24.1/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal.c
     C_SRCS += $(REPO_PATH)/third_party/st/STM32Cube_FW_F4_V1.24.1/Drivers/CMSIS/Device/ST/STM32F4xx/Source/Templates/system_stm32f4xx.c
     C_SRCS += $(FREERTOS_PATH)/CMSIS_RTOS/cmsis_os.c

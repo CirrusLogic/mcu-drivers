@@ -29,7 +29,7 @@ import sys
 import io
 from wmfw_parser import wmfw_component, user_defined_name_text_block_type, metadata_block_type, \
     halo_block_types_memory_region_u24, halo_block_types_memory_region_p32, halo_block_types_memory_region_pm32, halo_block_types_memory_region_u32, \
-    informational_text_block_type, absolute_addressing_data_block_type
+    informational_text_block_type, absolute_addressing_data_block_type, adsp_block_types_memory_region_u24, adsp_block_types_memory_region_pm32
 
 #==========================================================================
 # VERSION
@@ -116,6 +116,10 @@ class wmdr_block:
             self.memory_type = 'p32'
         elif (self.fields['type'] in halo_block_types_memory_region_u32):
             self.memory_type = 'u32'
+        elif (self.fields['type'] in adsp_block_types_memory_region_u24):
+            self.memory_type = 'u24'
+        elif (self.fields['type'] in adsp_block_types_memory_region_pm32):
+            self.memory_type = 'pm32'
 
         # Get algorithm identification
         self.fields['algorithm_identification'] = self.get_next_int(file, 4)

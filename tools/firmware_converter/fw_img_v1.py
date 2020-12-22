@@ -188,7 +188,10 @@ class fw_img_v1_parser:
         self.img.img_format_rev = words[1]
         self.img.fw_id = words[5]
         self.img.fw_version = words[6]
-        word_count = 8
+        if self.img.img_format_rev == 1:
+            word_count = 8
+        else:
+            word_count = 10
 
         # Load Symbol Linking Table words
         for i in range(0, words[3]):

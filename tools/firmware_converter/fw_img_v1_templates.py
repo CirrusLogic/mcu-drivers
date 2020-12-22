@@ -122,6 +122,8 @@ const uint8_t {part_number_lc}_fw_img[] = {
 {fw_id} // FW_ID
 {fw_ver} // FW_VERSION
 {data_block_count} // DATA_BLOCKS
+{max_block_size}
+{bin_ver}
 // Symbol Linking Table
 {sym_table}
 // Algorithm ID List
@@ -220,7 +222,7 @@ extern "C" {
 # CLASSES
 #==========================================================================
 class fw_img_v1_file(firmware_exporter):
-    def __init__(self, attributes):
+    def __init__(self, attributes, version):
         firmware_exporter.__init__(self, attributes)
         self.includes_coeff = False
         self.output_str = ''
@@ -233,21 +235,39 @@ class fw_img_v1_file(firmware_exporter):
         self.terms['algorithm_defines'] = ''
         self.terms['control_defines'] = ''
         self.terms['include_coeff_0'] = ''
-        self.terms['fw_block_arrays'] = ''
-        self.terms['coeff_block_arrays'] = []
-        self.terms['fw_id'] = self.attributes['fw_meta']['fw_id']
-        self.terms['fw_rev'] = self.attributes['fw_meta']['fw_rev']
         self.terms['metadata_text'] = ' *\n'
         self.terms['algorithm_defines'] = ''
         self.total_coeff_blocks = []
         self.fw_data_block_list = []
         self.coeff_data_block_list = []
-        self.algorithms = dict()
-        self.algorithm_controls = dict()
         self.uint8_per_line = 24
-        self.img_size = 0
+        self.blocks = []
         self.sym_id_input = self.attributes['symbol_id_input']
         self.sym_id_output = self.attributes['symbol_id_output']
+
+        self.terms['magic_num1'] = 0x54b998ff
+        self.terms['version'] = version
+        self.terms['img_size'] = 0
+        self.terms['sym_table_size'] = 0
+        self.terms['alg_list_size'] = 0
+        self.terms['fw_id'] = self.attributes['fw_meta']['fw_id']
+        self.terms['fw_rev'] = self.attributes['fw_meta']['fw_rev']
+        self.terms['bin_ver'] = self.attributes['fw_img_version']
+        self.terms['data_blocks'] = 0
+        self.terms['max_block_size'] = self.attributes['max_block_size']
+
+        self.algorithms = dict()
+
+        self.algorithm_controls = dict()
+
+        self.terms['fw_block_arrays'] = ''
+        self.terms['coeff_block_arrays'] = []
+
+        self.terms['magic_num2'] = 0x936be2a6
+        self.terms['checksum'] = 0
+
+        self.c0 = 0x0
+        self.c1 = 0x0
 
         return
 
@@ -261,7 +281,7 @@ class fw_img_v1_file(firmware_exporter):
                 temp_byte_str = temp_byte_str + "\n"
             temp_data_str = temp_data_str + temp_byte_str
 
-        self.img_size += byte_count
+        self.terms['img_size'] += byte_count
         return temp_data_str
 
     def int_to_bytes(self, val):
@@ -408,10 +428,69 @@ class fw_img_v1_file(firmware_exporter):
 
         return symbol_id_list
 
+    def fletch32(self, word):
+        modval = pow(2, 16) - 1
+        bytes = word.to_bytes(4, byteorder='little')
+        self.c0 = (self.c0 + (bytes[0] + (bytes[1] << 8))) % modval
+        self.c1 = (self.c1 + self.c0) % modval
+        self.c0 = (self.c0 + (bytes[2] + (bytes[3] << 8))) % modval
+        self.c1 = (self.c1 + self.c0) % modval
+
+    def calc_checksum(self):
+        self.fletch32(self.terms['magic_num1'])
+        self.fletch32(self.terms['version'])
+        self.fletch32(self.terms['img_size'])
+        self.fletch32(self.terms['sym_table_size'])
+        self.fletch32(self.terms['alg_list_size'])
+        self.fletch32(self.terms['fw_id'])
+        self.fletch32(self.terms['fw_rev'])
+        self.fletch32(self.terms['data_blocks'])
+        if self.terms['version'] != 1:
+            self.fletch32(self.terms['max_block_size'])
+            self.fletch32(self.terms['bin_ver'])
+
+        if self.algorithms:
+            for alg_name, alg_id in self.algorithms.items():
+                for control in self.algorithm_controls[alg_name]:
+                    sym_id = self.find_symbol_id(control[0])
+                    if sym_id:
+                        self.fletch32(sym_id)
+                        self.fletch32(control[1])
+
+        if self.algorithms:
+            for alg_name, alg_id in self.algorithms.items():
+                self.fletch32(alg_id)
+
+        for f in self.fw_data_block_list:
+            self.fletch32(f[0])
+            self.fletch32(f[1])
+            for i in range(0, len(f[2]), 4):
+                temp_word = f[2][i]
+                temp_word = temp_word | (f[2][i + 1] << 8)
+                temp_word = temp_word | (f[2][i + 2] << 16)
+                temp_word = temp_word | (f[2][i + 3] << 24)
+                self.fletch32(temp_word)
+
+        for coeff_blocks in self.coeff_data_block_list:
+            for coeff_block in coeff_blocks:
+                self.fletch32(coeff_block[0])
+                self.fletch32(coeff_block[1])
+                for i in range(0,  len(coeff_block[2]), 4):
+                    temp_word = coeff_block[2][i]
+                    temp_word = temp_word | (coeff_block[2][i + 1] << 8)
+                    temp_word = temp_word | (coeff_block[2][i + 2] << 16)
+                    temp_word = temp_word | (coeff_block[2][i + 3] << 24)
+                    self.fletch32(temp_word)
+
+        self.fletch32(self.terms['magic_num2'])
+
+        return self.c0 + (self.c1 << 16)
+
+
     def to_byte_array(self):
         word_list = []
-        word_list.append(0x54b998ff)
-        word_list.append(0x1)
+        word_list.append(self.terms['magic_num1'])
+        word_list.append(self.terms['version'])
         word_list.append(0)
 
         control_count = 0
@@ -429,8 +508,11 @@ class fw_img_v1_file(firmware_exporter):
 
                         control_count = control_count + 1
 
-            word_list.append(control_count)
-            word_list.append(len(self.algorithms))
+            self.terms['sym_table_size'] = control_count
+            word_list.append(self.terms['sym_table_size'])
+
+            self.terms['alg_list_size'] = len(self.algorithms)
+            word_list.append(self.terms['alg_list_size'])
         else:
             word_list.append(0)
             word_list.append(0)
@@ -466,18 +548,25 @@ class fw_img_v1_file(firmware_exporter):
                     temp_word = temp_word | (coeff_block[2][i + 3] << 24)
                     data_block_words.append(temp_word)
 
-        word_list.append(total_data_blocks)
+        self.terms['data_blocks'] = total_data_blocks
+        word_list.append(self.terms['data_blocks'])
+        if self.terms['version'] != 1:
+            word_list.append(self.terms['max_block_size'])
 
         word_list.extend(temp_ctl_words)
         word_list.extend(temp_alg_words)
 
         word_list.extend(data_block_words)
 
-        word_list.append(0x936be2a6)
-        word_list.append(0xf0f00f0f)
+        word_list.append(self.terms['magic_num2'])
+        if self.terms['version'] == 1:
+            word_list.append(0xf0f00f0f)
+        else:
+            word_list.append(self.calc_checksum())
 
         # Compute image size
-        word_list[2] = len(word_list) * 4
+        self.terms['img_size'] = len(word_list) * 4
+        word_list[2] = self.terms['img_size']
 
         # Convert to byte array
         byte_list = []
@@ -493,10 +582,11 @@ class fw_img_v1_file(firmware_exporter):
         output_str = source_file_template_str
 
         # Update firmware metadata
-        output_str = output_str.replace('{magic_number_1}', self.int_to_bytes(0x54b998ff))
-        output_str = output_str.replace('{img_format_rev}', self.int_to_bytes(0x1))
+        output_str = output_str.replace('{magic_number_1}', self.int_to_bytes(self.terms['magic_num1']))
+        output_str = output_str.replace('{img_format_rev}', self.int_to_bytes(self.terms['version']))
 
-        output_str = output_str.replace('{alg_list_size}', self.int_to_bytes(len(self.algorithms)))
+        self.terms['alg_list_size'] = len(self.algorithms)
+        output_str = output_str.replace('{alg_list_size}', self.int_to_bytes(self.terms['alg_list_size']))
         control_count = 0
         if self.algorithms:
             temp_alg_str = ""
@@ -511,19 +601,27 @@ class fw_img_v1_file(firmware_exporter):
                             + self.int_to_bytes(control[1]) + " // " + hex(control[1]) + "\n"
                         control_count = control_count + 1
 
-            output_str = output_str.replace('{sym_table_size}', self.int_to_bytes(control_count))
+            self.terms['sym_table_size'] = control_count
 
             self.terms['algorithm_defines'] = temp_alg_str
             output_str = output_str.replace('{alg_list}\n', self.terms['algorithm_defines'])
             self.terms['control_defines'] = temp_ctl_str
             output_str = output_str.replace('{sym_table}\n', self.terms['control_defines'])
         else:
-            output_str = output_str.replace('{sym_table_size}', self.int_to_bytes(0))
+            self.terms['sym_table_size'] = 0
+
             output_str = output_str.replace('{alg_list}\n', '')
             output_str = output_str.replace('{sym_table}\n', '')
 
+        output_str = output_str.replace('{sym_table_size}', self.int_to_bytes(self.terms['sym_table_size']))
+
         output_str = output_str.replace('{fw_id}', self.int_to_bytes(self.terms['fw_id']))
         output_str = output_str.replace('{fw_ver}', self.int_to_bytes(self.terms['fw_rev']))
+
+        if self.terms['version'] == 1:
+            output_str = output_str.replace('{bin_ver}', "")
+        else:
+            output_str = output_str.replace('{bin_ver}', self.int_to_bytes(self.terms['bin_ver']) + " // FW_IMG_VERSION")
 
         output_str = output_str.replace('{fw_data_blocks}', self.terms['fw_block_arrays'])
 
@@ -540,16 +638,28 @@ class fw_img_v1_file(firmware_exporter):
         else:
             output_str = output_str.replace('{coeff_data}\n', '')
 
-        output_str = output_str.replace('{data_block_count}', self.int_to_bytes(blocks))
+        self.terms['data_blocks'] = blocks
+        output_str = output_str.replace('{data_block_count}', self.int_to_bytes(self.terms['data_blocks']))
+        if self.terms['version'] == 1:
+            output_str = output_str.replace('{max_block_size}', "")
+        else:
+            output_str = output_str.replace('{max_block_size}', self.int_to_bytes(self.terms['max_block_size']) + " // MAX_BLOCK_SIZE")
 
         output_str = output_str.replace('{part_number_lc}', self.terms['part_number_lc'])
         output_str = output_str.replace('{part_number_uc}', self.terms['part_number_uc'])
 
-        output_str = output_str.replace('{magic_number_2}', self.int_to_bytes(0x936be2a6))
+        output_str = output_str.replace('{magic_number_2}', self.int_to_bytes(self.terms['magic_num2']))
 
-        output_str = output_str.replace('{img_checksum}', self.int_to_bytes(0xf0f00f0f))
-        # need to add 4 to include the img_size field itself.
-        output_str = output_str.replace('{img_size}', self.int_to_bytes(self.img_size + 4))
+        # need to add 8 to include the checksum and the img_size field itself.
+        self.terms['img_size'] = self.terms['img_size'] + 8
+        output_str = output_str.replace('{img_size}', self.int_to_bytes(self.terms['img_size']))
+        # int_to_bytes increments img_size, so subtract 4 again to get us back to where we should be
+        self.terms['img_size'] = self.terms['img_size'] - 4
+
+        if self.terms['version'] == 1:
+            output_str = output_str.replace('{img_checksum}', self.int_to_bytes(0xf0f00f0f))
+        else:
+            output_str = output_str.replace('{img_checksum}', self.int_to_bytes(self.calc_checksum()))
 
         output_str = output_str.replace('{metadata_text}', self.terms['metadata_text'])
 
@@ -574,7 +684,11 @@ class fw_img_v1_file(firmware_exporter):
         symbol_id_list = None
         if (self.sym_id_input is not None):
             symbol_id_list = self.extract_symbol_ids(self.sym_id_input)
-        self.sym_header = self.generate_symbol_header(symbol_id_list)
+            tmp = open(self.sym_id_input, 'r')
+            self.sym_header = tmp.read()
+            tmp.close()
+        else:
+            self.sym_header = self.generate_symbol_header(symbol_id_list)
 
         if (not self.attributes['binary_output']):
             self.template_str = header_file_template_str

@@ -33,7 +33,7 @@ from json_exporter import json_exporter
 #==========================================================================
 # CONSTANTS/GLOBALS
 #==========================================================================
-exporter_types = ['c_array', 'fw_img_v1', 'wisce', 'json']
+exporter_types = ['c_array', 'fw_img_v1', 'fw_img_v2', 'wisce', 'json']
 
 #==========================================================================
 # CLASSES
@@ -54,7 +54,10 @@ class firmware_exporter_factory(firmware_exporter):
             e = source_file_exporter(self.attributes)
             self.exporters.append(e)
         elif (type == 'fw_img_v1'):
-            e = fw_img_v1_file(self.attributes)
+            e = fw_img_v1_file(self.attributes, 0x1)
+            self.exporters.append(e)
+        elif (type == 'fw_img_v2'):
+            e = fw_img_v1_file(self.attributes, 0x2)
             self.exporters.append(e)
         elif (type == 'wisce'):
             e = wisce_script_file(self.attributes)

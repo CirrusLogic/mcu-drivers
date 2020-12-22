@@ -78,6 +78,16 @@ extern "C" {
  */
 #define BSP_GPIO_HIGH               (1)
 
+/**
+ * Value to indicate enabling or disabling a supply
+ *
+ * @see bsp_driver_if_t.set_supply
+ *
+ */
+#define BSP_SUPPLY_DISABLE              (0)
+#define BSP_SUPPLY_ENABLE               (1)
+
+
 /***********************************************************************************************************************
  * MACROS
  **********************************************************************************************************************/
@@ -146,6 +156,23 @@ typedef struct
      *
      */
     uint32_t (*set_gpio)(uint32_t gpio_id, uint8_t gpio_state);
+
+    /**
+     * Enable or disable a supply
+     *
+     * @param [in] supply_id      ID for supply to change - can be defined in implementation header
+     * @param [in] supply_state   Enable or Disable
+     *
+     * @return
+     * - BSP_STATUS_FAIL        if gpio_id is invalid, or call to MCU HAL fails
+     * - BSP_STATUS_OK          otherwise
+     *
+     * @note this function shouldn't return until the supply has finished rising or falling
+     *
+     * @see BSP_SUPPLY_ENABLE BSP_SUPPLY_DISABLE
+     *
+     */
+    uint32_t (*set_supply)(uint32_t supply_id, uint8_t supply_state);
 
     /**
      * Register GPIO Callback
@@ -277,6 +304,70 @@ typedef struct
                           uint32_t write_length_1,
                           bsp_callback_t cb,
                           void *cb_arg);
+
+    /**
+     * Perform a SPI read
+     *
+     * This function will write and then read back data from a SPI device with a register file. Padding
+     * will automatically be added.
+     *
+     * Perform transaction in the order:
+     * 1. SPI CS low
+     * 2. SPI write of \b addr_length bytes from \b addr_buffer
+     * 3. SPI write of 16 padding clock cycles
+     * 4. SPI read of \b data_length bytes into \b data_buffer
+     * 5. SPI CS high
+     *
+     * BSP will decode \b bsp_dev_id to the correct SPI bus and SPI address.
+     *
+     * @param [in] bsp_dev_id       ID of the SPI device corresponding to the SPI peripheral to reset
+     * @param [in] addr_buffer      pointer to array of bytes to write
+     * @param [in] addr_length      total number of bytes in \b write_buffer
+     * @param [in] data_buffer      pointer to array of bytes to load with SPI bytes read
+     * @param [in] data_length      total number of bytes to read into \b read_buffer
+     *
+     * @return
+     * - BSP_STATUS_FAIL            if bsp_dev_id is invalid, if any portion of SPI transaction failed
+     * - BSP_STATUS_OK              otherwise
+     *
+     */
+    uint32_t (*spi_read)(uint32_t bsp_dev_id,
+                         uint8_t *addr_buffer,
+                         uint32_t addr_length,
+                         uint8_t *data_buffer,
+                         uint32_t data_length);
+
+    /**
+     * Perform a SPI write
+     *
+     * This function will write data to a SPI device with a register file. Padding will automatically
+     * be added.
+     *
+     * Perform transaction in the order:
+     * 1. SPI CS low
+     * 2. SPI write of \b addr_length bytes from \b addr_buffer
+     * 3. SPI write of 16 padding clock cycles
+     * 4. SPI write of \b data_length bytes into \b data_buffer
+     * 5. SPI CS high
+     *
+     * BSP will decode \b bsp_dev_id to the correct SPI bus and SPI address.
+     *
+     * @param [in] bsp_dev_id       ID of the SPI device corresponding to the SPI peripheral to reset
+     * @param [in] addr_buffer      pointer to array of bytes to write
+     * @param [in] addr_length      total number of bytes in \b write_buffer
+     * @param [in] data_buffer      pointer to array of bytes to load with SPI bytes read
+     * @param [in] data_length      total number of bytes to read into \b read_buffer
+     *
+     * @return
+     * - BSP_STATUS_FAIL            if bsp_dev_id is invalid, if any portion of SPI transaction failed
+     * - BSP_STATUS_OK              otherwise
+     *
+     */
+    uint32_t (*spi_write)(uint32_t bsp_dev_id,
+                          uint8_t *addr_buffer,
+                          uint32_t addr_length,
+                          uint8_t *data_buffer,
+                          uint32_t data_length);
 
     /**
      * Global enable of interrupts

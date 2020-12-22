@@ -1906,7 +1906,7 @@ uint32_t cs40l25_write_block(cs40l25_t *driver, uint32_t addr, uint8_t *data, ui
  * Finish booting the CS40L25
  *
  */
-uint32_t cs40l25_boot(cs40l25_t *driver, fw_img_v1_info_t *fw_info)
+uint32_t cs40l25_boot(cs40l25_t *driver, fw_img_info_t *fw_info)
 {
     uint32_t count = 0;
     bool is_cal_boot = false;

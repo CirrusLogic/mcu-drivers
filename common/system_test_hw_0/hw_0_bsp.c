@@ -176,6 +176,7 @@ static void *bsp_dut_int_cb_arg = NULL;
 TIM_HandleTypeDef tim_drv_handle;
 I2C_HandleTypeDef i2c_drv_handle;
 I2S_HandleTypeDef i2s_drv_handle;
+SPI_HandleTypeDef hspi1;
 
 uint32_t bsp_toggle_gpio(uint32_t gpio_id);
 /***********************************************************************************************************************
@@ -312,41 +313,6 @@ static void SystemClock_Config(void)
       Error_Handler();
     }
 #endif
-
-    // Configure I2S clocking
-    RCC_PeriphCLKInitTypeDef rccclkinit;
-    uint8_t index = 0, freqindex = 0xFF;
-
-    for(index = 0; index < 8; index++)
-    {
-      if(I2SFreq[index] == BSP_I2S_FS_HZ)
-      {
-        freqindex = index;
-      }
-    }
-    /* Enable PLLI2S clock */
-    HAL_RCCEx_GetPeriphCLKConfig(&rccclkinit);
-    /* PLLI2S_VCO Input = HSE_VALUE/PLL_M = 1 Mhz */
-    if ((freqindex & 0x7) == 0)
-    {
-      /* I2S clock config
-      PLLI2S_VCO = f(VCO clock) = f(PLLI2S clock input) * (PLLI2SN/PLLM)
-      I2SCLK = f(PLLI2S clock output) = f(VCO clock) / PLLI2SR */
-      rccclkinit.PeriphClockSelection = RCC_PERIPHCLK_I2S;
-      rccclkinit.PLLI2S.PLLI2SN = I2SPLLN[freqindex];
-      rccclkinit.PLLI2S.PLLI2SR = I2SPLLR[freqindex];
-      HAL_RCCEx_PeriphCLKConfig(&rccclkinit);
-    }
-    else
-    {
-      /* I2S clock config
-      PLLI2S_VCO = f(VCO clock) = f(PLLI2S clock input) * (PLLI2SN/PLLM)
-      I2SCLK = f(PLLI2S clock output) = f(VCO clock) / PLLI2SR */
-      rccclkinit.PeriphClockSelection = RCC_PERIPHCLK_I2S;
-      rccclkinit.PLLI2S.PLLI2SN = 258;
-      rccclkinit.PLLI2S.PLLI2SR = 3;
-      HAL_RCCEx_PeriphCLKConfig(&rccclkinit);
-    }
 }
 
 static void I2C_Init(void)
@@ -368,27 +334,93 @@ static void I2C_Init(void)
     return;
 }
 
-static void I2S_Init(void)
+/**
+  * @brief SPI1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_SPI1_Init(void)
 {
-  i2s_drv_handle.Instance = I2S_HW;
-
-  __HAL_I2S_DISABLE(&i2s_drv_handle);
-
-  i2s_drv_handle.Init.AudioFreq   = BSP_I2S_FS_HZ;
-  i2s_drv_handle.Init.ClockSource = I2S_CLOCK_PLL;
-  i2s_drv_handle.Init.CPOL        = I2S_CPOL_LOW;
-  i2s_drv_handle.Init.DataFormat  = BSP_I2S_DATA_FORMAT;
-  i2s_drv_handle.Init.MCLKOutput  = I2S_MCLKOUTPUT_DISABLE;
-  i2s_drv_handle.Init.Mode        = I2S_MODE_MASTER_TX;
-  i2s_drv_handle.Init.FullDuplexMode = I2S_FULLDUPLEXMODE_ENABLE;
-  i2s_drv_handle.Init.Standard    = BSP_I2S_STANDARD;
-
-  if(HAL_I2S_Init(&i2s_drv_handle) != HAL_OK)
+  /* SPI1 parameter configuration*/
+  hspi1.Instance = SPI1;
+  hspi1.Init.Mode = SPI_MODE_MASTER;
+  hspi1.Init.Direction = SPI_DIRECTION_2LINES;
+  hspi1.Init.DataSize = SPI_DATASIZE_8BIT;
+  hspi1.Init.CLKPolarity = SPI_POLARITY_HIGH;
+  hspi1.Init.CLKPhase = SPI_PHASE_2EDGE;
+  hspi1.Init.NSS = SPI_NSS_SOFT;
+  hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_16;
+  hspi1.Init.FirstBit = SPI_FIRSTBIT_MSB;
+  hspi1.Init.TIMode = SPI_TIMODE_DISABLE;
+  hspi1.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
+  hspi1.Init.CRCPolynomial = 10;
+  if (HAL_SPI_Init(&hspi1) != HAL_OK)
   {
-      Error_Handler();
+    Error_Handler();
   }
+}
 
-  return;
+static void I2S_Init(uint32_t i2s_fs_hz)
+{
+    // Configure I2S clocking
+    RCC_PeriphCLKInitTypeDef rccclkinit;
+    uint8_t freqindex = 0xFF;
+
+    for(uint8_t i = 0; i < 8; i++)
+    {
+      if(I2SFreq[i] == i2s_fs_hz)
+      {
+        freqindex = i;
+      }
+    }
+    /* Enable PLLI2S clock */
+    HAL_RCCEx_GetPeriphCLKConfig(&rccclkinit);
+    if (freqindex != 0xFF)
+    {
+      rccclkinit.PeriphClockSelection = RCC_PERIPHCLK_I2S;
+      rccclkinit.PLLI2S.PLLI2SN = I2SPLLN[freqindex];
+      rccclkinit.PLLI2S.PLLI2SR = I2SPLLR[freqindex];
+      HAL_RCCEx_PeriphCLKConfig(&rccclkinit);
+    }
+    else
+    {
+      rccclkinit.PeriphClockSelection = RCC_PERIPHCLK_I2S;
+      rccclkinit.PLLI2S.PLLI2SN = 258;
+      rccclkinit.PLLI2S.PLLI2SR = 3;
+      HAL_RCCEx_PeriphCLKConfig(&rccclkinit);
+    }
+
+    i2s_drv_handle.Instance = I2S_HW;
+
+    __HAL_I2S_DISABLE(&i2s_drv_handle);
+
+    i2s_drv_handle.Init.AudioFreq   = i2s_fs_hz;
+    i2s_drv_handle.Init.ClockSource = I2S_CLOCK_PLL;
+    i2s_drv_handle.Init.CPOL        = I2S_CPOL_LOW;
+    i2s_drv_handle.Init.DataFormat  = BSP_I2S_DATA_FORMAT;
+    i2s_drv_handle.Init.MCLKOutput  = I2S_MCLKOUTPUT_DISABLE;
+    i2s_drv_handle.Init.Mode        = I2S_MODE_MASTER_TX;
+    i2s_drv_handle.Init.FullDuplexMode = I2S_FULLDUPLEXMODE_ENABLE;
+    i2s_drv_handle.Init.Standard    = BSP_I2S_STANDARD;
+
+    if(HAL_I2S_Init(&i2s_drv_handle) != HAL_OK)
+    {
+        Error_Handler();
+    }
+
+    return;
+}
+
+static void I2S_Deinit(void)
+{
+    __HAL_I2S_DISABLE(&i2s_drv_handle);
+
+    if(HAL_I2S_DeInit(&i2s_drv_handle) != HAL_OK)
+    {
+        Error_Handler();
+    }
+
+    return;
 }
 
 static void Timer_Init(void)
@@ -512,6 +544,86 @@ void HAL_MspInit(void)
     HAL_NVIC_EnableIRQ((IRQn_Type)EXTI15_10_IRQn);
 
     return;
+}
+
+/**
+* @brief SPI MSP Initialization
+* This function configures the hardware resources used in this example
+* @param hspi: SPI handle pointer
+* @retval None
+*/
+void HAL_SPI_MspInit(SPI_HandleTypeDef* hspi)
+{
+  GPIO_InitTypeDef GPIO_InitStruct = {0};
+  if(hspi->Instance==SPI1)
+  {
+  /* USER CODE BEGIN SPI1_MspInit 0 */
+
+  /* USER CODE END SPI1_MspInit 0 */
+    /* Peripheral clock enable */
+    __HAL_RCC_SPI1_CLK_ENABLE();
+
+    __HAL_RCC_GPIOA_CLK_ENABLE();
+    __HAL_RCC_GPIOB_CLK_ENABLE();
+    /**SPI1 GPIO Configuration
+    PA15     ------> SPI1_NSS
+    PB3     ------> SPI1_SCK
+    PB4     ------> SPI1_MISO
+    PB5     ------> SPI1_MOSI
+    */
+    HAL_GPIO_WritePin(GPIOA, GPIO_PIN_15, GPIO_PIN_SET);
+    GPIO_InitStruct.Pin = GPIO_PIN_15;
+    GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+    GPIO_InitStruct.Alternate = 0;
+    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+    GPIO_InitStruct.Pin = GPIO_PIN_3|GPIO_PIN_4|GPIO_PIN_5;
+    GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+    GPIO_InitStruct.Alternate = GPIO_AF5_SPI1;
+    HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+  /* USER CODE BEGIN SPI1_MspInit 1 */
+
+  /* USER CODE END SPI1_MspInit 1 */
+  }
+
+}
+
+/**
+* @brief SPI MSP De-Initialization
+* This function freeze the hardware resources used in this example
+* @param hspi: SPI handle pointer
+* @retval None
+*/
+void HAL_SPI_MspDeInit(SPI_HandleTypeDef* hspi)
+{
+  if(hspi->Instance==SPI1)
+  {
+  /* USER CODE BEGIN SPI1_MspDeInit 0 */
+
+  /* USER CODE END SPI1_MspDeInit 0 */
+    /* Peripheral clock disable */
+    __HAL_RCC_SPI1_CLK_DISABLE();
+
+    /**SPI1 GPIO Configuration
+    PA15     ------> SPI1_NSS
+    PB3     ------> SPI1_SCK
+    PB4     ------> SPI1_MISO
+    PB5     ------> SPI1_MOSI
+    */
+    HAL_GPIO_DeInit(GPIOA, GPIO_PIN_15);
+
+    HAL_GPIO_DeInit(GPIOB, GPIO_PIN_3|GPIO_PIN_4|GPIO_PIN_5);
+
+  /* USER CODE BEGIN SPI1_MspDeInit 1 */
+
+  /* USER CODE END SPI1_MspDeInit 1 */
+  }
+
 }
 
 void HAL_MspDeInit(void)
@@ -896,7 +1008,8 @@ uint32_t bsp_initialize(bsp_app_callback_t cb, void *cb_arg)
     /* Initialize all peripheral drivers */
     Timer_Init();
     I2C_Init();
-    I2S_Init();
+    MX_SPI1_Init();
+    bsp_audio_set_fs(BSP_AUDIO_FS_48000_HZ);
 
     // Initialize playback buffer
     for (int i = 0; i < PLAYBACK_BUFFER_SIZE_2BYTES;)
@@ -930,6 +1043,20 @@ void bsp_notification_callback(uint32_t event_flags, void *arg)
 {
     bsp_toggle_gpio(BSP_GPIO_ID_LD2);
     return;
+}
+
+uint32_t bsp_audio_set_fs(uint32_t fs_hz)
+{
+    if ((fs_hz != 48000) && (fs_hz != 44100))
+    {
+        return BSP_STATUS_FAIL;
+    }
+
+    I2S_Deinit();
+
+    I2S_Init(fs_hz);
+
+    return BSP_STATUS_OK;
 }
 
 uint32_t bsp_audio_play(uint8_t content)
@@ -1090,8 +1217,26 @@ bool bsp_was_pb_pressed(uint8_t pb_id)
     return ret;
 }
 
+uint32_t bsp_set_timer(uint32_t duration_ms, bsp_callback_t cb, void *cb_arg)
+{
+    bsp_timer_cb = cb;
+    bsp_timer_cb_arg = cb_arg;
+    bsp_timer_has_started = false;
+    bsp_timer_elapsed = false;
+
+    Timer_Start(duration_ms * 10);
+    if (cb == NULL)
+    {
+        while (!bsp_timer_elapsed);
+    }
+
+    return BSP_STATUS_OK;
+}
+
 uint32_t bsp_set_gpio(uint32_t gpio_id, uint8_t gpio_state)
 {
+    uint8_t tmp[4] = {0x00, 0xDF, 0x00, 0x00};
+
     switch (gpio_id)
     {
         case BSP_GPIO_ID_LD2:
@@ -1100,6 +1245,31 @@ uint32_t bsp_set_gpio(uint32_t gpio_id, uint8_t gpio_state)
 
         case BSP_GPIO_ID_DUT_RESET:
             HAL_GPIO_WritePin(BSP_DUT_RESET_GPIO_PORT, BSP_DUT_RESET_PIN, (GPIO_PinState) gpio_state);
+            break;
+
+        case BSP_GPIO_ID_LN2_RESET:
+            tmp[3] = gpio_state ? 0 : 1;
+            bsp_i2c_write(BSP_LN2_DEV_ID, tmp, 4, NULL, NULL);
+            break;
+
+        default:
+            break;
+    }
+
+    return BSP_STATUS_OK;
+}
+
+uint32_t bsp_set_supply(uint32_t supply_id, uint8_t supply_state)
+{
+    uint8_t tmp[4] = {0x01, 0x1E, 0x00, 0x00};
+
+    switch (supply_id)
+    {
+        case BSP_SUPPLY_ID_LN2_DCVDD:
+            tmp[2] = supply_state ? 0x80 : 0x0;
+            bsp_i2c_write(BSP_LN2_DEV_ID, tmp, 4, NULL, NULL);
+            // Wait 8ms for supply to finish rising/falling
+            bsp_set_timer(8, NULL, NULL);
             break;
 
         default:
@@ -1124,17 +1294,99 @@ uint32_t bsp_toggle_gpio(uint32_t gpio_id)
     return BSP_STATUS_OK;
 }
 
-uint32_t bsp_set_timer(uint32_t duration_ms, bsp_callback_t cb, void *cb_arg)
+uint32_t bsp_spi_read(uint32_t bsp_dev_id,
+                       uint8_t *addr_buffer,
+                       uint32_t addr_length,
+                       uint8_t *data_buffer,
+                       uint32_t data_length)
 {
-    bsp_timer_cb = cb;
-    bsp_timer_cb_arg = cb_arg;
-    bsp_timer_has_started = false;
-    bsp_timer_elapsed = false;
+    uint8_t padding[2] = { 0x0, 0x0 };
+    HAL_StatusTypeDef ret;
 
-    Timer_Start(duration_ms * 10);
-    if (cb == NULL)
+    switch (bsp_dev_id)
     {
-        while (!bsp_timer_elapsed);
+        case BSP_DUT_DEV_ID:
+
+            // Chip select low
+            HAL_GPIO_WritePin(GPIOA, GPIO_PIN_15, GPIO_PIN_RESET);
+
+            // Toggle the R/W bit
+            *addr_buffer = 0x80 | *addr_buffer;
+
+            // Transmit R/W bit + register addr
+            ret = HAL_SPI_Transmit(&hspi1, addr_buffer, addr_length, HAL_MAX_DELAY);
+            if (ret)
+                return BSP_STATUS_FAIL;
+
+            // Transmit Padding
+            ret = HAL_SPI_Transmit(&hspi1, padding, 2, HAL_MAX_DELAY);
+            if (ret)
+                return BSP_STATUS_FAIL;
+
+            // Receive value
+            ret = HAL_SPI_Receive(&hspi1, data_buffer, data_length, HAL_MAX_DELAY);
+            if (ret)
+                return BSP_STATUS_FAIL;
+
+            HAL_GPIO_WritePin(GPIOA, GPIO_PIN_15, GPIO_PIN_SET);
+
+            // Add some extra spiclks after CS is high to workaround ST SPI issue
+            ret = HAL_SPI_Transmit(&hspi1, padding, 1, HAL_MAX_DELAY);
+            if (ret)
+                return BSP_STATUS_FAIL;
+
+            break;
+
+        default:
+            break;
+    }
+
+    return BSP_STATUS_OK;
+}
+
+uint32_t bsp_spi_write(uint32_t bsp_dev_id,
+                       uint8_t *addr_buffer,
+                       uint32_t addr_length,
+                       uint8_t *data_buffer,
+                       uint32_t data_length)
+{
+    uint8_t padding[2] = { 0x0, 0x0 };
+    HAL_StatusTypeDef ret;
+
+    switch (bsp_dev_id)
+    {
+        case BSP_DUT_DEV_ID:
+
+            // Chip select low
+            HAL_GPIO_WritePin(GPIOA, GPIO_PIN_15, GPIO_PIN_RESET);
+
+            // Transmit R/W bit + register addr
+            ret = HAL_SPI_Transmit(&hspi1, addr_buffer, addr_length, HAL_MAX_DELAY);
+            if (ret)
+                return BSP_STATUS_FAIL;
+
+            // Transmit Padding
+            ret = HAL_SPI_Transmit(&hspi1, padding, 2, HAL_MAX_DELAY);
+            if (ret)
+                return BSP_STATUS_FAIL;
+
+            // Transmit data
+            ret = HAL_SPI_Transmit(&hspi1, data_buffer, data_length, HAL_MAX_DELAY);
+            if (ret)
+                return BSP_STATUS_FAIL;
+
+            // Chip select high
+            HAL_GPIO_WritePin(GPIOA, GPIO_PIN_15, GPIO_PIN_SET);
+
+            // Add some extra spiclks after CS is high to workaround ST SPI issue
+            ret = HAL_SPI_Transmit(&hspi1, padding, 1, HAL_MAX_DELAY);
+            if (ret)
+                return BSP_STATUS_FAIL;
+
+            break;
+
+        default:
+            break;
     }
 
     return BSP_STATUS_OK;
@@ -1379,11 +1631,14 @@ void bsp_free(void* ptr)
 static bsp_driver_if_t bsp_driver_if_s =
 {
     .set_gpio = &bsp_set_gpio,
+    .set_supply = &bsp_set_supply,
     .register_gpio_cb = &bsp_register_gpio_cb,
     .set_timer = &bsp_set_timer,
     .i2c_read_repeated_start = &bsp_i2c_read_repeated_start,
     .i2c_write = &bsp_i2c_write,
     .i2c_db_write = &bsp_i2c_db_write,
+    .spi_read = &bsp_spi_read,
+    .spi_write = &bsp_spi_write,
     .i2c_reset = &bsp_i2c_reset,
     .enable_irq = &bsp_enable_irq,
     .disable_irq = &bsp_disable_irq,

@@ -67,6 +67,7 @@ uint32_t bsp_dut_hibernate(void);
 uint32_t bsp_dut_wake(void);
 uint32_t bsp_dut_get_id(uint8_t *id);
 uint32_t bsp_dut_set_dig_gain(float db);
+uint32_t bsp_dut_change_fs(uint32_t fs_hz);
 uint32_t bsp_dut_process(void);
 
 /**********************************************************************************************************************/

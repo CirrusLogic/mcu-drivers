@@ -191,10 +191,12 @@ uint32_t bsp_dut_boot(bool cal_boot)
     // Ensure your fw_img_boot_state_t struct is initialised to zero.
     memset(&boot_state, 0, sizeof(fw_img_boot_state_t));
 
-    // Initialise pointer to the currently available fw_img data and set fw_img_blocks_size
-    // to the size of fw_img_v1_header_t
+    // Emulate a system where only 1k fw_img blocks can be processed at a time
+    write_size = 1024;
+
+    // Initialise pointer to the currently available fw_img data
     boot_state.fw_img_blocks = (uint8_t *) fw_img;
-    boot_state.fw_img_blocks_size = sizeof(fw_img_v1_header_t);
+    boot_state.fw_img_blocks_size = write_size;
 
     // Read in the fw_img header
     ret = fw_img_read_header(&boot_state);
@@ -202,9 +204,6 @@ uint32_t bsp_dut_boot(bool cal_boot)
     {
         return BSP_STATUS_FAIL;
     }
-
-    // Increment fw_img pointer to skip header
-    fw_img += sizeof(fw_img_v1_header_t);
 
     // malloc enough memory to hold the symbol table, using sym_table_size in the previously
     // read in fw_img header
@@ -226,19 +225,20 @@ uint32_t bsp_dut_boot(bool cal_boot)
     // This may have been configured during fw_img creation.
     // If your control interface has specific memory requirements (dma-able, etc), then this memory
     // should adhere to them.
-    boot_state.block_data_size = 4140;
+    // From fw_img_v2 forward, the max_block_size is stored in the fw_img header itself
+    if (boot_state.fw_info.preheader.img_format_rev == 1)
+    {
+        boot_state.block_data_size = 4140;
+    }
+    else
+    {
+        boot_state.block_data_size = boot_state.fw_info.header.max_block_size;
+    }
     boot_state.block_data = (uint8_t *) bsp_malloc(boot_state.block_data_size);
     if (boot_state.block_data == NULL)
     {
         return BSP_STATUS_FAIL;
     }
-
-    // Emulate a system where only 1k fw_img blocks can be processed at a time
-    write_size = 1024;
-
-    // Update the fw_img pointer and size in cs40l25_boot_state_t
-    boot_state.fw_img_blocks = (uint8_t *) fw_img;
-    boot_state.fw_img_blocks_size = write_size;
 
     while (fw_img < fw_img_end)
     {

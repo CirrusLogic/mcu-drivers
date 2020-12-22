@@ -42,7 +42,7 @@ wisce_script_keywords_to_skip = ['load',
                                  'block_write',
                                  'SMbus_16inx_16dat']
 wisce_script_comment = ['*', 'message']
-wisce_script_transaction_keywords = ['4wireSPI_32inx_32dat', 'SMbus_32inx_32dat']
+wisce_script_transaction_keywords = ['4wireSPI_32inx_32dat', '4wireSPI_32inx_16dat', 'SMbus_32inx_32dat']
 
 #==========================================================================
 # CLASSES

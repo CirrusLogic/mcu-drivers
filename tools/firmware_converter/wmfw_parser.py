@@ -36,6 +36,22 @@ VERSION_STRING = "1.0.0"
 #==========================================================================
 # CONSTANTS/GLOBALS
 #==========================================================================
+adsp_pm_p32_block_type = 0x02
+adsp_zm_u24_block_type = 0x04
+adsp_xm_u24_block_type = 0x05
+adsp_ym_u24_block_type = 0x06
+adsp_block_types_memory_region_u24 = [
+    adsp_xm_u24_block_type,
+    adsp_ym_u24_block_type,
+    adsp_zm_u24_block_type]
+adsp_block_types_memory_region_pm32 = [
+    adsp_pm_p32_block_type]
+adsp_memory_region_block_types = [
+    adsp_xm_u24_block_type,
+    adsp_ym_u24_block_type,
+    adsp_zm_u24_block_type,
+    adsp_pm_p32_block_type]
+
 halo_xm_u24_block_type = 0x05
 halo_ym_u24_block_type = 0x06
 halo_pm_p32_block_type = 0x10
@@ -162,7 +178,7 @@ class wmfw_header(wmfw_component):
         self.fields['api_revision'] = bytes_from_word(next_word, 0, 2)
 
         # Get memory sizes block
-        if (self.fields['target_core'] != 4):
+        if (self.fields['target_core'] != 4 and self.fields['target_core'] != 2):
             error_exit('Current core type of ' + str(self.fields['target_core']) + ' is NOT supported!')
         else:
             self.fields['memory_sizes']['xm_size'] = self.get_next_int(self.bytestream, 4)
@@ -224,6 +240,10 @@ class wmfw_memory_region_data_block(wmfw_block):
             self.memory_type = 'p32'
         elif (self.fields['type'] in halo_block_types_memory_region_u32):
             self.memory_type = 'u32'
+        elif (self.fields['type'] in adsp_block_types_memory_region_u24):
+            self.memory_type = 'u24'
+        elif (self.fields['type'] in adsp_block_types_memory_region_pm32):
+            self.memory_type = 'pm32'
 
         for i in range(0, self.fields['block_size']):
             self.data.append(self.bytestream.read(1))
@@ -471,6 +491,90 @@ class halo_firmware_id_block:
     def __str__(self):
         return component_to_string(self, 'Firmware ID Block')
 
+class adsp_firmware_id_block:
+
+    def __init__(self, bytestream, memory_type):
+        self.stream_pos = bytestream.tell()
+        self.memory_type = memory_type
+        self.fields = dict()
+        self.fields['core_id'] = 0
+        self.fields['format_version'] = 0
+        self.fields['firmware_id'] = 0
+        self.fields['firmware_revision'] = 0
+        self.fields['sys_config_mem_offsets'] = dict()
+        self.fields['sys_config_mem_offsets']['xm_base'] = 0
+        self.fields['sys_config_mem_offsets']['xm_size'] = 0
+        self.fields['sys_config_mem_offsets']['ym_base'] = 0
+        self.fields['sys_config_mem_offsets']['ym_size'] = 0
+        self.fields['number_of_algorithms'] = 0
+        self.fields['algorithm_info'] = []
+
+        self.fields['list_terminator'] = 0xBEDEAD
+
+        return
+
+    def get_next_word(self, bytestream):
+        new_bytestr = bytestream.read(3)
+        return bytestr_to_int(new_bytestr, 3)
+
+    def unpack_memory(self, bytestream):
+        new_word_list = []
+        new_bytes_list = list(bytestream.read())
+        for i in range(0, int(len(new_bytes_list)/4)):
+            new_word = new_bytes_list[i * 4]
+            new_word = new_word << 8
+            new_word = new_word + new_bytes_list[i * 4 + 1]
+            new_word = new_word << 8
+            new_word = new_word + new_bytes_list[i * 4 + 2]
+            new_word = new_word << 8
+            new_word = new_word + new_bytes_list[i * 4 + 3]
+
+            new_word_list.append(new_word)
+
+        return new_word_list
+
+
+    def parse(self, bytestream):
+        unpacked_word_list = self.unpack_memory(bytestream)
+        self.fields['core_id'] = int.from_bytes(unpacked_word_list[0].to_bytes(4, byteorder='little'), byteorder='big', signed=False)
+        self.fields['format_version'] = int.from_bytes(unpacked_word_list[1].to_bytes(4, byteorder='little'), byteorder='big', signed=False)
+        self.fields['firmware_id'] = unpacked_word_list[2]
+        self.fields['firmware_revision'] = unpacked_word_list[3]
+        self.fields['sys_config_mem_offsets']['zm_base'] = unpacked_word_list[4]
+        self.fields['sys_config_mem_offsets']['xm_base'] = unpacked_word_list[5]
+        self.fields['sys_config_mem_offsets']['ym_base'] = unpacked_word_list[6]
+        self.fields['number_of_algorithms'] = unpacked_word_list[7]
+        for i in range(0, self.fields['number_of_algorithms']):
+            new_index = 8 + (i * 5)
+            new_info = dict()
+            new_info['algorithm_id'] = unpacked_word_list[new_index]
+            new_info['algorithm_version'] = unpacked_word_list[new_index + 1]
+            new_info['algorithm_offsets'] = dict()
+            new_info['algorithm_offsets']['zm_base'] = unpacked_word_list[new_index + 2]
+            new_info['algorithm_offsets']['xm_base'] = unpacked_word_list[new_index + 3]
+            new_info['algorithm_offsets']['ym_base'] = unpacked_word_list[new_index + 4]
+            self.fields['algorithm_info'].append(new_info)
+
+        return
+
+    def get_adjusted_offset(self, algorithm_id, memory_region, start_offset):
+        temp_offsets = None
+        for alg_info in self.fields['algorithm_info']:
+            if (algorithm_id == alg_info['algorithm_id']):
+                temp_offsets = alg_info['algorithm_offsets']
+        if (temp_offsets == None):
+            temp_offsets = self.fields['sys_config_mem_offsets']
+
+        if (memory_region == 'zm'):
+            return (start_offset + temp_offsets['zm_base'])
+        elif (memory_region == 'xm'):
+            return (start_offset + temp_offsets['xm_base'])
+        else:
+            return (start_offset + temp_offsets['ym_base'])
+
+    def __str__(self):
+        return component_to_string(self, 'Firmware ID Block')
+
 class wmfw_parser:
 
     def __init__(self, filename):
@@ -487,6 +591,11 @@ class wmfw_parser:
         self.header = wmfw_header(f)
         self.header.parse(f)
 
+        if self.header.fields['file_format_version'] is 2:
+            self.block_types = adsp_memory_region_block_types
+        else:
+            self.block_types = halo_memory_region_block_types
+
         # Get blocks
         while (not f.tell() == os.fstat(f.fileno()).st_size):
             temp_block_type = file_int_peek(f, 4)
@@ -498,7 +607,10 @@ class wmfw_parser:
         first_data_block_bytes = self.blocks[1].data
         first_data_block_memory_type = self.blocks[1].memory_type
         temp_bytestream = io.BytesIO(b''.join(first_data_block_bytes))
-        self.fw_id_block = halo_firmware_id_block(temp_bytestream, first_data_block_memory_type)
+        if self.header.fields['file_format_version'] is 2:
+            self.fw_id_block = adsp_firmware_id_block(temp_bytestream, first_data_block_memory_type)
+        else:
+            self.fw_id_block = halo_firmware_id_block(temp_bytestream, first_data_block_memory_type)
         self.fw_id_block.parse(temp_bytestream)
 
         return
@@ -509,7 +621,7 @@ class wmfw_parser:
         return
 
     def block_factory(self, file, block_type):
-        if (block_type in halo_memory_region_block_types):
+        if (block_type in self.block_types):
             return wmfw_memory_region_data_block(file)
         elif (block_type == informational_text_block_type):
             return wmfw_informational_text_data_block(file)
@@ -521,7 +633,7 @@ class wmfw_parser:
     def get_data_blocks(self):
         temp_blocks = []
         for block in self.blocks:
-            if (block.fields['type'] in halo_memory_region_block_types):
+            if (block.fields['type'] in self.block_types):
                 temp_blocks.append(block)
         return temp_blocks
 
@@ -658,7 +770,11 @@ def get_memory_region_from_type(type):
         ret = 'xm'
     elif (type in halo_block_types_memory_region_ym):
         ret = 'ym'
+    elif (type is adsp_zm_u24_block_type):
+        ret = 'zm'
     elif (type in halo_block_types_memory_region_pm):
+        ret = 'pm'
+    elif (type is adsp_pm_p32_block_type):
         ret = 'pm'
     elif (type == (absolute_addressing_data_block_type << 8)):
         ret = 'abs'

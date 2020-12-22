@@ -353,7 +353,7 @@ typedef struct
     uint32_t devid;                     ///< CS35L41 DEVID of current device
     uint32_t revid;                     ///< CS35L41 REVID of current device
     const cs35l41_otp_map_t *otp_map;   ///< Pointer to relevant OTP Map for the current device
-    fw_img_v1_info_t *fw_info;          ///< Current HALO FW/Coefficient boot configuration
+    fw_img_info_t *fw_info;             ///< Current HALO FW/Coefficient boot configuration
     bool is_cal_boot;                   ///< Flag to indicate current HALO FW boot is for Calibration
 
     uint32_t event_flags;               ///< Flags set by Event Handler that are passed to noticiation callback
@@ -465,7 +465,7 @@ uint32_t cs35l41_write_block(cs35l41_t *driver, uint32_t addr, uint8_t *data, ui
  *
  * While cs35l41_write_block loads the actual FW/COEFF data into HALO RAM, cs35l41_boot will finish the boot process
  * by:
- * - loading the fw_img_v1_info_t fw_info member of the driver handle
+ * - loading the fw_img_info_t fw_info member of the driver handle
  * - Performing any post-boot configuration writes
  * - Loading Calibration data (if valid)
  *
@@ -480,7 +480,7 @@ uint32_t cs35l41_write_block(cs35l41_t *driver, uint32_t addr, uint8_t *data, ui
  * - CS35L41_STATUS_OK          otherwise
  *
  */
-uint32_t cs35l41_boot(cs35l41_t *driver, fw_img_v1_info_t *fw_info);
+uint32_t cs35l41_boot(cs35l41_t *driver, fw_img_info_t *fw_info);
 
 /**
  * Change the power state
@@ -518,6 +518,60 @@ uint32_t cs35l41_power(cs35l41_t *driver, uint32_t power_state);
  *
  */
 uint32_t cs35l41_control(cs35l41_t *driver, cs35l41_control_request_t req);
+
+/**
+ * Send a set of HW configuration registers
+ *
+ * This can be used to write a set of configuration registers to the CS35L41.
+ *
+ * @param [in] driver           Pointer to the driver state
+ * @param [in] cfg              Pointer to the HW configuration array
+ * @param [in] cfg_length       Length of the configuration array in number of entries
+ *
+ * @return
+ * - CS35L41_STATUS_FAIL        if any control port transaction fails
+ * - CS35L41_STATUS_OK          otherwise
+ *
+ * @see syscfg_reg_t
+ *
+ */
+uint32_t cs35l41_send_syscfg(cs35l41_t *driver, const syscfg_reg_t *cfg, uint16_t cfg_length);
+
+/**
+ * Start the process for updating the tuning for the HALO FW
+ *
+ * This call will start the process to update the tuning for the HALO FW.  Most likely, this call will be followed by:
+ * - an update of the tuning by processing a fw_img and writing it to the CS35L41
+ * - a call to cs35l41_finish_tuning_switch
+ *
+ * @param [in] driver           Pointer to the driver state
+ *
+ * @return
+ * - CS35L41_STATUS_FAIL if:
+ *      - any control port activity fails
+ *      - any status bit polling times out
+ *      - any mailbox status is not correct for the command sent
+ * - otherwise, returns CS35L41_STATUS_OK
+ *
+ */
+uint32_t cs35l41_start_tuning_switch(cs35l41_t *driver);
+
+/**
+ * Finish the process for updating the tuning for the HALO FW
+ *
+ * This call will finish the process to update the tuning for the HALO FW.
+ *
+ * @param [in] driver           Pointer to the driver state
+ *
+ * @return
+ * - CS35L41_STATUS_FAIL if:
+ *      - any control port activity fails
+ *      - any status bit polling times out
+ *      - any mailbox status is not correct for the command sent
+ * - otherwise, returns CS35L41_STATUS_OK
+ *
+ */
+uint32_t cs35l41_finish_tuning_switch(cs35l41_t *driver);
 
 /**
  * Calibrate the HALO DSP Protection Algorithm

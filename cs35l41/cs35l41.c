@@ -699,7 +699,8 @@ static uint32_t cs35l41_cp_bulk_read(cs35l41_t *driver, uint32_t addr, uint32_t 
     {
         /*
          * Switch from Little-Endian contents of uint32_t 'addr' to Big-Endian format required for Control Port
-         * transaction.  Since register address is first written, config.bsp_config.cp_write_buffer[] is filled with register address.
+         * transaction.  Since register address is first written, config.bsp_config.cp_write_buffer[] is filled with
+         * register address.
          *
          * FIXME: This is not platform independent.
          */
@@ -910,7 +911,7 @@ static bool cs35l41_is_mbox_status_correct(uint32_t cmd, uint32_t status)
  */
 static uint32_t cs35l41_find_symbol(cs35l41_t *driver, uint32_t symbol_id)
 {
-    fw_img_v1_info_t *f = driver->fw_info;
+    fw_img_info_t *f = driver->fw_info;
 
     if (f)
     {
@@ -925,6 +926,123 @@ static uint32_t cs35l41_find_symbol(cs35l41_t *driver, uint32_t symbol_id)
 
     return 0;
 }
+
+/**
+ * Send a HALO Core mailbox command and check the status.
+ *
+ * This will send a HALO Core mailbox command to the Virtual Mailbox 1 and check the response in Virtual Mailbox 2.
+ *
+ * @param [in] driver           Pointer to the driver state
+ * @param [in] cmd              Virtual Mailbox 1 command
+ *
+ * @return
+ * - CS35L41_STATUS_FAIL if:
+ *      - Control port activity fails
+ *      - Polling of a status bit times out
+ *      - Incorrect/unexpected values of Virtual MBOX transactions
+ * - CS35L41_STATUS_OK          otherwise
+ *
+ */
+static uint32_t cs35l41_send_acked_mbox_cmd(cs35l41_t *driver, uint32_t cmd)
+{
+    uint32_t ret = CS35L41_STATUS_OK;
+    uint32_t i;
+    uint32_t temp_reg_val;
+
+    // Clear HALO DSP Virtual MBOX 1 IRQ flag
+    ret = cs35l41_write_reg(driver, IRQ2_IRQ2_EINT_2_REG, IRQ2_IRQ2_EINT_2_DSP_VIRTUAL1_MBOX_WR_EINT2_BITMASK);
+    if (ret)
+    {
+        return ret;
+    }
+
+    // Clear HALO DSP Virtual MBOX 2 IRQ flag
+    ret = cs35l41_write_reg(driver, IRQ1_IRQ1_EINT_2_REG, IRQ1_IRQ1_EINT_2_DSP_VIRTUAL2_MBOX_WR_EINT1_BITMASK);
+    if (ret)
+    {
+        return ret;
+    }
+
+    // Read IRQ2 Mask register
+    ret = cs35l41_read_reg(driver, IRQ2_IRQ2_MASK_2_REG, &temp_reg_val);
+    if (ret)
+    {
+        return ret;
+    }
+
+    // Clear HALO DSP Virtual MBOX 1 IRQ mask
+    temp_reg_val &= ~(IRQ2_IRQ2_MASK_2_DSP_VIRTUAL1_MBOX_WR_MASK2_BITMASK);
+    ret = cs35l41_write_reg(driver, IRQ2_IRQ2_MASK_2_REG, temp_reg_val);
+    if (ret)
+    {
+        return ret;
+    }
+
+    // Send HALO DSP MBOX Command
+    ret = cs35l41_write_reg(driver, DSP_VIRTUAL1_MBOX_DSP_VIRTUAL1_MBOX_1_REG, cmd);
+    if (ret)
+    {
+        return ret;
+    }
+
+    // Wait for at least 1ms
+    bsp_driver_if_g->set_timer(BSP_TIMER_DURATION_2MS, NULL, NULL);
+
+    for (i = 0; i < 5; i++)
+    {
+        // Read IRQ1 flag register to poll for MBOX IRQ
+        cs35l41_read_reg(driver, IRQ1_IRQ1_EINT_2_REG, &temp_reg_val);
+
+        if (temp_reg_val & IRQ1_IRQ1_EINT_2_DSP_VIRTUAL2_MBOX_WR_EINT1_BITMASK)
+        {
+            break;
+        }
+
+        bsp_driver_if_g->set_timer(BSP_TIMER_DURATION_2MS, NULL, NULL);
+    }
+
+    if (i == 5)
+    {
+        return CS35L41_STATUS_FAIL;
+    }
+
+    // Clear MBOX IRQ flag
+    ret = cs35l41_write_reg(driver, IRQ1_IRQ1_EINT_2_REG, IRQ1_IRQ1_EINT_2_DSP_VIRTUAL2_MBOX_WR_EINT1_BITMASK);
+    if (ret)
+    {
+        return ret;
+    }
+
+    // Read IRQ2 Mask register to re-mask HALO DSP Virtual MBOX 1 IRQ
+    ret = cs35l41_read_reg(driver, IRQ2_IRQ2_MASK_2_REG, &temp_reg_val);
+    if (ret)
+    {
+        return ret;
+    }
+    // Re-mask HALO DSP Virtual MBOX 1 IRQ
+    temp_reg_val |= IRQ2_IRQ2_MASK_2_DSP_VIRTUAL1_MBOX_WR_MASK2_BITMASK;
+    ret = cs35l41_write_reg(driver, IRQ2_IRQ2_MASK_2_REG, temp_reg_val);
+    if (ret)
+    {
+        return ret;
+    }
+
+    // Read the MBOX status
+    ret = cs35l41_read_reg(driver, DSP_MBOX_DSP_MBOX_2_REG, &temp_reg_val);
+    if (ret)
+    {
+        return ret;
+    }
+
+    // Check that MBOX status is correct for command just sent
+    if (!(cs35l41_is_mbox_status_correct(cmd, temp_reg_val)))
+    {
+        return CS35L41_STATUS_FAIL;
+    }
+
+    return ret;
+}
+
 
 /**
  * Power up from Standby
@@ -2306,7 +2424,7 @@ uint32_t cs35l41_write_block(cs35l41_t *driver, uint32_t addr, uint8_t *data, ui
  * Finish booting the CS35L41
  *
  */
-uint32_t cs35l41_boot(cs35l41_t *driver, fw_img_v1_info_t *fw_info)
+uint32_t cs35l41_boot(cs35l41_t *driver, fw_img_info_t *fw_info)
 {
     uint32_t temp_reg;
     uint32_t ret = CS35L41_STATUS_OK;
@@ -2566,6 +2684,169 @@ uint32_t cs35l41_calibrate(cs35l41_t *driver, uint32_t ambient_temp_deg_c)
     else
     {
         return CS35L41_STATUS_FAIL;
+    }
+
+    return CS35L41_STATUS_OK;
+}
+
+/**
+ * Send a set of HW configuration registers
+ *
+ */
+uint32_t cs35l41_send_syscfg(cs35l41_t *driver, const syscfg_reg_t *cfg, uint16_t cfg_length)
+{
+    uint32_t ret, temp_reg_val, orig_val;
+
+    for (int i = 0; i < cfg_length; i++)
+    {
+        ret = cs35l41_read_reg(driver, cfg[i].address, &orig_val);
+        if (ret)
+        {
+            return ret;
+        }
+        temp_reg_val = orig_val & ~(cfg[i].mask);
+        temp_reg_val |= cfg[i].value;
+        if (orig_val != temp_reg_val)
+        {
+            ret = cs35l41_write_reg(driver, cfg[i].address, temp_reg_val);
+            if (ret)
+            {
+                return ret;
+            }
+        }
+    }
+
+    return CS35L41_STATUS_OK;
+}
+
+/**
+ * Start the process for updating the tuning for the HALO FW
+ *
+ */
+uint32_t cs35l41_start_tuning_switch(cs35l41_t *driver)
+{
+    uint32_t ret;
+    uint8_t i;
+    uint32_t temp_reg_val;
+
+    /*
+     * The Host (i.e. the AP or the Codec driving the amp) sends a PAUSE request to the Prince FW and Pauses the
+     * current playback.
+     */
+    ret = cs35l41_send_acked_mbox_cmd(driver, CS35L41_DSP_MBOX_CMD_PAUSE);
+    if (ret)
+    {
+        return ret;
+    }
+
+    // The Host ensures both PLL_FORCE_EN and GLOBAL_EN are set to 0
+    // The Host checks the Power Down Done flag on Prince (MSM_PDN_DONE) to ensure that the PLL has stopped.
+    // Read GLOBAL_EN register in order to clear GLOBAL_EN
+    ret = cs35l41_read_reg(driver, MSM_GLOBAL_ENABLES_REG, &temp_reg_val);
+    if (ret)
+    {
+        return ret;
+    }
+
+    // Clear GLOBAL_EN
+    temp_reg_val &= ~(MSM_GLOBAL_ENABLES_GLOBAL_EN_BITMASK);
+    ret = cs35l41_write_reg(driver, MSM_GLOBAL_ENABLES_REG, temp_reg_val);
+    if (ret)
+    {
+        return ret;
+    }
+
+    // Read IRQ1 flag register to poll MSM_PDN_DONE bit
+    i = 100;
+    do
+    {
+        ret = cs35l41_read_reg(driver, IRQ1_IRQ1_EINT_1_REG, &temp_reg_val);
+        if (ret)
+        {
+            return ret;
+        }
+
+        if (temp_reg_val & IRQ1_IRQ1_EINT_1_MSM_PDN_DONE_EINT1_BITMASK)
+        {
+            break;
+        }
+
+        bsp_driver_if_g->set_timer(BSP_TIMER_DURATION_1MS, NULL, NULL);
+
+        i--;
+    } while (i > 0);
+
+    if (i == 0)
+    {
+        return CS35L41_STATUS_FAIL;
+    }
+
+    // Clear MSM_PDN_DONE IRQ flag
+    ret = cs35l41_write_reg(driver, IRQ1_IRQ1_EINT_1_REG, IRQ1_IRQ1_EINT_1_MSM_PDN_DONE_EINT1_BITMASK);
+    if (ret)
+    {
+        return ret;
+    }
+
+    bsp_driver_if_g->set_timer(10, NULL, NULL);
+
+    /*
+     * The Host sends a CSPL_STOP_PRE_REINIT.   This puts the FW into a state ready to accept a new
+     * tuning/configuration but leaves the DSP running.
+     * Poll for RDY_FOR_REINIT from MBOX2
+     */
+    ret = cs35l41_send_acked_mbox_cmd(driver, CS35L41_DSP_MBOX_CMD_STOP_PRE_REINIT);
+    if (ret)
+    {
+        return ret;
+    }
+
+    return CS35L41_STATUS_OK;
+}
+
+/**
+ * Finish the process for updating the tuning for the HALO FW
+ *
+ */
+uint32_t cs35l41_finish_tuning_switch(cs35l41_t *driver)
+{
+    uint32_t ret;
+    uint32_t temp_reg_val;
+
+    /*
+     * The Host sends a REINIT request.   This causes the FW to read the new configuration and initialize the new CSPL
+     * audio chain. This will compare the GLOBAL_FS with the sample rate from the tuning.
+     * Poll for RDY_FOR_REINIT from MBOX2
+     */
+    ret = cs35l41_send_acked_mbox_cmd(driver, CS35L41_DSP_MBOX_CMD_REINIT);
+    if (ret)
+    {
+        return ret;
+    }
+
+    // The Host sets the GLOBAL_EN to 1. It is not expected that the PLL_FORCE_EN should be used
+    // Read GLOBAL_EN register
+    ret = cs35l41_read_reg(driver, MSM_GLOBAL_ENABLES_REG, &temp_reg_val);
+    if (ret)
+    {
+        return ret;
+    }
+    temp_reg_val |= MSM_GLOBAL_ENABLES_GLOBAL_EN_BITMASK;
+    //Set GLOBAL_EN
+    ret = cs35l41_write_reg(driver, MSM_GLOBAL_ENABLES_REG, temp_reg_val);
+    if (ret)
+    {
+        return ret;
+    }
+
+    //Wait 1ms
+    bsp_driver_if_g->set_timer(CS35L41_T_AMP_PUP_MS, NULL, NULL);
+
+    // The Host sends a RESUME command and the FW starts to process and output the new audio.
+    ret = cs35l41_send_acked_mbox_cmd(driver, CS35L41_DSP_MBOX_CMD_RESUME);
+    if (ret)
+    {
+        return ret;
     }
 
     return CS35L41_STATUS_OK;

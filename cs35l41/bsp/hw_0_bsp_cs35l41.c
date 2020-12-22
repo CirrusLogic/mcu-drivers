@@ -30,8 +30,11 @@
 #include "cs35l41_ext.h"
 #include "cs35l41_fw_img.h"
 #include "cs35l41_tune_fw_img.h"
+#include "cs35l41_tune_48_fw_img.h"
+#include "cs35l41_tune_44p1_fw_img.h"
 #include "cs35l41_cal_fw_img.h"
 #include "test_tone_tables.h"
+#include "cs35l41_fs_switch_syscfg.h"
 
 /***********************************************************************************************************************
  * LOCAL LITERAL SUBSTITUTIONS
@@ -41,7 +44,7 @@
  * LOCAL VARIABLES
  **********************************************************************************************************************/
 static cs35l41_t cs35l41_driver;
-static fw_img_v1_info_t fw_img_info;
+static fw_img_info_t fw_img_info;
 static uint8_t transmit_buffer[32];
 static uint8_t receive_buffer[256];
 static uint32_t bsp_dut_dig_gain = CS35L41_AMP_VOLUME_0DB;
@@ -65,12 +68,17 @@ static cs35l41_bsp_config_t bsp_config =
 /***********************************************************************************************************************
  * LOCAL FUNCTIONS
  **********************************************************************************************************************/
-uint32_t bsp_dut_write_fw_img(const uint8_t *fw_img, fw_img_v1_info_t *fw_img_info)
+uint32_t bsp_dut_write_fw_img(const uint8_t *fw_img, fw_img_info_t *fw_img_info)
 {
     uint32_t ret;
     fw_img_boot_state_t boot_state;
     const uint8_t *fw_img_end;
     uint32_t write_size;
+
+    if (fw_img == NULL)
+    {
+        return BSP_STATUS_FAIL;
+    }
 
     // Ensure your fw_img_boot_state_t struct is initialised to zero.
     memset(&boot_state, 0, sizeof(fw_img_boot_state_t));
@@ -81,10 +89,9 @@ uint32_t bsp_dut_write_fw_img(const uint8_t *fw_img, fw_img_v1_info_t *fw_img_in
     // Emulate a system where only 1k fw_img blocks can be processed at a time
     write_size = 1024;
 
-    // Initialise pointer to the currently available fw_img data and set fw_img_blocks_size
-    // to the size of fw_img_v1_header_t
+    // Update the fw_img pointer and size in cs35l41_boot_state_t to start transferring data blocks
     boot_state.fw_img_blocks = (uint8_t *) fw_img;
-    boot_state.fw_img_blocks_size = sizeof(fw_img_v1_header_t);
+    boot_state.fw_img_blocks_size = write_size;
 
     // Get pointers to buffers for Symbol and Algorithm list
     if (fw_img_info != NULL)
@@ -99,18 +106,19 @@ uint32_t bsp_dut_write_fw_img(const uint8_t *fw_img, fw_img_v1_info_t *fw_img_in
         return BSP_STATUS_FAIL;
     }
 
-    // Increment fw_img pointer to skip header
-    fw_img += sizeof(fw_img_v1_header_t);
-
-    // Update the fw_img pointer and size in cs35l41_boot_state_t to start transferring data blocks
-    boot_state.fw_img_blocks = (uint8_t *) fw_img;
-    boot_state.fw_img_blocks_size = write_size;
-
     // Finally malloc enough memory to hold the largest data block in the fw_img being processed.
     // This may have been configured during fw_img creation.
     // If your control interface has specific memory requirements (dma-able, etc), then this memory
     // should adhere to them.
-    boot_state.block_data_size = CS35L41_CONTROL_PORT_MAX_PAYLOAD_BYTES;
+    // From fw_img_v2 forward, the max_block_size is stored in the fw_img header itself
+    if (boot_state.fw_info.preheader.img_format_rev == 1)
+    {
+        boot_state.block_data_size = CS35L41_CONTROL_PORT_MAX_PAYLOAD_BYTES;
+    }
+    else
+    {
+        boot_state.block_data_size = boot_state.fw_info.header.max_block_size;
+    }
     boot_state.block_data = (uint8_t *) bsp_malloc(boot_state.block_data_size);
     if (boot_state.block_data == NULL)
     {
@@ -229,6 +237,7 @@ uint32_t bsp_dut_boot(bool cal_boot)
     {
         tune_img = cs35l41_cal_fw_img;
     }
+
     cs35l41_driver.is_cal_boot = cal_boot;
 
     // Inform the driver that any current firmware is no longer available by passing a NULL
@@ -246,7 +255,7 @@ uint32_t bsp_dut_boot(bool cal_boot)
         bsp_free(fw_img_info.alg_id_list);
 
     // Ensure your fw_img_boot_state_t struct is initialised to zero.
-    memset(&fw_img_info, 0, sizeof(fw_img_v1_info_t));
+    memset(&fw_img_info, 0, sizeof(fw_img_info_t));
 
     // Read in fw_img header to get sizes of Symbol ID and Algo List tables
     fw_img_boot_state_t temp_boot_state = {0};
@@ -254,7 +263,7 @@ uint32_t bsp_dut_boot(bool cal_boot)
     // Initialise pointer to the currently available fw_img data and set fw_img_blocks_size
     // to the size of fw_img_v1_header_t
     temp_boot_state.fw_img_blocks = (uint8_t *) fw_img;
-    temp_boot_state.fw_img_blocks_size = sizeof(fw_img_v1_header_t);
+    temp_boot_state.fw_img_blocks_size = 1024;
 
     // Read in the fw_img header
     ret = fw_img_read_header(&temp_boot_state);
@@ -444,6 +453,55 @@ uint32_t bsp_dut_wake(void)
     {
         return BSP_STATUS_FAIL;
     }
+}
+
+uint32_t bsp_dut_change_fs(uint32_t fs_hz)
+{
+    uint32_t ret;
+    const uint8_t *tune_img;
+    const syscfg_reg_t *cfg;
+    uint16_t cfg_length;
+
+    // Validate Fs
+    if (fs_hz == 48000)
+    {
+        tune_img = cs35l41_tune_48_fw_img;
+        cfg = cs35l41_fs_48kHz_syscfg;
+        cfg_length = CS35L41_FS_48KHZ_SYSCFG_REGS_TOTAL;
+    }
+    else if (fs_hz == 44100)
+    {
+        tune_img = cs35l41_tune_44p1_fw_img;
+        cfg = cs35l41_fs_44p1kHz_syscfg;
+        cfg_length = CS35L41_FS_44P1KHZ_SYSCFG_REGS_TOTAL;
+    }
+    else
+    {
+        return BSP_STATUS_FAIL;
+    }
+
+    ret = cs35l41_start_tuning_switch(&cs35l41_driver);
+    if (ret)
+    {
+        return BSP_STATUS_FAIL;
+    }
+
+    ret = cs35l41_send_syscfg(&cs35l41_driver, cfg, cfg_length);
+    if (ret)
+    {
+        return BSP_STATUS_FAIL;
+    }
+
+    // Load new Fs tuning
+    bsp_dut_write_fw_img(tune_img, NULL);
+
+    ret = cs35l41_finish_tuning_switch(&cs35l41_driver);
+    if (ret)
+    {
+        return BSP_STATUS_FAIL;
+    }
+
+    return BSP_STATUS_OK;
 }
 
 uint32_t bsp_dut_process(void)

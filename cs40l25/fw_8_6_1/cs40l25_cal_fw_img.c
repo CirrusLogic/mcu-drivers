@@ -18,8 +18,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * firmware_converter.py version: 3.0.0
- * Command:  ../../tools/firmware_converter/firmware_converter.py fw_img_v1 cs40l25 prince_haptics_ctrl_ram_remap_calib_0A0101.wmfw --sym-input ../cs40l25_cal_sym.h --suffix cal --generic-sym
+ * firmware_converter.py version: 3.1.0
+ * Command:  ..\..\tools\firmware_converter\firmware_converter.py fw_img_v2 cs40l25 prince_haptics_ctrl_ram_remap_calib_0A0101.wmfw --sym-input ..\cs40l25_cal_sym.h --suffix cal --generic-sym
  *
  */
 
@@ -42,13 +42,15 @@
 const uint8_t cs40l25_cal_fw_img[] = {
 // Header
 0xFF,0x98,0xB9,0x54, // IMG_MAGIC_NUMBER_1
-0x01,0x00,0x00,0x00, // IMG_FORMAT_REV
-0x98,0x23,0x00,0x00, // IMG_SIZE
+0x02,0x00,0x00,0x00, // IMG_FORMAT_REV
+0xA0,0x23,0x00,0x00, // IMG_SIZE
 0x09,0x00,0x00,0x00, // SYM_TABLE_SIZE
 0x03,0x00,0x00,0x00, // ALG_LIST_SIZE
 0xC6,0x00,0x14,0x00, // FW_ID
 0x01,0x01,0x0A,0x00, // FW_VERSION
 0x09,0x00,0x00,0x00, // DATA_BLOCKS
+0x2C,0x10,0x00,0x00, // MAX_BLOCK_SIZE
+0x00,0x00,0x00,0x00, // FW_IMG_VERSION
 // Symbol Linking Table
 0x01,0x00,0x00,0x00, // FIRMWARE_HALO_STATE
 0x58,0x0B,0x80,0x02, // 0x2800b58
@@ -468,7 +470,7 @@ const uint8_t cs40l25_cal_fw_img[] = {
 
 // Footer
 0xA6,0xE2,0x6B,0x93, // IMG_MAGIC_NUMBER_2
-0x0F,0x0F,0xF0,0xF0, // IMG_CHECKSUM
+0xE9,0x5A,0xAB,0x38, // IMG_CHECKSUM
 };
 
 /** @} */

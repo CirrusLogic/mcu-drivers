@@ -30,17 +30,13 @@
  * LOCAL LITERAL SUBSTITUTIONS
  **********************************************************************************************************************/
 #define APP_STATE_CAL_PDN               (0)
-#define APP_STATE_CAL_BOOTED            (1)
-#define APP_STATE_CAL_PUP               (2)
-#define APP_STATE_CALIBRATED            (3)
-#define APP_STATE_PDN                   (4)
-#define APP_STATE_BOOTED                (5)
-#define APP_STATE_PUP                   (6)
-#define APP_STATE_MUTE                  (7)
-#define APP_STATE_UNMUTE                (8)
-#define APP_STATE_HIBERNATE             (9)
-#define APP_STATE_WAKE                  (10)
-#define APP_STATE_CHECK_PROCESSING      (11)
+#define APP_STATE_PDN                   (1)
+#define APP_STATE_CHANGE_44P1KHZ        (2)
+#define APP_STATE_CHANGE_48KHZ          (3)
+#define APP_STATE_PUP                   (4)
+#define APP_STATE_MUTE                  (5)
+#define APP_STATE_HIBERNATE             (6)
+#define APP_STATE_WAKE                  (7)
 
 /***********************************************************************************************************************
  * LOCAL VARIABLES
@@ -96,32 +92,12 @@ int main(void)
                 if (bsp_pb_pressed)
                 {
                     bsp_audio_stop();
+                    bsp_audio_set_fs(BSP_AUDIO_FS_48000_HZ);
                     bsp_audio_play_record(BSP_PLAY_SILENCE);
                     bsp_dut_reset();
                     bsp_dut_boot(true);
-                    app_audio_state = APP_STATE_CAL_BOOTED;
-                }
-                break;
-
-            case APP_STATE_CAL_BOOTED:
-                if (bsp_pb_pressed)
-                {
                     bsp_dut_power_up();
-                    app_audio_state = APP_STATE_CAL_PUP;
-                }
-                break;
-
-            case APP_STATE_CAL_PUP:
-                if (bsp_pb_pressed)
-                {
                     bsp_dut_calibrate();
-                    app_audio_state = APP_STATE_CALIBRATED;
-                }
-                break;
-
-            case APP_STATE_CALIBRATED:
-                if (bsp_pb_pressed)
-                {
                     bsp_dut_power_down();
                     app_audio_state = APP_STATE_PDN;
                 }
@@ -131,6 +107,7 @@ int main(void)
                 if (bsp_pb_pressed)
                 {
                     bsp_audio_stop();
+                    bsp_audio_set_fs(BSP_AUDIO_FS_48000_HZ);
                     bsp_audio_play_record(BSP_PLAY_STEREO_1KHZ_20DBFS);
                     bsp_dut_reset();
                     bsp_dut_boot(false);
@@ -144,22 +121,42 @@ int main(void)
                     {
                         bsp_dut_set_dig_gain(-10);
                     }
-                    app_audio_state = APP_STATE_BOOTED;
-                }
-                break;
-
-            case APP_STATE_BOOTED:
-                if (bsp_pb_pressed)
-                {
                     bsp_dut_power_up();
-                    app_audio_state = APP_STATE_CHECK_PROCESSING;
+                    app_audio_state = APP_STATE_CHANGE_44P1KHZ;
                 }
                 break;
 
-            case APP_STATE_CHECK_PROCESSING:
+            case APP_STATE_CHANGE_44P1KHZ:
                 if (bsp_pb_pressed)
                 {
                     bool is_processing = false;
+                    bsp_dut_is_processing(&is_processing);
+
+                    bsp_dut_change_fs(BSP_AUDIO_FS_44100_HZ);
+                    bsp_audio_stop();
+                    bsp_audio_set_fs(BSP_AUDIO_FS_44100_HZ);
+                    bsp_audio_play_record(BSP_PLAY_STEREO_1KHZ_20DBFS);
+
+                    bsp_dut_is_processing(&is_processing);
+
+                    if (is_processing)
+                    {
+                        app_audio_state = APP_STATE_CHANGE_48KHZ;
+                    }
+                }
+                break;
+
+            case APP_STATE_CHANGE_48KHZ:
+                if (bsp_pb_pressed)
+                {
+                    bool is_processing = false;
+                    bsp_dut_is_processing(&is_processing);
+
+                    bsp_dut_change_fs(BSP_AUDIO_FS_48000_HZ);
+                    bsp_audio_stop();
+                    bsp_audio_set_fs(BSP_AUDIO_FS_48000_HZ);
+                    bsp_audio_play_record(BSP_PLAY_STEREO_1KHZ_20DBFS);
+
                     bsp_dut_is_processing(&is_processing);
 
                     if (is_processing)
@@ -180,14 +177,6 @@ int main(void)
             case APP_STATE_MUTE:
                 if (bsp_pb_pressed)
                 {
-                    bsp_dut_mute(false);
-                    app_audio_state = APP_STATE_UNMUTE;
-                }
-                break;
-
-            case APP_STATE_UNMUTE:
-                if (bsp_pb_pressed)
-                {
                     bsp_dut_power_down();
                     app_audio_state = APP_STATE_HIBERNATE;
                 }
@@ -205,7 +194,7 @@ int main(void)
                 if (bsp_pb_pressed)
                 {
                     bsp_dut_wake();
-                    app_audio_state = APP_STATE_CAL_PDN;
+                    app_audio_state = APP_STATE_PDN;
                 }
                 break;
 
