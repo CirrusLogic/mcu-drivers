@@ -314,7 +314,7 @@ typedef struct
      * Perform transaction in the order:
      * 1. SPI CS low
      * 2. SPI write of \b addr_length bytes from \b addr_buffer
-     * 3. SPI write of 16 padding clock cycles
+     * 3. SPI write of pad_len padding clock cycles
      * 4. SPI read of \b data_length bytes into \b data_buffer
      * 5. SPI CS high
      *
@@ -325,6 +325,7 @@ typedef struct
      * @param [in] addr_length      total number of bytes in \b write_buffer
      * @param [in] data_buffer      pointer to array of bytes to load with SPI bytes read
      * @param [in] data_length      total number of bytes to read into \b read_buffer
+     * @param [in] pad_len          total number of bytes of padding between the addr write transaction and the data read
      *
      * @return
      * - BSP_STATUS_FAIL            if bsp_dev_id is invalid, if any portion of SPI transaction failed
@@ -335,7 +336,8 @@ typedef struct
                          uint8_t *addr_buffer,
                          uint32_t addr_length,
                          uint8_t *data_buffer,
-                         uint32_t data_length);
+                         uint32_t data_length,
+                         uint32_t pad_len);
 
     /**
      * Perform a SPI write
@@ -346,7 +348,7 @@ typedef struct
      * Perform transaction in the order:
      * 1. SPI CS low
      * 2. SPI write of \b addr_length bytes from \b addr_buffer
-     * 3. SPI write of 16 padding clock cycles
+     * 3. SPI write of pad_len padding clock cycles
      * 4. SPI write of \b data_length bytes into \b data_buffer
      * 5. SPI CS high
      *
@@ -357,6 +359,7 @@ typedef struct
      * @param [in] addr_length      total number of bytes in \b write_buffer
      * @param [in] data_buffer      pointer to array of bytes to load with SPI bytes read
      * @param [in] data_length      total number of bytes to read into \b read_buffer
+     * @param [in] pad_len          total number of bytes of padding between the addr write transaction and the data write
      *
      * @return
      * - BSP_STATUS_FAIL            if bsp_dev_id is invalid, if any portion of SPI transaction failed
@@ -367,7 +370,8 @@ typedef struct
                           uint8_t *addr_buffer,
                           uint32_t addr_length,
                           uint8_t *data_buffer,
-                          uint32_t data_length);
+                          uint32_t data_length,
+                          uint32_t pad_len);
 
     /**
      * Global enable of interrupts
@@ -392,6 +396,30 @@ typedef struct
      *
      */
     uint32_t (*disable_irq)(void);
+
+    /**
+     * Temporarily change the clock speed of the SPI bus
+     *
+     * Since portions of a driver may have a maximum bus speed limitation, this API allows for temporarily specifying
+     * the maximum bus speed.
+     *
+     * @return
+     * - BSP_STATUS_FAIL            if a slower speed is requested by the current SPI speed is already slowest available
+     * - BSP_STATUS_OK              otherwise
+     *
+     */
+    uint32_t (*spi_throttle_speed)(uint32_t speed_hz);
+
+    /**
+     * Restore the clock speed of the SPI bus to the original configuration
+     *
+     * After a call to spi_throttle_speed(), this API allows for restoring the bus clock speed of the SPI bus to the
+     * original configuration given during BSP initialization.
+     *
+     * @return                      BSP_STATUS_OK always
+     *
+     */
+    uint32_t (*spi_restore_speed)(void);
 } bsp_driver_if_t;
 
 /***********************************************************************************************************************

@@ -54,6 +54,7 @@ class wisce_script_importer:
         f = open(filename)
         for line in f.readlines():
             # Check for starting with a keyword
+            line = line.replace('\t', ' ')
             words = line.split(' ')
             words = [w for w in words if w != '']
             if words[0] in wisce_script_keywords_to_skip:

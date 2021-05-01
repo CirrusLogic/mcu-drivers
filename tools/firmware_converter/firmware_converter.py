@@ -34,7 +34,7 @@ from firmware_exporter_factory import firmware_exporter_factory
 #==========================================================================
 # VERSION
 #==========================================================================
-VERSION_STRING = "3.1.0"
+VERSION_STRING = "3.2.1"
 
 #==========================================================================
 # CONSTANTS/GLOBALS
@@ -112,6 +112,12 @@ class address_resolver:
 
         return address
 
+    def bytes_per_addr(self):
+        if (self.core == 'halo_type_0'):
+            return 1
+        else:
+            return 2
+
 class block_list:
     def __init__(self, size_limit, address_resolver):
         self.size_limit = size_limit
@@ -133,7 +139,7 @@ class block_list:
                     temp_block.append(data_byte)
                     if (len(temp_block) >= self.size_limit):
                         new_blocks.append((temp_start_offset, temp_block))
-                        temp_start_offset = temp_start_offset + len(temp_block)
+                        temp_start_offset = temp_start_offset + (len(temp_block) // self.ar.bytes_per_addr())
                         temp_block = []
                 if (len(temp_block) > 0):
                     new_blocks.append((temp_start_offset, temp_block))

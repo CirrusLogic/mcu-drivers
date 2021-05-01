@@ -1,5 +1,5 @@
 #==========================================================================
-# (c) 2020 Cirrus Logic, Inc.
+# (c) 2020-2021 Cirrus Logic, Inc.
 #--------------------------------------------------------------------------
 # Project : Templates for C Source and Header files
 # File    : c_h_file_templates.py
@@ -26,6 +26,7 @@
 #==========================================================================
 import string
 from firmware_exporter import firmware_exporter
+import time
 
 #==========================================================================
 # CONSTANTS/GLOBALS
@@ -36,7 +37,7 @@ header_file_template_str = """/**
  * @brief {part_number_uc} Firmware C Header File
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2020 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic """ + time.strftime("%Y") + """ All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -167,7 +168,7 @@ source_file_template_str = """/**
  * @brief {part_number_uc} Firmware C Array File
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2020 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic """ + time.strftime("%Y") + """ All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.

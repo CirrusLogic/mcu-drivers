@@ -939,6 +939,8 @@ typedef union
 
 #define GPIO_GPIO1_CTRL1_REG                                                (0x11008)       ///< @see Section 7.20.2
 #define GPIO_GPIO2_CTRL1_REG                                                (0x1100C)       ///< @see Section 7.20.3
+#define GPIO_GPIO3_CTRL1_REG                                                (0x11010)       ///< @see Section 7.20.4
+#define GPIO_GPIO4_CTRL1_REG                                                (0x11014)       ///< @see Section 7.20.5
 /**
  * Register definition for GPIO_GPIOx_CTRL1_REG
  *

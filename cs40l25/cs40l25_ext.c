@@ -30,10 +30,8 @@
  * LOCAL LITERAL SUBSTITUTIONS
  **********************************************************************************************************************/
 
-#ifdef CS40L25_ALGORITHM_DYNAMIC_F0
 #define CS40L25_DYNAMIC_F0_TABLE_SIZE           (20)
 #define CS40L25_POLL_DYNAMIC_REDC_TOTAL         (30)
-#endif //CS40L25_ALGORITHM_DYNAMIC_F0
 
 /***********************************************************************************************************************
  * LOCAL VARIABLES
@@ -154,7 +152,7 @@ uint32_t cs40l25_update_haptic_config(cs40l25_t *driver, cs40l25_haptic_config_t
 
         fa.id = CS40L25_SYM_FIRMWARE_INDEXBUTTONPRESS;
         fa.value = (uint32_t) config->gpio_trigger_config[i].button_press_index;
-        fa.address = (i * 4);
+        fa.address = i;
         fa.size = 32;
         fa.shift = 0;
         ret = cs40l25_control(driver, req);
@@ -208,7 +206,6 @@ uint32_t cs40l25_trigger_bhm(cs40l25_t *driver)
     return ret;
 }
 
-#ifdef CS40L25_ALGORITHM_VIBEGEN
 /**
  * Trigger RAM Mode Haptic Effects
  *
@@ -278,9 +275,7 @@ uint32_t cs40l25_set_click_compensation_enable(cs40l25_t *driver, bool enable)
 
     return ret;
 }
-#endif //CS40L25_ALGORITHM_VIBEGEN
 
-#ifdef CS40L25_ALGORITHM_CLAB
 /**
  * Enable the HALO FW CLAB Algorithm
  *
@@ -320,9 +315,6 @@ uint32_t cs40l25_set_clab_peak_amplitude(cs40l25_t *driver, uint32_t amplitude)
     return cs40l25_control(driver, req);
 }
 
-#endif //CS40L25_ALGORITHM_CLAB
-
-#ifdef CS40L25_ALGORITHM_DYNAMIC_F0
 /**
  * Enable the HALO FW Dynamic F0 Algorithm
  *
@@ -467,4 +459,3 @@ uint32_t cs40l25_get_dynamic_redc(cs40l25_t *driver, uint32_t *redc)
 
     return CS40L25_STATUS_OK;
 }
-#endif //CS40L25_ALGORITHM_DYNAMIC_F0

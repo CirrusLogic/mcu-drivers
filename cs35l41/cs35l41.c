@@ -139,6 +139,18 @@
 #define CS35L41_DSP_MBOX_CMD_UNKNOWN            (-1)
 /** @} */
 
+/**
+ * Maximum amount of times to poll for ACK to DSP Mailbox Command
+ *
+ */
+#define CS35L41_POLL_ACKED_MBOX_CMD_MAX         (10)
+
+/**
+ * Maximum SPI clock speed during OTP Read
+ *
+ */
+#define CS35L41_OTP_READ_MAX_SPI_CLOCK_HZ       (4000000)
+
 /***********************************************************************************************************************
  * LOCAL VARIABLES
  **********************************************************************************************************************/
@@ -559,128 +571,17 @@ static void cs35l41_irq_callback(uint32_t status, void *cb_arg)
 }
 
 /**
- * Reads the contents of a single register/memory address
- *
- * The main purpose is to handle buffering and BSP calls required for reading a single memory address.
- *
- * @param [in] driver           Pointer to the driver state
- * @param [in] addr             32-bit address to be read
- * @param [out] val             Pointer to register value read
- *
- * @return
- * - CS35L41_STATUS_FAIL        if the call to BSP failed
- * - CS35L41_STATUS_OK          otherwise
- *
- * @warning Contains platform-dependent code.
- *
- */
-static uint32_t cs35l41_read_reg(cs35l41_t *driver, uint32_t addr, uint32_t *val)
-{
-    uint32_t ret = CS35L41_STATUS_FAIL;
-    cs35l41_bsp_config_t *b = &(driver->config.bsp_config);
-
-    /*
-     * Switch from Little-Endian contents of uint32_t 'addr' to Big-Endian format required for Control Port transaction.
-     * Since register address is first written, config.bsp_config.cp_write_buffer[] is filled with register address.
-     *
-     * FIXME: This is not platform independent.
-     */
-    b->cp_write_buffer[0] = GET_BYTE_FROM_WORD(addr, 3);
-    b->cp_write_buffer[1] = GET_BYTE_FROM_WORD(addr, 2);
-    b->cp_write_buffer[2] = GET_BYTE_FROM_WORD(addr, 1);
-    b->cp_write_buffer[3] = GET_BYTE_FROM_WORD(addr, 0);
-
-    // Currently only I2C transactions are supported
-    if (b->bus_type == CS35L41_BUS_TYPE_I2C)
-    {
-        ret = bsp_driver_if_g->i2c_read_repeated_start(b->bsp_dev_id,
-                                                       b->cp_write_buffer,
-                                                       4,
-                                                       b->cp_read_buffer,
-                                                       4,
-                                                       NULL,
-                                                       NULL);
-        if (BSP_STATUS_OK == ret)
-        {
-            /*
-             * Switch from Big-Endian format required for Control Port transaction to Little-Endian contents of
-             * uint32_t 'val'
-             *
-             * FIXME: This is not platform independent.
-             */
-            ADD_BYTE_TO_WORD(*val, b->cp_read_buffer[0], 3);
-            ADD_BYTE_TO_WORD(*val, b->cp_read_buffer[1], 2);
-            ADD_BYTE_TO_WORD(*val, b->cp_read_buffer[2], 1);
-            ADD_BYTE_TO_WORD(*val, b->cp_read_buffer[3], 0);
-
-            ret = CS35L41_STATUS_OK;
-        }
-    }
-
-    return ret;
-}
-
-/**
- * Writes the contents of a single register/memory address
- *
- * The main purpose is to handle buffering and BSP calls required for writing a single memory address.
- *
- * @param [in] driver           Pointer to the driver state
- * @param [in] addr             32-bit address to be written
- * @param [in] val              32-bit value to be written
- *
- * @return
- * - CS35L41_STATUS_FAIL        if the call to BSP failed
- * - CS35L41_STATUS_OK          otherwise
- *
- * @warning Contains platform-dependent code.
- *
- */
-static uint32_t cs35l41_write_reg(cs35l41_t *driver, uint32_t addr, uint32_t val)
-{
-    uint32_t ret = CS35L41_STATUS_FAIL;
-    cs35l41_bsp_config_t *b = &(driver->config.bsp_config);
-
-    /*
-     * Copy Little-Endian contents of 'addr' and 'val' to the Big-Endian format required for Control Port transactions
-     * using a uint8_t config.bsp_config..
-     *
-     * FIXME: This is not platform independent.
-     */
-    b->cp_write_buffer[0] = GET_BYTE_FROM_WORD(addr, 3);
-    b->cp_write_buffer[1] = GET_BYTE_FROM_WORD(addr, 2);
-    b->cp_write_buffer[2] = GET_BYTE_FROM_WORD(addr, 1);
-    b->cp_write_buffer[3] = GET_BYTE_FROM_WORD(addr, 0);
-    b->cp_write_buffer[4] = GET_BYTE_FROM_WORD(val, 3);
-    b->cp_write_buffer[5] = GET_BYTE_FROM_WORD(val, 2);
-    b->cp_write_buffer[6] = GET_BYTE_FROM_WORD(val, 1);
-    b->cp_write_buffer[7] = GET_BYTE_FROM_WORD(val, 0);
-
-    // Currently only I2C transactions are supported
-    if (b->bus_type == CS35L41_BUS_TYPE_I2C)
-    {
-        ret = bsp_driver_if_g->i2c_write(b->bsp_dev_id, b->cp_write_buffer, 8, NULL, NULL);
-
-        if (BSP_STATUS_OK == ret)
-        {
-            ret = CS35L41_STATUS_OK;
-        }
-    }
-
-    return ret;
-}
-
-/**
  * Reads contents from a consecutive number of memory addresses
  *
  * Starting at 'addr', this will read 'length' number of 32-bit values into the BSP-allocated buffer from the
  * control port.  This bulk read will place contents into the BSP buffer starting at the 4th byte address.
  * Bytes 0-3 in the buffer are reserved for non-bulk reads (i.e. calls to cs35l41_read_reg).  This control port
- * call only supports non-blocking calls.  This function also only supports I2C transactions.
+ * call only supports non-blocking calls.  This function also only supports I2C and SPI transactions.
  *
  * @param [in] driver           Pointer to the driver state
  * @param [in] addr             32-bit address to be read
- * @param [in] length           number of memory addresses (i.e. 32-bit words) to read
+ * @param [in] read_buffer      pointer to buffer of bytes to read into via Control Port bus
+ * @param [in] length           number of bytes to read
  *
  * @return
  * - CS35L41_STATUS_FAIL        if the call to BSP failed, or if 'length' exceeds the size of BSP buffer
@@ -689,41 +590,59 @@ static uint32_t cs35l41_write_reg(cs35l41_t *driver, uint32_t addr, uint32_t val
  * @warning Contains platform-dependent code.
  *
  */
-static uint32_t cs35l41_cp_bulk_read(cs35l41_t *driver, uint32_t addr, uint32_t length)
+static uint32_t cs35l41_cp_bulk_read(cs35l41_t *driver, uint32_t addr, uint8_t *read_buffer, uint32_t length)
 {
-    uint32_t ret = CS35L41_STATUS_FAIL;
+    uint32_t ret = CS35L41_STATUS_OK;
     cs35l41_bsp_config_t *b = &(driver->config.bsp_config);
+    uint8_t write_buffer[4];
 
-    // Check that 'length' does not exceed the size of the BSP buffer
-    if (length <= CS35L41_CP_BULK_READ_LENGTH_BYTES)
+    /*
+     * Place contents of uint32_t 'addr' to Big-Endian format byte stream required for Control Port
+     * transaction.
+     */
+    write_buffer[0] = GET_BYTE_FROM_WORD(addr, 3);
+    write_buffer[1] = GET_BYTE_FROM_WORD(addr, 2);
+    write_buffer[2] = GET_BYTE_FROM_WORD(addr, 1);
+    write_buffer[3] = GET_BYTE_FROM_WORD(addr, 0);
+
+    /*
+     * Start reading contents into the BSP buffer starting at byte offset 4 - bytes 0-3 are reserved for calls to
+     * cs35l41_read_reg.
+     */
+    switch (b->bus_type)
     {
-        /*
-         * Switch from Little-Endian contents of uint32_t 'addr' to Big-Endian format required for Control Port
-         * transaction.  Since register address is first written, config.bsp_config.cp_write_buffer[] is filled with
-         * register address.
-         *
-         * FIXME: This is not platform independent.
-         */
-        b->cp_write_buffer[0] = GET_BYTE_FROM_WORD(addr, 3);
-        b->cp_write_buffer[1] = GET_BYTE_FROM_WORD(addr, 2);
-        b->cp_write_buffer[2] = GET_BYTE_FROM_WORD(addr, 1);
-        b->cp_write_buffer[3] = GET_BYTE_FROM_WORD(addr, 0);
+        case CS35L41_BUS_TYPE_I2C:
+            ret = bsp_driver_if_g->i2c_read_repeated_start(b->bsp_dev_id,
+                                                           write_buffer,
+                                                           4,
+                                                           read_buffer,
+                                                           length,
+                                                           NULL,
+                                                           NULL);
 
-        /*
-         * Start reading contents into the BSP buffer starting at byte offset 4 - bytes 0-3 are reserved for calls to
-         * cs35l41_read_reg.
-         */
-        ret = bsp_driver_if_g->i2c_read_repeated_start(b->bsp_dev_id,
-                                                       b->cp_write_buffer,
-                                                       4,
-                                                       (b->cp_read_buffer + CS35L41_CP_REG_READ_LENGTH_BYTES),
-                                                       (length * 4),
-                                                       NULL,
-                                                       NULL);
-        if (ret == BSP_STATUS_OK)
-        {
-            ret = CS35L41_STATUS_OK;
-        }
+            break;
+
+        case CS35L41_BUS_TYPE_SPI:
+            // Set the R/W bit
+            write_buffer[0] |= 0x80;
+
+            ret = bsp_driver_if_g->spi_read(b->bsp_dev_id,
+                                            write_buffer,
+                                            4,
+                                            read_buffer,
+                                            length,
+                                            2);
+
+            break;
+
+        default:
+            ret = BSP_STATUS_FAIL;
+            break;
+    }
+
+    if (ret == BSP_STATUS_FAIL)
+    {
+        ret = CS35L41_STATUS_FAIL;
     }
 
     return ret;
@@ -748,29 +667,44 @@ static uint32_t cs35l41_cp_bulk_read(cs35l41_t *driver, uint32_t addr, uint32_t 
  */
 static uint32_t cs35l41_cp_bulk_write(cs35l41_t *driver, uint32_t addr, uint8_t *bytes, uint32_t length)
 {
-    uint32_t ret;
+    uint32_t ret = CS35L41_STATUS_OK;
     cs35l41_bsp_config_t *b = &(driver->config.bsp_config);
+    uint8_t write_buffer[4];
 
     /*
-     * Switch from Little-Endian contents of uint32_t 'addr' to Big-Endian format required for Control Port
+     * Place contents of uint32_t 'addr' to Big-Endian format byte stream required for Control Port
      * transaction.
-     *
-     * FIXME: This is not platform independent.
      */
-    b->cp_write_buffer[0] = GET_BYTE_FROM_WORD(addr, 3);
-    b->cp_write_buffer[1] = GET_BYTE_FROM_WORD(addr, 2);
-    b->cp_write_buffer[2] = GET_BYTE_FROM_WORD(addr, 1);
-    b->cp_write_buffer[3] = GET_BYTE_FROM_WORD(addr, 0);
+    write_buffer[0] = GET_BYTE_FROM_WORD(addr, 3);
+    write_buffer[1] = GET_BYTE_FROM_WORD(addr, 2);
+    write_buffer[2] = GET_BYTE_FROM_WORD(addr, 1);
+    write_buffer[3] = GET_BYTE_FROM_WORD(addr, 0);
 
-    ret = bsp_driver_if_g->i2c_db_write(b->bsp_dev_id, b->cp_write_buffer, 4, bytes, length, NULL, NULL);
+    switch (b->bus_type)
+    {
+        case CS35L41_BUS_TYPE_I2C:
+            ret = bsp_driver_if_g->i2c_db_write(b->bsp_dev_id, write_buffer, 4, bytes, length, NULL, NULL);
+
+            break;
+
+        case CS35L41_BUS_TYPE_SPI:
+            ret = bsp_driver_if_g->spi_write(b->bsp_dev_id,
+                                             write_buffer,
+                                             4,
+                                             bytes,
+                                             length,
+                                             2);
+
+            break;
+
+        default:
+            ret = BSP_STATUS_FAIL;
+            break;
+    }
 
     if (ret == BSP_STATUS_FAIL)
     {
         ret = CS35L41_STATUS_FAIL;
-    }
-    else
-    {
-        ret = CS35L41_STATUS_OK;
     }
 
     return ret;
@@ -985,10 +919,7 @@ static uint32_t cs35l41_send_acked_mbox_cmd(cs35l41_t *driver, uint32_t cmd)
         return ret;
     }
 
-    // Wait for at least 1ms
-    bsp_driver_if_g->set_timer(BSP_TIMER_DURATION_2MS, NULL, NULL);
-
-    for (i = 0; i < 5; i++)
+    for (i = 0; i < CS35L41_POLL_ACKED_MBOX_CMD_MAX; i++)
     {
         // Read IRQ1 flag register to poll for MBOX IRQ
         cs35l41_read_reg(driver, IRQ1_IRQ1_EINT_2_REG, &temp_reg_val);
@@ -1001,7 +932,7 @@ static uint32_t cs35l41_send_acked_mbox_cmd(cs35l41_t *driver, uint32_t cmd)
         bsp_driver_if_g->set_timer(BSP_TIMER_DURATION_2MS, NULL, NULL);
     }
 
-    if (i == 5)
+    if (i >= CS35L41_POLL_ACKED_MBOX_CMD_MAX)
     {
         return CS35L41_STATUS_FAIL;
     }
@@ -1900,7 +1831,7 @@ static uint32_t cs35l41_otp_unpack(cs35l41_t *driver)
              * Apply OTP trim bit-field to recently read trim register value.  OTP contents is saved in
              * cp_read_buffer + CS35L41_CP_REG_READ_LENGTH_BYTES
              */
-            cs35l41_apply_trim_word((driver->config.bsp_config.cp_read_buffer + CS35L41_CP_REG_READ_LENGTH_BYTES),
+            cs35l41_apply_trim_word(driver->otp_contents,
                                     otp_bit_count,
                                     &temp_reg_val,
                                     temp_trim_entry.shift,
@@ -1959,7 +1890,6 @@ static uint32_t cs35l41_write_errata(cs35l41_t *driver)
 
     return CS35L41_STATUS_OK;
 }
-
 /**
  * Apply configuration specifically required after loading HALO FW/COEFF files
  *
@@ -2222,9 +2152,7 @@ uint32_t cs35l41_configure(cs35l41_t *driver, cs35l41_config_t *config)
     uint32_t ret = CS35L41_STATUS_FAIL;
 
     if ((NULL != driver) && \
-        (NULL != config) && \
-        (NULL != config->bsp_config.cp_write_buffer) && \
-        (NULL != config->bsp_config.cp_read_buffer))
+        (NULL != config))
     {
         driver->config = *config;
 
@@ -2376,11 +2304,21 @@ uint32_t cs35l41_reset(cs35l41_t *driver)
         return CS35L41_STATUS_FAIL;
     }
 
+    if(driver->config.bsp_config.bus_type == CS35L41_BUS_TYPE_SPI)
+    {
+        bsp_driver_if_g->spi_throttle_speed(CS35L41_OTP_READ_MAX_SPI_CLOCK_HZ);
+    }
+
     // Read entire OTP trim contents
-    ret = cs35l41_cp_bulk_read(driver, CS35L41_OTP_IF_OTP_MEM0_REG, CS35L41_OTP_SIZE_WORDS);
+    ret = cs35l41_cp_bulk_read(driver, CS35L41_OTP_IF_OTP_MEM0_REG, driver->otp_contents, CS35L41_OTP_SIZE_WORDS);
     if (ret)
     {
         return ret;
+    }
+
+    if(driver->config.bsp_config.bus_type == CS35L41_BUS_TYPE_SPI)
+    {
+        bsp_driver_if_g->spi_restore_speed();
     }
 
     // OTP Unpack
@@ -2847,6 +2785,153 @@ uint32_t cs35l41_finish_tuning_switch(cs35l41_t *driver)
     if (ret)
     {
         return ret;
+    }
+
+    return CS35L41_STATUS_OK;
+}
+
+/**
+ * Reads the contents of a single register/memory address
+ *
+ */
+uint32_t cs35l41_read_reg(cs35l41_t *driver, uint32_t addr, uint32_t *val)
+{
+    uint32_t ret = CS35L41_STATUS_FAIL;
+    cs35l41_bsp_config_t *b = &(driver->config.bsp_config);
+    uint8_t write_buffer[4];
+    uint8_t read_buffer[4];
+
+    /*
+     * Place contents of uint32_t 'addr' to Big-Endian format byte stream required for Control Port
+     * transaction.
+     */
+    write_buffer[0] = GET_BYTE_FROM_WORD(addr, 3);
+    write_buffer[1] = GET_BYTE_FROM_WORD(addr, 2);
+    write_buffer[2] = GET_BYTE_FROM_WORD(addr, 1);
+    write_buffer[3] = GET_BYTE_FROM_WORD(addr, 0);
+
+    // Currently only I2C and SPI transactions are supported
+    switch (b->bus_type)
+    {
+        case CS35L41_BUS_TYPE_I2C:
+            ret = bsp_driver_if_g->i2c_read_repeated_start(b->bsp_dev_id,
+                                                           write_buffer,
+                                                           4,
+                                                           read_buffer,
+                                                           4,
+                                                           NULL,
+                                                           NULL);
+            break;
+
+        case CS35L41_BUS_TYPE_SPI:
+            // Set the R/W bit
+            write_buffer[0] |= 0x80;
+
+            ret = bsp_driver_if_g->spi_read(b->bsp_dev_id,
+                                            write_buffer,
+                                            4,
+                                            read_buffer,
+                                            4,
+                                            2);
+            break;
+
+        default:
+            break;
+    }
+
+    if (BSP_STATUS_OK == ret)
+    {
+        /*
+         * Place contents of uint32_t 'addr' to Big-Endian format byte stream required for Control Port
+         * transaction.
+         */
+        ADD_BYTE_TO_WORD(*val, read_buffer[0], 3);
+        ADD_BYTE_TO_WORD(*val, read_buffer[1], 2);
+        ADD_BYTE_TO_WORD(*val, read_buffer[2], 1);
+        ADD_BYTE_TO_WORD(*val, read_buffer[3], 0);
+
+        ret = CS35L41_STATUS_OK;
+    }
+
+    return ret;
+}
+
+/**
+ * Writes the contents of a single register/memory address
+ *
+ */
+uint32_t cs35l41_write_reg(cs35l41_t *driver, uint32_t addr, uint32_t val)
+{
+    uint32_t ret = CS35L41_STATUS_FAIL;
+    cs35l41_bsp_config_t *b = &(driver->config.bsp_config);
+    uint8_t write_buffer[8];
+
+    /*
+     * Place contents of uint32_t 'addr' and 'val' to Big-Endian format byte stream required for Control Port
+     * transaction.
+     */
+    write_buffer[0] = GET_BYTE_FROM_WORD(addr, 3);
+    write_buffer[1] = GET_BYTE_FROM_WORD(addr, 2);
+    write_buffer[2] = GET_BYTE_FROM_WORD(addr, 1);
+    write_buffer[3] = GET_BYTE_FROM_WORD(addr, 0);
+    write_buffer[4] = GET_BYTE_FROM_WORD(val, 3);
+    write_buffer[5] = GET_BYTE_FROM_WORD(val, 2);
+    write_buffer[6] = GET_BYTE_FROM_WORD(val, 1);
+    write_buffer[7] = GET_BYTE_FROM_WORD(val, 0);
+
+    // Currently only I2C and SPI transactions are supported
+    switch (b->bus_type)
+    {
+        case CS35L41_BUS_TYPE_I2C:
+            ret = bsp_driver_if_g->i2c_write(b->bsp_dev_id, write_buffer, 8, NULL, NULL);
+
+
+            break;
+
+        case CS35L41_BUS_TYPE_SPI:
+            ret = bsp_driver_if_g->spi_write(b->bsp_dev_id,
+                                             write_buffer,
+                                             4,
+                                             &(write_buffer[4]),
+                                             4,
+                                             2);
+            break;
+
+        default:
+            break;
+    }
+
+    if (BSP_STATUS_OK == ret)
+    {
+        ret = CS35L41_STATUS_OK;
+    }
+
+    return ret;
+}
+
+/*
+ * Reads, updates and writes (if there's a change) the contents of a single register/memory address
+ *
+ */
+uint32_t cs35l41_update_reg(cs35l41_t *driver, uint32_t addr, uint32_t mask, uint32_t val)
+{
+    uint32_t tmp, ret, orig;
+
+    ret = cs35l41_read_reg(driver, addr, &orig);
+    if (ret == CS35L41_STATUS_FAIL)
+    {
+        return ret;
+    }
+
+    tmp = (orig & ~mask) | val;
+
+    if (tmp != orig)
+    {
+        ret = cs35l41_write_reg(driver, addr, tmp);
+        if (ret == CS35L41_STATUS_FAIL)
+        {
+            return ret;
+        }
     }
 
     return CS35L41_STATUS_OK;

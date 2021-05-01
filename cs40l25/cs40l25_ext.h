@@ -36,9 +36,7 @@ extern "C" {
  * LITERALS & CONSTANTS
  **********************************************************************************************************************/
 
-#ifdef CS40L25_ALGORITHM_DYNAMIC_F0
 #define CS40L25_DYNAMIC_F0_TABLE_ENTRY_DEFAULT  (0x007FE000)
-#endif //CS40L25_ALGORITHM_DYNAMIC_F0
 
 /***********************************************************************************************************************
  * MACROS
@@ -48,7 +46,6 @@ extern "C" {
  * ENUMS, STRUCTS, UNIONS, TYPEDEFS
  **********************************************************************************************************************/
 
-#ifdef CS40L25_ALGORITHM_DYNAMIC_F0
 typedef struct
 {
     union
@@ -62,7 +59,6 @@ typedef struct
         };
     };
 } cs40l25_dynamic_f0_table_entry_t;
-#endif //CS40L25_ALGORITHM_DYNAMIC_F0
 
 /***********************************************************************************************************************
  * GLOBAL VARIABLES
@@ -117,7 +113,6 @@ uint32_t cs40l25_update_haptic_config(cs40l25_t *driver, cs40l25_haptic_config_t
  */
 uint32_t cs40l25_trigger_bhm(cs40l25_t *driver);
 
-#ifdef CS40L25_ALGORITHM_VIBEGEN
 /**
  * Trigger RAM Mode Haptic Effects
  *
@@ -144,9 +139,7 @@ uint32_t cs40l25_trigger(cs40l25_t *driver, uint32_t index, uint32_t duration_ms
  *
  */
 uint32_t cs40l25_set_click_compensation_enable(cs40l25_t *driver, bool enable);
-#endif //CS40L25_ALGORITHM_VIBEGEN
 
-#ifdef CS40L25_ALGORITHM_CLAB
 /**
  * Enable the HALO FW CLAB Algorithm
  *
@@ -172,9 +165,7 @@ uint32_t cs40l25_set_clab_enable(cs40l25_t *driver, bool enable);
  *
  */
 uint32_t cs40l25_set_clab_peak_amplitude(cs40l25_t *driver, uint32_t amplitude);
-#endif //CS40L25_ALGORITHM_CLAB
 
-#ifdef CS40L25_ALGORITHM_DYNAMIC_F0
 /**
  * Enable the HALO FW Dynamic F0 Algorithm
  *
@@ -226,7 +217,6 @@ uint32_t cs40l25_get_dynamic_f0(cs40l25_t *driver, cs40l25_dynamic_f0_table_entr
  *
  */
 uint32_t cs40l25_get_dynamic_redc(cs40l25_t *driver, uint32_t *redc);
-#endif //CS40L25_ALGORITHM_DYNAMIC_F0
 
 /**********************************************************************************************************************/
 #ifdef __cplusplus

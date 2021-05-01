@@ -103,6 +103,8 @@ void app_init(void)
     bsp_register_pb_cb(BSP_PB_ID_USER, app_bsp_pb_callback, (void *) AMP_CONTROL_FLAG_PB_PRESSED);
     bsp_dut_initialize();
 
+    bsp_set_ld2(BSP_LD2_MODE_ON, 0);
+
     return;
 }
 

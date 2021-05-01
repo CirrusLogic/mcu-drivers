@@ -32,7 +32,7 @@ extern "C" {
  **********************************************************************************************************************/
 #include <stdint.h>
 #include <stdbool.h>
-#include "fw_img_v1.h"
+#include "fw_img.h"
 #include "cs47l15_sym.h"
 #include "cs47l15_spec.h"
 #include "cs47l15_syscfg_regs.h"
@@ -126,6 +126,43 @@ extern "C" {
 /** @} */
 
 #define CS47L15_NUM_DSP                                 (1)
+#define CS47L15_NUM_FLL                                 (2)
+
+/**
+ * @brief FLL Ids. Identifies the two FLLs.
+ * Used in the FLL enable and disable functions
+ *
+ * @{
+ */
+#define CS47L15_FLL1                    (0)
+#define CS47L15_FLLAO                   (1)
+/** @} */
+
+/**
+ * @brief FLL clock subsystems available on the FLL1 and FLLAO.
+ * Used in the FLL configuration function
+ *
+ * @{
+ */
+#define CS47L15_FLL1_REFCLK             (1)
+#define CS47L15_FLL1_SYNCCLK            (2)
+#define CS47L15_FLLAO_REFCLK            (3)
+/** @} */
+
+/**
+ * @brief The source clock identifiers for the FLLs
+ *
+ * @{
+ */
+#define CS47L15_FLL_SRC_NONE            (-1)
+#define CS47L15_FLL_SRC_MCLK1           (0)
+#define CS47L15_FLL_SRC_MCLK2           (1)
+#define CS47L15_FLL_SRC_AIF1BCLK        (8)
+#define CS47L15_FLL_SRC_AIF2BCLK        (9)
+#define CS47L15_FLL_SRC_AIF3BCLK        (10)
+#define CS47L15_FLL_SRC_AIF1LRCLK       (12)
+#define CS47L15_FLL_SRC_AIF2LRCLK       (13)
+#define CS47L15_FLL_SRC_AIF3LRCLK       (14)
 
 /***********************************************************************************************************************
  * MACROS
@@ -227,6 +264,23 @@ typedef struct
 } cs47l15_dsp_t;
 
 /**
+ * Data structure for FLL
+ */
+typedef struct
+{
+    int32_t id;
+    uint32_t base;
+
+    uint32_t fout;
+
+    int32_t sync_src;
+    uint32_t sync_freq;
+
+    int32_t ref_src;
+    uint32_t ref_freq;
+} cs47l15_fll_t;
+
+/**
  * Driver state data structure
  *
  * This is the type used for the handle to the driver for all driver public API calls.  This structure must be
@@ -245,6 +299,8 @@ typedef struct
     uint32_t event_flags;                                ///< Most recent event_flags reported to BSP Notification callback
 
     cs47l15_dsp_t dsp_info[CS47L15_NUM_DSP];             ///< Current ADSP2 FW/Coefficient boot configuration
+
+    cs47l15_fll_t fll[CS47L15_NUM_FLL];
 } cs47l15_t;
 
 /**
@@ -252,7 +308,6 @@ typedef struct
  *
  * @see cs47l15_event_handler
  */
-
 typedef struct
 {
     uint8_t irq_reg_offset;
@@ -478,6 +533,71 @@ uint32_t cs47l15_boot(cs47l15_t *driver, uint32_t dsp_core, fw_img_info_t *fw_in
  *
  */
 uint32_t cs47l15_power(cs47l15_t *driver, uint32_t dsp_core, uint32_t power_state);
+
+
+/**
+ * Configure a susbsystem on an FLL
+ * Configure one of: FLL1 refclk (main loop), FLL1 syncclk (sync loop), FLLAO.
+ * To configure and be able to enable FLL1 syncclk, a valid FLL1 refclk must be configured.
+ * The FLL1 syncclk is controlled via its freq_in; an invalid value of -1 means it will not be enabled.
+ *
+ * @param [in] driver           Pointer to the driver state
+ * @param [in] fll_clk_id       Id for the FLL clock subsystem to be configured
+ * @param [in] src              The source clock identifier
+ * @param [in] freq_in          The frequency of the source clock
+ * @param [in] freq_out         The required FLL output frequency
+ *
+ * @return
+ * - CS47L15_STATUS_FAIL        if FLL subsystem Id is invalid, or if the call to configure the FLL fails
+ * - CS47L15_STATUS_OK          otherwise
+ *
+ */
+uint32_t cs47l15_fll_config(cs47l15_t *driver,
+                            uint32_t fll_clk_id,
+                            uint32_t src,
+                            uint32_t freq_in,
+                            uint32_t freq_out);
+
+/**
+ * Enable an FLL
+ *
+ * @param [in] driver           Pointer to the driver state
+ * @param [in] fll_id           FLL Id to be enabled.
+ *                              If FLL1 syncclk has a valid configuration it will be enabled
+ *
+ * @return
+ * - CS47L15_STATUS_FAIL        if requested FLL is invalid, or if the call to enable the FLL fails
+ * - CS47L15_STATUS_OK          otherwise
+ *
+ */
+uint32_t cs47l15_fll_enable(cs47l15_t *driver, uint32_t fll_id);
+
+/**
+ * Disable an FLL
+ *
+ * @param [in] driver           Pointer to the driver state
+ * @param [in] fll_id           FLL Id to be disabled.
+ *                              If FLL1 is specified then both FLL1's refclk and syncclk are disabled
+ *
+ * @return
+ * - CS47L15_STATUS_FAIL        if requested FLL is invalid
+ * - CS47L15_STATUS_OK          otherwise
+ *
+ */
+uint32_t cs47l15_fll_disable(cs47l15_t *driver, uint32_t fll_id);
+
+/**
+ * Wait a short time for the FLL to reach a locked state
+ *
+ * @param [in] driver           Pointer to the driver state
+ * @param [in] fll_id           FLL Id to achieve lock
+ *
+ * @return
+ * - CS47L15_STATUS_FAIL        if requested FLL is invalid or a locked state is not reached
+ * - CS47L15_STATUS_OK          otherwise
+ *
+ */
+uint32_t cs47l15_fll_wait_for_lock(cs47l15_t *driver, uint32_t fll_id);
 
 /**********************************************************************************************************************/
 #ifdef __cplusplus

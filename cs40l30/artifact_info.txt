@@ -1,0 +1,32 @@
+Artifact Info:
+Artifact           : CS40L30Alt-OS Driver: 0.1.0
+Test Target MCU SDK: STM32Cube_FW_F4: 1.24.1
+Target toolchain   : GNU Arm Embedded Toolchain: arm-none-eabi-gcc (GNU Tools for Arm Embedded Processors 8-2019-q3-update) 8.3.1 20190703 (release) [gcc-8-branch revision 273027]
+Build system       : make: GNU Make 3.82
+OS                 : Linux: 3.10.0-1160.2.1.el7.x86_64
+Shell              : bash: GNU bash, version 4.2.46(2)-release (x86_64-redhat-linux-gnu)
+Host toolchain     : MinGW GCC: gcc (GCC) 4.8.5 20150623 (Red Hat 4.8.5-39)
+Build Job          : stumpy_alt_os_nightly: 355
+Git SHA            : 3a8dd40083d439dce95d68332818fdf26f5feac3
+
+System resources:
+
+Library name    : /var/lib/jenkins/jobs/stumpy_alt_os_nightly/workspace/build_driver_lib_cm4/build/cs40l30/libcs40l30
+Library TEXT    : 3906 bytes
+Library BSS     : 0 bytes
+Library DATA    : 0 bytes
+BSP RAM         : 0 bytes
+Compiler flags:
+    -mcpu=cortex-m4
+    -mthumb
+    -mfloat-abi=soft
+    -march=armv7e-m
+    -Os
+    -fno-strict-aliasing
+    -ffreestanding
+    -fno-diagnostics-show-caret
+    -fdata-sections
+    -ffunction-sections
+    -funsigned-char
+    -funsigned-bitfields
+    -frecord-gcc-switches

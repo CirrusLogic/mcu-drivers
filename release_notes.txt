@@ -3,6 +3,41 @@ Release Notes
 
 =============================================================================
 Summary:
+This is the release of Alt-OS Driver SDK v4.1.0
+Date: 2021/04/30
+
+Component Driver Versions:
+CS35L41 - v4.1.0
+CS40L25 - v2.3.0
+CS47L15 - v2.1.0
+CS40L30 - v0.1.0
+
+Component Tool Versions:
+firmware_converter - v3.2.0
+wisce_script_converter - v1.2.0
+
+Architectures/Compilers Used:
+GNU Arm Embedded Toolchain: arm-none-eabi-gcc -mcpu=cortex-m4
+
+New Features/Changes:
+[SQA-2043] L15 - new FLL api
+[SQA-1986] L15 - MP3 compressed upload
+[SQA-1746] L41 - Add GPIO set
+[SQA-1695] L25, L41, L30 - deprecated create_syscfg_regs.exe
+[SQA-1695] L25, L41 - update register read/write API regmap functions public
+[SQA-1695] L25 - update main.c to conform to appnote flowchart
+[SQA-2080] firmware_converter - Automatically update correct year in copyright comments
+[SQA-2123] Make fw_img files at compile time
+[SQA-2248] L30 - deprecate control() API, update to latest FW Drop 37
+fw_img: Rename fw_img_v1 files to fw_img
+[SQA-2248] L30/L25 - fixed freertos main() ordering
+
+Fixed Bugs:
+[SQA-2042] L25 - fixed bug in cs40l25_power, cs40l25_update_haptic_config
+
+=============================================================================
+=============================================================================
+Summary:
 This is the release of Alt-OS Driver SDK v3.1.0
 Date: 2020/12/21
 

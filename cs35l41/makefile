@@ -33,6 +33,11 @@ ASM_OBJS =
 INCLUDES =
 LIBS =
 
+HALO_FIRMWARE_PATH = $(REPO_PATH)/cs35l41/fw_6_43_0_cspl
+HALO_FIRMWARE_FILE = halo_cspl_RAM_revB2_29.45.0.wmfw
+HALO_CAL_FIRMWARE_FILE = halo_cspl_RAM_revB2_29.45.0.wmfw
+HALO_CAL_FIRMWARE_WMDR = Protect_Lite_cal_6.43.0_7.0ohm_delta1ohm_L41_revB2.bin
+
 # Initialize toolchain arguments
 
 # Process command line variables per make goal
@@ -51,11 +56,7 @@ else
     endif
 endif
 
-ifdef WISCE_SCRIPT
-	CREATE_SYSCFG_REGS_TARGET = wisce_to_syscfg_reg_converter
-else
-    CREATE_SYSCFG_REGS_TARGET = create_syscfg_regs
-endif
+CREATE_FIRMWARE_TARGET = firmware_converter
 
 # Assign toolchain, shell executable names required per target
 ifeq ($(MAKECMDGOALS), unit_test)
@@ -146,15 +147,14 @@ else ifeq ($(MAKECMDGOALS), system_test)
 
     # use = or += not := else dependencies expand to nil
     CFLAGS += -mcpu=cortex-m4 -mthumb -mfpu=fpv4-sp-d16 -mfloat-abi=hard --specs=nano.specs
-    CFLAGS += --std=gnu11
+    CFLAGS += -Werror -Wall --std=gnu11
     CFLAGS += -fno-diagnostics-show-caret
     CFLAGS += -fdata-sections -ffunction-sections -fstack-usage
     CFLAGS += -DUSE_HAL_DRIVER -DSTM32F401xE
     CFLAGS += $(DEBUG_OPTIONS)
-    CFLAGS += $(APP_OPTIONS)
-    CFLAGS += -DSEGGER_RTT_SECTION=\"SEGGER_RTT_SECTION\"
+    CFLAGS += $(APP_OPTIONS) -DUSE_CS35L41_SPI
     CFLAGS += -DNO_OS
-    CFLAGS += -DUNITY_INCLUDE_CONFIG_H
+    CFLAGS += -DUNITY_INCLUDE_CONFIG_H -DCONFIG_USE_MULTICHANNEL_UART
 ifeq ($(BULLSEYE), 1)
 	CFLAGS += -DUSE_BULLSEYE
 endif
@@ -183,7 +183,7 @@ else ifeq ($(MAKECMDGOALS), baremetal)
     CFLAGS += -frecord-gcc-switches
     CFLAGS += -DUSE_HAL_DRIVER -DSTM32F401xE
     CFLAGS += $(DEBUG_OPTIONS)
-    CFLAGS += $(APP_OPTIONS)
+    CFLAGS += $(APP_OPTIONS) -DUSE_CS35L41_SPI
     CFLAGS += -DNO_OS
     OUTPUT_NAME =
     OUTPUT_EXT  =
@@ -209,7 +209,7 @@ else ifeq ($(MAKECMDGOALS), freertos)
     CFLAGS += -fdata-sections -ffunction-sections -fstack-usage
     CFLAGS += -DUSE_HAL_DRIVER -DSTM32F401xE
     CFLAGS += $(DEBUG_OPTIONS)
-    CFLAGS += $(APP_OPTIONS)
+    CFLAGS += $(APP_OPTIONS) -DUSE_CS35L41_SPI
     CFLAGS += -DUSE_CMSIS_OS
     OUTPUT_NAME =
     OUTPUT_EXT  =
@@ -226,9 +226,9 @@ endif
 
 # Assign sources, includes, paths for driver library
 DRIVER_PATH = $(REPO_PATH)/cs35l41
+CONFIG_PATH = $(REPO_PATH)/cs35l41/config
 COMMON_PATH = $(REPO_PATH)/common
-HALO_FIRMWARE_PATH = $(REPO_PATH)/cs35l41/fw_6_43_0_cspl
-DRIVER_SRCS = $(DRIVER_PATH)/cs35l41.c $(DRIVER_PATH)/cs35l41_fs_switch_syscfg.c $(DRIVER_PATH)/cs35l41_syscfg_regs.c $(COMMON_PATH)/fw_img_v1.c
+DRIVER_SRCS = $(DRIVER_PATH)/cs35l41.c $(CONFIG_PATH)/cs35l41_fs_switch_syscfg.c $(CONFIG_PATH)/cs35l41_syscfg_regs.c $(COMMON_PATH)/fw_img.c
 ifeq ($(MAKECMDGOALS), system_test)
 DRIVER_SRCS += $(DRIVER_PATH)/cs35l41_ext.c
 else ifeq ($(MAKECMDGOALS), baremetal)
@@ -236,7 +236,7 @@ DRIVER_SRCS += $(DRIVER_PATH)/cs35l41_ext.c
 else ifeq ($(MAKECMDGOALS), freertos)
 DRIVER_SRCS += $(DRIVER_PATH)/cs35l41_ext.c
 endif
-INCLUDES += -I$(DRIVER_PATH) -I$(COMMON_PATH) -I$(HALO_FIRMWARE_PATH)
+INCLUDES += -I$(DRIVER_PATH) -I$(CONFIG_PATH) -I$(COMMON_PATH) -I$(HALO_FIRMWARE_PATH)
 DRIVER_LIBRARY = $(BUILD_DIR)/cs35l41/libcs35l41.a
 LIBS += $(DRIVER_LIBRARY)
 
@@ -261,6 +261,7 @@ ifeq ($(MAKECMDGOALS), system_test)
     C_SRCS += $(TEST_HW_PATH)/test_tone_tables.c
     C_SRCS += $(TEST_HW_PATH)/stm32f4xx_it.c
     C_SRCS += $(TEST_HW_PATH)/sysmem.c
+    C_SRCS += $(TEST_HW_PATH)/syscalls.c
     C_SRCS += $(REPO_PATH)/cs35l41/bsp/hw_0_bsp_cs35l41.c
     C_SRCS += $(HALO_FIRMWARE_PATH)/cs35l41_fw_img.c $(HALO_FIRMWARE_PATH)/cs35l41_tune_fw_img.c $(HALO_FIRMWARE_PATH)/cs35l41_cal_fw_img.c
     C_SRCS += $(HALO_FIRMWARE_PATH)/cs35l41_tune_48_fw_img.c $(HALO_FIRMWARE_PATH)/cs35l41_tune_44p1_fw_img.c
@@ -279,14 +280,12 @@ ifeq ($(MAKECMDGOALS), system_test)
     C_SRCS += $(REPO_PATH)/third_party/st/STM32Cube_FW_F4_V1.24.1/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_i2s_ex.c
     C_SRCS += $(REPO_PATH)/third_party/st/STM32Cube_FW_F4_V1.24.1/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_i2s.c
     C_SRCS += $(REPO_PATH)/third_party/st/STM32Cube_FW_F4_V1.24.1/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_spi.c
+    C_SRCS += $(REPO_PATH)/third_party/st/STM32Cube_FW_F4_V1.24.1/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_exti.c
+    C_SRCS += $(REPO_PATH)/third_party/st/STM32Cube_FW_F4_V1.24.1/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_uart.c
     C_SRCS += $(REPO_PATH)/third_party/st/STM32Cube_FW_F4_V1.24.1/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal.c
     C_SRCS += $(REPO_PATH)/third_party/st/STM32Cube_FW_F4_V1.24.1/Drivers/CMSIS/Device/ST/STM32F4xx/Source/Templates/system_stm32f4xx.c
-    C_SRCS += $(REPO_PATH)/third_party/rtt/gcc_io.c
-    C_SRCS += $(REPO_PATH)/third_party/rtt/gcc_io_rtt.c
-    C_SRCS += $(REPO_PATH)/third_party/rtt/SEGGER_RTT.c
-    C_SRCS += $(REPO_PATH)/third_party/rtt/SEGGER_RTT_printf.c
 ifeq ($(BULLSEYE), 1)
-    C_SRCS += $(REPO_PATH)/third_party/bullseye/src/libcov-cirrusrtt.c
+    C_SRCS += $(REPO_PATH)/third_party/bullseye/src/libcov-altos.c
 endif
     C_SRCS += $(REPO_PATH)/third_party/unity/unity.c
     C_SRCS += $(REPO_PATH)/third_party/unity/unity_fixture.c
@@ -297,7 +296,6 @@ endif
     INCLUDES += -I$(REPO_PATH)/third_party/arm/cmsis/Include
     INCLUDES += -I$(REPO_PATH)/third_party/st/STM32Cube_FW_F4_V1.24.1/Drivers/CMSIS/Device/ST/STM32F4xx/Include
     INCLUDES += -I$(REPO_PATH)/third_party/st/STM32Cube_FW_F4_V1.24.1/Drivers/STM32F4xx_HAL_Driver/Inc
-    INCLUDES += -I$(REPO_PATH)/third_party/rtt
 ifeq ($(BULLSEYE), 1)
     INCLUDES += -I$(REPO_PATH)/third_party/bullseye/inc
 endif
@@ -331,6 +329,8 @@ ifeq ($(MAKECMDGOALS), baremetal)
     C_SRCS += $(REPO_PATH)/third_party/st/STM32Cube_FW_F4_V1.24.1/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_i2s_ex.c
     C_SRCS += $(REPO_PATH)/third_party/st/STM32Cube_FW_F4_V1.24.1/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_i2s.c
     C_SRCS += $(REPO_PATH)/third_party/st/STM32Cube_FW_F4_V1.24.1/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_spi.c
+    C_SRCS += $(REPO_PATH)/third_party/st/STM32Cube_FW_F4_V1.24.1/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_exti.c
+    C_SRCS += $(REPO_PATH)/third_party/st/STM32Cube_FW_F4_V1.24.1/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_uart.c
     C_SRCS += $(REPO_PATH)/third_party/st/STM32Cube_FW_F4_V1.24.1/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal.c
     C_SRCS += $(REPO_PATH)/third_party/st/STM32Cube_FW_F4_V1.24.1/Drivers/CMSIS/Device/ST/STM32F4xx/Source/Templates/system_stm32f4xx.c
     ASM_SRCS += $(REPO_PATH)/third_party/st/STM32Cube_FW_F4_V1.24.1/Drivers/CMSIS/Device/ST/STM32F4xx/Source/Templates/gcc/startup_stm32f401xe.s
@@ -370,6 +370,8 @@ ifeq ($(MAKECMDGOALS), freertos)
     C_SRCS += $(REPO_PATH)/third_party/st/STM32Cube_FW_F4_V1.24.1/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_i2s_ex.c
     C_SRCS += $(REPO_PATH)/third_party/st/STM32Cube_FW_F4_V1.24.1/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_i2s.c
     C_SRCS += $(REPO_PATH)/third_party/st/STM32Cube_FW_F4_V1.24.1/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_spi.c
+    C_SRCS += $(REPO_PATH)/third_party/st/STM32Cube_FW_F4_V1.24.1/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_exti.c
+    C_SRCS += $(REPO_PATH)/third_party/st/STM32Cube_FW_F4_V1.24.1/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_uart.c
     C_SRCS += $(REPO_PATH)/third_party/st/STM32Cube_FW_F4_V1.24.1/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal.c
     C_SRCS += $(REPO_PATH)/third_party/st/STM32Cube_FW_F4_V1.24.1/Drivers/CMSIS/Device/ST/STM32F4xx/Source/Templates/system_stm32f4xx.c
     C_SRCS += $(FREERTOS_PATH)/CMSIS_RTOS/cmsis_os.c
@@ -414,6 +416,7 @@ $(info -------------------------------------------------------------------------
 $(info ROOT_PATH:       $(ROOT_PATH))
 $(info REPO_PATH:       $(REPO_PATH))
 $(info DRIVER_PATH:     $(DRIVER_PATH))
+$(info CONFIG_PATH:     $(CONFIG_PATH))
 $(info APP_PATH:        $(APP_PATH))
 $(info BUILD_DIR:       $(BUILD_DIR))
 $(info BUILD_PATHS:     $(addprefix $(newline),$(BUILD_PATHS)))
@@ -440,7 +443,7 @@ $(info ASM_FLAGS: $(addprefix $(newline),$(ASM_FLAGS)))
 $(info -------------------------------------------------------------------------------)
 $(info LDFLAGS: $(addprefix $(newline),$(LDFLAGS)))
 $(info -------------------------------------------------------------------------------)
-$(info CREAT_SYSCFG_REGS_TARGET: $(CREATE_SYSCFG_REGS_TARGET))
+$(info CREATE_FIRMWARE_TARGET: $(CREATE_FIRMWARE_TARGET))
 $(info -------------------------------------------------------------------------------)
 $(info BULLSEYE: $(BULLSEYE))
 $(info ===============================================================================)
@@ -469,7 +472,7 @@ $(foreach path,$(BUILD_PATHS),$(eval $(call mkdir_rule,$(path))))
 
 # Create a target for each .o files, depending on its corresponding .c file
 define driver_obj_rule
-$(1): $(2) $(MAKEFILE_PATH)/makefile $(CREATE_SYSCFG_REGS_TARGET)
+$(1): $(2) $(MAKEFILE_PATH)/makefile wisce_script_converter
 	@echo -------------------------------------------------------------------------------
 	@echo COMPILING $(2)
 	$(BULLSEYE_ON_CMD)
@@ -480,7 +483,7 @@ $(foreach obj,$(DRIVER_OBJS),$(eval $(call driver_obj_rule,$(obj),$(subst $(BUIL
 
 # Create a target for each .o files, depending on its corresponding .c file
 define obj_rule
-$(1): $(2) $(MAKEFILE_PATH)/makefile $(CREATE_SYSCFG_REGS_TARGET)
+$(1): $(2) $(MAKEFILE_PATH)/makefile wisce_script_converter
 	@echo -------------------------------------------------------------------------------
 	@echo COMPILING $(2)
 	$(CC) $(CFLAGS) $(INCLUDES) -MD -MP -MT $(1) -MF $(subst .o,.d,$(1)) -c $(2) -o $(1)
@@ -511,25 +514,22 @@ bullseye_inclusions:
 	covselect --add !$(REPO_PATH)/tools/
 	covselect --add !$(REPO_PATH)/third_party/
 
-create_syscfg_regs: build_path ../common/create_syscfg_regs.c device_syscfg_regs.c
-	@echo -------------------------------------------------------------------------------
-	@echo COMPILING create_syscfg_regs
-	gcc -Werror -Wall -w -I../common -c cs35l41_spec.c
-	gcc -Werror -Wall -w -I../common -c device_syscfg_regs.c
-	gcc -Werror -Wall -std=c99 -I../cs35l41 -c ../common/create_syscfg_regs.c -o ./create_syscfg_regs.o
-	gcc -o create_syscfg_regs.exe create_syscfg_regs.o device_syscfg_regs.o cs35l41_spec.o
-	@echo -------------------------------------------------------------------------------
-	@echo EXECUTING create_syscfg_regs
-	./create_syscfg_regs.exe
-	rm -f *.o *.exe
-
-wisce_to_syscfg_reg_converter:
+wisce_script_converter:
 	@echo -------------------------------------------------------------------------------
 	@echo GENERATING cs35l41_syscfg_regs
-	python ../tools/wisce_script_converter/wisce_script_converter.py -c c_array -p cs35l41 -i $(WISCE_SCRIPT) -o .
+	cd $(CONFIG_PATH) && python3 ../../tools/wisce_script_converter/wisce_script_converter.py -c c_array -p cs35l41 -i wisce_init.txt -o .
+
+# Create fw_img files
+.NOTPARALLEL: firmware_converter
+firmware_converter:
+	@echo -------------------------------------------------------------------------------
+	@echo GENERATING cs35l41_fw_img
+	cd $(HALO_FIRMWARE_PATH) && python3 ../../tools/firmware_converter/firmware_converter.py fw_img_v2 cs35l41 $(HALO_FIRMWARE_FILE) --sym-input $(CONFIG_PATH)/cs35l41_sym.h
+	cd $(HALO_FIRMWARE_PATH) && python3 ../../tools/firmware_converter/firmware_converter.py fw_img_v2 cs35l41 $(HALO_CAL_FIRMWARE_FILE) --suffix cal --sym-input $(CONFIG_PATH)/cs35l41_sym.h --wmdr-only --wmdr $(HALO_CAL_FIRMWARE_WMDR)
+	cd $(HALO_FIRMWARE_PATH) && python3 ../../tools/firmware_converter/firmware_converter.py fw_img_v2 cs35l41 halo_cspl_RAM_revB2_29.45.0.wmfw --sym-input $(CONFIG_PATH)/cs35l41_sym.h --wmdr-only --suffix tune --wmdr Protect_Lite_full_6.43.0_7.0ohm_delta1ohm_L41_revB2.bin
 
 # Create the driver static library and print the resource usage
-driver_lib_cm4: build_path $(BUILD_PATHS) $(CREATE_SYSCFG_REGS_TARGET) $(DRIVER_OBJS)
+driver_lib_cm4: build_path $(CREATE_FIRMWARE_TARGET) $(BUILD_PATHS) $(CREATE_SYSCFG_REGS_TARGET) $(DRIVER_OBJS)
 	@echo -------------------------------------------------------------------------------
 	@echo ARCHIVING $(DRIVER_LIBRARY)
 	$(AR) $(ARFLAGS) $(DRIVER_LIBRARY) $(DRIVER_OBJS)
@@ -556,7 +556,7 @@ system_test: build_path $(BUILD_PATHS) $(BULLSEYE_INCLUSIONS) driver_lib_cm4 $(O
 	@echo SIZE of system_test.elf
 	$(SIZE) -t $(BUILD_DIR)/system_test.elf
 
-baremetal: build_path $(BUILD_PATHS) driver_lib_cm4 $(OBJS) $(ASM_OBJS)
+baremetal: build_path $(CREATE_FIRMWARE_TARGET) $(BUILD_PATHS) driver_lib_cm4 $(OBJS) $(ASM_OBJS)
 	@echo -------------------------------------------------------------------------------
 	@echo LINKING $@
 	$(CC) $(LDFLAGS) $(OBJS) $(ASM_OBJS) $(LIBS) -o $(BUILD_DIR)/baremetal.elf
@@ -564,7 +564,7 @@ baremetal: build_path $(BUILD_PATHS) driver_lib_cm4 $(OBJS) $(ASM_OBJS)
 	@echo SIZE of baremetal.elf
 	$(SIZE) -t $(BUILD_DIR)/baremetal.elf
 
-freertos: build_path $(BUILD_PATHS) driver_lib_cm4 $(OBJS) $(ASM_OBJS)
+freertos: build_path $(CREATE_FIRMWARE_TARGET) $(BUILD_PATHS) driver_lib_cm4 $(OBJS) $(ASM_OBJS)
 	@echo -------------------------------------------------------------------------------
 	@echo LINKING $@
 	$(CC) $(LDFLAGS) $(OBJS) $(ASM_OBJS) $(LIBS) -o $(BUILD_DIR)/freertos.elf

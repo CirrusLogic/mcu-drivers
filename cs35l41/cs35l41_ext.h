@@ -80,6 +80,42 @@ typedef enum
 uint32_t cs35l41_set_dig_gain(cs35l41_t *driver, uint32_t *gain);
 
 /**
+ * Configure CS35L41 GPIO Direction
+ *
+ * This will configure the CS35L41 GPIO as either an input or an output.
+ *
+ * @param [in] driver               Pointer to the driver state
+ * @param [in] gpio_id              ID for which GPIO to poll
+ * @param [in] is_output            true = configure for Output, false = configure for Input
+ *
+ * @return
+ * - CS35L41_STATUS_FAIL if:
+ *      - Control port activity fails
+ *      - Any pointers are NULL
+ * - CS35L41_STATUS_OK          otherwise
+ *
+ */
+uint32_t cs35l41_config_gpio(cs35l41_t *driver, cs35l41_gpio_id_t gpio_id, bool is_output);
+
+/**
+ * Set CS35L41 GPIO Level
+ *
+ * This will set the CS35L41 GPIO level as low or high.
+ *
+ * @param [in] driver               Pointer to the driver state
+ * @param [in] gpio_id              ID for which GPIO to poll
+ * @param [in] is_high              true = set GPIO High, false = set GPIO Low
+ *
+ * @return
+ * - CS35L41_STATUS_FAIL if:
+ *      - Control port activity fails
+ *      - Any pointers are NULL
+ * - CS35L41_STATUS_OK          otherwise
+ *
+ */
+uint32_t cs35l41_set_gpio(cs35l41_t *driver, cs35l41_gpio_id_t gpio_id, bool is_high);
+
+/**
  * Get CS35L41 GPIO Level
  *
  * This will poll the level of the CS35L41 GPIO indicated by 'gpio_id' and return the value (0x0 or 0x1) to 'level'.

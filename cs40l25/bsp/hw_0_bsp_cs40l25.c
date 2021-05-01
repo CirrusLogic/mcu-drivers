@@ -33,14 +33,18 @@
 /***********************************************************************************************************************
  * LOCAL LITERAL SUBSTITUTIONS
  **********************************************************************************************************************/
+#define CS40L25_EVENT_TIMEOUT_DURATION_MS   (50)
+#define CS40L25_RELEASE_MAX_DURATION_MS     (15)
+#define CS40L25_EVENT_TIMEOUT_BUFFER_MS     (5)
+#define CS40L25_GPI_RELEASE_TO_VAMP_DISABLE_MS  (CS40L25_EVENT_TIMEOUT_DURATION_MS + \
+                                                 CS40L25_RELEASE_MAX_DURATION_MS + \
+                                                 CS40L25_EVENT_TIMEOUT_BUFFER_MS)
 
 /***********************************************************************************************************************
  * LOCAL VARIABLES
  **********************************************************************************************************************/
 static cs40l25_t cs40l25_driver;
 static fw_img_boot_state_t boot_state;
-static uint8_t transmit_buffer[32];
-static uint8_t receive_buffer[256];
 static uint32_t current_halo_heartbeat = 0;
 #ifdef CS40L25_ALGORITHM_DYNAMIC_F0
 static cs40l25_dynamic_f0_table_entry_t dynamic_f0;
@@ -50,11 +54,9 @@ static uint32_t dynamic_redc;
 static cs40l25_bsp_config_t bsp_config =
 {
     .bsp_dev_id = BSP_DUT_DEV_ID,
-    .bsp_reset_gpio_id = BSP_GPIO_ID_DUT_RESET,
-    .bsp_int_gpio_id = BSP_GPIO_ID_DUT_INT,
+    .bsp_reset_gpio_id = BSP_GPIO_ID_DUT_CDC_RESET,
+    .bsp_int_gpio_id = BSP_GPIO_ID_DUT_CDC_INT,
     .bus_type = BSP_BUS_TYPE_I2C,
-    .cp_write_buffer = transmit_buffer,
-    .cp_read_buffer = receive_buffer,
     .notification_cb = &bsp_notification_callback,
     .notification_cb_arg = NULL
 };
@@ -79,7 +81,7 @@ static cs40l25_haptic_config_t cs40l25_haptic_configs[] =
         .gpio_gain_control = 0,
         .gpio_trigger_config =
         {
-            { .enable = true, .button_press_index = 3, .button_release_index = 4},
+            { .enable = true, .button_press_index = 1, .button_release_index = 2},
             { .enable = true, .button_press_index = 0, .button_release_index = 0},
             { .enable = true, .button_press_index = 0, .button_release_index = 0},
             { .enable = true, .button_press_index = 0, .button_release_index = 0}
@@ -118,6 +120,12 @@ uint32_t bsp_dut_initialize(void)
         haptic_config.event_control.hardware = 1;
         haptic_config.event_control.playback_end_suspend = 1;
 
+#ifdef CONFIG_EXT_BOOST
+        // Enable External Boost Mode with 3ms delay of GPI Trigger to VAMP ready
+        haptic_config.ext_boost.gpi_playback_delay = 99;    // 3 ms * (1 s / 1000 ms) * 32768 units / s) = 99 units
+        haptic_config.ext_boost.use_ext_boost = true;
+#endif
+
         haptic_status = cs40l25_configure(&cs40l25_driver, &haptic_config);
     }
 
@@ -126,11 +134,51 @@ uint32_t bsp_dut_initialize(void)
         ret = BSP_STATUS_FAIL;
     }
 
+    uint32_t temp_buffer;
 #ifndef CONFIG_TEST_OPEN_LOOP
-    // Enable 32kHz clock routing to CS40L25B
-    uint8_t temp_buffer[4] = {0x00, 0x1F, 0x80, 0x03};
-    bsp_i2c_write(BSP_LN2_DEV_ID, temp_buffer, 4, NULL, NULL);
+    // Enable 32kHz clock routing to CS40L25
+#ifndef CONFIG_L25B
+    temp_buffer = __builtin_bswap32(0x001F8003);
+    bsp_i2c_write(BSP_LN2_DEV_ID, (uint8_t *)&temp_buffer, 4, NULL, NULL);
+#else
+    // CDC_AIF2BCLK source set to Channel 3
+    temp_buffer = __builtin_bswap32(0x004C0003);
+    bsp_i2c_write(BSP_LN2_DEV_ID, (uint8_t *)&temp_buffer, 4, NULL, NULL);
+    // Channel 3 source set to PMIC_32K
+    temp_buffer = __builtin_bswap32(0x00BB0022);
+    bsp_i2c_write(BSP_LN2_DEV_ID, (uint8_t *)&temp_buffer, 4, NULL, NULL);
+#endif // CONFIG_L25B
+#endif // CONFIG_TEST_OPEN_LOOP
+
+#ifndef CONFIG_L25B
+    // Configure Codec AIF2 source to be GF AIF1
+    temp_buffer = __builtin_bswap32(0x000EE00B);
+    bsp_i2c_write(BSP_LN2_DEV_ID, (uint8_t *)&temp_buffer, 4, NULL, NULL);
+    // Configure GF AIF1 source to Codec AIF2
+    temp_buffer = __builtin_bswap32(0x00168005);
+    bsp_i2c_write(BSP_LN2_DEV_ID, (uint8_t *)&temp_buffer, 4, NULL, NULL);
+#else
+    // Configure Codec AIF2 source to be GF AIF2
+    temp_buffer = __builtin_bswap32(0x000EE00C);
+    bsp_i2c_write(BSP_LN2_DEV_ID, (uint8_t *)&temp_buffer, 4, NULL, NULL);
+    // Configure GF AIF2 source to Codec AIF2
+    temp_buffer = __builtin_bswap32(0x00178005);
+    bsp_i2c_write(BSP_LN2_DEV_ID, (uint8_t *)&temp_buffer, 4, NULL, NULL);
 #endif
+
+    // CDC_GPIO5 (VAMP_EN) source set to Channel 1
+    temp_buffer = __builtin_bswap32(0x003B0001);
+    bsp_i2c_write(BSP_LN2_DEV_ID, (uint8_t *)&temp_buffer, 4, NULL, NULL);
+    // Channel 1 source set to GF_GPIO7 (PC_5)
+    temp_buffer = __builtin_bswap32(0x00B90017);
+    bsp_i2c_write(BSP_LN2_DEV_ID, (uint8_t *)&temp_buffer, 4, NULL, NULL);
+
+    // CDC_GPIO1 (GPIO1) source set to Channel 2
+    temp_buffer = __builtin_bswap32(0x00370002);
+    bsp_i2c_write(BSP_LN2_DEV_ID, (uint8_t *)&temp_buffer, 4, NULL, NULL);
+    // Channel 2 source set to GF_GPIO2 (PC_2)
+    temp_buffer = __builtin_bswap32(0x00BA0015);
+    bsp_i2c_write(BSP_LN2_DEV_ID, (uint8_t *)&temp_buffer, 4, NULL, NULL);
 
     return ret;
 }
@@ -368,17 +416,36 @@ uint32_t bsp_dut_wake(void)
 uint32_t bsp_dut_start_i2s(void)
 {
     uint32_t ret;
+#ifdef CS40L25_ALGORITHM_DVL
+    cs40l25_control_request_t req;
+    cs40l25_field_accessor_t fa = {0};
+#endif
 
     ret = cs40l25_start_i2s(&cs40l25_driver);
-
-    if (ret == CS40L25_STATUS_OK)
-    {
-        return BSP_STATUS_OK;
-    }
-    else
+    if (ret == CS40L25_STATUS_FAIL)
     {
         return BSP_STATUS_FAIL;
     }
+
+#ifdef CS40L25_ALGORITHM_DVL
+    // Example: Wait 3 seconds and then disable DVL
+    bsp_set_timer(3000, NULL, NULL);
+
+    req.id = CS40L25_CONTROL_ID_SET_SYM;
+    req.arg = (void *) &fa;
+
+    fa.id = CS40L25_SYM_DVL_EN;
+    fa.value = 0;
+    fa.size = 32;
+
+    ret = cs40l25_control(&cs40l25_driver, req);
+    if (ret == CS40L25_STATUS_FAIL)
+    {
+        return BSP_STATUS_FAIL;
+    }
+#endif
+
+    return BSP_STATUS_OK;
 }
 
 uint32_t bsp_dut_stop_i2s(void)
@@ -450,7 +517,7 @@ uint32_t bsp_dut_update_haptic_config(uint8_t config_index)
 
 uint32_t bsp_dut_enable_haptic_processing(bool enable)
 {
-    uint32_t ret;
+    uint32_t ret = BSP_STATUS_OK;
 
 #ifdef CS40L25_ALGORITHM_CLAB
     ret = cs40l25_set_clab_enable(&cs40l25_driver, enable);
@@ -470,15 +537,13 @@ uint32_t bsp_dut_enable_haptic_processing(bool enable)
     // Enable Dynamic F0
     ret = cs40l25_set_dynamic_f0_enable(&cs40l25_driver, enable);
 
-    if (ret == CS40L25_STATUS_OK)
-    {
-        return BSP_STATUS_OK;
-    }
-#endif
-    else
+    if (ret != CS40L25_STATUS_OK)
     {
         return BSP_STATUS_FAIL;
     }
+#endif
+
+    return ret;
 }
 
 uint32_t bsp_dut_trigger_haptic(uint8_t waveform, uint32_t duration_ms)
@@ -488,6 +553,7 @@ uint32_t bsp_dut_trigger_haptic(uint8_t waveform, uint32_t duration_ms)
     if (waveform == BSP_DUT_TRIGGER_HAPTIC_POWER_ON)
     {
         ret = cs40l25_trigger_bhm(&cs40l25_driver);
+        bsp_set_timer(500, NULL, NULL);
     }
     else
     {
@@ -538,6 +604,59 @@ uint32_t bsp_dut_process(void)
     {
         return BSP_STATUS_FAIL;
     }
+
+    return BSP_STATUS_OK;
+}
+
+uint32_t bsp_dut_discharge_vamp(void)
+{
+    uint32_t ret;
+
+    ret = cs40l25_enable_vamp_discharge(&cs40l25_driver, true);
+    if (ret)
+    {
+        return BSP_STATUS_FAIL;
+    }
+
+    bsp_set_timer(50, NULL, NULL);
+
+    ret = cs40l25_enable_vamp_discharge(&cs40l25_driver, false);
+    if (ret)
+    {
+        return BSP_STATUS_FAIL;
+    }
+
+    return ret;
+}
+
+uint32_t bsp_dut_enable_vamp(bool is_enabled)
+{
+    // Set VAMP_EN (GF_GPIO7) according to is_enabled
+    if (is_enabled)
+    {
+        bsp_driver_if_g->set_gpio(BSP_GPIO_ID_GF_GPIO7, BSP_GPIO_HIGH);
+    }
+    else
+    {
+        bsp_driver_if_g->set_gpio(BSP_GPIO_ID_GF_GPIO7, BSP_GPIO_LOW);
+        bsp_driver_if_g->set_timer(5, NULL, NULL);
+    }
+
+    return BSP_STATUS_OK;
+}
+
+uint32_t bsp_dut_trigger_gpio1(uint32_t duration_ms)
+{
+    // Drive GPIO1 HIGH
+    bsp_driver_if_g->set_gpio(BSP_GPIO_ID_GF_GPIO2, BSP_GPIO_HIGH);
+
+    // Wait
+    bsp_driver_if_g->set_timer(duration_ms, NULL, NULL);
+
+    // Drive GPIO1 LOW
+    bsp_driver_if_g->set_gpio(BSP_GPIO_ID_GF_GPIO2, BSP_GPIO_LOW);
+
+    bsp_driver_if_g->set_timer(CS40L25_GPI_RELEASE_TO_VAMP_DISABLE_MS, NULL, NULL);
 
     return BSP_STATUS_OK;
 }

@@ -40,17 +40,17 @@ extern "C" {
 
 #define BSP_DUT_TRIGGER_HAPTIC_POWER_ON                     (0xFF)
 
+// data length read from array with padding, should be multiple of 4
+#define BSP_DUT_BUFFER_SIZE                                  24572 
 /***********************************************************************************************************************
  * MACROS
  **********************************************************************************************************************/
 #define BSP_USE_CASE_TG_HP_EN                                   (0x0)
 #define BSP_USE_CASE_TG_HP_DIS                                  (0x1)
-#define BSP_USE_CASE_DSP_PRELOAD_PT_EN                          (0x2)
-#define BSP_USE_CASE_DSP_PRELOAD_PT_DIS                         (0x3)
-#define BSP_USE_CASE_TG_DSP_HP_EN                               (0x4)
-#define BSP_USE_CASE_TG_DSP_HP_DIS                              (0x5)
-#define BSP_USE_CASE_MIC_DSP_HP_EN                              (0x6)
-#define BSP_USE_CASE_MIC_DSP_HP_DIS                             (0x7)
+#define BSP_USE_CASE_MP3_441K_INIT                              (0x2)
+#define BSP_USE_CASE_MP3_48K_INIT                               (0x3)
+#define BSP_USE_CASE_MP3_PROCESS                                (0x4)
+#define BSP_USE_CASE_MP3_DONE                                   (0x5)
 
 /***********************************************************************************************************************
  * ENUMS, STRUCTS, UNIONS, TYPEDEFS

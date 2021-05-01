@@ -1,5 +1,5 @@
 #==========================================================================
-# (c) 2020 Cirrus Logic, Inc.
+# (c) 2020-2021 Cirrus Logic, Inc.
 #--------------------------------------------------------------------------
 # Project : Templates for C Source and Header files
 # File    : fw_img_v1_templates.py
@@ -28,6 +28,8 @@ import re
 import os
 from firmware_exporter import firmware_exporter
 from fw_img_v1 import fw_img_v1
+from collections import OrderedDict
+import time
 
 #==========================================================================
 # CONSTANTS/GLOBALS
@@ -38,7 +40,7 @@ header_file_template_str = """/**
  * @brief {part_number_uc} FW IMG Header File
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2020 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic """ + time.strftime("%Y") + """ All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -80,7 +82,7 @@ source_file_template_str = """/**
  * @brief {part_number_uc} FW IMG Source File
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2020 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic """ + time.strftime("%Y") + """ All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -162,7 +164,7 @@ symbol_id_header_file_template_str = """
  * @brief Master table of known firmware symbols for the {part_number_uc} Driver module
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2020 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic """ + time.strftime("%Y") + """ All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -256,9 +258,9 @@ class fw_img_v1_file(firmware_exporter):
         self.terms['data_blocks'] = 0
         self.terms['max_block_size'] = self.attributes['max_block_size']
 
-        self.algorithms = dict()
+        self.algorithms = OrderedDict()
 
-        self.algorithm_controls = dict()
+        self.algorithm_controls = OrderedDict()
 
         self.terms['fw_block_arrays'] = ''
         self.terms['coeff_block_arrays'] = []

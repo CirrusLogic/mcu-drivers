@@ -32,7 +32,7 @@ extern "C" {
  **********************************************************************************************************************/
 #include <stdint.h>
 #include <stdbool.h>
-#include "fw_img_v1.h"
+#include "fw_img.h"
 #include "cs40l25_sym.h"
 #include "cs40l25_cal_sym.h"
 #include "cs40l25_spec.h"
@@ -174,7 +174,8 @@ extern "C" {
 #define CS40L25_EVENT_FLAG_BOOST_INDUCTOR_SHORT         (1 << 27)
 #define CS40L25_EVENT_FLAG_BOOST_UNDERVOLTAGE           (1 << 26)
 #define CS40L25_EVENT_FLAG_BOOST_OVERVOLTAGE            (1 << 25)
-#define CS40L25_EVENT_FLAG_STATE_ERROR                  (1 << 12)
+#define CS40L25_EVENT_FLAG_STATE_ERROR                  (1 << 13)
+#define CS40L25_EVENT_FLAG_ACTIVE_TO_STANDBY            (1 << 12)
 #define CS40L25_EVENT_FLAG_READY_FOR_DATA               (1 << 11)
 #define CS40L25_EVENT_FLAG_CP_PLAYBACK_DONE             (0x1 << 9)
 #define CS40L25_EVENT_FLAG_CP_PLAYBACK_SUSPEND          (0x2 << 9)
@@ -188,6 +189,31 @@ extern "C" {
 #define CS40L25_EVENT_FLAG_GPIO_2_PRESS                 (1 << 2)
 #define CS40L25_EVENT_FLAG_GPIO_1_RELEASE               (1 << 1)
 #define CS40L25_EVENT_FLAG_GPIO_1_PRESS                 (1 << 0)
+/** @} */
+
+/**
+ * @defgroup CS40L25_POWERCONTROL_
+ * @brief Valid values to write to DSP_VIRTUAL1_MBOX_DSP_VIRTUAL1_MBOX_4_REG (i.e. POWERCONTROL)
+ *
+ * @{
+ */
+#define CS40L25_POWERCONTROL_NONE               (0)
+#define CS40L25_POWERCONTROL_HIBERNATE          (1)
+#define CS40L25_POWERCONTROL_WAKEUP             (2)
+#define CS40L25_POWERCONTROL_FRC_STDBY          (3)
+/** @} */
+
+/**
+ * @defgroup CS40L25_POLL_
+ * @brief Polling constants for polling times and counts
+ *
+ * @{
+ */
+#define CS40L25_POLL_ACK_CTRL_MS                (10)    ///< Delay in ms between polling OTP_BOOT_DONE
+#define CS40L25_POLL_ACK_CTRL_MAX               (10)    ///< Maximum number of times to poll OTP_BOOT_DONE
+#define CS40L25_POLL_OTP_BOOT_DONE_MS           (10)    ///< Delay in ms between polling OTP_BOOT_DONE
+#define CS40L25_POLL_OTP_BOOT_DONE_MAX          (10)    ///< Maximum number of times to poll OTP_BOOT_DONE
+#define CS40L25_POLL_CAL_Q_MAX                  (30)    ///< Maximum number of times to poll CAL_Q
 /** @} */
 
 #define CS40L25_CONFIG_REGISTERS_TOTAL                  (2)     ///< Total registers modified during cs40l25_boot
@@ -273,7 +299,8 @@ typedef struct
             uint32_t playback_resume            : 1;
             uint32_t playback_end_suspend       : 1;
             uint32_t rx_ready                   : 1;
-            uint32_t reserved_0                 : 16;
+            uint32_t active_to_standby          : 1;
+            uint32_t reserved_0                 : 15;
             uint32_t hardware                   : 1;
             uint32_t reserved_1                 : 8;
         };
@@ -376,11 +403,15 @@ typedef struct
     uint32_t bsp_reset_gpio_id;                         ///< Used to ID CS40L25 Reset pin in bsp_driver_if calls
     uint32_t bsp_int_gpio_id;                           ///< Used to ID CS40L25 INT pin in bsp_driver_if calls
     uint8_t bus_type;                                   ///< Control Port type - I2C or SPI
-    uint8_t *cp_write_buffer;                           ///< Pointer to Control Port write byte buffer
-    uint8_t *cp_read_buffer;                            ///< Pointer to Control Port read byte buffer
     cs40l25_notification_callback_t notification_cb;    ///< Notification callback registered for detected events
     void *notification_cb_arg;                          ///< Notification callback argument
 } cs40l25_bsp_config_t;
+
+typedef struct
+{
+    bool use_ext_boost;
+    uint32_t gpi_playback_delay;
+} cs40l25_external_boost_config_t;
 
 /**
  * Driver configuration data structure
@@ -394,6 +425,7 @@ typedef struct
     uint32_t syscfg_regs_total;                     ///< Total entries in system configuration table
     cs40l25_calibration_t cal_data;                 ///< Calibration data from previous calibration sequence
     cs40l25_event_control_t event_control;          ///< Event Control configuration
+    cs40l25_external_boost_config_t ext_boost;
 } cs40l25_config_t;
 
 /**
@@ -651,6 +683,97 @@ uint32_t cs40l25_start_i2s(cs40l25_t *driver);
  * @see cs40l25_dsp_status_t
  */
 uint32_t cs40l25_stop_i2s(cs40l25_t *driver);
+
+/**
+ * Enable the VAMP Discharge via the CS40L25
+ *
+ * When the driver is configured for External Boost Mode, this will enable the CS40L25 discharge of the VAMP supply.
+ * This API should ONLY be used after the VAMP supply is disabled from the host!
+ *
+ * @param [in] driver               Pointer to the driver state
+ * @param [in] is_enable            'true' for enable VAMP discharge, 'false' for disable VAMP discharge
+ *
+ * @return
+ * - CS40L25_STATUS_FAIL if:
+ *      - driver is not in External Boost Mode
+ *      - Control port activity fails
+ *      - MBOX write ACK fails
+ * - otherwise, returns CS40L25_STATUS_OK
+ *
+ * @warning This API should only be used for External Boost Mode!
+ * @warning This API should ONLY be used after the VAMP supply is disabled from the host!
+ *
+ */
+uint32_t cs40l25_enable_vamp_discharge(cs40l25_t *driver, bool is_enable);
+
+/**
+ * Reads the contents of a single register/memory address
+ *
+ * @param [in] driver           Pointer to the driver state
+ * @param [in] addr             32-bit address to be read
+ * @param [out] val             Pointer to register value read
+ *
+ * @return
+ * - CS40L25_STATUS_FAIL        if the call to BSP failed
+ * - CS40L25_STATUS_OK          otherwise
+ *
+ * @warning Contains platform-dependent code.
+ *
+ */
+uint32_t cs40l25_read_reg(cs40l25_t *driver, uint32_t addr, uint32_t *val);
+
+/**
+ * Writes the contents of a single register/memory address
+ *
+ * @param [in] driver           Pointer to the driver state
+ * @param [in] addr             32-bit address to be written
+ * @param [in] val              32-bit value to be written
+ *
+ * @return
+ * - CS40L25_STATUS_FAIL        if the call to BSP failed
+ * - CS40L25_STATUS_OK          otherwise
+ *
+ * @warning Contains platform-dependent code.
+ *
+ */
+uint32_t cs40l25_write_reg(cs40l25_t *driver, uint32_t addr, uint32_t val);
+
+/**
+ * Writes the contents of a single register/memory address that ACK's with a default value
+ *
+ * This performs the same function as cs40l25_write_reg, with the addition of, after writing the value to the address
+ * specified, will periodically read back the register and verify that a default value is restored, the 'acked_val',
+ * indicating the write succeeded.
+ *
+ * @param [in] driver           Pointer to the driver state
+ * @param [in] addr             32-bit address to be written
+ * @param [in] val              32-bit value to be written
+ * @param [in] acked_val        32-bit value the address should be restored to
+ *
+ * @return
+ * - CS40L25_STATUS_FAIL        if the call to BSP failed or if register is never restored to acked_val
+ * - CS40L25_STATUS_OK          otherwise
+ *
+ * @warning Contains platform-dependent code.
+ *
+ */
+uint32_t cs40l25_write_acked_reg(cs40l25_t *driver, uint32_t addr, uint32_t val, uint32_t acked_val);
+
+/**
+ * Find if a symbol is in the symbol table and return its address if it is.
+ *
+ * This will search through the symbol table pointed to in the 'fw_info' member of the driver state and return
+ * the control port register address to use for access.  The 'symbol_id' parameter must be from the group CS40L25_SYM_.
+ *
+ * @param [in] driver           Pointer to the driver state
+ * @param [in] symbol_id        id of symbol to search for
+ *
+ * @return
+ * - non-0 - symbol register address
+ * - 0 - symbol not found.
+ *
+ */
+uint32_t cs40l25_find_symbol(cs40l25_t *driver, uint32_t symbol_id);
 
 /**********************************************************************************************************************/
 #ifdef __cplusplus

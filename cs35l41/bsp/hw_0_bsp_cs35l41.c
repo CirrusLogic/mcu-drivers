@@ -45,18 +45,22 @@
  **********************************************************************************************************************/
 static cs35l41_t cs35l41_driver;
 static fw_img_info_t fw_img_info;
-static uint8_t transmit_buffer[32];
-static uint8_t receive_buffer[256];
 static uint32_t bsp_dut_dig_gain = CS35L41_AMP_VOLUME_0DB;
 
 static cs35l41_bsp_config_t bsp_config =
 {
+#ifdef USE_CS35L41_SPI
+    .bsp_dev_id = BSP_DUT_DEV_ID_SPI2,
+#else
     .bsp_dev_id = BSP_DUT_DEV_ID,
-    .bsp_reset_gpio_id = BSP_GPIO_ID_DUT_RESET,
-    .bsp_int_gpio_id = BSP_GPIO_ID_DUT_INT,
+#endif
+    .bsp_reset_gpio_id = BSP_GPIO_ID_DUT_DSP_RESET,
+    .bsp_int_gpio_id = BSP_GPIO_ID_DUT_DSP_INT,
+#ifdef USE_CS35L41_SPI
+    .bus_type = BSP_BUS_TYPE_SPI,
+#else
     .bus_type = BSP_BUS_TYPE_I2C,
-    .cp_write_buffer = transmit_buffer,
-    .cp_read_buffer = receive_buffer,
+#endif
     .notification_cb = &bsp_notification_callback,
     .notification_cb_arg = NULL
 };
@@ -202,6 +206,35 @@ uint32_t bsp_dut_initialize(void)
     if (ret != CS35L41_STATUS_OK)
     {
         ret = BSP_STATUS_FAIL;
+    }
+
+    uint32_t temp_buffer;
+
+    // Configure Codec AIF1 source to be GF AIF1
+    temp_buffer = __builtin_bswap32(0x000DE00B);
+    bsp_i2c_write(BSP_LN2_DEV_ID, (uint8_t *)&temp_buffer, 4, NULL, NULL);
+    // Configure GF AIF1 source to Codec AIF1
+    temp_buffer = __builtin_bswap32(0x00168004);
+    bsp_i2c_write(BSP_LN2_DEV_ID, (uint8_t *)&temp_buffer, 4, NULL, NULL);
+
+    // DSP_GPIO3 (AMP_L_RST) source set to Channel 1
+    temp_buffer = __builtin_bswap32(0x00410001);
+    bsp_i2c_write(BSP_LN2_DEV_ID, (uint8_t *)&temp_buffer, 4, NULL, NULL);
+    // Channel 1 source set to GF_GPIO1 (PC_1)
+    temp_buffer = __builtin_bswap32(0x00B90018);
+    bsp_i2c_write(BSP_LN2_DEV_ID, (uint8_t *)&temp_buffer, 4, NULL, NULL);
+
+    if (cs35l41_driver.config.bsp_config.bus_type == BSP_BUS_TYPE_SPI)
+    {
+        // Bypass LN2 FPGA
+        temp_buffer = __builtin_bswap32(0x00EE0000);
+        bsp_i2c_write(BSP_LN2_DEV_ID, (uint8_t *)&temp_buffer, 4, NULL, NULL);
+        // Toggle CIF Master mode to SPI
+        temp_buffer = __builtin_bswap32(0x00F00000);
+        bsp_i2c_write(BSP_LN2_DEV_ID, (uint8_t *)&temp_buffer, 4, NULL, NULL);
+        // Redirect MCU SPI to SPI2 on LN2, SPI_SS_GF_SPI1_SS2_DST = DSP_GPIO5
+        temp_buffer = __builtin_bswap32(0x0240100D);
+        bsp_i2c_write(BSP_LN2_DEV_ID, (uint8_t *)&temp_buffer, 4, NULL, NULL);
     }
 
     return ret;

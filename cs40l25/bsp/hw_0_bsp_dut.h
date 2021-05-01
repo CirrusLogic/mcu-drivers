@@ -72,6 +72,10 @@ uint32_t bsp_dut_enable_haptic_processing(bool enable);
 uint32_t bsp_dut_dynamic_calibrate(void);
 uint32_t bsp_dut_process(void);
 
+uint32_t bsp_dut_enable_vamp(bool is_enabled);
+uint32_t bsp_dut_discharge_vamp(void);
+uint32_t bsp_dut_trigger_gpio1(uint32_t duration_ms);
+
 /**********************************************************************************************************************/
 #ifdef __cplusplus
 }

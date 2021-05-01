@@ -1,0 +1,84 @@
+*-------------------------------------------------------------------------------
+* Cirrus Logic device configuration file
+* Created by WISCE.exe utility version 3.12.0.3 at 4/22/2021 1:54:02 PM
+*
+* Devices on system:
+*   CS40L25 at SMBUS/0x80
+*-------------------------------------------------------------------------------
+
+*-------------------------------------------------------------------------------
+* Register operations have the following format:
+*
+*      <register> <value> <access_type> <action> [<dev_addr>] [<mask>]
+*
+* where:
+*      <register>      is the register index
+*      <value>         is the data value
+*      <access_type>   is one of:
+*          AC97_16_bit_data
+*          3wire_9_bit_data
+*          2wire_9_bit_data
+*      <action>        is one of
+*          Write         - write the given value
+*          Read          - documents the value that was read
+*          RModW         - read/modify/write
+*                          (newval = (currval & ~<mask>) | <value>)
+*      <dev_addr>      is the 2wire device address or the SPI chip select
+*      <mask>          is the mask for the RModW operation
+*
+* for example:
+*   R12  0x1234  AC97_16_bit_data Write
+*     - this would write the hex value 0x1234 to register 12 (decimal)
+*       using AC97
+*
+*   R36  0x1F5   2wire_9_bit_data Write 0x34
+*     - this would write the hexadecimal value 0x1F5 to register
+*       36 (decimal) on the 2-wire device at address 0x34 (hex)
+*
+*   0xC  4660    AC97_16_bit_data Write
+*   0x24 501     2wire_9_bit_data Write 0x34
+*     - these are the same two operations using hexadecimal registers
+*       and decimal values
+*
+* Lines beginning with// are comments and are ignored when processing
+* the file.
+*
+* The register index can be written either in decimal format, prefixed by 'R'
+* or in hexadecimal format, prefixed by '0x'.
+*
+* For 9-bit 2- and 3-wire operations, <value> is the actual 9 bit register
+* contents, NOT the 16 bit data word.
+*
+* Entries in a line can be separated by spaces or tabs. The amount of
+* space between each entry does not matter but entries must be arranged
+* in the correct order from left to right. A file can be created in a text
+* editor (e.g. Notepad), or created in Excel and saved as .txt format
+* (tab separated).
+*
+*-------------------------------------------------------------------------------
+
+* ----- ------ -------------------- ------- --------- ------------------------------
+*  REG   DATA         ACCESS        READ OR  DEVICE
+* INDEX  VALUE         TYPE          WRITE   ADDRESS  COMMENT (for information only)
+* ----- ------ -------------------- ------- --------- ------------------------------
+  0x6000 0x81F0 SMbus_32inx_32dat     Write  0x80      * INTP_AMP_CTRL(6000H):    81F0  AMP_HPF_PCM_EN=Enabled, AMP_INV_PCM=PCM audio not inverted, AMP_VOL_PCM=7.75dB, AMP_RAMP_PCM=No Ramp
+  0x4C40 0x0008 SMbus_32inx_32dat     Write  0x80      * MIXER_DSP1RX1_INPUT(4C40H): 0008  DSP1RX1_SRC=ASP RX1
+  0x4C44 0x0018 SMbus_32inx_32dat     Write  0x80      * MIXER_DSP1RX2_INPUT(4C44H): 0018  DSP1RX2_SRC=Voltage Monitor
+  0x4C48 0x0019 SMbus_32inx_32dat     Write  0x80      * MIXER_DSP1RX3_INPUT(4C48H): 0019  DSP1RX3_SRC=Current Monitor
+  0x4C4C 0x0028 SMbus_32inx_32dat     Write  0x80      * MIXER_DSP1RX4_INPUT(4C4CH): 0028  DSP1RX4_SRC=VP Voltage
+  0x4C00 0x0032 SMbus_32inx_32dat     Write  0x80      * MIXER_DACPCM1_INPUT(4C00H): 0032  DACPCM1_SRC=DSP1 channel 1
+  0x242C 0x3010000 SMbus_32inx_32dat     Write  0x80      * PAD_INTF_GPIO_PAD_CONTROL(242CH): 3010000  GP2_CTRL=MCLK Input, GP1_CTRL=Pin acts as a GPIO, direction controlled by the GP1_DIR register.
+  0x2C04 0x0015 SMbus_32inx_32dat     Write  0x80      * CCM_REFCLK_INPUT(2C04H): 0015  PLL_FORCE_EN=Normal operation (PLL not forced on/selected), PLL_OPEN_LOOP=Closed loop (PLL is locked to REFCLK), PLL_REFCLK_FREQ=32768Hz, PLL_REFCLK_EN=Enabled (normal mode), PLL_REFCLK_SEL=MCLK input
+  0x2018 0x3321 SMbus_32inx_32dat     Write  0x80      * MSM_BLOCK_ENABLES(2018H): 3321  IMON_EN=IMON monitoring enabled, VMON_EN=VMON monitoring enabled, TEMPMON_EN=TEMPMON monitoring disabled, VBSTMON_EN=VBSTMON monitoring enabled, VPMON_EN=VPMON monitoring enabled, BST_EN=Boost converter enabled, AMP_EN=Amplifier functionality enabled
+  0x201C 0x1000010 SMbus_32inx_32dat     Write  0x80      * MSM_BLOCK_ENABLES2(201CH): 1000010  WKFET_AMP_EN=Amplifier weak-FET tracking enabled, AMP_DRE_EN=DRE disabled, VBBR_EN=VBST brownout prevention disabled, VPBR_EN=VP brownout prevention disabled, SYNC_EN=Disabled, CLASSH_EN=Class H enabled
+  0x4808 0x20180200 SMbus_32inx_32dat     Write  0x80      * DATAIF_ASP_CONTROL2(4808H): 20180200  ASP_RX_WIDTH=32cycles per slot, ASP_TX_WIDTH=24cycles per slot, ASP_FMT=I2S mode, ASP_BCLK_INV=ASP_BCLK not inverted, ASP_BCLK_FRC=Normal, ASP_BCLK_MSTR=ASP_BCLK Slave mode, ASP_FSYNC_INV=ASP_FSYNC not inverted, ASP_FSYNC_FRC=Normal, ASP_FSYNC_MSTR=ASP_FSYNC Slave mode
+  0x4820 0x0100 SMbus_32inx_32dat     Write  0x80      * DATAIF_ASP_FRAME_CONTROL5(4820H): 0100  ASP_RX2_SLOT=1, ASP_RX1_SLOT=0
+  0x4840 0x0018 SMbus_32inx_32dat     Write  0x80      * DATAIF_ASP_DATA_CONTROL5(4840H): 0018  ASP_RX_WL=24cycles per slot
+  0x2d10 0x0002b01b SMbus_32inx_32dat     Write  0x80      *
+  0x4804 0x0021 SMbus_32inx_32dat     Write  0x80      * DATAIF_ASP_CONTROL1(4804H): 0021  ASP_BCLK_FREQ=3.072 MHz
+  0x3814 0x7500 SMbus_32inx_32dat     Write  0x80      * BOOST_LBST_SLOPE(3814H): 7500  BST_SLOPE=75, BST_LBST_VAL=1.0 H
+  0x3810 0x2424 SMbus_32inx_32dat     Write  0x80      * BOOST_BST_LOOP_COEFF(3810H): 2424  BST_K2=24, BST_K1=24
+  0x3808 0x004A SMbus_32inx_32dat     Write  0x80      * BOOST_BST_IPK_CTL(3808H): 004A  BST_IPK=4.5A
+  0x3800 0x00AA SMbus_32inx_32dat     Write  0x80      * BOOST_VBST_CTL_1(3800H): 00AA  BST_CTL=11V
+  0x3804 0x0005 SMbus_32inx_32dat     Write  0x80      * BOOST_VBST_CTL_2(3804H): 0005  BST_CTL_LIM_EN=Maximum Class H BST_CTL generation is limited by BST_CTL configuration, BST_CTL_SEL=Class H tracking value
+  0x2904 0x0098 SMbus_32inx_32dat     Write  0x80      * PWRMGT_WAKESRC_CTL(2904H): 0098  UPDT_WKCTL=Do not latch values, WKSRC_EN=1001, WKSRC_POL=1000

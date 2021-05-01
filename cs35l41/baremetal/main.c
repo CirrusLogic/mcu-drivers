@@ -53,7 +53,7 @@ static bool bsp_pb_pressed = false;
  **********************************************************************************************************************/
 void app_bsp_callback(uint32_t status, void *arg)
 {
-    if (status != BSP_STATUS_OK)
+    if (status == BSP_STATUS_FAIL)
     {
         exit(1);
     }
@@ -77,6 +77,8 @@ int main(void)
 
     bsp_initialize(app_bsp_callback, NULL);
     bsp_dut_initialize();
+
+    bsp_set_ld2(BSP_LD2_MODE_ON, 0);
 
     while (1)
     {

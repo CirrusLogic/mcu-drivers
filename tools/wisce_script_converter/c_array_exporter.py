@@ -1,5 +1,5 @@
 # ==========================================================================
-# (c) 2020 Cirrus Logic, Inc.
+# (c) 2020-2021 Cirrus Logic, Inc.
 # --------------------------------------------------------------------------
 # Project : Class for exporting to C Array
 # File    : c_array_exporter.py
@@ -26,17 +26,18 @@
 # ==========================================================================
 from wisce_script_exporter import wisce_script_exporter
 from wisce_script_transaction import wisce_script_transaction
+import time
 
 # ==========================================================================
 # CONSTANTS/GLOBALS
 # ==========================================================================
 header_file_template_str = """/**
- * @file {part_number_lc}_syscfg_regs.h
+ * @file {filename_prefix_lc}_syscfg_regs.h
  *
  * @brief Register values to be applied after {part_number_uc} Driver boot().
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2020 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic """ + time.strftime("%Y") + """ All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -53,8 +54,8 @@ header_file_template_str = """/**
 {metadata_text} *
  */
 
-#ifndef {part_number_uc}_SYSCFG_REGS_H
-#define {part_number_uc}_SYSCFG_REGS_H
+#ifndef {filename_prefix_uc}_SYSCFG_REGS_H
+#define {filename_prefix_uc}_SYSCFG_REGS_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -68,38 +69,41 @@ extern "C" {
 /***********************************************************************************************************************
  * LITERALS & CONSTANTS
  **********************************************************************************************************************/
-#define {part_number_uc}_SYSCFG_REGS_TOTAL    ({syscfg_regs_total})
+#define {filename_prefix_uc}_SYSCFG_REGS_TOTAL    ({syscfg_regs_total})
 
 /***********************************************************************************************************************
  * ENUMS, STRUCTS, UNIONS, TYPEDEFS
  **********************************************************************************************************************/
+#ifndef SYSCFG_REG_T_DEF
+#define SYSCFG_REG_T_DEF
 typedef struct
 {
     uint32_t address;
     uint32_t mask;
     uint32_t value;
 } syscfg_reg_t;
+#endif
 
 /***********************************************************************************************************************
  * GLOBAL VARIABLES
  **********************************************************************************************************************/
-extern const syscfg_reg_t {part_number_lc}_syscfg_regs[];
+extern const syscfg_reg_t {filename_prefix_lc}_syscfg_regs[];
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif // {part_number_uc}_SYSCFG_REGS_H
+#endif // {filename_prefix_uc}_SYSCFG_REGS_H
 
 """
 
 source_file_template_str = """/**
- * @file {part_number_lc}_syscfg_regs.c
+ * @file {filename_prefix_lc}_syscfg_regs.c
  *
  * @brief Register values to be applied after {part_number_uc} Driver boot().
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2020 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic """ + time.strftime("%Y") + """ All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -117,13 +121,13 @@ source_file_template_str = """/**
 /***********************************************************************************************************************
  * INCLUDES
  **********************************************************************************************************************/
-#include "{part_number_lc}_syscfg_regs.h"
+#include "{filename_prefix_lc}_syscfg_regs.h"
 #include "{part_number_lc}_spec.h"
 
 /***********************************************************************************************************************
  * GLOBAL VARIABLES
  **********************************************************************************************************************/
-const syscfg_reg_t {part_number_lc}_syscfg_regs[] =
+const syscfg_reg_t {filename_prefix_lc}_syscfg_regs[] =
 {
 {syscfg_regs_list}};
 
@@ -145,6 +149,13 @@ class c_array_exporter(wisce_script_exporter):
         self.terms['metadata_text'] = ''
         self.output_path = self.attributes['output_path']
         self.include_comments = self.attributes['include_comments']
+
+        self.terms['filename_prefix_lc'] = self.terms['part_number_lc']
+        self.terms['filename_prefix_uc'] = self.terms['part_number_uc']
+        if (self.attributes['suffix'] is not None):
+            self.terms['filename_prefix_lc'] += '_' + self.attributes['suffix'].lower()
+            self.terms['filename_prefix_uc'] += '_' + self.attributes['suffix'].upper()
+
         return
 
     def add_transaction(self, transaction):
@@ -161,6 +172,8 @@ class c_array_exporter(wisce_script_exporter):
         output_str = output_str.replace('{transaction_list}', self.terms['transaction_list'])
         output_str = output_str.replace('{part_number_lc}', self.terms['part_number_lc'])
         output_str = output_str.replace('{part_number_uc}', self.terms['part_number_uc'])
+        output_str = output_str.replace('{filename_prefix_lc}', self.terms['filename_prefix_lc'])
+        output_str = output_str.replace('{filename_prefix_uc}', self.terms['filename_prefix_uc'])
 
         output_str = output_str.replace('\n\n\n', '\n\n')
         return output_str
@@ -190,19 +203,21 @@ class c_array_exporter(wisce_script_exporter):
 
         output_str = output_str.replace('{part_number_lc}', self.terms['part_number_lc'])
         output_str = output_str.replace('{part_number_uc}', self.terms['part_number_uc'])
+        output_str = output_str.replace('{filename_prefix_lc}', self.terms['filename_prefix_lc'])
+        output_str = output_str.replace('{filename_prefix_uc}', self.terms['filename_prefix_uc'])
         output_str = output_str.replace('\n\n\n', '\n\n')
         return output_str
 
     def to_file(self):
         results_str = "Exported to:\n"
 
-        temp_filename = self.output_path + '/' + self.terms['part_number_lc'] + "_syscfg_regs.h"
+        temp_filename = self.output_path + '/' + self.terms['filename_prefix_lc'] + "_syscfg_regs.h"
         f = open(temp_filename, 'w')
         f.write(self.to_string(True))
         f.close()
         results_str += temp_filename + '\n'
 
-        temp_filename = self.output_path + '/' + self.terms['part_number_lc'] + "_syscfg_regs.c"
+        temp_filename = self.output_path + '/' + self.terms['filename_prefix_lc'] + "_syscfg_regs.c"
         f = open(temp_filename, 'w')
         f.write(self.to_string(False))
         f.close()
@@ -211,9 +226,13 @@ class c_array_exporter(wisce_script_exporter):
         return results_str
 
 class c_array_parser:
-    def __init__(self, filename, part_number):
+    def __init__(self, filename, part_number, suffix):
         self.filename = filename
         self.part_number = part_number
+        if (suffix is None):
+            self.filename_prefix = self.part_number
+        else:
+            self.filename_prefix += '_' + suffix
 
         return
 
@@ -221,6 +240,8 @@ class c_array_parser:
         comparison_str = source_file_template_str
         comparison_str = comparison_str.replace('{part_number_lc}', self.part_number.lower())
         comparison_str = comparison_str.replace('{part_number_uc}', self.part_number.upper())
+        comparison_str = comparison_str.replace('{filename_prefix_lc}', self.filename_prefix.lower())
+        comparison_str = comparison_str.replace('{filename_prefix_uc}', self.filename_prefix.upper())
         comparison_str = comparison_str.split('\n')
         comparison_lines = []
         for s in comparison_str:

@@ -32,7 +32,7 @@ extern "C" {
  **********************************************************************************************************************/
 #include <stdint.h>
 #include <stdbool.h>
-#include "fw_img_v1.h"
+#include "fw_img.h"
 #include "cs35l41_sym.h"
 #include "cs35l41_spec.h"
 #include "cs35l41_syscfg_regs.h"
@@ -312,8 +312,6 @@ typedef struct
     uint32_t bsp_reset_gpio_id;                         ///< Used to ID CS35L41 Reset pin in bsp_driver_if calls
     uint32_t bsp_int_gpio_id;                           ///< Used to ID CS35L41 INT pin in bsp_driver_if calls
     uint8_t bus_type;                                   ///< Control Port type - I2C or SPI
-    uint8_t *cp_write_buffer;                           ///< Pointer to Control Port write byte buffer
-    uint8_t *cp_read_buffer;                            ///< Pointer to Control Port read byte buffer
     cs35l41_notification_callback_t notification_cb;    ///< Notification callback registered for detected events
     void *notification_cb_arg;                          ///< Notification callback argument
 } cs35l41_bsp_config_t;
@@ -357,6 +355,7 @@ typedef struct
     bool is_cal_boot;                   ///< Flag to indicate current HALO FW boot is for Calibration
 
     uint32_t event_flags;               ///< Flags set by Event Handler that are passed to noticiation callback
+    uint8_t otp_contents[CS35L41_CP_BULK_READ_LENGTH_BYTES];
 } cs35l41_t;
 
 /***********************************************************************************************************************
@@ -601,6 +600,55 @@ uint32_t cs35l41_finish_tuning_switch(cs35l41_t *driver);
  *
  */
 uint32_t cs35l41_calibrate(cs35l41_t *driver, uint32_t ambient_temp_deg_c);
+
+/**
+ * Reads the contents of a single register/memory address
+ *
+ * @param [in] driver           Pointer to the driver state
+ * @param [in] addr             32-bit address to be read
+ * @param [out] val             Pointer to register value read
+ *
+ * @return
+ * - CS35L41_STATUS_FAIL        if the call to BSP failed
+ * - CS35L41_STATUS_OK          otherwise
+ *
+ * @warning Contains platform-dependent code.
+ *
+ */
+uint32_t cs35l41_read_reg(cs35l41_t *driver, uint32_t addr, uint32_t *val);
+
+/**
+ * Writes the contents of a single register/memory address
+ *
+ * @param [in] driver           Pointer to the driver state
+ * @param [in] addr             32-bit address to be written
+ * @param [in] val              32-bit value to be written
+ *
+ * @return
+ * - CS35L41_STATUS_FAIL        if the call to BSP failed
+ * - CS35L41_STATUS_OK          otherwise
+ *
+ * @warning Contains platform-dependent code.
+ *
+ */
+uint32_t cs35l41_write_reg(cs35l41_t *driver, uint32_t addr, uint32_t val);
+
+/*
+ * Reads, updates and writes (if there's a change) the contents of a single register/memory address
+ *
+ * @param [in] driver           Pointer to the driver state
+ * @param [in] addr             Address of the register to be written
+ * @param [in] mask             Mask of the bits within the register to update
+ * @param [in] val              Value to be written to the register (only bits matching the mask will be written)
+ *
+ * @return
+ * - CS35L41_STATUS_FAIL if:
+ *      - Control port activity fails
+ * - otherwise, returns CS35L41_STATUS_OK
+ *
+ */
+uint32_t cs35l41_update_reg(cs35l41_t *driver, uint32_t addr, uint32_t mask, uint32_t val);
+
 
 /**********************************************************************************************************************/
 #ifdef __cplusplus

@@ -32,16 +32,19 @@
 #define APP_STATE_UNINITIALIZED         (0)
 #define APP_STATE_STANDBY               (1)
 #define APP_STATE_TG_HP                 (2)
-#define APP_STATE_STANDBY2              (3)
-#define APP_STATE_DSP_PRELOAD_PT        (4)
-#define APP_STATE_TG_DSP_HP             (5)
-#define APP_STATE_MIC_DSP_HP            (6)
-#define APP_STATE_DSP_DISABLE           (7)
+#define APP_STATE_MP3_48K_INIT          (3)
+#define APP_STATE_MP3_48K_PROCESS       (4)
+#define APP_STATE_MP3_48K_DONE          (5)
+#define APP_STATE_MP3_441K_INIT         (6)
+#define APP_STATE_MP3_441K_PROCESS      (7)
+#define APP_STATE_MP3_441K_DONE         (8)
+#define APP_STATE_DSP_DISABLE           (9)
+
 
 /***********************************************************************************************************************
  * LOCAL VARIABLES
  **********************************************************************************************************************/
-static uint8_t app_state = APP_STATE_UNINITIALIZED;
+static uint16_t app_state = APP_STATE_UNINITIALIZED;
 static bool bsp_pb_pressed = false;
 
 /***********************************************************************************************************************
@@ -79,7 +82,10 @@ int main(void)
     bsp_dut_initialize();
 
     bsp_dut_reset();
-    app_state++;
+
+    bsp_set_ld2(BSP_LD2_MODE_ON, 0);
+
+    app_state = APP_STATE_STANDBY;
 
     while (1)
     {
@@ -106,38 +112,46 @@ int main(void)
                 }
                 break;
 
-            case APP_STATE_STANDBY2:
+            case APP_STATE_MP3_48K_INIT:
                 if (bsp_pb_pressed)
                 {
-                    bsp_dut_use_case(BSP_USE_CASE_DSP_PRELOAD_PT_EN);
+                    bsp_dut_use_case(BSP_USE_CASE_MP3_48K_INIT);
                     app_state++;
                 }
                 break;
 
-            case APP_STATE_DSP_PRELOAD_PT:
-                if (bsp_pb_pressed)
+            case APP_STATE_MP3_48K_PROCESS:
+                bsp_dut_use_case(BSP_USE_CASE_MP3_PROCESS);
+                if (bsp_write_process_done)
                 {
-                    bsp_dut_use_case(BSP_USE_CASE_TG_DSP_HP_EN);
                     app_state++;
                 }
                 break;
 
-            case APP_STATE_TG_DSP_HP:
+            case APP_STATE_MP3_48K_DONE:
+                bsp_dut_use_case(BSP_USE_CASE_MP3_DONE);
+                app_state++;
+                break;
+
+            case APP_STATE_MP3_441K_INIT:
                 if (bsp_pb_pressed)
                 {
-                    bsp_dut_use_case(BSP_USE_CASE_TG_DSP_HP_DIS);
-                    bsp_dut_use_case(BSP_USE_CASE_MIC_DSP_HP_EN);
+                    bsp_dut_use_case(BSP_USE_CASE_MP3_441K_INIT);
                     app_state++;
                 }
                 break;
 
-            case APP_STATE_MIC_DSP_HP:
-                if (bsp_pb_pressed)
+            case APP_STATE_MP3_441K_PROCESS:
+                bsp_dut_use_case(BSP_USE_CASE_MP3_PROCESS);
+                if (bsp_write_process_done)
                 {
-                    bsp_dut_use_case(BSP_USE_CASE_MIC_DSP_HP_DIS);
-                    bsp_dut_use_case(BSP_USE_CASE_DSP_PRELOAD_PT_DIS);
-                    app_state = APP_STATE_STANDBY;
+                    app_state++;
                 }
+                break;
+
+            case APP_STATE_MP3_441K_DONE:
+                bsp_dut_use_case(BSP_USE_CASE_MP3_DONE);
+                app_state = APP_STATE_STANDBY;
                 break;
 
             default:

@@ -29,6 +29,9 @@
 #ifndef NO_OS
 #include "FreeRTOS.h"
 #endif
+#include <stdio.h>
+#include <errno.h>
+#include <unistd.h>
 
 /***********************************************************************************************************************
  * LOCAL LITERAL SUBSTITUTIONS
@@ -74,9 +77,21 @@
 #define I2S_RX_DMAx_MEM_DATA_SIZE       DMA_MDATAALIGN_HALFWORD
 #define I2S_RX_IRQHandler               DMA1_Stream3_IRQHandler
 
-/* Select the interrupt preemption priority and subpriority for the DMA interrupt */
-#define I2S_TX_IRQ_PREPRIO                      0x0E   /* Select the preemption priority level(0 is the highest) */
-#define I2S_RX_IRQ_PREPRIO                      0x0F   /* Select the preemption priority level(0 is the highest) */
+/* Definition for USART2 HW resources */
+#define USART2_CLK_ENABLE()                     __HAL_RCC_USART2_CLK_ENABLE();
+#define USART2_RX_GPIO_CLK_ENABLE()             __HAL_RCC_GPIOA_CLK_ENABLE()
+#define USART2_TX_GPIO_CLK_ENABLE()             __HAL_RCC_GPIOA_CLK_ENABLE()
+#define USART2_FORCE_RESET()                    __HAL_RCC_USART2_FORCE_RESET()
+#define USART2_RELEASE_RESET()                  __HAL_RCC_USART2_RELEASE_RESET()
+#define USART2_TX_PIN                           GPIO_PIN_2
+#define USART2_TX_GPIO_PORT                     GPIOA
+#define USART2_TX_AF                            GPIO_AF7_USART2
+#define USART2_RX_PIN                           GPIO_PIN_3
+#define USART2_RX_GPIO_PORT                     GPIOA
+#define USART2_RX_AF                            GPIO_AF7_USART2
+
+#define USART2_TX_BUFFER_SIZE_BYTES             (1024)
+#define USART2_RX_BUFFER_SIZE_BYTES             USART2_TX_BUFFER_SIZE_BYTES
 
 /* BSP Audio Format definitions */
 #define BSP_I2S_STANDARD                        I2S_STANDARD_PHILIPS
@@ -118,16 +133,106 @@
 
 #define BSP_DUT_RESET_CLK_ENABLE                __HAL_RCC_GPIOC_CLK_ENABLE
 #define BSP_DUT_RESET_CLK_DISABLE               __HAL_RCC_GPIOC_CLK_DISABLE
-#define BSP_DUT_RESET_PIN                       GPIO_PIN_0
+#define BSP_DUT_CDC_RESET_PIN                   GPIO_PIN_0
+#define BSP_DUT_DSP_RESET_PIN                   GPIO_PIN_1
 #define BSP_DUT_RESET_GPIO_PORT                 GPIOC
 #define BSP_DUT_INT_CLK_ENABLE                  __HAL_RCC_GPIOA_CLK_ENABLE
 #define BSP_DUT_INT_CLK_DISABLE                 __HAL_RCC_GPIOA_CLK_DISABLE
-#define BSP_DUT_INT_PIN                         GPIO_PIN_0
-#define BSP_DUT_INT_GPIO_PORT                   GPIOA
+#ifndef CONFIG_L25B
+#define BSP_DUT_CDC_INT_PIN                     GPIO_PIN_0
+#define BSP_DUT_CDC_INT_GPIO_PORT               GPIOA
+#else
+#define BSP_DUT_CDC_INT_PIN                     GPIO_PIN_11
+#define BSP_DUT_CDC_INT_GPIO_PORT               GPIOC
+#endif
+#define BSP_DUT_DSP_INT_PIN                     GPIO_PIN_10
+#define BSP_DUT_DSP_INT_GPIO_PORT               GPIOA
+
+#define BSP_LN2_RESET_CLK_ENABLE                __HAL_RCC_GPIOA_CLK_ENABLE
+#define BSP_LN2_RESET_CLK_DISABLE               __HAL_RCC_GPIOA_CLK_DISABLE
+#define BSP_LN2_RESET_PIN                       GPIO_PIN_6
+#define BSP_LN2_RESET_GPIO_PORT                 GPIOA
 
 #define BSP_GPIO_ID_LD2                         (0)
 
 #define BSP_PB_TOTAL                            (1)
+
+#define BSP_LN2_FPGA_I2C_ADDRESS_8BIT           (0x44)
+
+#define BSP_LED_MODE_FIXED                      (0)
+#define BSP_LED_MODE_BLINK                      (1)
+
+#define BSP_UART_STATE_PACKET_STATE_IDLE            (0)
+#define BSP_UART_STATE_PACKET_STATE_SOH             (1)
+#define BSP_UART_STATE_PACKET_STATE_TYPE            (2)
+#define BSP_UART_STATE_PACKET_STATE_COUNT           (3)
+#define BSP_UART_STATE_PACKET_STATE_LENGTH          (4)
+#define BSP_UART_STATE_PACKET_STATE_SOT             (5)
+#define BSP_UART_STATE_PACKET_STATE_PAYLOAD_PARTIAL (6)
+#define BSP_UART_STATE_PACKET_STATE_PAYLOAD         (7)
+#define BSP_UART_STATE_PACKET_STATE_EO_TEXT         (8)
+#define BSP_UART_STATE_PACKET_STATE_CHECKSUM        (9)
+#define BSP_UART_STATE_PACKET_STATE_EOT             (10)
+
+#define TEST_FILE_HANDLE        (0xFEU)
+#define COVERAGE_FILE_HANDLE    (0xFFU)
+
+#define BSP_UART_CHANNEL_ID_TO_INDEX(A)             (A - 0x30)
+#define BSP_UART_CHANNEL_INDEX_TO_ID(A)             (A + 0x30)
+#define BSP_UART_CHANNEL_ID_STDOUT_IN               BSP_UART_CHANNEL_INDEX_TO_ID(0)
+#define BSP_UART_CHANNEL_ID_TEST                    BSP_UART_CHANNEL_INDEX_TO_ID(1)
+#define BSP_UART_CHANNEL_ID_COVERAGE                BSP_UART_CHANNEL_INDEX_TO_ID(2)
+
+#define BSP_UART_CHANNEL_FLAG_TX_WHEN_FULL  (1 << 0)
+
+/* Select the preemption priority level(0 is the highest) */
+#define I2S_TX_IRQ_PREPRIO                          (0x7)
+#define I2S_RX_IRQ_PREPRIO                          (0x8)
+#define BSP_DUT_CDC_INT_PREEMPT_PRIO                (0xE)
+#define BSP_DUT_DSP_INT_PREEMPT_PRIO                (0xF)
+#define USART2_IRQ_PREPRIO                          (0xF)
+#define BSP_TIM2_PREPRIO                            (0x4)
+#define BSP_TIM5_PREPRIO                            (0x4)
+#define BSP_I2C1_ERROR_PREPRIO                      (0x1)
+#define BSP_I2C1_EVENT_PREPRIO                      (0x2)
+
+typedef struct
+{
+    uint32_t id;
+    uint8_t mode;
+    bool is_on;
+    uint32_t blink_counter_100ms;
+    uint32_t blink_counter_100ms_max;
+} bsp_led_t;
+
+typedef struct
+{
+    uint32_t size;
+    uint32_t in_index;
+    uint32_t out_index;
+    uint32_t level;
+    uint8_t *buffer;
+} bsp_fifo_t;
+
+typedef struct
+{
+    uint8_t id;
+    uint8_t priority;
+    uint8_t flags;
+    uint8_t status;
+    bsp_fifo_t fifo;
+    uint8_t packet_count;
+} bsp_uart_channel_t;
+
+typedef struct
+{
+    bool tx_complete;
+    bsp_uart_channel_t *current_channel;
+    uint8_t packet_state;
+    uint16_t packet_size;
+    uint8_t packet_checksum;
+    uint8_t *packet_buffer;
+} bsp_uart_state_t;
 
 /***********************************************************************************************************************
  * LOCAL VARIABLES
@@ -167,17 +272,133 @@ static void *app_cb_arg = NULL;
 
 static volatile int32_t bsp_irq_count = 0;
 
-static bsp_callback_t bsp_dut_int_cb = NULL;
-static void *bsp_dut_int_cb_arg = NULL;
+static bsp_callback_t bsp_dut_cdc_int_cb = NULL;
+static bsp_callback_t bsp_dut_dsp_int_cb = NULL;
+static void *bsp_dut_cdc_int_cb_arg = NULL;
+static void *bsp_dut_dsp_int_cb_arg = NULL;
+
+static uint32_t spi_baud_prescaler = SPI_BAUDRATEPRESCALER_16;
+
+static bsp_led_t bsp_ld2_led =
+{
+    .id = 0,
+    .mode = BSP_LED_MODE_FIXED,
+    .is_on = false,
+    .blink_counter_100ms = 0,
+    .blink_counter_100ms_max = 0,
+};
+
+static uint8_t uart_tx_stdout_buffer[USART2_TX_BUFFER_SIZE_BYTES] = {0};
+#ifdef CONFIG_USE_MULTICHANNEL_UART
+static uint8_t uart_tx_test_buffer[USART2_TX_BUFFER_SIZE_BYTES] = {0};
+static uint8_t uart_tx_coverage_buffer[USART2_TX_BUFFER_SIZE_BYTES] = {0};
+#endif
+static uint8_t uart_rx_stdin_buffer[USART2_TX_BUFFER_SIZE_BYTES] = {0};
+
+static bsp_uart_channel_t uart_tx_channels[] =
+{
+    {
+        .id = BSP_UART_CHANNEL_ID_STDOUT_IN,
+        .priority = 0,
+        .flags = 0,
+        .fifo =
+        {
+            .size = USART2_TX_BUFFER_SIZE_BYTES,
+            .in_index = 0,
+            .out_index = 0,
+            .buffer = uart_tx_stdout_buffer,
+        },
+        .packet_count = 0,
+    },
+#ifdef CONFIG_USE_MULTICHANNEL_UART
+    {
+        .id = BSP_UART_CHANNEL_ID_TEST,
+        .priority = 1,
+        .flags = BSP_UART_CHANNEL_FLAG_TX_WHEN_FULL,
+        .fifo =
+        {
+            .size = USART2_TX_BUFFER_SIZE_BYTES,
+            .in_index = 0,
+            .out_index = 0,
+            .buffer = uart_tx_test_buffer
+        },
+        .packet_count = 0,
+    },
+
+    {
+        .id = BSP_UART_CHANNEL_ID_COVERAGE,
+        .priority = 1,
+        .flags = 0,
+        .fifo =
+        {
+            .size = USART2_TX_BUFFER_SIZE_BYTES,
+            .in_index = 0,
+            .out_index = 0,
+            .buffer = uart_tx_coverage_buffer
+        },
+        .packet_count = 0,
+    },
+#endif
+};
+
+static bsp_uart_channel_t uart_rx_channels[] =
+{
+    {
+        .id = BSP_UART_CHANNEL_ID_STDOUT_IN,
+        .priority = 1,
+        .flags = 0,
+        .fifo =
+        {
+            .size = USART2_RX_BUFFER_SIZE_BYTES,
+            .in_index = 0,
+            .out_index = 0,
+            .buffer = uart_rx_stdin_buffer
+        },
+        .packet_count = 0,
+    },
+};
+
+static uint8_t uart_tx_packet_buffer[2] = {0};
+static bsp_uart_state_t uart_tx_state =
+{
+    .tx_complete = false,
+    .current_channel = uart_tx_channels,
+    .packet_state = BSP_UART_STATE_PACKET_STATE_IDLE,
+    .packet_size = 0,
+    .packet_checksum = 0,
+    .packet_buffer = uart_tx_packet_buffer,
+};
+
+static uint8_t uart_rx_packet_buffer[2] = {0};
+static bsp_uart_state_t uart_rx_state =
+{
+    .tx_complete = false,
+    .current_channel = uart_rx_channels,
+    .packet_state = BSP_UART_STATE_PACKET_STATE_IDLE,
+    .packet_size = 0,
+    .packet_checksum = 0,
+    .packet_buffer = uart_rx_packet_buffer,
+};
 
 /***********************************************************************************************************************
  * GLOBAL VARIABLES
  **********************************************************************************************************************/
 TIM_HandleTypeDef tim_drv_handle;
+TIM_HandleTypeDef led_tim_drv_handle;
 I2C_HandleTypeDef i2c_drv_handle;
 I2S_HandleTypeDef i2s_drv_handle;
 SPI_HandleTypeDef hspi1;
+EXTI_HandleTypeDef exti_pb_handle, exti_cdc_int_handle, exti_dsp_int_handle;
+UART_HandleTypeDef uart_drv_handle;
 
+FILE __test_file;
+FILE __coverage_file;
+
+FILE* test_file = &__test_file;
+FILE* coverage_file = &__coverage_file;
+
+uint32_t bsp_set_timer(uint32_t duration_ms, bsp_callback_t cb, void *cb_arg);
+uint32_t bsp_set_gpio(uint32_t gpio_id, uint8_t gpio_state);
 uint32_t bsp_toggle_gpio(uint32_t gpio_id);
 /***********************************************************************************************************************
  * LOCAL FUNCTIONS
@@ -346,10 +567,11 @@ static void MX_SPI1_Init(void)
   hspi1.Init.Mode = SPI_MODE_MASTER;
   hspi1.Init.Direction = SPI_DIRECTION_2LINES;
   hspi1.Init.DataSize = SPI_DATASIZE_8BIT;
-  hspi1.Init.CLKPolarity = SPI_POLARITY_HIGH;
-  hspi1.Init.CLKPhase = SPI_PHASE_2EDGE;
+  hspi1.Init.CLKPolarity = SPI_POLARITY_LOW;
+  hspi1.Init.CLKPhase = SPI_PHASE_1EDGE;
   hspi1.Init.NSS = SPI_NSS_SOFT;
-  hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_16;
+  spi_baud_prescaler = SPI_BAUDRATEPRESCALER_16;
+  hspi1.Init.BaudRatePrescaler = spi_baud_prescaler;
   hspi1.Init.FirstBit = SPI_FIRSTBIT_MSB;
   hspi1.Init.TIMode = SPI_TIMODE_DISABLE;
   hspi1.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
@@ -465,7 +687,33 @@ static void Timer_Init(void)
      tim_drv_handle.Init.CounterMode = TIM_COUNTERMODE_UP;
      tim_drv_handle.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
 
-     return;
+    /* Set TIMx instance */
+    led_tim_drv_handle.Instance = TIM5;
+
+    // Configure LED blink timer for 100Hz/100ms delay
+    /* Initialize TIM3 peripheral as follow:
+         + Period = 1000 - 1
+         + Prescaler = ((SystemCoreClock/2)/10000) - 1 = 10kHz
+         + ClockDivision = 0
+         + Counter direction = Up
+    */
+    led_tim_drv_handle.Init.Period = 1000 - 1;
+    led_tim_drv_handle.Init.Prescaler = uwPrescalerValue;
+    led_tim_drv_handle.Init.ClockDivision = 0;
+    led_tim_drv_handle.Init.CounterMode = TIM_COUNTERMODE_UP;
+    led_tim_drv_handle.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+
+    if(HAL_TIM_Base_Init(&led_tim_drv_handle) != HAL_OK)
+    {
+      Error_Handler();
+    }
+
+    if(HAL_TIM_Base_Start_IT(&led_tim_drv_handle) != HAL_OK)
+    {
+      Error_Handler();
+    }
+
+    return;
 }
 
 static void Timer_Start(uint32_t delay_100us)
@@ -489,6 +737,281 @@ static void Timer_Start(uint32_t delay_100us)
     return;
 }
 
+static void UART_Init(void)
+{
+    uart_drv_handle.Instance          = USART2;
+    uart_drv_handle.Init.BaudRate     = 115200;
+    uart_drv_handle.Init.WordLength   = UART_WORDLENGTH_8B;
+    uart_drv_handle.Init.StopBits     = UART_STOPBITS_1;
+    uart_drv_handle.Init.Parity       = UART_PARITY_NONE;
+    uart_drv_handle.Init.HwFlowCtl    = UART_HWCONTROL_NONE;
+    uart_drv_handle.Init.Mode         = UART_MODE_TX_RX;
+    uart_drv_handle.Init.OverSampling = UART_OVERSAMPLING_16;
+
+    if(HAL_UART_Init(&uart_drv_handle) != HAL_OK)
+    {
+        Error_Handler();
+    }
+
+    return;
+}
+
+#ifdef CONFIG_USE_MULTICHANNEL_UART
+int __io_putc(int file, int ch)
+{
+    uint8_t channel_id = 0xFF;
+    bsp_fifo_t *fifo;
+    uint32_t temp_in_index, temp_out_index;
+    int ret = ch;
+
+    switch(file)
+    {
+        case TEST_FILE_HANDLE:
+            channel_id = BSP_UART_CHANNEL_ID_TO_INDEX(BSP_UART_CHANNEL_ID_TEST);
+            break;
+
+        case COVERAGE_FILE_HANDLE:
+            channel_id = BSP_UART_CHANNEL_ID_TO_INDEX(BSP_UART_CHANNEL_ID_COVERAGE);
+            break;
+
+        case STDOUT_FILENO:
+            channel_id = BSP_UART_CHANNEL_ID_TO_INDEX(BSP_UART_CHANNEL_ID_STDOUT_IN);
+            break;
+
+        default:
+            break;
+    }
+
+    if (channel_id != 0xFF)
+    {
+        fifo = &(uart_tx_channels[channel_id].fifo);
+        temp_in_index = fifo->in_index;
+
+        // Wait while buffer is full
+        do
+        {
+            __disable_irq();
+            temp_out_index = fifo->out_index;
+            __enable_irq();
+        } while ((temp_in_index + 1) % fifo->size == temp_out_index);
+
+        // Update input index and add char
+        fifo->buffer[temp_in_index] = ch;
+        fifo->in_index++;
+        fifo->in_index %= fifo->size;
+
+        // If UART is not transmitting, then kick off transmit
+        __disable_irq();
+        if (uart_tx_state.packet_state == BSP_UART_STATE_PACKET_STATE_IDLE)
+        {
+            uint32_t hal_ret;
+
+            uart_tx_state.packet_buffer[0] = 0x01;
+            uart_tx_state.packet_state = BSP_UART_STATE_PACKET_STATE_SOH;
+            uart_tx_state.current_channel = &(uart_tx_channels[channel_id]);
+
+            hal_ret = HAL_UART_Transmit_IT(&uart_drv_handle, uart_tx_state.packet_buffer, 1);
+            if (hal_ret != HAL_OK)
+            {
+                errno = EIO;
+                ret = EOF;
+            }
+        }
+        __enable_irq();
+    }
+    else
+    {
+        errno = EBADF;
+        ret = EOF;
+    }
+
+    return ret;
+}
+#else
+int __io_putc(int file, int ch)
+{
+    bsp_fifo_t *fifo = &(uart_tx_channels[BSP_UART_CHANNEL_ID_TO_INDEX(BSP_UART_CHANNEL_ID_STDOUT_IN)].fifo);
+    int ret = ch;
+
+    if ((file == TEST_FILE_HANDLE) || (file == COVERAGE_FILE_HANDLE) || (file == STDOUT_FILENO))
+    {
+        uint32_t temp_out_index;
+
+        __disable_irq();
+        temp_out_index = fifo->out_index;
+        __enable_irq();
+
+        // If buffer is not full
+        if ((fifo->in_index + 1) % fifo->size != temp_out_index)
+        {
+            // If UART is not transmitting, then kick off transmit
+            if (uart_tx_state.packet_state == BSP_UART_STATE_PACKET_STATE_IDLE)
+            {
+                uint32_t hal_ret;
+
+                fifo->buffer[fifo->in_index] = ch;
+
+                uart_tx_state.packet_state = BSP_UART_STATE_PACKET_STATE_PAYLOAD;
+                hal_ret = HAL_UART_Transmit_IT(&uart_drv_handle, &(fifo->buffer[fifo->in_index]), 1);
+                if (hal_ret != HAL_OK)
+                {
+                    uart_tx_state.packet_state = BSP_UART_STATE_PACKET_STATE_IDLE;
+                    errno = EIO;
+                    ret = EOF;
+                }
+                else
+                {
+                    fifo->in_index++;
+                    fifo->in_index %= fifo->size;
+                }
+            }
+            else
+            {
+                // Update input index and add char
+                fifo->buffer[fifo->in_index++] = ch;
+                fifo->in_index %= fifo->size;
+            }
+        }
+        else
+        {
+            errno = EIO;
+            ret = EOF;
+        }
+    }
+    else
+    {
+        errno = EBADF;
+        ret = EOF;
+    }
+
+    return ret;
+}
+#endif
+
+#ifdef CONFIG_USE_MULTICHANNEL_UART
+int __io_getc(int file)
+{
+    uint8_t channel_id = 0xFF;
+    bsp_fifo_t *fifo;
+    int32_t ret = EOF;
+
+    switch(file)
+    {
+        case TEST_FILE_HANDLE:
+            channel_id = BSP_UART_CHANNEL_ID_TO_INDEX(BSP_UART_CHANNEL_ID_TEST);
+            break;
+
+        case COVERAGE_FILE_HANDLE:
+            channel_id = BSP_UART_CHANNEL_ID_TO_INDEX(BSP_UART_CHANNEL_ID_COVERAGE);
+            break;
+
+        case STDIN_FILENO:
+            channel_id = BSP_UART_CHANNEL_ID_TO_INDEX(BSP_UART_CHANNEL_ID_STDOUT_IN);
+            break;
+
+        default:
+            break;
+    }
+
+    if (channel_id != 0xFF)
+    {
+        fifo = &(uart_rx_channels[channel_id].fifo);
+
+        __disable_irq();
+
+        if (fifo->level > 0)
+        {
+            ret = fifo->buffer[fifo->out_index++];
+            fifo->out_index %= fifo->size;
+            fifo->level--;
+        }
+        else
+        {
+            errno = 0;
+        }
+
+        __enable_irq();
+    }
+    else
+    {
+        errno = EBADF;
+    }
+
+    return ret;
+}
+#else
+int __io_getc(int file)
+{
+    bsp_fifo_t *fifo = &(uart_rx_channels[BSP_UART_CHANNEL_ID_TO_INDEX(BSP_UART_CHANNEL_ID_STDOUT_IN)].fifo);
+    int32_t ret = EOF;
+
+    if ((file == TEST_FILE_HANDLE) || (file == COVERAGE_FILE_HANDLE) || (file == STDIN_FILENO))
+    {
+        __disable_irq();
+
+        if (fifo->level > 0)
+        {
+            ret = fifo->buffer[fifo->out_index++];
+            fifo->out_index %= fifo->size;
+            fifo->level--;
+        }
+        else
+        {
+            errno = 0;
+        }
+
+        __enable_irq();
+    }
+    else
+    {
+        errno = EBADF;
+    }
+
+    return ret;
+}
+#endif
+
+static void bsp_exti_pb_cb(void)
+{
+    bsp_pb_pressed_flags[BSP_PB_ID_USER] = true;
+    if (bsp_pb_cbs[BSP_PB_ID_USER] != NULL)
+    {
+        bsp_pb_cbs[BSP_PB_ID_USER](BSP_STATUS_OK, bsp_pb_cb_args[BSP_PB_ID_USER]);
+    }
+
+    return;
+}
+
+static void bsp_exti_cdc_int_cb(void)
+{
+    if (bsp_dut_cdc_int_cb != NULL)
+    {
+        bsp_dut_cdc_int_cb(BSP_STATUS_OK, bsp_dut_cdc_int_cb_arg);
+    }
+
+    if (app_cb != NULL)
+    {
+        app_cb(BSP_STATUS_DUT_EVENTS, app_cb_arg);
+    }
+    return;
+}
+
+static void bsp_exti_dsp_int_cb(void)
+{
+    if (bsp_dut_dsp_int_cb != NULL)
+    {
+        bsp_dut_dsp_int_cb(BSP_STATUS_OK, bsp_dut_dsp_int_cb_arg);
+        app_cb(BSP_STATUS_DUT_EVENTS, app_cb_arg);
+    }
+
+    if (app_cb != NULL)
+    {
+        app_cb(BSP_STATUS_DUT_EVENTS, app_cb_arg);
+    }
+
+    return;
+}
+
 /***********************************************************************************************************************
  * MCU HAL FUNCTIONS
  **********************************************************************************************************************/
@@ -501,6 +1024,7 @@ void HAL_MspInit(void)
     __HAL_RCC_GPIOC_CLK_ENABLE();
     BSP_DUT_RESET_CLK_ENABLE();
     BSP_DUT_INT_CLK_ENABLE();
+    BSP_LN2_RESET_CLK_ENABLE();
 
     // Configure the LD2 GPO
     HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_RESET);
@@ -511,25 +1035,58 @@ void HAL_MspInit(void)
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-    // Configure the Haptic Reset GPO
-    HAL_GPIO_WritePin(BSP_DUT_RESET_GPIO_PORT, BSP_DUT_RESET_PIN, GPIO_PIN_SET);
-    GPIO_InitStruct.Pin = BSP_DUT_RESET_PIN;
+    // Configure the LN2 Reset GPO
+    HAL_GPIO_WritePin(BSP_LN2_RESET_GPIO_PORT, BSP_LN2_RESET_PIN, GPIO_PIN_SET);
+    GPIO_InitStruct.Pin = BSP_LN2_RESET_PIN;
+    GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+    GPIO_InitStruct.Alternate = 0;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    HAL_GPIO_Init(BSP_LN2_RESET_GPIO_PORT, &GPIO_InitStruct);
+
+    // Configure the codec Reset GPO
+    HAL_GPIO_WritePin(BSP_DUT_RESET_GPIO_PORT, BSP_DUT_CDC_RESET_PIN, GPIO_PIN_SET);
+    GPIO_InitStruct.Pin = BSP_DUT_CDC_RESET_PIN;
     GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
     GPIO_InitStruct.Alternate = 0;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     HAL_GPIO_Init(BSP_DUT_RESET_GPIO_PORT, &GPIO_InitStruct);
 
-    // Configure Haptic Interrupt GPI
-    GPIO_InitStruct.Pin = BSP_DUT_INT_PIN;
+    // Configure the DSP Reset GPO
+    HAL_GPIO_WritePin(BSP_DUT_RESET_GPIO_PORT, BSP_DUT_DSP_RESET_PIN, GPIO_PIN_SET);
+    GPIO_InitStruct.Pin = BSP_DUT_DSP_RESET_PIN;
+    GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+    GPIO_InitStruct.Alternate = 0;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    HAL_GPIO_Init(BSP_DUT_RESET_GPIO_PORT, &GPIO_InitStruct);
+
+    // Configure Interrupt GPIs
+    GPIO_InitStruct.Pin = BSP_DUT_CDC_INT_PIN;
     GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
     GPIO_InitStruct.Alternate = 0;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
     GPIO_InitStruct.Pull = GPIO_PULLUP;
-    HAL_GPIO_Init(BSP_DUT_INT_GPIO_PORT, &GPIO_InitStruct);
+    HAL_GPIO_Init(BSP_DUT_CDC_INT_GPIO_PORT, &GPIO_InitStruct);
+    GPIO_InitStruct.Pin = BSP_DUT_DSP_INT_PIN;
+    HAL_GPIO_Init(BSP_DUT_DSP_INT_GPIO_PORT, &GPIO_InitStruct);
 
-    HAL_NVIC_SetPriority((IRQn_Type)EXTI0_IRQn, 0x0F, 0x00);
-    HAL_NVIC_EnableIRQ((IRQn_Type)EXTI0_IRQn);
+    EXTI_ConfigTypeDef exti_config;
+
+#ifndef CONFIG_L25B
+    exti_config.Line = EXTI_LINE_0;
+#else
+    exti_config.Line = EXTI_LINE_11;
+#endif
+    exti_config.Mode = EXTI_MODE_INTERRUPT;
+    exti_config.Trigger = EXTI_TRIGGER_FALLING;
+    HAL_EXTI_SetConfigLine(&exti_cdc_int_handle, &exti_config);
+    HAL_EXTI_RegisterCallback(&exti_cdc_int_handle, HAL_EXTI_COMMON_CB_ID, &bsp_exti_cdc_int_cb);
+
+    exti_config.Line = EXTI_LINE_10;
+    HAL_EXTI_SetConfigLine(&exti_dsp_int_handle, &exti_config);
+    HAL_EXTI_RegisterCallback(&exti_dsp_int_handle, HAL_EXTI_COMMON_CB_ID, &bsp_exti_dsp_int_cb);
 
     // Configure the Push Button GPI
     GPIO_InitStruct.Pin = GPIO_PIN_13;
@@ -539,9 +1096,35 @@ void HAL_MspInit(void)
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
+    exti_config.Line = EXTI_LINE_13;
+    HAL_EXTI_SetConfigLine(&exti_pb_handle, &exti_config);
+    HAL_EXTI_RegisterCallback(&exti_pb_handle, HAL_EXTI_COMMON_CB_ID, &bsp_exti_pb_cb);
+
     /* Enable and set Button EXTI Interrupt to the lowest priority */
-    HAL_NVIC_SetPriority((IRQn_Type)EXTI15_10_IRQn, 0x0F, 0x00);
+    HAL_NVIC_SetPriority((IRQn_Type)EXTI15_10_IRQn, BSP_DUT_DSP_INT_PREEMPT_PRIO, 0x00);
     HAL_NVIC_EnableIRQ((IRQn_Type)EXTI15_10_IRQn);
+
+#ifndef CONFIG_L25B
+    /* Enable and set cdc EXTI Interrupt to a low priority */
+    HAL_NVIC_SetPriority((IRQn_Type)EXTI0_IRQn, BSP_DUT_CDC_INT_PREEMPT_PRIO, 0x00);
+    HAL_NVIC_EnableIRQ((IRQn_Type)EXTI0_IRQn);
+#endif
+
+    HAL_GPIO_WritePin(GPIOC, GPIO_PIN_5, GPIO_PIN_RESET);
+    GPIO_InitStruct.Pin = GPIO_PIN_5;
+    GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+    GPIO_InitStruct.Alternate = 0;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+
+    HAL_GPIO_WritePin(GPIOC, GPIO_PIN_2, GPIO_PIN_RESET);
+    GPIO_InitStruct.Pin = GPIO_PIN_2;
+    GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+    GPIO_InitStruct.Alternate = 0;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
     return;
 }
@@ -566,20 +1149,22 @@ void HAL_SPI_MspInit(SPI_HandleTypeDef* hspi)
     __HAL_RCC_GPIOA_CLK_ENABLE();
     __HAL_RCC_GPIOB_CLK_ENABLE();
     /**SPI1 GPIO Configuration
-    PA15     ------> SPI1_NSS
     PB3     ------> SPI1_SCK
     PB4     ------> SPI1_MISO
     PB5     ------> SPI1_MOSI
     */
+
+    /* Depending on minicard config, the SPI interface and SS will differ */
+    HAL_GPIO_WritePin(GPIOA, GPIO_PIN_11, GPIO_PIN_SET);
     HAL_GPIO_WritePin(GPIOA, GPIO_PIN_15, GPIO_PIN_SET);
-    GPIO_InitStruct.Pin = GPIO_PIN_15;
+    GPIO_InitStruct.Pin = GPIO_PIN_11 | GPIO_PIN_15;
     GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
     GPIO_InitStruct.Alternate = 0;
     HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-    GPIO_InitStruct.Pin = GPIO_PIN_3|GPIO_PIN_4|GPIO_PIN_5;
+    GPIO_InitStruct.Pin = GPIO_PIN_3 | GPIO_PIN_4 | GPIO_PIN_5;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
@@ -615,7 +1200,7 @@ void HAL_SPI_MspDeInit(SPI_HandleTypeDef* hspi)
     PB4     ------> SPI1_MISO
     PB5     ------> SPI1_MOSI
     */
-    HAL_GPIO_DeInit(GPIOA, GPIO_PIN_15);
+    HAL_GPIO_DeInit(GPIOA, GPIO_PIN_11|GPIO_PIN_15);
 
     HAL_GPIO_DeInit(GPIOB, GPIO_PIN_3|GPIO_PIN_4|GPIO_PIN_5);
 
@@ -631,39 +1216,18 @@ void HAL_MspDeInit(void)
     HAL_GPIO_DeInit(GPIOA, GPIO_PIN_5);
     HAL_GPIO_DeInit(GPIOC, GPIO_PIN_13);
 
-    HAL_GPIO_DeInit(BSP_DUT_RESET_GPIO_PORT, BSP_DUT_RESET_PIN);
-    HAL_GPIO_DeInit(BSP_DUT_INT_GPIO_PORT, BSP_DUT_INT_PIN);
+    HAL_GPIO_DeInit(BSP_DUT_RESET_GPIO_PORT, BSP_DUT_CDC_RESET_PIN);
+    HAL_GPIO_DeInit(BSP_DUT_RESET_GPIO_PORT, BSP_DUT_DSP_RESET_PIN);
+    HAL_GPIO_DeInit(BSP_DUT_CDC_INT_GPIO_PORT, BSP_DUT_CDC_INT_PIN);
+    HAL_GPIO_DeInit(BSP_DUT_DSP_INT_GPIO_PORT, BSP_DUT_DSP_INT_PIN);
+    HAL_GPIO_DeInit(BSP_LN2_RESET_GPIO_PORT, BSP_LN2_RESET_PIN);
 
     __HAL_RCC_GPIOA_CLK_DISABLE();
     __HAL_RCC_GPIOC_CLK_DISABLE();
 
     BSP_DUT_RESET_CLK_DISABLE();
     BSP_DUT_INT_CLK_DISABLE();
-
-    return;
-}
-
-void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
-{
-    if (GPIO_Pin == BSP_DUT_INT_PIN)
-    {
-        if (bsp_dut_int_cb != NULL)
-        {
-            bsp_dut_int_cb(BSP_STATUS_OK, bsp_dut_int_cb_arg);
-            app_cb(BSP_STATUS_DUT_EVENTS, app_cb_arg);
-        }
-    }
-
-    if (GPIO_Pin == GPIO_PIN_13)
-    {
-        bsp_pb_pressed_flags[BSP_PB_ID_USER] = true;
-        if (bsp_pb_cbs[BSP_PB_ID_USER] != NULL)
-        {
-            bsp_pb_cbs[BSP_PB_ID_USER](BSP_STATUS_OK, bsp_pb_cb_args[BSP_PB_ID_USER]);
-        }
-    }
-
-    bsp_irq_count++;
+    BSP_LN2_RESET_CLK_DISABLE();
 
     return;
 }
@@ -673,8 +1237,15 @@ void HAL_TIM_Base_MspInit(TIM_HandleTypeDef *htim)
     if (htim->Instance == TIM2)
     {
         __HAL_RCC_TIM2_CLK_ENABLE();
-        HAL_NVIC_SetPriority(TIM2_IRQn, 4, 0);
+        HAL_NVIC_SetPriority(TIM2_IRQn, BSP_TIM2_PREPRIO, 0);
         HAL_NVIC_EnableIRQ(TIM2_IRQn);
+    }
+
+    if (htim->Instance == TIM5)
+    {
+        __HAL_RCC_TIM5_CLK_ENABLE();
+        HAL_NVIC_SetPriority(TIM5_IRQn, BSP_TIM5_PREPRIO, 0);
+        HAL_NVIC_EnableIRQ(TIM5_IRQn);
     }
 
     return;
@@ -704,6 +1275,34 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
         bsp_timer_has_started = !bsp_timer_has_started;
     }
 
+    if (htim->Instance == TIM5)
+    {
+        // If LED is in blink mode
+        if (bsp_ld2_led.mode == BSP_LED_MODE_BLINK)
+        {
+            // Increment LED blink counter
+            bsp_ld2_led.blink_counter_100ms++;
+
+            // If LED blink counter elapsed, then change LED state
+            if (bsp_ld2_led.blink_counter_100ms >= bsp_ld2_led.blink_counter_100ms_max)
+            {
+                bsp_ld2_led.blink_counter_100ms = 0;
+
+                // Change LED GPIO
+                if (bsp_ld2_led.is_on)
+                {
+                    bsp_ld2_led.is_on = false;
+                    bsp_set_gpio(BSP_GPIO_ID_LD2, GPIO_PIN_SET);
+                }
+                else
+                {
+                    bsp_ld2_led.is_on = true;
+                    bsp_set_gpio(BSP_GPIO_ID_LD2, GPIO_PIN_RESET);
+                }
+            }
+        }
+    }
+
     bsp_irq_count++;
 
     return;
@@ -726,9 +1325,9 @@ void HAL_I2C_MspInit(I2C_HandleTypeDef* hi2c)
 
         __HAL_RCC_I2C1_CLK_ENABLE();
 
-        HAL_NVIC_SetPriority(I2C1_ER_IRQn, 1, 0);
+        HAL_NVIC_SetPriority(I2C1_ER_IRQn, BSP_I2C1_ERROR_PREPRIO, 0);
         HAL_NVIC_EnableIRQ(I2C1_ER_IRQn);
-        HAL_NVIC_SetPriority(I2C1_EV_IRQn, 2, 0);
+        HAL_NVIC_SetPriority(I2C1_EV_IRQn, BSP_I2C1_EVENT_PREPRIO, 0);
         HAL_NVIC_EnableIRQ(I2C1_EV_IRQn);
     }
 
@@ -984,6 +1583,507 @@ void HAL_I2S_ErrorCallback(I2S_HandleTypeDef *hi2s)
     return;
 }
 
+void HAL_UART_MspInit(UART_HandleTypeDef *huart)
+{
+    GPIO_InitTypeDef  GPIO_InitStruct;
+
+    USART2_TX_GPIO_CLK_ENABLE();
+    USART2_RX_GPIO_CLK_ENABLE();
+
+    USART2_CLK_ENABLE();
+
+    GPIO_InitStruct.Pin       = USART2_TX_PIN;
+    GPIO_InitStruct.Mode      = GPIO_MODE_AF_PP;
+    GPIO_InitStruct.Pull      = GPIO_PULLUP;
+    GPIO_InitStruct.Speed     = GPIO_SPEED_FAST;
+    GPIO_InitStruct.Alternate = USART2_TX_AF;
+
+    HAL_GPIO_Init(USART2_TX_GPIO_PORT, &GPIO_InitStruct);
+
+    GPIO_InitStruct.Pin = USART2_RX_PIN;
+    GPIO_InitStruct.Alternate = USART2_RX_AF;
+
+    HAL_GPIO_Init(USART2_RX_GPIO_PORT, &GPIO_InitStruct);
+
+    HAL_NVIC_SetPriority(USART2_IRQn, USART2_IRQ_PREPRIO, 1);
+    HAL_NVIC_EnableIRQ(USART2_IRQn);
+
+    return;
+}
+
+void HAL_UART_MspDeInit(UART_HandleTypeDef *huart)
+{
+    USART2_FORCE_RESET();
+    USART2_RELEASE_RESET();
+
+    HAL_GPIO_DeInit(USART2_TX_GPIO_PORT, USART2_TX_PIN);
+    HAL_GPIO_DeInit(USART2_RX_GPIO_PORT, USART2_RX_PIN);
+
+    HAL_NVIC_DisableIRQ(USART2_IRQn);
+
+    return;
+}
+
+void process_uart_tx(void)
+#ifdef CONFIG_USE_MULTICHANNEL_UART
+{
+    bsp_uart_channel_t *channel = uart_tx_state.current_channel;
+    uint32_t tx_size_bytes = 0;
+    uint8_t *tx_buffer;
+
+    switch (uart_tx_state.packet_state)
+    {
+        case BSP_UART_STATE_PACKET_STATE_SOH:
+            uart_tx_state.packet_buffer[0] = channel->id;
+            tx_size_bytes = 1;
+            tx_buffer = uart_tx_state.packet_buffer;
+
+            uart_tx_state.packet_state = BSP_UART_STATE_PACKET_STATE_TYPE;
+            break;
+
+        case BSP_UART_STATE_PACKET_STATE_TYPE:
+            uart_tx_state.packet_buffer[0] = channel->packet_count++;
+
+            tx_size_bytes = 1;
+            tx_buffer = uart_tx_state.packet_buffer;
+
+            uart_tx_state.packet_state = BSP_UART_STATE_PACKET_STATE_COUNT;
+            break;
+
+        case BSP_UART_STATE_PACKET_STATE_COUNT:
+        {
+            bsp_fifo_t *fifo = &(channel->fifo);
+
+            // Determine if buffer is not empty
+            if (fifo->out_index != fifo->in_index)
+            {
+                // Calculate next TX size
+                if (fifo->in_index >= fifo->out_index)
+                {
+                    uart_tx_state.packet_size = fifo->in_index - fifo->out_index;
+                }
+                else
+                {
+                    uart_tx_state.packet_size = fifo->size - fifo->out_index;
+                }
+
+                uart_tx_state.packet_buffer[0] = (uart_tx_state.packet_size >> 8 & 0x00FF);
+                uart_tx_state.packet_buffer[1] = (uart_tx_state.packet_size & 0x00FF);
+                tx_size_bytes = 2;
+                tx_buffer = uart_tx_state.packet_buffer;
+
+                uart_tx_state.packet_state = BSP_UART_STATE_PACKET_STATE_LENGTH;
+            }
+            else
+            {
+                uart_tx_state.packet_buffer[0] = 0x04;
+                tx_size_bytes = 1;
+                tx_buffer = uart_tx_state.packet_buffer;
+
+                uart_tx_state.packet_state = BSP_UART_STATE_PACKET_STATE_EOT;
+            }
+
+            break;
+        }
+
+        case BSP_UART_STATE_PACKET_STATE_LENGTH:
+            uart_tx_state.packet_buffer[0] = 0x02;
+            tx_size_bytes = 1;
+            tx_buffer = uart_tx_state.packet_buffer;
+
+            uart_tx_state.packet_state = BSP_UART_STATE_PACKET_STATE_SOT;
+            break;
+
+        case BSP_UART_STATE_PACKET_STATE_SOT:
+            tx_size_bytes = uart_tx_state.packet_size;
+            tx_buffer = channel->fifo.buffer + channel->fifo.out_index;
+
+            // Calculate Checksum
+
+            uart_tx_state.packet_state = BSP_UART_STATE_PACKET_STATE_PAYLOAD;
+
+            break;
+
+        case BSP_UART_STATE_PACKET_STATE_PAYLOAD:
+        {
+            bsp_fifo_t *fifo = &(channel->fifo);
+
+            // Update out_index
+            fifo->out_index += uart_drv_handle.TxXferSize;
+
+            if (fifo->out_index >= fifo->size)
+            {
+                fifo->out_index = 0;
+            }
+
+            uart_tx_state.packet_buffer[0] = 0x03;
+            tx_size_bytes = 1;
+            tx_buffer = uart_tx_state.packet_buffer;
+
+            uart_tx_state.packet_state = BSP_UART_STATE_PACKET_STATE_EO_TEXT;
+
+            break;
+        }
+
+        case BSP_UART_STATE_PACKET_STATE_EO_TEXT:
+            tx_size_bytes = 1;
+            tx_buffer = &uart_tx_state.packet_checksum;
+
+            uart_tx_state.packet_state = BSP_UART_STATE_PACKET_STATE_CHECKSUM;
+            break;
+
+        case BSP_UART_STATE_PACKET_STATE_CHECKSUM:
+            uart_tx_state.packet_buffer[0] = 0x04;
+            tx_size_bytes = 1;
+            tx_buffer = uart_tx_state.packet_buffer;
+
+            uart_tx_state.packet_state = BSP_UART_STATE_PACKET_STATE_EOT;
+            break;
+
+        case BSP_UART_STATE_PACKET_STATE_EOT:
+            // Check for other unempty channels
+            for (uint8_t i = 0; i < 3; i++)
+            {
+                channel = &(uart_tx_channels[i]);
+
+                // Determine if buffer is not empty
+                if (channel->fifo.out_index != channel->fifo.in_index)
+                {
+                    uart_tx_state.current_channel = channel;
+                    uart_tx_state.packet_buffer[0] = 0x01;
+                    tx_size_bytes = 1;
+                    tx_buffer = uart_tx_state.packet_buffer;
+
+                    uart_tx_state.packet_state = BSP_UART_STATE_PACKET_STATE_SOH;
+                }
+            }
+
+            break;
+
+        case BSP_UART_STATE_PACKET_STATE_IDLE:
+        default:
+            tx_size_bytes = 0;
+            break;
+    }
+
+    if (tx_size_bytes > 0)
+    {
+        HAL_UART_Transmit_IT(&uart_drv_handle, tx_buffer, tx_size_bytes);
+    }
+    else
+    {
+        uart_tx_state.packet_state = BSP_UART_STATE_PACKET_STATE_IDLE;
+    }
+
+    return;
+}
+#else
+{
+    bsp_fifo_t *fifo = &(uart_tx_channels[0].fifo);
+    uint32_t tx_size_bytes = 0;
+    uint8_t *tx_buffer;
+
+    // Update out_index
+    fifo->out_index += uart_drv_handle.TxXferSize;
+    if (fifo->out_index >= fifo->size)
+    {
+        fifo->out_index = 0;
+    }
+
+    // Determine if buffer is not empty
+    if (fifo->out_index != fifo->in_index)
+    {
+        // Calculate next TX size
+        if (fifo->in_index >= fifo->out_index)
+        {
+            tx_size_bytes = fifo->in_index - fifo->out_index;
+        }
+        else
+        {
+            tx_size_bytes = fifo->size - fifo->out_index;
+        }
+
+        tx_buffer = fifo->buffer + fifo->out_index;
+        HAL_UART_Transmit_IT(&uart_drv_handle, tx_buffer, tx_size_bytes);
+    }
+    else
+    {
+        uart_tx_state.packet_state = BSP_UART_STATE_PACKET_STATE_IDLE;
+    }
+
+    return;
+}
+#endif
+
+void process_uart_rx(void)
+#ifdef CONFIG_USE_MULTICHANNEL_UART
+{
+    bsp_uart_channel_t *channel = uart_rx_state.current_channel;
+    uint32_t rx_size_bytes = 0;
+    uint8_t *rx_buffer;
+
+    switch (uart_rx_state.packet_state)
+    {
+        case BSP_UART_STATE_PACKET_STATE_IDLE:
+            if (uart_rx_state.packet_buffer[0] == 0x01)
+            {
+                rx_size_bytes = 1;
+                rx_buffer = uart_rx_state.packet_buffer;
+                uart_rx_state.packet_state = BSP_UART_STATE_PACKET_STATE_SOH;
+            }
+            break;
+
+        case BSP_UART_STATE_PACKET_STATE_SOH:
+        {
+            uint8_t temp_char = uart_rx_state.packet_buffer[0];
+            temp_char = BSP_UART_CHANNEL_ID_TO_INDEX(temp_char);
+
+            // TODO:  does this need to be sizeof(uart_rx_channels) ?
+            if (temp_char < 1)
+            {
+                uart_rx_state.current_channel = &(uart_rx_channels[temp_char]);
+
+                rx_size_bytes = 1;
+                rx_buffer = uart_rx_state.packet_buffer;
+                uart_rx_state.packet_state = BSP_UART_STATE_PACKET_STATE_TYPE;
+            }
+            else
+            {
+                rx_size_bytes = 1;
+                rx_buffer = uart_rx_state.packet_buffer;
+                uart_rx_state.packet_state = BSP_UART_STATE_PACKET_STATE_IDLE;
+            }
+
+            break;
+        }
+
+        case BSP_UART_STATE_PACKET_STATE_TYPE:
+            channel->packet_count++;
+
+            // Check for synchronized packet count
+            if (channel->packet_count != uart_rx_state.packet_buffer[0])
+            {
+                // Do what?
+            }
+
+            channel->packet_count = uart_rx_state.packet_buffer[0];
+
+            rx_size_bytes = 2;
+            rx_buffer = uart_rx_state.packet_buffer;
+            uart_rx_state.packet_state = BSP_UART_STATE_PACKET_STATE_COUNT;
+            break;
+
+        case BSP_UART_STATE_PACKET_STATE_COUNT:
+        {
+            bsp_fifo_t *fifo = &(channel->fifo);
+
+            // Convert size from 2 unit8_t to uint16_t
+            uart_rx_state.packet_size = uart_rx_state.packet_buffer[0] << 8;
+            uart_rx_state.packet_size |= uart_rx_state.packet_buffer[1];
+
+            rx_size_bytes = 1;
+            rx_buffer = uart_rx_state.packet_buffer;
+
+            // Determine if there is space in the channel fifo
+            if ((fifo->size - fifo->level) < uart_rx_state.packet_size)
+            {
+                uart_rx_state.packet_state = BSP_UART_STATE_PACKET_STATE_IDLE;
+            }
+            else
+            {
+                uart_rx_state.packet_state = BSP_UART_STATE_PACKET_STATE_LENGTH;
+            }
+
+            break;
+        }
+
+        case BSP_UART_STATE_PACKET_STATE_LENGTH:
+            if (uart_rx_state.packet_buffer[0] == 0x02)
+            {
+                bsp_fifo_t *fifo = &(channel->fifo);
+
+                // If in_index will wrap around, then first read until end of the buffer
+                if ((fifo->in_index + uart_rx_state.packet_size) > fifo->size)
+                {
+                    rx_size_bytes = fifo->size - fifo->in_index;
+                }
+                else
+                {
+                    rx_size_bytes = uart_rx_state.packet_size;
+                }
+
+                rx_buffer = fifo->buffer + fifo->in_index;
+
+                uart_rx_state.packet_state = BSP_UART_STATE_PACKET_STATE_SOT;
+            }
+            else
+            {
+                rx_size_bytes = 1;
+                rx_buffer = uart_rx_state.packet_buffer;
+                uart_rx_state.packet_state = BSP_UART_STATE_PACKET_STATE_IDLE;
+            }
+
+            break;
+
+        case BSP_UART_STATE_PACKET_STATE_SOT:
+        {
+            bsp_fifo_t *fifo = &(channel->fifo);
+
+            // Update fifo
+            fifo->in_index += uart_drv_handle.RxXferSize;
+            fifo->in_index %= fifo->size;
+            fifo->level += uart_drv_handle.RxXferSize;
+
+            // Update Checksum
+            uart_rx_state.packet_checksum = 0;
+
+            // If received entire payload
+            if (uart_drv_handle.RxXferSize == uart_rx_state.packet_size)
+            {
+                rx_size_bytes = 1;
+                rx_buffer = uart_rx_state.packet_buffer;
+                uart_rx_state.packet_state = BSP_UART_STATE_PACKET_STATE_PAYLOAD;
+            }
+            else
+            {
+                rx_size_bytes = (uart_rx_state.packet_size - uart_drv_handle.RxXferSize);
+                rx_buffer = fifo->buffer + fifo->in_index;
+                uart_rx_state.packet_state = BSP_UART_STATE_PACKET_STATE_PAYLOAD_PARTIAL;
+            }
+
+            break;
+        }
+
+        case BSP_UART_STATE_PACKET_STATE_PAYLOAD_PARTIAL:
+        {
+            bsp_fifo_t *fifo = &(channel->fifo);
+
+            // Update fifo
+            fifo->in_index += uart_drv_handle.RxXferSize;
+            fifo->in_index %= fifo->size;
+            fifo->level += uart_drv_handle.RxXferSize;
+
+            // Update Checksum
+            uart_rx_state.packet_checksum = 0;
+
+            rx_size_bytes = 1;
+            rx_buffer = uart_rx_state.packet_buffer;
+            uart_rx_state.packet_state = BSP_UART_STATE_PACKET_STATE_PAYLOAD;
+
+            break;
+        }
+
+        case BSP_UART_STATE_PACKET_STATE_PAYLOAD:
+            rx_size_bytes = 1;
+            rx_buffer = uart_rx_state.packet_buffer;
+
+            if (uart_rx_state.packet_buffer[0] == 0x03)
+            {
+                uart_rx_state.packet_state = BSP_UART_STATE_PACKET_STATE_EO_TEXT;
+            }
+            else
+            {
+                uart_rx_state.packet_state = BSP_UART_STATE_PACKET_STATE_IDLE;
+            }
+
+            break;
+
+        case BSP_UART_STATE_PACKET_STATE_EO_TEXT:
+            rx_size_bytes = 1;
+            rx_buffer = uart_rx_state.packet_buffer;
+
+            // Verify checksum
+            if (uart_rx_state.packet_buffer[0] == uart_rx_state.packet_checksum)
+            {
+                uart_tx_state.packet_state = BSP_UART_STATE_PACKET_STATE_CHECKSUM;
+            }
+            else
+            {
+                // TODO:  once real checksum is being used, then this can be used
+                //uart_rx_state.packet_state = BSP_UART_STATE_PACKET_STATE_IDLE;
+                uart_rx_state.packet_state = BSP_UART_STATE_PACKET_STATE_CHECKSUM;
+            }
+
+            break;
+
+        case BSP_UART_STATE_PACKET_STATE_CHECKSUM:
+            rx_size_bytes = 1;
+            rx_buffer = uart_rx_state.packet_buffer;
+
+            if (uart_rx_state.packet_buffer[0] == 0x04)
+            {
+                // This was a valid packet
+            }
+
+            uart_rx_state.packet_state = BSP_UART_STATE_PACKET_STATE_IDLE;
+
+            break;
+
+        default:
+            rx_size_bytes = 0;
+            break;
+    }
+
+    if (rx_size_bytes > 0)
+    {
+        HAL_UART_Receive_IT(&uart_drv_handle, rx_buffer, rx_size_bytes);
+    }
+    else
+    {
+        uart_rx_state.packet_state = BSP_UART_STATE_PACKET_STATE_IDLE;
+    }
+
+    return;
+}
+#else
+{
+    bsp_fifo_t *fifo = &(uart_rx_channels[0].fifo);
+
+    // Update fifo
+    fifo->buffer[fifo->in_index++] = uart_rx_state.packet_buffer[0];
+    fifo->in_index %= fifo->size;
+    fifo->level++;
+
+    // If fifo is not full
+    if (fifo->level < fifo->size)
+    {
+        HAL_UART_Receive_IT(&uart_drv_handle, uart_rx_state.packet_buffer, 1);
+    }
+
+    return;
+}
+#endif
+
+void HAL_UART_TxCpltCallback(UART_HandleTypeDef *UartHandle)
+{
+    if (UartHandle->Instance == USART2)
+    {
+        process_uart_tx();
+    }
+
+    return;
+}
+
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *UartHandle)
+{
+    if (UartHandle->Instance == USART2)
+    {
+        process_uart_rx();
+    }
+
+    return;
+}
+
+ void HAL_UART_ErrorCallback(UART_HandleTypeDef *UartHandle)
+{
+    if (UartHandle->Instance == USART2)
+    {
+        Error_Handler();
+    }
+
+    return;
+}
+
 /***********************************************************************************************************************
  * API FUNCTIONS
  **********************************************************************************************************************/
@@ -1005,11 +2105,17 @@ uint32_t bsp_initialize(bsp_app_callback_t cb, void *cb_arg)
     /* Configure the system clock */
     SystemClock_Config();
 
-    /* Initialize all peripheral drivers */
-    Timer_Init();
-    I2C_Init();
-    MX_SPI1_Init();
-    bsp_audio_set_fs(BSP_AUDIO_FS_48000_HZ);
+    // Configure LD2 LED
+    bsp_set_gpio(BSP_GPIO_ID_LD2, GPIO_PIN_SET);
+    bsp_ld2_led.is_on = true;
+    bsp_ld2_led.blink_counter_100ms_max = 1;
+    bsp_ld2_led.mode = BSP_LED_MODE_BLINK;
+
+    setvbuf(stdin, NULL, _IONBF, 0);
+    test_file = fdopen(TEST_FILE_HANDLE, "w");
+    setvbuf(test_file, NULL, _IONBF, 0);
+    coverage_file = fdopen(COVERAGE_FILE_HANDLE, "w");
+    setvbuf(coverage_file, NULL, _IONBF, 0);
 
     // Initialize playback buffer
     for (int i = 0; i < PLAYBACK_BUFFER_SIZE_2BYTES;)
@@ -1036,11 +2142,28 @@ uint32_t bsp_initialize(bsp_app_callback_t cb, void *cb_arg)
         bsp_pb_pressed_flags[i] = false;
     }
 
+    /* Initialize all peripheral drivers */
+    Timer_Init();
+    I2C_Init();
+    MX_SPI1_Init();
+    UART_Init();
+    bsp_audio_set_fs(BSP_AUDIO_FS_48000_HZ);
+
+    // Setup UART to Receive
+    HAL_UART_Receive_IT(&uart_drv_handle, uart_rx_state.packet_buffer, 1);
+
+    // Toggle LN2 Reset
+    HAL_GPIO_WritePin(BSP_LN2_RESET_GPIO_PORT, BSP_LN2_RESET_PIN, GPIO_PIN_RESET);
+    bsp_set_timer(5, NULL, NULL);
+    HAL_GPIO_WritePin(BSP_LN2_RESET_GPIO_PORT, BSP_LN2_RESET_PIN, GPIO_PIN_SET);
+    bsp_set_timer(5000, NULL, NULL);
+
     return BSP_STATUS_OK;
 }
 
 void bsp_notification_callback(uint32_t event_flags, void *arg)
 {
+    bsp_toggle_gpio(BSP_GPIO_ID_LD2);
     bsp_toggle_gpio(BSP_GPIO_ID_LD2);
     return;
 }
@@ -1227,7 +2350,13 @@ uint32_t bsp_set_timer(uint32_t duration_ms, bsp_callback_t cb, void *cb_arg)
     Timer_Start(duration_ms * 10);
     if (cb == NULL)
     {
-        while (!bsp_timer_elapsed);
+        bool temp_bool = false;
+        while (!temp_bool)
+        {
+            __disable_irq();
+            temp_bool = bsp_timer_elapsed;
+            __enable_irq();
+        }
     }
 
     return BSP_STATUS_OK;
@@ -1235,21 +2364,36 @@ uint32_t bsp_set_timer(uint32_t duration_ms, bsp_callback_t cb, void *cb_arg)
 
 uint32_t bsp_set_gpio(uint32_t gpio_id, uint8_t gpio_state)
 {
-    uint8_t tmp[4] = {0x00, 0xDF, 0x00, 0x00};
-
     switch (gpio_id)
     {
         case BSP_GPIO_ID_LD2:
             HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, (GPIO_PinState) gpio_state);
             break;
 
-        case BSP_GPIO_ID_DUT_RESET:
-            HAL_GPIO_WritePin(BSP_DUT_RESET_GPIO_PORT, BSP_DUT_RESET_PIN, (GPIO_PinState) gpio_state);
+        case BSP_GPIO_ID_DUT_CDC_RESET:
+        {
+            uint32_t temp_buffer = 0x00DF0000;
+            if (gpio_state == BSP_GPIO_LOW)
+            {
+                temp_buffer |= 0x1;
+            }
+
+            temp_buffer = __builtin_bswap32(temp_buffer);
+
+            bsp_i2c_write(BSP_LN2_DEV_ID, (uint8_t *)&temp_buffer, 4, NULL, NULL);
+            break;
+        }
+
+        case BSP_GPIO_ID_DUT_DSP_RESET:
+            HAL_GPIO_WritePin(BSP_DUT_RESET_GPIO_PORT, BSP_DUT_DSP_RESET_PIN, (GPIO_PinState) gpio_state);
             break;
 
-        case BSP_GPIO_ID_LN2_RESET:
-            tmp[3] = gpio_state ? 0 : 1;
-            bsp_i2c_write(BSP_LN2_DEV_ID, tmp, 4, NULL, NULL);
+        case BSP_GPIO_ID_GF_GPIO7:
+            HAL_GPIO_WritePin(GPIOC, GPIO_PIN_5, (GPIO_PinState) gpio_state);
+            break;
+
+        case BSP_GPIO_ID_GF_GPIO2:
+            HAL_GPIO_WritePin(GPIOC, GPIO_PIN_2, (GPIO_PinState) gpio_state);
             break;
 
         default:
@@ -1268,8 +2412,8 @@ uint32_t bsp_set_supply(uint32_t supply_id, uint8_t supply_state)
         case BSP_SUPPLY_ID_LN2_DCVDD:
             tmp[2] = supply_state ? 0x80 : 0x0;
             bsp_i2c_write(BSP_LN2_DEV_ID, tmp, 4, NULL, NULL);
-            // Wait 8ms for supply to finish rising/falling
-            bsp_set_timer(8, NULL, NULL);
+            // Wait 15ms for supply to finish rising/falling
+            bsp_set_timer(15, NULL, NULL);
             break;
 
         default:
@@ -1295,99 +2439,114 @@ uint32_t bsp_toggle_gpio(uint32_t gpio_id)
 }
 
 uint32_t bsp_spi_read(uint32_t bsp_dev_id,
-                       uint8_t *addr_buffer,
-                       uint32_t addr_length,
-                       uint8_t *data_buffer,
-                       uint32_t data_length)
+                      uint8_t *addr_buffer,
+                      uint32_t addr_length,
+                      uint8_t *data_buffer,
+                      uint32_t data_length,
+                      uint32_t pad_len)
 {
-    uint8_t padding[2] = { 0x0, 0x0 };
+    uint8_t padding[4] = { 0x0 };
     HAL_StatusTypeDef ret;
+    GPIO_TypeDef *cs_gpio_per;
+    uint32_t cs_gpio_pin;
 
+    if (pad_len > 4)
+            return BSP_STATUS_FAIL;
+
+    // Select appropriate GPIO peripheral and pin for CS depending on device making request
     switch (bsp_dev_id)
     {
+        case BSP_DUT_DEV_ID_SPI2:
+            cs_gpio_per = GPIOA;
+            cs_gpio_pin = GPIO_PIN_11;
+            break;
         case BSP_DUT_DEV_ID:
-
-            // Chip select low
-            HAL_GPIO_WritePin(GPIOA, GPIO_PIN_15, GPIO_PIN_RESET);
-
-            // Toggle the R/W bit
-            *addr_buffer = 0x80 | *addr_buffer;
-
-            // Transmit R/W bit + register addr
-            ret = HAL_SPI_Transmit(&hspi1, addr_buffer, addr_length, HAL_MAX_DELAY);
-            if (ret)
-                return BSP_STATUS_FAIL;
-
-            // Transmit Padding
-            ret = HAL_SPI_Transmit(&hspi1, padding, 2, HAL_MAX_DELAY);
-            if (ret)
-                return BSP_STATUS_FAIL;
-
-            // Receive value
-            ret = HAL_SPI_Receive(&hspi1, data_buffer, data_length, HAL_MAX_DELAY);
-            if (ret)
-                return BSP_STATUS_FAIL;
-
-            HAL_GPIO_WritePin(GPIOA, GPIO_PIN_15, GPIO_PIN_SET);
-
-            // Add some extra spiclks after CS is high to workaround ST SPI issue
-            ret = HAL_SPI_Transmit(&hspi1, padding, 1, HAL_MAX_DELAY);
-            if (ret)
-                return BSP_STATUS_FAIL;
-
+            cs_gpio_per = GPIOA;
+            cs_gpio_pin = GPIO_PIN_15;
             break;
-
         default:
-            break;
+            return BSP_STATUS_FAIL;
     }
+
+    // Chip select low
+    HAL_GPIO_WritePin(cs_gpio_per, cs_gpio_pin, GPIO_PIN_RESET);
+
+    // Transmit R/W bit + register addr
+    ret = HAL_SPI_Transmit(&hspi1, addr_buffer, addr_length, HAL_MAX_DELAY);
+    if (ret)
+        return BSP_STATUS_FAIL;
+
+    if (pad_len)
+    {
+        // Transmit Padding
+        ret = HAL_SPI_Transmit(&hspi1, padding, pad_len, HAL_MAX_DELAY);
+        if (ret)
+            return BSP_STATUS_FAIL;
+    }
+
+    // Receive value
+    ret = HAL_SPI_Receive(&hspi1, data_buffer, data_length, HAL_MAX_DELAY);
+    if (ret)
+        return BSP_STATUS_FAIL;
+
+    HAL_GPIO_WritePin(cs_gpio_per, cs_gpio_pin, GPIO_PIN_SET);
 
     return BSP_STATUS_OK;
 }
 
 uint32_t bsp_spi_write(uint32_t bsp_dev_id,
-                       uint8_t *addr_buffer,
-                       uint32_t addr_length,
-                       uint8_t *data_buffer,
-                       uint32_t data_length)
+                      uint8_t *addr_buffer,
+                      uint32_t addr_length,
+                      uint8_t *data_buffer,
+                      uint32_t data_length,
+                      uint32_t pad_len)
 {
-    uint8_t padding[2] = { 0x0, 0x0 };
+    uint8_t padding[4] = { 0x0 };
     HAL_StatusTypeDef ret;
+    GPIO_TypeDef * cs_gpio_per;
+    uint32_t cs_gpio_pin;
 
+    if (pad_len > 4)
+            return BSP_STATUS_FAIL;
+
+    // Select appropriate GPIO peripheral and pin for CS depending on device making request
     switch (bsp_dev_id)
     {
+        case BSP_DUT_DEV_ID_SPI2:
+            cs_gpio_per = GPIOA;
+            cs_gpio_pin = GPIO_PIN_11;
+            break;
         case BSP_DUT_DEV_ID:
-
-            // Chip select low
-            HAL_GPIO_WritePin(GPIOA, GPIO_PIN_15, GPIO_PIN_RESET);
-
-            // Transmit R/W bit + register addr
-            ret = HAL_SPI_Transmit(&hspi1, addr_buffer, addr_length, HAL_MAX_DELAY);
-            if (ret)
-                return BSP_STATUS_FAIL;
-
-            // Transmit Padding
-            ret = HAL_SPI_Transmit(&hspi1, padding, 2, HAL_MAX_DELAY);
-            if (ret)
-                return BSP_STATUS_FAIL;
-
-            // Transmit data
-            ret = HAL_SPI_Transmit(&hspi1, data_buffer, data_length, HAL_MAX_DELAY);
-            if (ret)
-                return BSP_STATUS_FAIL;
-
-            // Chip select high
-            HAL_GPIO_WritePin(GPIOA, GPIO_PIN_15, GPIO_PIN_SET);
-
-            // Add some extra spiclks after CS is high to workaround ST SPI issue
-            ret = HAL_SPI_Transmit(&hspi1, padding, 1, HAL_MAX_DELAY);
-            if (ret)
-                return BSP_STATUS_FAIL;
-
+            cs_gpio_per = GPIOA;
+            cs_gpio_pin = GPIO_PIN_15;
             break;
-
         default:
-            break;
+            return BSP_STATUS_FAIL;
     }
+
+    // Chip select low
+    HAL_GPIO_WritePin(cs_gpio_per, cs_gpio_pin, GPIO_PIN_RESET);
+
+    // Transmit R/W bit + register addr
+    ret = HAL_SPI_Transmit(&hspi1, addr_buffer, addr_length, HAL_MAX_DELAY);
+    if (ret)
+        return BSP_STATUS_FAIL;
+
+    if (pad_len)
+    {
+        // Transmit Padding
+        ret = HAL_SPI_Transmit(&hspi1, padding, pad_len, HAL_MAX_DELAY);
+        if (ret)
+            return BSP_STATUS_FAIL;
+    }
+
+    // Transmit data
+    ret = HAL_SPI_Transmit(&hspi1, data_buffer, data_length, HAL_MAX_DELAY);
+    if (ret)
+        return BSP_STATUS_FAIL;
+
+    // Chip select high
+    HAL_GPIO_WritePin(cs_gpio_per, cs_gpio_pin, GPIO_PIN_SET);
 
     return BSP_STATUS_OK;
 }
@@ -1423,6 +2582,29 @@ uint32_t bsp_i2c_read_repeated_start(uint32_t bsp_dev_id,
 
             break;
 
+#ifdef BSP_LN2_DEV_ID
+        case BSP_LN2_DEV_ID:
+            bsp_i2c_transaction_complete = false;
+            bsp_i2c_done_cb = cb;
+            bsp_i2c_done_cb_arg = cb_arg;
+            bsp_i2c_current_transaction_type = BSP_I2C_TRANSACTION_TYPE_READ_REPEATED_START;
+            bsp_i2c_read_buffer_ptr = read_buffer;
+            bsp_i2c_read_length = read_length;
+            bsp_i2c_read_address = BSP_LN2_FPGA_I2C_ADDRESS_8BIT;
+            HAL_I2C_Master_Seq_Transmit_IT(&i2c_drv_handle,
+                                           bsp_i2c_read_address,
+                                           write_buffer,
+                                           write_length,
+                                           I2C_FIRST_FRAME);
+
+            if (cb == NULL)
+            {
+                while (!bsp_i2c_transaction_complete);
+            }
+
+            break;
+#endif
+
         default:
             break;
     }
@@ -1441,6 +2623,7 @@ uint32_t bsp_i2c_write(uint32_t bsp_dev_id,
     switch (bsp_dev_id)
     {
         case BSP_DUT_DEV_ID:
+        case BSP_DUT_DEV_ID_SPI2:
             bsp_i2c_transaction_complete = false;
             bsp_i2c_transaction_error = false;
             bsp_i2c_done_cb = cb;
@@ -1470,7 +2653,7 @@ uint32_t bsp_i2c_write(uint32_t bsp_dev_id,
             bsp_i2c_done_cb_arg = cb_arg;
             bsp_i2c_current_transaction_type = BSP_I2C_TRANSACTION_TYPE_WRITE;
             HAL_I2C_Master_Seq_Transmit_IT(&i2c_drv_handle,
-                                           0x44,
+                                           BSP_LN2_FPGA_I2C_ADDRESS_8BIT,
                                            write_buffer,
                                            write_length,
                                            I2C_FIRST_AND_LAST_FRAME);
@@ -1505,6 +2688,7 @@ uint32_t bsp_i2c_db_write(uint32_t bsp_dev_id,
     switch (bsp_dev_id)
     {
         case BSP_DUT_DEV_ID:
+        case BSP_DUT_DEV_ID_SPI2:
             bsp_i2c_transaction_complete = false;
             bsp_i2c_done_cb = cb;
             bsp_i2c_done_cb_arg = cb_arg;
@@ -1531,8 +2715,21 @@ uint32_t bsp_i2c_db_write(uint32_t bsp_dev_id,
 
 uint32_t bsp_register_gpio_cb(uint32_t gpio_id, bsp_callback_t cb, void *cb_arg)
 {
-    bsp_dut_int_cb = cb;
-    bsp_dut_int_cb_arg = cb_arg;
+    switch (gpio_id)
+    {
+        case BSP_GPIO_ID_DUT_CDC_INT:
+            bsp_dut_cdc_int_cb = cb;
+            bsp_dut_cdc_int_cb_arg = cb_arg;
+            break;
+
+        case BSP_GPIO_ID_DUT_DSP_INT:
+            bsp_dut_dsp_int_cb = cb;
+            bsp_dut_dsp_int_cb_arg = cb_arg;
+            break;
+
+        default:
+            return BSP_STATUS_FAIL;
+    }
 
     return BSP_STATUS_OK;
 }
@@ -1554,6 +2751,7 @@ uint32_t bsp_i2c_reset(uint32_t bsp_dev_id, bool *was_i2c_busy)
         switch (bsp_dev_id)
         {
             case BSP_DUT_DEV_ID:
+            case BSP_DUT_DEV_ID_SPI2:
                 HAL_I2C_Master_Abort_IT(&i2c_drv_handle, BSP_DUT_I2C_ADDRESS_8BIT);
                 break;
 
@@ -1610,6 +2808,71 @@ uint32_t bsp_register_pb_cb(uint32_t pb_id, bsp_app_callback_t cb, void *cb_arg)
     }
 }
 
+uint32_t bsp_spi_throttle_speed(uint32_t speed_hz)
+{
+    uint32_t ret = BSP_STATUS_OK;
+    uint32_t spi_baud_hz = HAL_RCC_GetPCLK2Freq();  // Currently using SPI1 which is on APB2
+    uint32_t temp_spi_baud_prescaler;
+
+    // Save the current prescaler value
+    spi_baud_prescaler = temp_spi_baud_prescaler = (hspi1.Init.BaudRatePrescaler >> SPI_CR1_BR_Pos);
+    // Get the current SPI Baud in Hz
+    spi_baud_hz >>= (temp_spi_baud_prescaler + 1);
+
+    // Check to see if any throttling is needed
+    if (speed_hz < spi_baud_hz)
+    {
+        // Decrement the SPI baud until a rate slow enough is found
+        while ((speed_hz < spi_baud_hz) && (temp_spi_baud_prescaler < (SPI_BAUDRATEPRESCALER_256 >> SPI_CR1_BR_Pos)))
+        {
+            spi_baud_hz >>= 1;
+            temp_spi_baud_prescaler++;
+        }
+
+        // If no slower SPI baud was found
+        if ((speed_hz < spi_baud_hz) && (temp_spi_baud_prescaler >= (SPI_BAUDRATEPRESCALER_256 >> SPI_CR1_BR_Pos)))
+        {
+            ret = BSP_STATUS_FAIL;
+        }
+        else
+        {
+            if (HAL_SPI_DeInit(&hspi1) != HAL_OK)
+            {
+                Error_Handler();
+            }
+
+            hspi1.Init.BaudRatePrescaler = (temp_spi_baud_prescaler << SPI_CR1_BR_Pos);
+            if (HAL_SPI_Init(&hspi1) != HAL_OK)
+            {
+                Error_Handler();
+            }
+        }
+
+    }
+
+    return ret;
+}
+
+uint32_t bsp_spi_restore_speed(void)
+{
+    // If the SPI baud rate was changed, restore it
+    if (spi_baud_prescaler != (hspi1.Init.BaudRatePrescaler >> SPI_CR1_BR_Pos))
+    {
+        if (HAL_SPI_DeInit(&hspi1) != HAL_OK)
+        {
+            Error_Handler();
+        }
+
+        hspi1.Init.BaudRatePrescaler = (spi_baud_prescaler << SPI_CR1_BR_Pos);
+        if (HAL_SPI_Init(&hspi1) != HAL_OK)
+        {
+            Error_Handler();
+        }
+    }
+
+    return BSP_STATUS_OK;
+}
+
 void* bsp_malloc(size_t size)
 {
 #ifdef NO_OS
@@ -1628,6 +2891,31 @@ void bsp_free(void* ptr)
 #endif
 }
 
+uint32_t bsp_set_ld2(uint8_t mode, uint32_t blink_100ms)
+{
+    if (mode == BSP_LD2_MODE_BLINK)
+    {
+        bsp_ld2_led.blink_counter_100ms_max = blink_100ms;
+        bsp_ld2_led.mode = BSP_LED_MODE_BLINK;
+    }
+    else
+    {
+        bsp_ld2_led.mode = BSP_LED_MODE_FIXED;
+        if (mode == BSP_LD2_MODE_OFF)
+        {
+            bsp_set_gpio(BSP_GPIO_ID_LD2, GPIO_PIN_RESET);
+            bsp_ld2_led.is_on = false;
+        }
+        else
+        {
+            bsp_set_gpio(BSP_GPIO_ID_LD2, GPIO_PIN_SET);
+            bsp_ld2_led.is_on = true;
+        }
+    }
+
+    return BSP_STATUS_OK;
+}
+
 static bsp_driver_if_t bsp_driver_if_s =
 {
     .set_gpio = &bsp_set_gpio,
@@ -1642,6 +2930,8 @@ static bsp_driver_if_t bsp_driver_if_s =
     .i2c_reset = &bsp_i2c_reset,
     .enable_irq = &bsp_enable_irq,
     .disable_irq = &bsp_disable_irq,
+    .spi_throttle_speed = &bsp_spi_throttle_speed,
+    .spi_restore_speed = &bsp_spi_restore_speed
 };
 
 bsp_driver_if_t *bsp_driver_if_g = &bsp_driver_if_s;

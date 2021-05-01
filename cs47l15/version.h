@@ -49,7 +49,7 @@ extern "C" {
  *
  * @{
  */
-#define VERSION_MAJOR   (1) ///< Release Major version
+#define VERSION_MAJOR   (2) ///< Release Major version
 #define VERSION_MINOR   (0) ///< Release Minor version
 #define VERSION_PATCH   (0) ///< Release Patch version
 /** @} */

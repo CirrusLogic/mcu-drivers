@@ -1,0 +1,81 @@
+*-------------------------------------------------------------------------------
+* Cirrus Logic device configuration file
+* Created by WISCE.exe utility version 3.12.0.3 at 4/23/2021 4:26:58 PM
+*
+* Devices on system:
+*   CS35L41 at SMBUS/0x80
+*-------------------------------------------------------------------------------
+
+*-------------------------------------------------------------------------------
+* Register operations have the following format:
+*
+*      <register> <value> <access_type> <action> [<dev_addr>] [<mask>]
+*
+* where:
+*      <register>      is the register index
+*      <value>         is the data value
+*      <access_type>   is one of:
+*          AC97_16_bit_data
+*          3wire_9_bit_data
+*          2wire_9_bit_data
+*      <action>        is one of
+*          Write         - write the given value
+*          Read          - documents the value that was read
+*          RModW         - read/modify/write
+*                          (newval = (currval & ~<mask>) | <value>)
+*      <dev_addr>      is the 2wire device address or the SPI chip select
+*      <mask>          is the mask for the RModW operation
+*
+* for example:
+*   R12  0x1234  AC97_16_bit_data Write
+*     - this would write the hex value 0x1234 to register 12 (decimal)
+*       using AC97
+*
+*   R36  0x1F5   2wire_9_bit_data Write 0x34
+*     - this would write the hexadecimal value 0x1F5 to register
+*       36 (decimal) on the 2-wire device at address 0x34 (hex)
+*
+*   0xC  4660    AC97_16_bit_data Write
+*   0x24 501     2wire_9_bit_data Write 0x34
+*     - these are the same two operations using hexadecimal registers
+*       and decimal values
+*
+* Lines beginning with// are comments and are ignored when processing
+* the file.
+*
+* The register index can be written either in decimal format, prefixed by 'R'
+* or in hexadecimal format, prefixed by '0x'.
+*
+* For 9-bit 2- and 3-wire operations, <value> is the actual 9 bit register
+* contents, NOT the 16 bit data word.
+*
+* Entries in a line can be separated by spaces or tabs. The amount of
+* space between each entry does not matter but entries must be arranged
+* in the correct order from left to right. A file can be created in a text
+* editor (e.g. Notepad), or created in Excel and saved as .txt format
+* (tab separated).
+*
+*-------------------------------------------------------------------------------
+
+* ----- ------ -------------------- ------- --------- ------------------------------
+*  REG   DATA         ACCESS        READ OR  DEVICE
+* INDEX  VALUE         TYPE          WRITE   ADDRESS  COMMENT (for information only)
+* ----- ------ -------------------- ------- --------- ------------------------------
+  0x6000 0x0000 SMbus_32inx_32dat     Write  0x80      * INTP_AMP_CTRL(6000H):    0000  AMP_HPF_PCM_EN=Disabled, AMP_INV_PCM=PCM audio not inverted, AMP_VOL_PCM=0dB, AMP_RAMP_PCM=No Ramp
+  0x4C28 0x0000 SMbus_32inx_32dat     Write  0x80      * MIXER_ASPTX3_INPUT(4C28H): 0000  ASPTX3_SRC=Silence (mute)
+  0x4C2C 0x0000 SMbus_32inx_32dat     Write  0x80      * MIXER_ASPTX4_INPUT(4C2CH): 0000  ASPTX4_SRC=Silence (mute)
+  0x4C00 0x0032 SMbus_32inx_32dat     Write  0x80      * MIXER_DACPCM1_INPUT(4C00H): 0032  DACPCM1_SRC=DSP1 channel 1
+  0x12004 0x0000 SMbus_32inx_32dat     Write  0x80      * NOISE_GATE_MIXER_NGATE_CH1_CFG(12004H): 0000  AUX_NGATE_CH1_EN=Disabled, AUX_NGATE_CH1_HOLD=5 ms, AUX_NGATE_CH1_THR=: -66 dBFS
+  0x12008 0x0000 SMbus_32inx_32dat     Write  0x80      * NOISE_GATE_MIXER_NGATE_CH2_CFG(12008H): 0000  AUX_NGATE_CH2_EN=Disabled, AUX_NGATE_CH2_HOLD=5 ms, AUX_NGATE_CH2_THR=: -66 dBFS
+  0x2C04 0x0430 SMbus_32inx_32dat     Write  0x80      * CCM_REFCLK_INPUT(2C04H): 0430  PLL_FORCE_EN=Normal operation (PLL not forced on/selected), PLL_OPEN_LOOP=Closed loop (PLL is locked to REFCLK), PLL_REFCLK_FREQ=3072000 Hz, PLL_REFCLK_EN=Enabled (normal mode), PLL_REFCLK_SEL=BCLK input
+  0x2018 0x3521 SMbus_32inx_32dat     Write  0x80      * MSM_BLOCK_ENABLES(2018H): 3521  IMON_EN=IMON monitoring enabled, VMON_EN=VMON monitoring enabled, TEMPMON_EN=TEMPMON monitoring enabled, VBSTMON_EN=VBSTMON monitoring disabled (if no other block is requesting VBSTMON to be enabled), VPMON_EN=VPMON monitoring enabled, BST_EN=Boost converter enabled, AMP_EN=Amplifier functionality enabled
+  0x201C 0x1100010 SMbus_32inx_32dat     Write  0x80      * MSM_BLOCK_ENABLES2(201CH): 1100010  WKFET_AMP_EN=Amplifier weak-FET tracking enabled, AMP_DRE_EN=DRE enabled, VBBR_EN=VBST brownout prevention disabled, VPBR_EN=VP brownout prevention disabled, SYNC_EN=Disabled, CLASSH_EN=Class H enabled
+  0x4800 0x30003 SMbus_32inx_32dat     Write  0x80      * DATAIF_ASP_ENABLES1(4800H): 30003  ASP_RX2_EN=Enabled, ASP_RX1_EN=Enabled, ASP_TX4_EN=Disabled, ASP_TX3_EN=Disabled, ASP_TX2_EN=Enabled, ASP_TX1_EN=Enabled
+  0x4808 0x20200200 SMbus_32inx_32dat     Write  0x80      * DATAIF_ASP_CONTROL2(4808H): 20200200  ASP_RX_WIDTH=32cycles per slot, ASP_TX_WIDTH=32cycles per slot, ASP_FMT=I2S mode, ASP_BCLK_INV=ASP_BCLK not inverted, ASP_BCLK_FRC=Normal, ASP_BCLK_MSTR=ASP_BCLK Slave mode, ASP_FSYNC_INV=ASP_FSYNC not inverted, ASP_FSYNC_FRC=Normal, ASP_FSYNC_MSTR=ASP_FSYNC Slave mode
+  0x4810 0x0100 SMbus_32inx_32dat     Write  0x80      * DATAIF_ASP_FRAME_CONTROL1(4810H): 0100  ASP_TX4_SLOT=0, ASP_TX3_SLOT=0, ASP_TX2_SLOT=1, ASP_TX1_SLOT=0
+  0x2D10 0x0002b01b SMbus_32inx_32dat     Write  0x80      *
+  0x4804 0x0021 SMbus_32inx_32dat     Write  0x80      * DATAIF_ASP_CONTROL1(4804H): 0021  ASP_BCLK_FREQ=3.072 MHz
+  0x3808 0x0018 SMbus_32inx_32dat     Write  0x80      * BOOST_BST_IPK_CTL(3808H): 0018  BST_IPK=2A
+  0x6804 0x0110 SMbus_32inx_32dat     Write  0x80      * PWRMGMT_WKFET_AMP_CONFIG(6804H): 0110  WKFET_AMP_THLD=0V, WKFET_AMP_DLY=100 ms, WKFET_AMP_FRC_EN=WKFET_AMP_FORCE functionality disabled, WKFET_AMP_FRC=Amplifier power FETs are not manually put into weak-FET mode
+  0x242C 0x10000 SMbus_32inx_32dat     Write  0x80      * PAD_INTF_GPIO_PAD_CONTROL(242CH): 10000  GP2_CTRL=High Impedance input, GP1_CTRL=Pin acts as a GPIO, direction controlled by the GP1_DIR register.
+  0x11008 0x81002001 SMbus_32inx_32dat     Write  0x80      * GPIO_GPIO1_CTRL1(11008H): 81002001  GP1_DIR=Input, GP1_DBTIME=93.75 micro-s, GP1_LVL=Low, GP1_DB=Enabled, GP1_POL=Non-inverted (Active High)

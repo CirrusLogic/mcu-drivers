@@ -33,7 +33,7 @@ from wisce_script_exporter_factory import wisce_script_exporter_factory, exporte
 # ==========================================================================
 # VERSION
 # ==========================================================================
-VERSION_STRING = "1.1.0"
+VERSION_STRING = "1.3.0"
 
 # ==========================================================================
 # CONSTANTS/GLOBALS
@@ -57,6 +57,7 @@ def get_args(args):
     parser.add_argument('-i', '--input', dest='input', type=str, required=True,
                         help='The filename of the WISCE script to be parsed.')
     parser.add_argument('-o', '--output', dest='output', type=str, default='.', help='The output filename.')
+    parser.add_argument('-s', '--suffix', dest='suffix', type=str, default=None, help='The suffix to insert into output filename.')
     parser.add_argument('--include-comments', dest='include_comments', action="store_true",
                         help='Include comments from the WISCE script.')
 
@@ -125,6 +126,7 @@ def main(argv):
     attributes['part_number_str'] = args.part
     attributes['include_comments'] = args.include_comments
     attributes['output_path'] = args.output
+    attributes['suffix'] = args.suffix
     wse = wisce_script_exporter_factory(attributes)
 
     # Based on command, add exporters

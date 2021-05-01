@@ -319,6 +319,7 @@ typedef union
  * @{
  */
 #define CCM_REFCLK_INPUT_REG                                                (0x2C04)        ///< @see Section 7.9.1
+#define CCM_REFCLK_INPUT_REG_DEFAULT                                        (0x00000010)    ///< @see Section 7.9.1
 
 #define CS40L25_PLL_REFLCLK_SEL_BCLK                                        (0x0)           ///< @see Section 7.9.1
 #define CS40L25_PLL_REFLCLK_SEL_FSYNC                                       (0x1)           ///< @see Section 7.9.1
@@ -807,6 +808,7 @@ typedef union
 #define DSP_VIRTUAL1_MBOX_DSP_VIRTUAL1_MBOX_5_NONE                          (0x0)           ///< @see Section 7.28.5
 #define DSP_VIRTUAL1_MBOX_DSP_VIRTUAL1_MBOX_5_START_I2S                     (0x2)           ///< @see Section 7.28.5
 #define DSP_VIRTUAL1_MBOX_DSP_VIRTUAL1_MBOX_5_STOP_I2S                      (0x3)           ///< @see Section 7.28.5
+#define DSP_VIRTUAL1_MBOX_DSP_VIRTUAL1_MBOX_5_DISCHARGE_VAMP                (0x8)
 /** @} */
 
 /**
