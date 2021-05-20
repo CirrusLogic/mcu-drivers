@@ -4,7 +4,7 @@
  * @brief Functions and prototypes exported by the BSP module for the HW ID0 platform.
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2020 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2020-2021 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -67,6 +67,7 @@ extern "C" {
 
 #define BSP_STATUS_DUT_EVENTS           (2)
 
+#define BSP_AUDIO_FS_8000_HZ            (8000)
 #define BSP_AUDIO_FS_48000_HZ           (48000)
 #define BSP_AUDIO_FS_44100_HZ           (44100)
 
@@ -90,6 +91,8 @@ extern bool trigger_audio_change;
 extern bool bsp_write_process_done;
 extern FILE* test_file;
 extern FILE* coverage_file;
+extern FILE* bridge_write_file;
+extern FILE* bridge_read_file;
 
 /***********************************************************************************************************************
  * API FUNCTIONS

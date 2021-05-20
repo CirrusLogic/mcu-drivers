@@ -287,8 +287,16 @@ uint32_t bsp_dut_use_case(uint32_t use_case)
 
     switch(use_case) {
         case BSP_USE_CASE_TG_HP_EN:
-            cs47l15_fll_enable(&cs47l15_driver, CS47L15_FLL1);
+            ret = cs47l15_fll_enable(&cs47l15_driver, CS47L15_FLL1);
+            if (ret)
+            {
+                return BSP_STATUS_FAIL;
+            }
             ret = cs47l15_fll_wait_for_lock(&cs47l15_driver, CS47L15_FLL1);
+            if (ret)
+            {
+                return BSP_STATUS_FAIL;
+            }
             cs47l15_update_reg(&cs47l15_driver, CS47L15_SYSTEM_CLOCK_1, CS47L15_SYSCLK_ENA_MASK, CS47L15_SYSCLK_ENA);
             cs47l15_write_reg(&cs47l15_driver, CS47L15_OUT1LMIX_INPUT_1_SOURCE, 0x4);
             cs47l15_write_reg(&cs47l15_driver, CS47L15_OUT1RMIX_INPUT_1_SOURCE, 0x4);
@@ -306,7 +314,11 @@ uint32_t bsp_dut_use_case(uint32_t use_case)
             cs47l15_write_reg(&cs47l15_driver, CS47L15_OUT1RMIX_INPUT_1_SOURCE, 0x0);
             cs47l15_write_reg(&cs47l15_driver, CS47L15_OUT1LMIX_INPUT_1_SOURCE, 0x0);
             cs47l15_update_reg(&cs47l15_driver, CS47L15_SYSTEM_CLOCK_1, CS47L15_SYSCLK_ENA_MASK, 0);
-            cs47l15_fll_disable(&cs47l15_driver, CS47L15_FLL1);
+            ret = cs47l15_fll_disable(&cs47l15_driver, CS47L15_FLL1);
+            if (ret)
+            {
+                return BSP_STATUS_FAIL;
+            }
             break;
 
         case BSP_USE_CASE_MP3_441K_INIT:
@@ -316,8 +328,20 @@ uint32_t bsp_dut_use_case(uint32_t use_case)
                                     CS47L15_FLL_SRC_MCLK2,
                                     32768,
                                     90316800);
-            cs47l15_fll_enable(&cs47l15_driver, CS47L15_FLL1);
+            if (ret)
+            {
+                return BSP_STATUS_FAIL;
+            }
+            ret = cs47l15_fll_enable(&cs47l15_driver, CS47L15_FLL1);
+            if (ret)
+            {
+                return BSP_STATUS_FAIL;
+            }
             ret = cs47l15_fll_wait_for_lock(&cs47l15_driver, CS47L15_FLL1);
+            if (ret)
+            {
+                return BSP_STATUS_FAIL;
+            }
             cs47l15_update_reg(&cs47l15_driver, CS47L15_SAMPLE_RATE_1, CS47L15_SAMPLE_RATE_1_MASK, 0x0B);
             cs47l15_update_reg(&cs47l15_driver, CS47L15_SYSTEM_CLOCK_1, CS47L15_SYSCLK_SRC_MASK, 0x04);
             cs47l15_update_reg(&cs47l15_driver, CS47L15_SYSTEM_CLOCK_1, CS47L15_SYSCLK_FRAC_MASK, 0x8000);
@@ -325,8 +349,20 @@ uint32_t bsp_dut_use_case(uint32_t use_case)
 
             // Boot and load firmware
             ret = cs47l15_power(&cs47l15_driver, 1, CS47L15_POWER_MEM_ENA);
-            bsp_dut_boot();
+            if (ret)
+            {
+                return BSP_STATUS_FAIL;
+            }
+            ret = bsp_dut_boot();
+            if (ret)
+            {
+                return BSP_STATUS_FAIL;
+            }
             ret = cs47l15_power(&cs47l15_driver, 1, CS47L15_POWER_UP);
+            if (ret)
+            {
+                return BSP_STATUS_FAIL;
+            }
 
             // Set up audio output channels
             cs47l15_write_reg(&cs47l15_driver, CS47L15_OUT1LMIX_INPUT_1_SOURCE, 0x68); // DSP1 channel 1
@@ -365,8 +401,20 @@ uint32_t bsp_dut_use_case(uint32_t use_case)
                                     CS47L15_FLL_SRC_MCLK2,
                                     32768,
                                     98304000);
-            cs47l15_fll_enable(&cs47l15_driver, CS47L15_FLL1);
+            if (ret)
+            {
+                return BSP_STATUS_FAIL;
+            }
+            ret = cs47l15_fll_enable(&cs47l15_driver, CS47L15_FLL1);
+            if (ret)
+            {
+                return BSP_STATUS_FAIL;
+            }
             ret = cs47l15_fll_wait_for_lock(&cs47l15_driver, CS47L15_FLL1);
+            if (ret)
+            {
+                return BSP_STATUS_FAIL;
+            }
             cs47l15_update_reg(&cs47l15_driver, CS47L15_SAMPLE_RATE_1, CS47L15_SAMPLE_RATE_1_MASK, 0x03);
             cs47l15_update_reg(&cs47l15_driver, CS47L15_SYSTEM_CLOCK_1, CS47L15_SYSCLK_SRC_MASK, 0x04);
             cs47l15_update_reg(&cs47l15_driver, CS47L15_SYSTEM_CLOCK_1, CS47L15_SYSCLK_FRAC_MASK, 0x0);
@@ -374,8 +422,20 @@ uint32_t bsp_dut_use_case(uint32_t use_case)
 
             // Boot and load firmware
             ret = cs47l15_power(&cs47l15_driver, 1, CS47L15_POWER_MEM_ENA);
-            bsp_dut_boot();
+            if (ret)
+            {
+                return BSP_STATUS_FAIL;
+            }
+            ret = bsp_dut_boot();
+            if (ret)
+            {
+                return BSP_STATUS_FAIL;
+            }
             ret = cs47l15_power(&cs47l15_driver, 1, CS47L15_POWER_UP);
+            if (ret)
+            {
+                return BSP_STATUS_FAIL;
+            }
 
             // Set up audio output channels
             cs47l15_write_reg(&cs47l15_driver, CS47L15_OUT1LMIX_INPUT_1_SOURCE, 0x68); // DSP1 channel 1
@@ -388,6 +448,10 @@ uint32_t bsp_dut_use_case(uint32_t use_case)
             lin_buf_ptr =  (uint8_t *)bsp_malloc(BSP_DUT_BUFFER_SIZE);
             buf_symbol = cs47l15_find_symbol(&cs47l15_driver, 0, CS47L15_SYM_MP3_DEC_RING_BUFF_ADDRESS);
             ret = cs47l15_dsp_buf_init(&cs47l15_driver, &buffer, lin_buf_ptr, BSP_DUT_BUFFER_SIZE, buf_symbol, 1);
+            if (ret)
+            {
+                return BSP_STATUS_FAIL;
+            }
             mp3_data = (uint8_t*)&mp3_test_01_mp3_48[0];
             mp3_data_len = mp3_test_01_mp3_48_len;
             bytes_written_total = 0;
@@ -412,6 +476,10 @@ uint32_t bsp_dut_use_case(uint32_t use_case)
             if (dsp_decoder_interrupt_flag)
             {
                 ret = cs47l15_dsp_buf_avail(&cs47l15_driver, &buffer, &space_avail);
+                if (ret)
+                {
+                    return BSP_STATUS_FAIL;
+                }
                 if (space_avail)
                 {
                     if (bytes_written_total + space_avail > mp3_data_len)
@@ -457,7 +525,7 @@ uint32_t bsp_dut_use_case(uint32_t use_case)
             if (ret == 0)
             {
                 cs47l15_fll_disable(&cs47l15_driver, CS47L15_FLL1_REFCLK);
-                ret = cs47l15_power(&cs47l15_driver, 1, CS47L15_POWER_DOWN);
+                cs47l15_power(&cs47l15_driver, 1, CS47L15_POWER_DOWN);
                 return BSP_STATUS_FAIL;
             }
             else
@@ -474,9 +542,17 @@ uint32_t bsp_dut_use_case(uint32_t use_case)
             cs47l15_write_reg(&cs47l15_driver, CS47L15_OUT1RMIX_INPUT_1_SOURCE, 0x0);
             cs47l15_write_reg(&cs47l15_driver, CS47L15_OUT1LMIX_INPUT_1_SOURCE, 0x0);
             cs47l15_update_reg(&cs47l15_driver, CS47L15_SYSTEM_CLOCK_1, CS47L15_SYSCLK_ENA_MASK, 0);
-            cs47l15_fll_disable(&cs47l15_driver, CS47L15_FLL1);
+            ret = cs47l15_fll_disable(&cs47l15_driver, CS47L15_FLL1);
+            if (ret)
+            {
+                return BSP_STATUS_FAIL;
+            }
 
             ret = cs47l15_power(&cs47l15_driver, 1, CS47L15_POWER_DOWN);
+            if (ret)
+            {
+                return BSP_STATUS_FAIL;
+            }
             break;
 
         default:

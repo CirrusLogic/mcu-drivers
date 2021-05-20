@@ -3,6 +3,25 @@ Release Notes
 
 =============================================================================
 Summary:
+This is the release of Alt-OS Driver SDK v4.2.0
+Date: 2021/05/19
+
+Architectures/Compilers Used:
+GNU Arm Embedded Toolchain: arm-none-eabi-gcc -mcpu=cortex-m4
+
+New Features/Changes:
+L25 - Added support for 8kHz I2S streaming
+[SQA-2061] Bridge - added example Python code to demonstrate WISCEBridge
+[SQA-2122] Added Git submodule for STM32F4Cube for building example projects
+[SQA-2122] Deprecated use of component versions - all references now to SDK version
+[SQA-2057] wisce_script_converter - added option for C function output
+
+Fixed Bugs:
+[SQA-2282] L41 - Fixed bug in wake from hibernate
+
+=============================================================================
+=============================================================================
+Summary:
 This is the release of Alt-OS Driver SDK v4.1.0
 Date: 2021/04/30
 

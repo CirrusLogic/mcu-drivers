@@ -4,7 +4,7 @@
  * @brief Functions and prototypes exported by the CS35L41 Driver module
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2019, 2020 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2019-2021 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -36,6 +36,7 @@ extern "C" {
 #include "cs35l41_sym.h"
 #include "cs35l41_spec.h"
 #include "cs35l41_syscfg_regs.h"
+#include "sdk_version.h"
 
 /***********************************************************************************************************************
  * LITERALS, CONSTANTS, MACROS

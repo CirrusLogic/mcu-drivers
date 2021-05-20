@@ -1,5 +1,5 @@
 # ==========================================================================
-# (c) 2020 Cirrus Logic, Inc.
+# (c) 2020-2021 Cirrus Logic, Inc.
 # --------------------------------------------------------------------------
 # Project : Convert from WISCE Script File to Alt-OS Syscfg Reg output
 # File    : wisce_to_syscfg_reg_converter.py
@@ -26,6 +26,9 @@
 # ==========================================================================
 import os
 import sys
+repo_path = os.path.dirname(os.path.abspath(__file__)) + '/../..'
+sys.path.insert(1, (repo_path + '/tools/sdk_version'))
+from sdk_version import print_sdk_version
 import argparse
 from wisce_script_importer import wisce_script_importer
 from wisce_script_exporter_factory import wisce_script_exporter_factory, exporter_types
@@ -33,7 +36,6 @@ from wisce_script_exporter_factory import wisce_script_exporter_factory, exporte
 # ==========================================================================
 # VERSION
 # ==========================================================================
-VERSION_STRING = "1.3.0"
 
 # ==========================================================================
 # CONSTANTS/GLOBALS
@@ -76,7 +78,7 @@ def print_start():
     print("")
     print("wisce_to_syscfg_reg_converter")
     print("Convert from WISCE Script Text file to Alt-OS Syscfg Reg")
-    print("Version " + VERSION_STRING)
+    print("SDK Version " + print_sdk_version(repo_path + '/sdk_version.h'))
 
     return
 
@@ -119,7 +121,7 @@ def main(argv):
         error_exit("Invalid Arguments")
 
     # Import WISCE script
-    wsi = wisce_script_importer(args.input)
+    wsi = wisce_script_importer(args.input, args.command)
 
     # Create WISCE script exporter factory
     attributes = dict()
@@ -132,6 +134,8 @@ def main(argv):
     # Based on command, add exporters
     if (args.command == 'c_array'):
         wse.add_exporter('c_array')
+    elif (args.command == 'c_functions'):
+        wse.add_exporter('c_functions')
 
     # Export transaction list to exporter
     for t in wsi.get_transaction_list():
@@ -139,7 +143,7 @@ def main(argv):
 
     # Add metadata text
     metadata_text_lines = []
-    metadata_text_lines.append('wisce_to_syscfg_reg_converter.py version: ' + VERSION_STRING)
+    metadata_text_lines.append('wisce_to_syscfg_reg_converter.py SDK version: ' + print_sdk_version(repo_path + '/sdk_version.h'))
     temp_line = ''
     for arg in argv:
         temp_line = temp_line + ' ' + arg

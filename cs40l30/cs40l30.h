@@ -36,6 +36,7 @@ extern "C" {
 #include "cs40l30_sym.h"
 #include "cs40l30_cal_sym.h"
 #include "cs40l30_spec.h"
+#include "sdk_version.h"
 
 /***********************************************************************************************************************
  * LITERALS & CONSTANTS

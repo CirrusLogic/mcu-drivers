@@ -34,11 +34,13 @@
 #define APP_STATE_UNINITIALIZED         (0)
 #define APP_STATE_STANDBY               (1)
 #define APP_STATE_TG_HP                 (2)
-#define APP_STATE_STANDBY2              (3)
-#define APP_STATE_DSP_PRELOAD_PT        (4)
-#define APP_STATE_TG_DSP_HP             (5)
-#define APP_STATE_MIC_DSP_HP            (6)
-#define APP_STATE_DSP_DISABLE           (7)
+#define APP_STATE_MP3_48K_INIT          (3)
+#define APP_STATE_MP3_48K_PROCESS       (4)
+#define APP_STATE_MP3_48K_DONE          (5)
+#define APP_STATE_MP3_441K_INIT         (6)
+#define APP_STATE_MP3_441K_PROCESS      (7)
+#define APP_STATE_MP3_441K_DONE         (8)
+#define APP_STATE_DSP_DISABLE           (9)
 
 #define HAPTIC_CONTROL_FLAG_PB_PRESSED      (1 << 0)
 #define APP_FLAG_BSP_NOTIFICATION           (1 << 1)
@@ -46,7 +48,7 @@
 /***********************************************************************************************************************
  * LOCAL VARIABLES
  **********************************************************************************************************************/
-static uint8_t app_state = APP_STATE_STANDBY;
+static uint8_t app_state = APP_STATE_UNINITIALIZED;
 static TaskHandle_t HapticControlTaskHandle = NULL;
 static TaskHandle_t HapticEventTaskHandle = NULL;
 
@@ -105,6 +107,8 @@ void app_init(void)
 
     bsp_set_ld2(BSP_LD2_MODE_ON, 0);
 
+    app_state = APP_STATE_STANDBY;
+
     return;
 }
 
@@ -139,38 +143,46 @@ static void HapticControlThread(void *argument)
                 }
                 break;
 
-            case APP_STATE_STANDBY2:
+            case APP_STATE_MP3_48K_INIT:
                 if (flags & HAPTIC_CONTROL_FLAG_PB_PRESSED)
                 {
-                    bsp_dut_use_case(BSP_USE_CASE_DSP_PRELOAD_PT_EN);
+                    bsp_dut_use_case(BSP_USE_CASE_MP3_48K_INIT);
                     app_state++;
                 }
                 break;
 
-            case APP_STATE_DSP_PRELOAD_PT:
-                if (flags & HAPTIC_CONTROL_FLAG_PB_PRESSED)
+            case APP_STATE_MP3_48K_PROCESS:
+                bsp_dut_use_case(BSP_USE_CASE_MP3_PROCESS);
+                if (bsp_write_process_done)
                 {
-                    bsp_dut_use_case(BSP_USE_CASE_TG_DSP_HP_EN);
                     app_state++;
                 }
                 break;
 
-            case APP_STATE_TG_DSP_HP:
+            case APP_STATE_MP3_48K_DONE:
+                bsp_dut_use_case(BSP_USE_CASE_MP3_DONE);
+                app_state++;
+                break;
+
+            case APP_STATE_MP3_441K_INIT:
                 if (flags & HAPTIC_CONTROL_FLAG_PB_PRESSED)
                 {
-                    bsp_dut_use_case(BSP_USE_CASE_TG_DSP_HP_DIS);
-                    bsp_dut_use_case(BSP_USE_CASE_MIC_DSP_HP_EN);
+                    bsp_dut_use_case(BSP_USE_CASE_MP3_441K_INIT);
                     app_state++;
                 }
                 break;
 
-            case APP_STATE_MIC_DSP_HP:
-                if (flags & HAPTIC_CONTROL_FLAG_PB_PRESSED)
+            case APP_STATE_MP3_441K_PROCESS:
+                bsp_dut_use_case(BSP_USE_CASE_MP3_PROCESS);
+                if (bsp_write_process_done)
                 {
-                    bsp_dut_use_case(BSP_USE_CASE_MIC_DSP_HP_DIS);
-                    bsp_dut_use_case(BSP_USE_CASE_DSP_PRELOAD_PT_DIS);
-                    app_state = APP_STATE_STANDBY;
+                    app_state++;
                 }
+                break;
+
+            case APP_STATE_MP3_441K_DONE:
+                bsp_dut_use_case(BSP_USE_CASE_MP3_DONE);
+                app_state = APP_STATE_STANDBY;
                 break;
 
             default:

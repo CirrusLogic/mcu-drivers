@@ -4,7 +4,7 @@
  * @brief Implementation of the BSP for the system_test_hw_0 platform.
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2019 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2019, 2021 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -49,6 +49,10 @@ static uint32_t current_halo_heartbeat = 0;
 #ifdef CS40L25_ALGORITHM_DYNAMIC_F0
 static cs40l25_dynamic_f0_table_entry_t dynamic_f0;
 static uint32_t dynamic_redc;
+#endif
+#if CONFIG_8K_I2S
+static uint32_t cache_global_fs = 0;
+static uint32_t cache_asp_control1 = 0;
 #endif
 
 static cs40l25_bsp_config_t bsp_config =
@@ -421,6 +425,12 @@ uint32_t bsp_dut_start_i2s(void)
     cs40l25_field_accessor_t fa = {0};
 #endif
 
+#if CONFIG_8K_I2S
+    cs40l25_read_reg(&cs40l25_driver, 0x2C0C, &cache_global_fs);
+    cs40l25_read_reg(&cs40l25_driver, 0x4804, &cache_asp_control1);
+    cs40l25_write_reg(&cs40l25_driver, 0x2C0C, 0x0011);
+    cs40l25_write_reg(&cs40l25_driver, 0x4804, 0x0012);
+#endif
     ret = cs40l25_start_i2s(&cs40l25_driver);
     if (ret == CS40L25_STATUS_FAIL)
     {
@@ -454,14 +464,17 @@ uint32_t bsp_dut_stop_i2s(void)
 
     ret = cs40l25_stop_i2s(&cs40l25_driver);
 
-    if (ret == CS40L25_STATUS_OK)
-    {
-        return BSP_STATUS_OK;
-    }
-    else
+    if (ret != CS40L25_STATUS_OK)
     {
         return BSP_STATUS_FAIL;
     }
+
+#if CONFIG_8K_I2S
+    cs40l25_write_reg(&cs40l25_driver, 0x2C0C, cache_global_fs);
+    cs40l25_write_reg(&cs40l25_driver, 0x4804, cache_asp_control1);
+#endif
+
+    return BSP_STATUS_OK;
 }
 
 uint32_t bsp_dut_has_processed(bool *has_processed)

@@ -1,5 +1,5 @@
- #==========================================================================
-# (c) 2019 Cirrus Logic, Inc.
+#==========================================================================
+# (c) 2019-2021 Cirrus Logic, Inc.
 #--------------------------------------------------------------------------
 # Project : Convert from WMFW/WMDR ("BIN") Files to C Header/Source
 # File    : firmware_converter.py
@@ -26,6 +26,9 @@
 #==========================================================================
 import os
 import sys
+repo_path = os.path.dirname(os.path.abspath(__file__)) + '/../..'
+sys.path.insert(1, (repo_path + '/tools/sdk_version'))
+from sdk_version import print_sdk_version
 import argparse
 from wmfw_parser import wmfw_parser, get_memory_region_from_type
 from wmdr_parser import wmdr_parser
@@ -34,17 +37,16 @@ from firmware_exporter_factory import firmware_exporter_factory
 #==========================================================================
 # VERSION
 #==========================================================================
-VERSION_STRING = "3.2.1"
 
 #==========================================================================
 # CONSTANTS/GLOBALS
 #==========================================================================
-supported_part_numbers = ['cs35l41', 'cs40l25', 'cs40l30', 'cs48l32', 'cs47l63', 'cs47l66', 'cs47l15']
+supported_part_numbers = ['cs35l41', 'cs40l25', 'cs40l30', 'cs48l32', 'cs47l63', 'cs47l66', 'cs47l67', 'cs47l15']
 supported_commands = ['print', 'export', 'wisce', 'fw_img_v1', 'fw_img_v2', 'json']
 
 supported_mem_maps = {
     'halo_type_0': {
-        'parts': ['cs35l41', 'cs40l25', 'cs40l30', 'cs48l32', 'cs47l63', 'cs47l66'],
+        'parts': ['cs35l41', 'cs40l25', 'cs40l30', 'cs48l32', 'cs47l63', 'cs47l66', 'cs47l67'],
         'xm': {
             'u24': 0x2800000,
             'p32': 0x2000000,
@@ -243,7 +245,7 @@ def print_start():
     print("")
     print("firmware_converter")
     print("Convert from WMFW/WMDR (\"BIN\") Files to C Header/Source")
-    print("Version " + VERSION_STRING)
+    print("SDK Version " + print_sdk_version(repo_path + '/sdk_version.h'))
 
     return
 
@@ -290,7 +292,6 @@ def error_exit(error_message):
 # MAIN PROGRAM
 #==========================================================================
 def main(argv):
-
     print_start()
 
     if (not (validate_environment())):
@@ -407,7 +408,7 @@ def main(argv):
 
     # Add metadata text
     metadata_text_lines = []
-    metadata_text_lines.append('firmware_converter.py version: ' + VERSION_STRING)
+    metadata_text_lines.append('firmware_converter.py SDK version: ' + print_sdk_version(repo_path + '/sdk_version.h'))
     temp_line = ''
     for arg in argv:
         temp_line = temp_line + ' ' + arg

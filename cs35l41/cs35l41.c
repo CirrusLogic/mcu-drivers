@@ -4,7 +4,7 @@
  * @brief The CS35L41 Driver module
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2019, 2020 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2019-2021 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -2022,7 +2022,7 @@ static uint32_t cs35l41_restore(cs35l41_t *driver)
 static uint32_t cs35l41_wake(cs35l41_t *driver)
 {
     uint32_t timeout = 10, ret;
-    uint32_t status;
+    uint32_t status = CS35L41_DSP_MBOX_STATUS_HIBERNATE;
     int8_t retries = 5;
     uint32_t mbox_cmd_drv_shift = 1 << 20;
     uint32_t mbox_cmd_fw_shift = 1 << 21;
@@ -2032,18 +2032,18 @@ static uint32_t cs35l41_wake(cs35l41_t *driver)
             ret = cs35l41_write_reg(driver,
                                     DSP_VIRTUAL1_MBOX_DSP_VIRTUAL1_MBOX_1_REG,
                                     CS35L41_DSP_MBOX_CMD_OUT_OF_HIBERNATE);
-            if (ret)
-            {
-                return ret;
-            }
 
             bsp_driver_if_g->set_timer(4, NULL, NULL);
 
-            ret = cs35l41_read_reg(driver, DSP_MBOX_DSP_MBOX_2_REG,  &status);
-            if (ret)
+            if (ret != CS35L41_STATUS_FAIL)
             {
-                return ret;
+                ret = cs35l41_read_reg(driver, DSP_MBOX_DSP_MBOX_2_REG,  &status);
+                if (ret)
+                {
+                  return ret;
+                }
             }
+
         } while (status != CS35L41_DSP_MBOX_STATUS_PAUSED && --timeout > 0);
 
         if (timeout != 0)

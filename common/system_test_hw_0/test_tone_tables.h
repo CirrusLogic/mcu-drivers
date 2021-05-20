@@ -4,7 +4,7 @@
  * @brief PCM sample tables for Render path Test Tone
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2019 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2019, 2021 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -56,6 +56,14 @@ extern "C" {
  *
  */
 #define PCM_1KHZ_SINGLE_PERIOD_LENGTH_2BYTES (PCM_1KHZ_SINGLE_PERIOD_LENGTH * 2)
+
+/**
+ * Length of 1kHz sine period sampled at 8kHz, 32-bit samples in number of 2-byte words
+ *
+ * 8 (1k tone period in samples at 8kHz) * 2
+ *
+ */
+#define PCM_1KTONE_8kHz_SINGLE_PERIOD_LENGTH_2BYTES (8 * 2)
 
 #ifdef TEST_TONES_INCLUDE_100HZ
 /**
@@ -124,6 +132,17 @@ extern const uint16_t pcm_20dBFs_100Hz_16bit_stereo_single_period[PCM_100HZ_SING
  *
  */
 extern const uint16_t pcm_silence_16bit_stereo_single_period[PCM_1KHZ_SINGLE_PERIOD_LENGTH_2BYTES];
+
+/**
+ * table of pcm samples for single period of stereo / 1khz sine / -20dbfs / 32-bit / 8khz sample rate
+ *
+ */
+extern const uint16_t pcm_20dBFs_1kHz_32bit_8000_stereo_single_period[PCM_1KTONE_8kHz_SINGLE_PERIOD_LENGTH_2BYTES * 2];
+/**
+ * table of pcm samples for single period of stereo / 1khz sine / -20dbfs / 16-bit / 8khz sample rate
+ *
+ */
+extern const uint16_t pcm_20dbfs_1kHz_16bit_8000_stereo_single_period[PCM_1KTONE_8kHz_SINGLE_PERIOD_LENGTH_2BYTES];
 
 /***********************************************************************************************************************
  * API FUNCTIONS

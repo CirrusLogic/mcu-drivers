@@ -185,6 +185,9 @@ static void HapticControlThread(void *argument)
             case APP_STATE_START_I2S:
                 if (flags & HAPTIC_CONTROL_FLAG_PB_PRESSED)
                 {
+#if CONFIG_8K_I2S
+                    bsp_audio_set_fs(BSP_AUDIO_FS_8000_HZ);
+#endif
                     bsp_audio_play_record(BSP_PLAY_STEREO_1KHZ_20DBFS);
                     bsp_dut_start_i2s();
                     app_state++;

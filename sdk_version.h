@@ -4,7 +4,7 @@
  * @brief Alt-OS SDK version literals
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2020 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2020-2021 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -45,13 +45,14 @@ extern "C" {
  * means that the module will not work as before if the old interface is used.
  * - Minor - The interface of the firmware or module has changed, but not in a way that breaks backwards compatibility.
  * This means that the module will work as before if the old interface is used.
- * - Patch - The function has changed without changing the interface, for instance for a bug fix.
+ * - Update - The function has changed without changing the interface, for instance for a bug fix.
  *
  * @{
  */
-#define SDK_VERSION_MAJOR   (4) ///< Release Major version
-#define SDK_VERSION_MINOR   (1) ///< Release Minor version
-#define SDK_VERSION_PATCH   (0) ///< Release Patch version
+#define SDK_VERSION_MAJOR       (4) ///< Release Major version
+#define SDK_VERSION_MINOR       (2) ///< Release Minor version
+#define SDK_VERSION_UPDATE      (0) ///< Release Update version
+#define SDK_GIT_SHA             ("7d9909d4861e97a2251919c4f9f166b875556998") ///< Release Git SHA
 /** @} */
 
 

@@ -1,8 +1,8 @@
 #==========================================================================
-# (c) 2020 Cirrus Logic, Inc.
+# (c) 2021 Cirrus Logic, Inc.
 #--------------------------------------------------------------------------
-# Project : WISCE Script Exporter Factory class
-# File    : wisce_script_exporter_factory.py
+# Project : WISCE Script Control Port Transaction class
+# File    : wisce_script_transaction.py
 #--------------------------------------------------------------------------
 # Licensed under the Apache License, Version 2.0 (the License); you may
 # not use this file except in compliance with the License.
@@ -24,68 +24,44 @@
 #==========================================================================
 # IMPORTS
 #==========================================================================
-from wisce_script_exporter import wisce_script_exporter
-from c_array_exporter import c_array_exporter
-from c_function_exporter import c_function_exporter
 
 #==========================================================================
 # CONSTANTS/GLOBALS
 #==========================================================================
-exporter_types = ['c_array', 'c_functions']
 
 #==========================================================================
 # CLASSES
 #==========================================================================
-class wisce_script_exporter_factory(wisce_script_exporter):
-
-    def __init__(self, attributes):
-        wisce_script_exporter.__init__(self, attributes)
-        self.exporters = []
-        self.attributes = attributes
+class wisce_script_function:
+    def __init__(self, cmd, params, comment=None):
+        self.__set_cmd(cmd)
+        self.__set_params(params)
+        self.__set_comment(comment)
         return
 
-    def add_exporter(self, type):
-        if (type not in exporter_types):
-            exit(1)
+    def __get_cmd(self):
+        return self.__cmd
 
-        if (type == 'c_array'):
-            e = c_array_exporter(self.attributes)
-            self.exporters.append(e)
-        elif (type == 'c_functions'):
-            e = c_function_exporter(self.attributes)
-            self.exporters.append(e)
-        else:
-            print('Unknown firmware exporter type!')
-            exit(1)
+    def __set_cmd(self, cmd):
+        self.__cmd = cmd
 
-        return
+    cmd = property(__get_cmd, __set_cmd)
 
-    def add_transaction(self, transaction):
-        for e in self.exporters:
-            e.add_transaction(transaction)
+    def __get_params(self):
+        return self.__params
 
-        return
+    def __set_params(self, params):
+        self.__params = params
 
-    def add_metadata_text_line(self, line):
-        for e in self.exporters:
-            e.add_metadata_text_line(line)
+    params = property(__get_params, __set_params)
 
-        return
+    def __get_comment(self):
+        return self.__comment
 
-    def __str__(self):
-        output_str = ''
+    def __set_comment(self, comment):
+        self.__comment = comment
 
-        for e in self.exporters:
-            output_str = output_str + str(e)
-
-        return output_str
-
-    def to_file(self):
-        results_str = ''
-        for e in self.exporters:
-            results_str = results_str + e.to_file()
-
-        return results_str
+    comment = property(__get_comment, __set_comment)
 
 #==========================================================================
 # HELPER FUNCTIONS

@@ -36,6 +36,7 @@ extern "C" {
 #include "cs47l15_sym.h"
 #include "cs47l15_spec.h"
 #include "cs47l15_syscfg_regs.h"
+#include "sdk_version.h"
 
 /***********************************************************************************************************************
  * LITERALS & CONSTANTS

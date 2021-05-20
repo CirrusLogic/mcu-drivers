@@ -4,7 +4,7 @@
  * @brief Functions and prototypes exported by the CS40L25 Driver module
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2020 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2020-2021 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -37,6 +37,7 @@ extern "C" {
 #include "cs40l25_cal_sym.h"
 #include "cs40l25_spec.h"
 #include "cs40l25_syscfg_regs.h"
+#include "sdk_version.h"
 
 /***********************************************************************************************************************
  * LITERALS & CONSTANTS

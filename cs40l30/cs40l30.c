@@ -485,6 +485,7 @@ static uint32_t cs40l30_handle_dsp_notifications(cs40l30_t *driver)
 static uint32_t cs40l30_handle_dsp_notifications_cal(cs40l30_t *driver)
 {
     // TODO:  will implement as part of [SQA-1736]
+    (void) (driver);
     return CS40L30_STATUS_OK;
 }
 
@@ -920,6 +921,8 @@ uint32_t cs40l30_power(cs40l30_t *driver, uint32_t power_state)
 uint32_t cs40l30_calibrate(cs40l30_t *driver,
                            uint32_t calib_type)
 {
+    (void) (driver);
+    (void) (calib_type);
     return CS40L30_STATUS_OK;
 }
 

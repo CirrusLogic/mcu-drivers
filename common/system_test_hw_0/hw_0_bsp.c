@@ -4,7 +4,7 @@
  * @brief Implementation of the BSP for the HW ID0 platform.
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2020 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2020-2021 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -174,14 +174,21 @@
 #define BSP_UART_STATE_PACKET_STATE_CHECKSUM        (9)
 #define BSP_UART_STATE_PACKET_STATE_EOT             (10)
 
-#define TEST_FILE_HANDLE        (0xFEU)
-#define COVERAGE_FILE_HANDLE    (0xFFU)
+#define TEST_FILE_HANDLE            (0xFCU)
+#define COVERAGE_FILE_HANDLE        (0xFDU)
+#define BRIDGE_WRITE_FILE_HANDLE    (0xFEU)
+#define BRIDGE_READ_FILE_HANDLE     (0xFFU)
 
-#define BSP_UART_CHANNEL_ID_TO_INDEX(A)             (A - 0x30)
-#define BSP_UART_CHANNEL_INDEX_TO_ID(A)             (A + 0x30)
-#define BSP_UART_CHANNEL_ID_STDOUT_IN               BSP_UART_CHANNEL_INDEX_TO_ID(0)
-#define BSP_UART_CHANNEL_ID_TEST                    BSP_UART_CHANNEL_INDEX_TO_ID(1)
-#define BSP_UART_CHANNEL_ID_COVERAGE                BSP_UART_CHANNEL_INDEX_TO_ID(2)
+#define BSP_UART_CHANNEL_ID_STDOUT_IN               0x30
+#define BSP_UART_CHANNEL_ID_TEST                    0x31
+#define BSP_UART_CHANNEL_ID_COVERAGE                0x32
+#define BSP_UART_CHANNEL_ID_BRIDGE                  0x33
+#define BSP_UART_RX_CHANNEL_INDEX_STDIN             (0)
+#define BSP_UART_RX_CHANNEL_INDEX_BRIDGE            (1)
+#define BSP_UART_TX_CHANNEL_INDEX_STDOUT            (0)
+#define BSP_UART_TX_CHANNEL_INDEX_TEST              (1)
+#define BSP_UART_TX_CHANNEL_INDEX_COVERAGE          (2)
+#define BSP_UART_TX_CHANNEL_INDEX_BRIDGE            (3)
 
 #define BSP_UART_CHANNEL_FLAG_TX_WHEN_FULL  (1 << 0)
 
@@ -267,6 +274,8 @@ const uint32_t I2SFreq[8] = {8000, 11025, 16000, 22050, 32000, 44100, 48000, 960
 const uint32_t I2SPLLN[8] = {256, 429, 213, 429, 426, 271, 258, 344};
 const uint32_t I2SPLLR[8] = {5, 4, 4, 4, 4, 6, 3, 1};
 
+static uint32_t bsp_fs = BSP_AUDIO_FS_48000_HZ;
+
 static bsp_app_callback_t app_cb = NULL;
 static void *app_cb_arg = NULL;
 
@@ -292,8 +301,12 @@ static uint8_t uart_tx_stdout_buffer[USART2_TX_BUFFER_SIZE_BYTES] = {0};
 #ifdef CONFIG_USE_MULTICHANNEL_UART
 static uint8_t uart_tx_test_buffer[USART2_TX_BUFFER_SIZE_BYTES] = {0};
 static uint8_t uart_tx_coverage_buffer[USART2_TX_BUFFER_SIZE_BYTES] = {0};
+static uint8_t uart_tx_bridge_buffer[USART2_TX_BUFFER_SIZE_BYTES] = {0};
 #endif
 static uint8_t uart_rx_stdin_buffer[USART2_TX_BUFFER_SIZE_BYTES] = {0};
+#ifdef CONFIG_USE_MULTICHANNEL_UART
+static uint8_t uart_rx_bridge_buffer[USART2_TX_BUFFER_SIZE_BYTES] = {0};
+#endif
 
 static bsp_uart_channel_t uart_tx_channels[] =
 {
@@ -338,6 +351,20 @@ static bsp_uart_channel_t uart_tx_channels[] =
         },
         .packet_count = 0,
     },
+
+    {
+        .id = BSP_UART_CHANNEL_ID_BRIDGE,
+        .priority = 1,
+        .flags = 0,
+        .fifo =
+        {
+            .size = USART2_TX_BUFFER_SIZE_BYTES,
+            .in_index = 0,
+            .out_index = 0,
+            .buffer = uart_tx_bridge_buffer
+        },
+        .packet_count = 0,
+    },
 #endif
 };
 
@@ -356,13 +383,29 @@ static bsp_uart_channel_t uart_rx_channels[] =
         },
         .packet_count = 0,
     },
+
+#ifdef CONFIG_USE_MULTICHANNEL_UART
+    {
+        .id = BSP_UART_CHANNEL_ID_BRIDGE,
+        .priority = 1,
+        .flags = 0,
+        .fifo =
+        {
+            .size = USART2_RX_BUFFER_SIZE_BYTES,
+            .in_index = 0,
+            .out_index = 0,
+            .buffer = uart_rx_bridge_buffer
+        },
+        .packet_count = 0,
+    },
+#endif
 };
 
 static uint8_t uart_tx_packet_buffer[2] = {0};
 static bsp_uart_state_t uart_tx_state =
 {
     .tx_complete = false,
-    .current_channel = uart_tx_channels,
+    .current_channel = NULL,
     .packet_state = BSP_UART_STATE_PACKET_STATE_IDLE,
     .packet_size = 0,
     .packet_checksum = 0,
@@ -373,7 +416,7 @@ static uint8_t uart_rx_packet_buffer[2] = {0};
 static bsp_uart_state_t uart_rx_state =
 {
     .tx_complete = false,
-    .current_channel = uart_rx_channels,
+    .current_channel = NULL,
     .packet_state = BSP_UART_STATE_PACKET_STATE_IDLE,
     .packet_size = 0,
     .packet_checksum = 0,
@@ -393,9 +436,13 @@ UART_HandleTypeDef uart_drv_handle;
 
 FILE __test_file;
 FILE __coverage_file;
+FILE __bridge_write_file;
+FILE __bridge_read_file;
 
 FILE* test_file = &__test_file;
 FILE* coverage_file = &__coverage_file;
+FILE* bridge_write_file = &__bridge_write_file;
+FILE* bridge_read_file = &__bridge_read_file;
 
 uint32_t bsp_set_timer(uint32_t duration_ms, bsp_callback_t cb, void *cb_arg);
 uint32_t bsp_set_gpio(uint32_t gpio_id, uint8_t gpio_state);
@@ -759,32 +806,35 @@ static void UART_Init(void)
 #ifdef CONFIG_USE_MULTICHANNEL_UART
 int __io_putc(int file, int ch)
 {
-    uint8_t channel_id = 0xFF;
-    bsp_fifo_t *fifo;
-    uint32_t temp_in_index, temp_out_index;
+    bsp_uart_channel_t *channel = NULL;
     int ret = ch;
 
     switch(file)
     {
         case TEST_FILE_HANDLE:
-            channel_id = BSP_UART_CHANNEL_ID_TO_INDEX(BSP_UART_CHANNEL_ID_TEST);
+            channel = &(uart_tx_channels[BSP_UART_TX_CHANNEL_INDEX_TEST]);
             break;
 
         case COVERAGE_FILE_HANDLE:
-            channel_id = BSP_UART_CHANNEL_ID_TO_INDEX(BSP_UART_CHANNEL_ID_COVERAGE);
+            channel = &(uart_tx_channels[BSP_UART_TX_CHANNEL_INDEX_COVERAGE]);
             break;
 
         case STDOUT_FILENO:
-            channel_id = BSP_UART_CHANNEL_ID_TO_INDEX(BSP_UART_CHANNEL_ID_STDOUT_IN);
+            channel = &(uart_tx_channels[BSP_UART_TX_CHANNEL_INDEX_STDOUT]);
+            break;
+
+        case BRIDGE_WRITE_FILE_HANDLE:
+            channel = &(uart_tx_channels[BSP_UART_TX_CHANNEL_INDEX_BRIDGE]);
             break;
 
         default:
             break;
     }
 
-    if (channel_id != 0xFF)
+    if (channel != NULL)
     {
-        fifo = &(uart_tx_channels[channel_id].fifo);
+        bsp_fifo_t *fifo = &(channel->fifo);
+        uint32_t temp_in_index, temp_out_index;
         temp_in_index = fifo->in_index;
 
         // Wait while buffer is full
@@ -808,7 +858,7 @@ int __io_putc(int file, int ch)
 
             uart_tx_state.packet_buffer[0] = 0x01;
             uart_tx_state.packet_state = BSP_UART_STATE_PACKET_STATE_SOH;
-            uart_tx_state.current_channel = &(uart_tx_channels[channel_id]);
+            uart_tx_state.current_channel = channel;
 
             hal_ret = HAL_UART_Transmit_IT(&uart_drv_handle, uart_tx_state.packet_buffer, 1);
             if (hal_ret != HAL_OK)
@@ -830,10 +880,13 @@ int __io_putc(int file, int ch)
 #else
 int __io_putc(int file, int ch)
 {
-    bsp_fifo_t *fifo = &(uart_tx_channels[BSP_UART_CHANNEL_ID_TO_INDEX(BSP_UART_CHANNEL_ID_STDOUT_IN)].fifo);
+    bsp_fifo_t *fifo = &(uart_tx_channels[BSP_UART_TX_CHANNEL_INDEX_STDOUT].fifo);
     int ret = ch;
 
-    if ((file == TEST_FILE_HANDLE) || (file == COVERAGE_FILE_HANDLE) || (file == STDOUT_FILENO))
+    if ((file == TEST_FILE_HANDLE) ||
+        (file == COVERAGE_FILE_HANDLE) ||
+        (file == STDOUT_FILENO) ||
+        (file == BRIDGE_WRITE_FILE_HANDLE))
     {
         uint32_t temp_out_index;
 
@@ -891,32 +944,25 @@ int __io_putc(int file, int ch)
 #ifdef CONFIG_USE_MULTICHANNEL_UART
 int __io_getc(int file)
 {
-    uint8_t channel_id = 0xFF;
-    bsp_fifo_t *fifo;
+    bsp_fifo_t *fifo = NULL;
     int32_t ret = EOF;
 
     switch(file)
     {
-        case TEST_FILE_HANDLE:
-            channel_id = BSP_UART_CHANNEL_ID_TO_INDEX(BSP_UART_CHANNEL_ID_TEST);
-            break;
-
-        case COVERAGE_FILE_HANDLE:
-            channel_id = BSP_UART_CHANNEL_ID_TO_INDEX(BSP_UART_CHANNEL_ID_COVERAGE);
-            break;
-
         case STDIN_FILENO:
-            channel_id = BSP_UART_CHANNEL_ID_TO_INDEX(BSP_UART_CHANNEL_ID_STDOUT_IN);
+            fifo = &(uart_rx_channels[BSP_UART_RX_CHANNEL_INDEX_STDIN].fifo);
+            break;
+
+        case BRIDGE_READ_FILE_HANDLE:
+            fifo = &(uart_rx_channels[BSP_UART_RX_CHANNEL_INDEX_BRIDGE].fifo);
             break;
 
         default:
             break;
     }
 
-    if (channel_id != 0xFF)
+    if (fifo != NULL)
     {
-        fifo = &(uart_rx_channels[channel_id].fifo);
-
         __disable_irq();
 
         if (fifo->level > 0)
@@ -942,10 +988,13 @@ int __io_getc(int file)
 #else
 int __io_getc(int file)
 {
-    bsp_fifo_t *fifo = &(uart_rx_channels[BSP_UART_CHANNEL_ID_TO_INDEX(BSP_UART_CHANNEL_ID_STDOUT_IN)].fifo);
+    bsp_fifo_t *fifo = &(uart_rx_channels[BSP_UART_RX_CHANNEL_INDEX_STDIN].fifo);
     int32_t ret = EOF;
 
-    if ((file == TEST_FILE_HANDLE) || (file == COVERAGE_FILE_HANDLE) || (file == STDIN_FILENO))
+    if ((file == TEST_FILE_HANDLE) ||
+        (file == COVERAGE_FILE_HANDLE) ||
+        (file == STDIN_FILENO) ||
+        (file == BRIDGE_READ_FILE_HANDLE))
     {
         __disable_irq();
 
@@ -1742,7 +1791,7 @@ void process_uart_tx(void)
 
         case BSP_UART_STATE_PACKET_STATE_EOT:
             // Check for other unempty channels
-            for (uint8_t i = 0; i < 3; i++)
+            for (uint8_t i = 0; i < (sizeof(uart_tx_channels)/sizeof(bsp_uart_channel_t)); i++)
             {
                 channel = &(uart_tx_channels[i]);
 
@@ -1773,6 +1822,7 @@ void process_uart_tx(void)
     else
     {
         uart_tx_state.packet_state = BSP_UART_STATE_PACKET_STATE_IDLE;
+        uart_tx_state.current_channel = NULL;
     }
 
     return;
@@ -1835,14 +1885,19 @@ void process_uart_rx(void)
 
         case BSP_UART_STATE_PACKET_STATE_SOH:
         {
-            uint8_t temp_char = uart_rx_state.packet_buffer[0];
-            temp_char = BSP_UART_CHANNEL_ID_TO_INDEX(temp_char);
+            uart_rx_state.current_channel = NULL;
 
-            // TODO:  does this need to be sizeof(uart_rx_channels) ?
-            if (temp_char < 1)
+            for (uint8_t i = 0; i < (sizeof(uart_rx_channels)/sizeof(bsp_uart_channel_t)); i++)
             {
-                uart_rx_state.current_channel = &(uart_rx_channels[temp_char]);
+                if (uart_rx_channels[i].id == uart_rx_state.packet_buffer[0])
+                {
+                    uart_rx_state.current_channel = &(uart_rx_channels[i]);
+                    break;
+                }
+            }
 
+            if (uart_rx_state.current_channel != NULL)
+            {
                 rx_size_bytes = 1;
                 rx_buffer = uart_rx_state.packet_buffer;
                 uart_rx_state.packet_state = BSP_UART_STATE_PACKET_STATE_TYPE;
@@ -1995,7 +2050,7 @@ void process_uart_rx(void)
             // Verify checksum
             if (uart_rx_state.packet_buffer[0] == uart_rx_state.packet_checksum)
             {
-                uart_tx_state.packet_state = BSP_UART_STATE_PACKET_STATE_CHECKSUM;
+                uart_rx_state.packet_state = BSP_UART_STATE_PACKET_STATE_CHECKSUM;
             }
             else
             {
@@ -2116,6 +2171,10 @@ uint32_t bsp_initialize(bsp_app_callback_t cb, void *cb_arg)
     setvbuf(test_file, NULL, _IONBF, 0);
     coverage_file = fdopen(COVERAGE_FILE_HANDLE, "w");
     setvbuf(coverage_file, NULL, _IONBF, 0);
+    bridge_write_file = fdopen(BRIDGE_WRITE_FILE_HANDLE, "w");
+    setvbuf(bridge_write_file, NULL, _IONBF, 0);
+    bridge_read_file = fdopen(BRIDGE_READ_FILE_HANDLE, "r");
+    setvbuf(bridge_read_file, NULL, _IONBF, 0);
 
     // Initialize playback buffer
     for (int i = 0; i < PLAYBACK_BUFFER_SIZE_2BYTES;)
@@ -2170,7 +2229,7 @@ void bsp_notification_callback(uint32_t event_flags, void *arg)
 
 uint32_t bsp_audio_set_fs(uint32_t fs_hz)
 {
-    if ((fs_hz != 48000) && (fs_hz != 44100))
+    if ((fs_hz != 8000) && (fs_hz != 48000) && (fs_hz != 44100))
     {
         return BSP_STATUS_FAIL;
     }
@@ -2178,6 +2237,8 @@ uint32_t bsp_audio_set_fs(uint32_t fs_hz)
     I2S_Deinit();
 
     I2S_Init(fs_hz);
+
+    bsp_fs = fs_hz;
 
     return BSP_STATUS_OK;
 }
@@ -2195,11 +2256,22 @@ uint32_t bsp_audio_play(uint8_t content)
             break;
 
         case BSP_PLAY_STEREO_1KHZ_20DBFS:
+            if (bsp_fs == BSP_AUDIO_FS_8000_HZ)
+            {
 #if (BSP_I2S_2BYTES_PER_SUBFRAME == 2)
-            playback_content = (uint16_t *) pcm_20dBFs_1kHz_32bit_stereo_single_period;
+                playback_content = (uint16_t *) pcm_20dBFs_1kHz_32bit_8000_stereo_single_period;
 #else
-            playback_content = pcm_20dBFs_1kHz_16bit_stereo_single_period;
+                playback_content = pcm_20dBFs_1kHz_16bit_8000_stereo_single_period;
 #endif
+            }
+            else
+            {
+#if (BSP_I2S_2BYTES_PER_SUBFRAME == 2)
+                playback_content = (uint16_t *) pcm_20dBFs_1kHz_32bit_stereo_single_period;
+#else
+                playback_content = pcm_20dBFs_1kHz_16bit_stereo_single_period;
+#endif
+            }
             break;
 
         case BSP_PLAY_STEREO_100HZ_20DBFS:
@@ -2257,12 +2329,24 @@ uint32_t bsp_audio_play_record(uint8_t content)
             break;
 
         case BSP_PLAY_STEREO_1KHZ_20DBFS:
-            dma_transfer_size = PCM_1KHZ_SINGLE_PERIOD_LENGTH_2BYTES;
+            if (bsp_fs == BSP_AUDIO_FS_8000_HZ)
+            {
+                dma_transfer_size = PCM_1KTONE_8kHz_SINGLE_PERIOD_LENGTH_2BYTES;
 #if (BSP_I2S_2BYTES_PER_SUBFRAME == 2)
-            playback_content = (uint16_t *) pcm_20dBFs_1kHz_32bit_stereo_single_period;
+                playback_content = (uint16_t *) pcm_20dBFs_1kHz_32bit_8000_stereo_single_period;
 #else
-            playback_content = pcm_20dBFs_1kHz_16bit_stereo_single_period;
+                playback_content = pcm_20dBFs_1kHz_16bit_8000_stereo_single_period;
 #endif
+            }
+            else
+            {
+                dma_transfer_size = PCM_1KHZ_SINGLE_PERIOD_LENGTH_2BYTES;
+#if (BSP_I2S_2BYTES_PER_SUBFRAME == 2)
+                playback_content = (uint16_t *) pcm_20dBFs_1kHz_32bit_stereo_single_period;
+#else
+                playback_content = pcm_20dBFs_1kHz_16bit_stereo_single_period;
+#endif
+            }
             break;
 
         case BSP_PLAY_STEREO_100HZ_20DBFS:

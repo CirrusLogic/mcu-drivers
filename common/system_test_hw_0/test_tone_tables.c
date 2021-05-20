@@ -1299,6 +1299,47 @@ const uint16_t pcm_20dBFs_100Hz_16bit_stereo_single_period[] =
 };
 #endif // TEST_TONES_INCLUDE_100HZ
 
+/**
+ * Table of PCM samples for single period of stereo / 1kHz sine / -20dBFs / 32-bit / 8khz sample rate
+ *
+ * Table uses type of uint16_t, so 32-bit samples are broken into 16-bit words.  Total length of table is
+ * PCM_1KTONE_8kHz_SINGLE_PERIOD_LENGTH_2BYTES per channel, thus * 2 for stereo.  16-bit words are arranged MS-Word of Left
+ * channel first:
+ * - MS-Word of Left channel Sample 1
+ * - LS-Word of Left channel Sample 1
+ * - MS-Word of Right channel Sample 1
+ * - LS-Word of Right channel Sample 1
+ * - MS-Word of Left channel Sample 2
+ * - ...
+ *
+ */
+const uint16_t pcm_20dBFs_1kHz_32bit_8000_stereo_single_period[PCM_1KTONE_8kHz_SINGLE_PERIOD_LENGTH_2BYTES * 2] =
+{
+  0x0000, 0x0000, 0x0000, 0x0000,
+  0x090d, 0x0c28, 0x090d, 0x0c28,
+  0x0ccc, 0xcccc, 0x0ccc, 0xcccc,
+  0x090d, 0x0c28, 0x090d, 0x0c28,
+  0x0000, 0x0000, 0x0000, 0x0000,
+  0xf6f2, 0xf3d8, 0xf6f2, 0xf3d8,
+  0xf333, 0x3334, 0xf333, 0x3334,
+  0xf6f2, 0xf3d8, 0xf6f2, 0xf3d8
+};
+
+/**
+ * Table of PCM samples for single period of stereo / 1kHz sine / -20dBFs / 16-bit / 8khz sample rate
+ *
+ */
+const uint16_t pcm_20dBFs_1kHz_16bit_8000_stereo_single_period[PCM_1KTONE_8kHz_SINGLE_PERIOD_LENGTH_2BYTES] =
+{
+  0x0000, 0x0000,
+  0x090e, 0x090d,
+  0x0ccc, 0x0ccc,
+  0x090d, 0x090d,
+  0x0001, 0x0000,
+  0xf6f3, 0xf6f3,
+  0xf333, 0xf333,
+  0xf6f3, 0xf6f2
+};
 /*****************************************************************************
 * Function Definitions
 *****************************************************************************/
