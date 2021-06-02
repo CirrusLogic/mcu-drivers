@@ -1708,13 +1708,8 @@ static uint32_t cs35l41_event_handler(void *driver)
         }
     }
 
-    // Call BSP Notification Callback
-    cs35l41_bsp_config_t *b = &(d->config.bsp_config);
-    if (b->notification_cb != NULL)
-    {
-        uint32_t event_flags = cs35l41_irq_to_event_id(irq_statuses);
-        b->notification_cb(event_flags, b->notification_cb_arg);
-    }
+    // Set event flags
+    d->event_flags = cs35l41_irq_to_event_id(irq_statuses);
 
     return CS35L41_STATUS_OK;
 }

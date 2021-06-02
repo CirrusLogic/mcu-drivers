@@ -1,9 +1,9 @@
-#==========================================================================
-# (c) 2020 Cirrus Logic, Inc.
-#--------------------------------------------------------------------------
+# ==========================================================================
+# (c) 2020-2021 Cirrus Logic, Inc.
+# --------------------------------------------------------------------------
 # Project : Import WISCE Script transactions
 # File    : wisce_script_importer.py
-#--------------------------------------------------------------------------
+# --------------------------------------------------------------------------
 # Licensed under the Apache License, Version 2.0 (the License); you may
 # not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -15,23 +15,23 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-#--------------------------------------------------------------------------
+# --------------------------------------------------------------------------
 #
 # Environment Requirements: None
 #
-#==========================================================================
+# ==========================================================================
 
-#==========================================================================
+# ==========================================================================
 # IMPORTS
-#==========================================================================
+# ==========================================================================
 import os
 from wisce_script_transaction import wisce_script_transaction
 from wisce_script_function import wisce_script_function
 from re import search
 
-#==========================================================================
+# ==========================================================================
 # CONSTANTS/GLOBALS
-#==========================================================================
+# ==========================================================================
 wisce_script_keywords_to_skip_array = ['load',
                                        'loadbinary',
                                        'reset',
@@ -67,9 +67,10 @@ wisce_script_keywords_to_skip_functions = ['load',
                                            'smbus_16inx_16dat']
 wisce_script_transaction_keywords = ['4wirespi_32inx_32dat', '4wirespi_32inx_16dat', 'smbus_32inx_32dat']
 
-#==========================================================================
+
+# ==========================================================================
 # CLASSES
-#==========================================================================
+# ==========================================================================
 class wisce_script_importer:
     def __init__(self, filename, command):
         self.transaction_list = []
@@ -136,14 +137,14 @@ class wisce_script_importer:
                 elif (len(words) > 3) and (words[3] == 'rmodw'):
                     if (any(access_type in word for access_type in wisce_script_transaction_keywords for word in
                             words)):
-                        if len(words) == 6 and (words[5].find("*") == -1) and words[5] != 'message':
+                        if len(words) >= 6 and (words[5].find("*") == -1) and words[5] != 'message':
                             mask = int(words[5], 16)
                         else:
-                            mask = 0xFFFF
+                            mask = 0xffffffff
                         self.transaction_list.append(wisce_script_function(words[3],
                                                                            [int(words[0], 16),  # addr
                                                                             int(words[1], 16),  # val
-                                                                            mask],              # mask
+                                                                            mask],  # mask
                                                                            comment))
 
         f.close()
@@ -156,11 +157,10 @@ class wisce_script_importer:
         output_str = 'blah'
         return output_str
 
-#==========================================================================
+# ==========================================================================
 # HELPER FUNCTIONS
-#==========================================================================
+# ==========================================================================
 
-#==========================================================================
+# ==========================================================================
 # MAIN PROGRAM
-#==========================================================================
-
+# ==========================================================================

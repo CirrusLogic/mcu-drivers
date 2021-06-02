@@ -197,13 +197,21 @@ class current_command(object):
         8. "W <reg> <val>" or "BW <StartReg> <data>"
         9. "Info"
         10."ProtocolVersion 105"
+        11. "[SeqNum] <command>"
         '''
+        self.__class__.seq_num = None
         parts = str(cmd_b, 'UTF-8').split()
         if '[' in parts[0]:
             # Cmd has seq num part
             part1 = parts[0]
-            self.__class__.device_name = part1[1: part1.find(':')]
-            self.__class__.seq_num = part1[part1.find(':') + 1: part1.find(']')]
+            if ':' in part1:
+                # Eg "[CS47L63-1:2] R c08"
+                self.__class__.device_name = part1[1: part1.find(':')]
+                self.__class__.seq_num = part1[part1.find(':') + 1: part1.find(']')]
+            else:
+                # Eg "[4] Detect" or "[4]  Read <reg>"
+                self.__class__.device_name = None
+                self.__class__.seq_num = part1[part1.find('[') + 1: part1.find(']')]
             parts.pop(0)
         self.__class__.action = parts[0]
         if len(parts) == 1:
@@ -224,8 +232,6 @@ class current_command(object):
             raise bridge_excpn("Unexpected Cmd format received: {}".format(cmd_b))
         if self.__class__.action not in cmd_mcu_abbreviated:
             raise bridge_excpn("Unexpected Cmd action received: {}".format(cmd_b))
-
-current_cmd = current_command()
 
 
 def hexstr_to_decstr(hexstr):
@@ -313,9 +319,9 @@ def client_cmd_handler(crnt_cmd, ser_ch, ch_num, state, verbose):
         # We only send the N to the device in order to identify the targeted chip
         abbr_dev_cmd_str += " {}".format(devices[crnt_cmd.device_name]["chip_id"])
     # add args
-    if current_cmd.arg1 is not None:
+    if crnt_cmd.arg1 is not None:
         abbr_dev_cmd_str += " {}".format(crnt_cmd.arg1)
-    if current_cmd.arg2 is not None:
+    if crnt_cmd.arg2 is not None:
         abbr_dev_cmd_str += " {}".format(crnt_cmd.arg2)
     abbr_dev_cmd_str += "\n"
     dbg_pr_AgentMsgToDevice(verbose, abbr_dev_cmd_str)
@@ -343,23 +349,17 @@ def mcu_reply_hndlr_info(mcu_reply_str_parts, handshake=False):
     # This may be called by the client -or- ourselves as part of initial handshake
     # For handshake purposes we extract
     # Expected MCU reply: "device,app,version,protocolversions,systemID,OS,OSversion"
-    dev, app, version, protver, systemid, _os, osversion = tuple(mcu_reply_str_parts)
+    app, version, protver, systemid, _os, osversion = tuple(mcu_reply_str_parts)
     if(handshake):
-        return  dev, app, version, protver, systemid, _os, osversion
+        return wisce_device_id, app, version, protver, systemid, _os, osversion
     else:
         return \
-            "device={} app={} version={} protocolversion={} systemID={} os={} osversion={}\n".format(
-            dev, app, version, protver, systemid, _os, osversion)
-
+            "device=\"{}\" app={} version={} protocolversion={} systemID={} os={} osversion={}\n".format(
+                wisce_device_id, app, version, protver, systemid, _os, osversion)
 
 def mcu_reply_hndlr_detect(mcu_detect_reply_s):
     '''As well as forming correct reply for the client, extract the device info for ourselves
     to discover what chips are present on the MCU.
-    Expect mcu_reply to be bytes array with single or multiple chip details separated by colon
-    b"<dev1Name-N>,<BusInt1>,<BusAddrInt1>,<DrvrCtrlInt1>:<dev2Name-N>,<BusInt2>,<BusAddrInt2>,<DrvrCtrlInt2>"
-    The MCU *MUST* send the first param as dev1Name-N where N will be used in subsequent cmds to
-    it to identify the chip in multi-chip devices
-    We also want to store the complete name "dev1Name-N" which is what the client will use in its Cmds
     '''
     global num_chips, devices
 
@@ -383,10 +383,16 @@ def mcu_reply_hndlr_detect(mcu_detect_reply_s):
     # Formulate reply to client
     return 'Detect {},{},{},DriverControl:{}="{}"\n'.format(name_n, bus_name, bus_addr, drvr_ctrl, wisce_device_id)
 
+def prepend_seq_num(current_cmd, cli_rsp_str):
+    if current_cmd.seq_num is not None:
+        cli_rsp_str = "[{}] {}".format(current_cmd.seq_num, cli_rsp_str)
+    return cli_rsp_str
+
 #==========================================================================
 # Reply Handler Function
 #=========================================================================
 def do_reply_handler(current_cmd, mcu_reply_str):
+    cli_rsp_str = None
     if current_cmd.action == "Detect":
         cli_rsp_str = mcu_reply_hndlr_detect(mcu_reply_str)
     elif current_cmd.action == "ProtocolVersion":
@@ -398,7 +404,7 @@ def do_reply_handler(current_cmd, mcu_reply_str):
             # So we need to Convert MCU's reg read value to hex for client
             mcu_reply_str_hex = hex(int(mcu_reply_str))
             # response to client format : "[seqNum] <regreadvalue>"
-            cli_rsp_str = "[{}] {}\n".format(current_cmd.seq_num, mcu_reply_str_hex)
+            cli_rsp_str = mcu_reply_str_hex + "\n"
         else: # num_chips == 2:
             # Expect MCU reply to be  "<chipnumber> <regreadvalue>"
             pass
@@ -407,7 +413,7 @@ def do_reply_handler(current_cmd, mcu_reply_str):
         if num_chips == 1:
             # Expect MCU reply to be "Ok"
             # response to client format : "[seqNum] Ok"
-            cli_rsp_str = "[{}] Ok\n".format(current_cmd.seq_num)
+            cli_rsp_str = "Ok\n"
         else:  # num_chips == 2:
             pass
     elif current_cmd.action == "BR" or current_cmd.action == "BlockRead":
@@ -415,17 +421,23 @@ def do_reply_handler(current_cmd, mcu_reply_str):
             # Expect MCU reply to be string of multiple reg read values eg "0048ac40000000a0" No! will ne in decimal?
             # ToDo As for Read the MCU reg values might come in as dec ascii but WISCE want hex
             # response to client format : "[seqNum] <regreadvalue>"
-            cli_rsp_str = "[{}] {}\n".format(current_cmd.seq_num, mcu_reply_str)
+            cli_rsp_str = mcu_reply_str + "\n"
         else: # num_chips == 2:
             # Expect MCU reply to be  "<chipnumber> <regreadvalue>"
+            pass
+
+    elif current_cmd.action == "Info":
+        if num_chips == 1:
+            cli_rsp_str = mcu_reply_hndlr_info(mcu_reply_str.split(','))
+        else:  # num_chips == 2:
             pass
 
     else:
         print("NEED TO WRITE reply hndlr for Cmd {}, rxed reply: {}".format(current_cmd.action,
                                                                                 mcu_reply_str))
 
-    # Return the client response string
-    return cli_rsp_str
+    # Prepend seq num if valid, and return the client response string
+    return prepend_seq_num(current_cmd, cli_rsp_str)
 
 
 # First stage reply handlr to check for Error being sent from MCU
@@ -467,9 +479,8 @@ def wait_for_serial_data(ser_ch, ch_num):
     return data_str
 
 
-def do_main_loop(sock, ser_ch, ch_num, state, crnt_cmd, verbose):
+def inner_loop(sock, ser_ch, ch_num, state, crnt_cmd, verbose):
     global wisce_device_id
-
     while True:
         try:
             dbg_pr_general(verbose, "Loop state: {}".format(state))
@@ -521,10 +532,34 @@ def do_main_loop(sock, ser_ch, ch_num, state, crnt_cmd, verbose):
             else:
                 print("REACHED INCORRECT STATE. TERMINATING")
                 sys.exit(1)
-        except KeyboardInterrupt as e:
-            raise e
+        except KeyboardInterrupt as kbe:  # ToDo: Ctrl-C not working possibly due to socket
+            sys.exit(1)
         except bridge_sock_excpn as bse:
             print("{}\n".format(bse))
-            return
+            raise OSError
         ## TODO: send_bw_data_to_mcu() can raise exception!
         ## TODO: Should catch general Exception here, send ER msg to client & continue loop
+
+def outer_loop(ser_ch, ch_num, verbose):
+    while True:
+        try:
+            # Create socket & wait for connection to bridge client
+            (bridgecli_sockcon, _) = init_bridge_socket()  # Blocks on socket conn
+            state = BRIDGE_STATE_HANDSHAKE_READ_REG0
+            current_cmd = current_command()
+
+            with bridgecli_sockcon:
+                inner_loop(bridgecli_sockcon, ser_ch, ch_num, state, current_cmd, verbose)
+
+        except (TypeError, UnicodeError) as err:
+            # Sometimes a client will send rubbish data down the socket
+            # when a connection is closed, causing us to process garbage string.
+            # Could be serious enough, start again with new connection
+            print(type(err), err)
+            print("Re-starting. Please attempt new WISCE connection")
+        except KeyboardInterrupt as kbe:  # ToDo: Ctrl-C not working possibly due to socket
+            sys.exit(1)
+        except OSError as e:
+            print("Socket related error: {}\nAny current operation will be aborted".format(e))
+
+

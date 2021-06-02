@@ -1,0 +1,6 @@
+   0x100 0x0041 4wireSPI_32inx_16dat  Write  0x00      * Clock_32k_1(100H):       0041  CLK_32K_ENA=1, CLK_32K_SRC=MCLK2 (direct)
+   0x171 0x0002 4wireSPI_32inx_16dat  Write  0x00      * FLL1_Control_1(171H):    0000  FLL1_FREERUN=1, FLL1_ENA=0
+   0x101 0x0404 4wireSPI_32inx_16dat  Write  0x00      * System_Clock_1(101H):    0444  SYSCLK_FRAC=SYSCLK is a multiple of 6.144MHz, SYSCLK_FREQ=98.304MHz (90.3168MHz), SYSCLK_ENA=0, SYSCLK_SRC=FLL1
+   0x102 0x0003 4wireSPI_32inx_16dat  Write  0x00      * Sample_rate_1(102H):     0003  SAMPLE_RATE_1=48kHz
+   0x218 0x81A4 4wireSPI_32inx_16dat  Write  0x00      * Mic_Bias_Ctrl_1(218H):   81A4  MICB1_EXT_CAP=1, MICB1_LVL=2.8V, MICB1_RATE=Fast start-up / shut-down, MICB1_DISCH=MICBIAS1 discharged when disabled, MICB1_BYPASS=0, MICB1_ENA=0
+   0x310 0x0C80 4wireSPI_32inx_16dat  Write  0x00      * IN1L_Control(310H):      0C80  IN1L_HPF=0, IN1_DMIC_SUP=MICBIAS1, IN1_MODE=Digital input, IN1L_PGA_VOL=0dB

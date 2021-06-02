@@ -36,6 +36,7 @@ import smcio
 import signal
 import time
 import bridge_agent
+import traceback
 
 #==========================================================================
 # VERSION
@@ -54,11 +55,8 @@ class com_port(smcio.serial_io_interface):
     def __init__(self, port, speed, timeout):
         self.ser = serial.Serial(port, 115200, parity=serial.PARITY_NONE, rtscts=0, timeout=timeout)
 
-        return
-
     def write(self, byte_list):
         self.ser.write(byte_list)
-        return
 
     def read(self, length):
         byte_list = self.ser.read(length)
@@ -108,8 +106,6 @@ def print_start():
     print("")
     print("SDK Version " + print_sdk_version(repo_path + '/sdk_version.h'))
 
-    return
-
 def print_args(args):
     print("")
     print("stdout_filename: " + args.stdout_filename)
@@ -117,17 +113,10 @@ def print_args(args):
     print("Timeout (s): " + str(args.timeout))
     print("")
 
-    return
-
 def print_results(results_string):
     print(results_string)
 
-    return
 
-def print_end():
-    print("Exit.")
-
-    return
 
 def error_exit(error_message):
     print('ERROR: ' + error_message)
@@ -150,8 +139,6 @@ def channel_callback(callback_arg, packet_string):
         f = open(filename, 'a')
         f.write(packet_string)
         f.close()
-
-    return
 
 #==========================================================================
 # MAIN PROGRAM
@@ -189,35 +176,21 @@ def main(argv):
 
     ''' Do Wisce Agent stuff using new module bridge_agent.py '''
     devices = dict()  # No device details discovered yet
-    current_cmd = bridge_agent.current_command()
     try:
-        # Create socket & wait for connection to bridge client
-        (bridgecli_sockcon, sock_addr) = bridge_agent.init_bridge_socket() # Blocks on socket conn
-        state = bridge_agent.BRIDGE_STATE_HANDSHAKE_READ_REG0
-        try:
-            with bridgecli_sockcon:
-                bridge_agent.do_main_loop(bridgecli_sockcon, p, '3',
-                                          state, current_cmd, args.verbose)
-            print("Exiting")
-
-        except IOError as e:
-            print("\nError: {}".format(e))
-            raise
-        except OSError as e:
-            print("Socket related error: {}".format(e))
-            raise
+        bridge_agent.outer_loop(p, '3', args.verbose)
+    except IOError as e:
+        print("\nIOError: {}. Exiting\n".format(e))
+        raise
     except KeyboardInterrupt as e:
         print("\nHalted by User")
         sys.exit(1)
     except Exception as e:
-        print("\n: {}".format(e))
-
-    # Stop SMCIO processor
-    p.stop()
-
-    print_end()
-
-    return
+        print("Uncaught exception: {}. Exception type: {}\n".format(e, type(e).__name__))
+        traceback.print_exc()
+    finally:
+        # Stop SMCIO processor
+        p.stop()
+        print("Exit.")
 
 if __name__ == "__main__":
     main(sys.argv)

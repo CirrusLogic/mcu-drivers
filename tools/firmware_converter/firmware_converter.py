@@ -41,7 +41,7 @@ from firmware_exporter_factory import firmware_exporter_factory
 #==========================================================================
 # CONSTANTS/GLOBALS
 #==========================================================================
-supported_part_numbers = ['cs35l41', 'cs40l25', 'cs40l30', 'cs48l32', 'cs47l63', 'cs47l66', 'cs47l67', 'cs47l15']
+supported_part_numbers = ['cs35l41', 'cs40l25', 'cs40l30', 'cs48l32', 'cs47l63', 'cs47l66', 'cs47l67', 'cs47l15', 'cs47l35_dsp1', 'cs47l35_dsp2', 'cs47l35_dsp3']
 supported_commands = ['print', 'export', 'wisce', 'fw_img_v1', 'fw_img_v2', 'json']
 
 supported_mem_maps = {
@@ -61,8 +61,8 @@ supported_mem_maps = {
             'pm32': 0x3800000,
         }
     },
-    'adsp_type_0': {
-        'parts': ['cs47l15'],
+    'adsp_dsp_1': {
+        'parts': ['cs47l15', 'cs47l35_dsp1'],
         'xm': {
             'u24': 0xa0000,
         },
@@ -74,6 +74,36 @@ supported_mem_maps = {
         },
         'pm': {
             'pm32': 0x80000,
+        }
+    },
+    'adsp_dsp_2': {
+        'parts': ['cs47l35_dsp2'],
+        'xm': {
+            'u24': 0x120000,
+        },
+        'ym': {
+            'u24': 0x140000,
+        },
+        'zm': {
+            'u24': 0x160000,
+        },
+        'pm': {
+            'pm32': 0x100000,
+        },
+    },
+    'adsp_dsp_3': {
+        'parts': ['cs47l35_dsp3'],
+        'xm': {
+            'u24': 0x1a0000,
+        },
+        'ym': {
+            'u24': 0x1c0000,
+        },
+        'zm': {
+            'u24': 0x1e0000,
+        },
+        'pm': {
+            'pm32': 0x180000,
         }
     }
 }

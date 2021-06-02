@@ -236,6 +236,8 @@ class c_function_exporter(wisce_script_exporter):
 
                 if (self.include_comments and (t.comment is not None)):
                     temp_str = temp_str.replace('{comment}', '; // ' + t.comment)
+                    if not t.comment.endswith('\n'):
+                        temp_str += '\n'
                 else:
                     temp_str = temp_str.replace('{comment}', ';')
                     temp_str += '\n'

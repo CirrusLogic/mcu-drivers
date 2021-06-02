@@ -1,10 +1,10 @@
 /**
- * @file cs47l15_ext.h
+ * @file cs47l35_ext.h
  *
- * @brief Functions and prototypes exported by the CS47L15 Driver Extended API module
+ * @brief Functions and prototypes exported by the CS47L35 Driver Extended API module
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2020-2021 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2021 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -20,8 +20,8 @@
  *
  */
 
-#ifndef CS47L15_EXT_H
-#define CS47L15_EXT_H
+#ifndef CS47L35_EXT_H
+#define CS47L35_EXT_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -30,22 +30,22 @@ extern "C" {
 /***********************************************************************************************************************
  * INCLUDES
  **********************************************************************************************************************/
-#include "cs47l15.h"
+#include "cs47l35.h"
 
 /***********************************************************************************************************************
  * LITERALS & CONSTANTS
  **********************************************************************************************************************/
  /**
- * @defgroup CS47L15_DSP_
+ * @defgroup CS47L35_DSP_
  * @brief Values for communicating with DSP
  *
  * @{
  */
-#define CS47L15_DSP_OFFSET_MUL_VALUE              2
-#define CS47L15_DSP_IRQ_ACK_VAL                   0x1
-#define CS47L15_DSP_EOF_VAL                       0x1
-#define CS47L15_DSP_DEC_ALGORITHM_STOPPED         0x10000
-#define CS47L15_DSP_SCRATCH_1_MASK                0xFFFF0000
+#define CS47L35_DSP_OFFSET_MUL_VALUE              2
+#define CS47L35_DSP_IRQ_ACK_VAL                   0x1
+#define CS47L35_DSP_EOF_VAL                       0x1
+#define CS47L35_DSP_DEC_ALGORITHM_STOPPED         0x10000
+#define CS47L35_DSP_SCRATCH_1_MASK                0xFFFF0000
 
 /***********************************************************************************************************************
  * MACROS
@@ -58,7 +58,7 @@ extern "C" {
 /**
  * Data structure for tracking DSP's ring buffer
  *
- * @see cs47l15_init_dsp_buffers
+ * @see cs47l35_init_dsp_buffers
  */
 typedef struct ring_buffer_t
 {
@@ -75,7 +75,7 @@ typedef struct ring_buffer_t
 /**
  * Data structure to hold anything buffer-related
  *
- * @see cs47l15_init_dsp_buffers
+ * @see cs47l35_init_dsp_buffers
  */
 typedef struct buffers {
     uint32_t rb_struct_base_addr;
@@ -87,10 +87,10 @@ typedef struct buffers {
 /**
  * Data structure to identify DSP buffer elements
  *
- * @see cs47l15_get_dsp_element_value
- * @see cs47l15_set_dsp_element_value
- * @see cs47l15_update_writeIndex_irqAck_eof
- * @see cs47l15_init_dsp_ringbuf_structure
+ * @see cs47l35_get_dsp_element_value
+ * @see cs47l35_set_dsp_element_value
+ * @see cs47l35_update_writeIndex_irqAck_eof
+ * @see cs47l35_init_dsp_ringbuf_structure
  */
 typedef enum
 {
@@ -129,11 +129,35 @@ typedef enum
  * @return
  * - bytes_written    Number of bytes written to dsp ring buffer
  *
- * @see cs47l15_init_dsp_buffers
- * @see cs47l15_dsp_buf_avail
+ * @see cs47l35_init_dsp_buffers
+ * @see cs47l35_dsp_buf_avail
  *
  */
-uint32_t cs47l15_dsp_buf_write(cs47l15_t *driver, dsp_buffer_t *buffer, uint8_t * data, uint32_t data_len);
+uint32_t cs47l35_dsp_buf_write(cs47l35_t *driver, dsp_buffer_t *buffer, uint8_t * data, uint32_t data_len);
+
+/**
+ * Read data from dsp ring buffer
+ *
+ * If data has already started streaming, it should only be called after IRQ signal from DSP, and after determining
+ * that there is data available in buffer
+ *
+ * @param [in]
+ * - driver              Pointer to the driver state
+ * - buffer              Pointer to dsp ringbuff structure
+ * - data                Pointer to array of data bytes to store incoming data
+ * - data_len            Number of bytes to read from data array. Should not be longer to avail data in dsp buffer
+ *                       or longer than the allocated buffer.
+ *
+ * @return
+ * - CS47L35_STATUS_FAIL         Control port activity fails
+ * - CS47L35_STATUS_OK           otherwise
+ *
+ * @see cs47l35_init_dsp_buffer
+ * @see cs47l35_dsp_buf_data_avail
+ *
+ */
+uint32_t cs47l35_dsp_buf_read(cs47l35_t *driver, dsp_buffer_t *buffer, uint8_t * data, uint32_t data_len);
+
 /**
  * Initialize struct with buffers needed to send data to dsp
  *
@@ -146,17 +170,17 @@ uint32_t cs47l15_dsp_buf_write(cs47l15_t *driver, dsp_buffer_t *buffer, uint8_t 
  * - dsp_core         Which DSP core to use
  *
  * @return
- * - CS47L15_STATUS_FAIL         Control port activity fails
- * - CS47L15_STATUS_OK          otherwise
+ * - CS47L35_STATUS_FAIL         Control port activity fails
+ * - CS47L35_STATUS_OK          otherwise
  *
- * @see cs47l15_find_symbol
- * @see cs47l15_init_dsp_ringbuf_structure
+ * @see cs47l35_find_symbol
+ * @see cs47l35_init_dsp_ringbuf_structure
  *
  */
-uint32_t cs47l15_dsp_buf_init(cs47l15_t *driver, dsp_buffer_t *buffer, uint8_t *lin_buff_ptr, uint32_t buf_size, uint32_t buf_symbol, uint32_t dsp_core);
+uint32_t cs47l35_dsp_buf_init(cs47l35_t *driver, dsp_buffer_t *buffer, uint8_t *lin_buff_ptr, uint32_t buf_size, uint32_t buf_symbol, uint32_t dsp_core);
 
 /**
- * Initialize struct with buffer needed to send data to dsp
+ * Check available space on DSP decoder
  *
  * @param [in]
  * - driver           Pointer to the driver state
@@ -164,11 +188,26 @@ uint32_t cs47l15_dsp_buf_init(cs47l15_t *driver, dsp_buffer_t *buffer, uint8_t *
  * - space_avail      Pointer to how much data is available in DSP buffer
  *
  * @return
- * - CS47L15_STATUS_FAIL         Control port activity fails
- * - CS47L15_STATUS_OK          otherwise
+ * - CS47L35_STATUS_FAIL         Control port activity fails
+ * - CS47L35_STATUS_OK          otherwise
  *
  */
-uint32_t cs47l15_dsp_buf_avail(cs47l15_t *driver, dsp_buffer_t *buffer, uint32_t * space_avail);
+uint32_t cs47l35_dsp_buf_space_avail(cs47l35_t *driver, dsp_buffer_t *buffer, uint32_t * space_avail);
+
+/**
+ * Check available data on DSP encoder
+ *
+ * @param [in]
+ * - driver           Pointer to the driver state
+ * - buffer           Pointer to dsp ringbuff structure
+ * - space_avail      Pointer to how much data is available in DSP buffer
+ *
+ * @return
+ * - CS47L35_STATUS_FAIL         Control port activity fails
+ * - CS47L35_STATUS_OK          otherwise
+ *
+ */
+uint32_t cs47l35_dsp_buf_data_avail(cs47l35_t *driver, dsp_buffer_t *buffer, uint32_t * data_avail);
 
 /**
  * Send EOF signal to dsp
@@ -178,11 +217,12 @@ uint32_t cs47l15_dsp_buf_avail(cs47l15_t *driver, dsp_buffer_t *buffer, uint32_t
  * - buffer           Pointer to dsp ringbuff structure
  *
  * @return
- * - CS47L15_STATUS_FAIL         Control port activity fails
- * - CS47L15_STATUS_OK          otherwise
+ * - CS47L35_STATUS_FAIL         Control port activity fails
+ * - CS47L35_STATUS_OK          otherwise
  *
  */
-uint32_t cs47l15_dsp_buf_eof(cs47l15_t *driver, dsp_buffer_t *buffer);
+uint32_t cs47l35_dsp_buf_eof(cs47l35_t *driver, dsp_buffer_t *buffer);
+
 /***********************************************************************************************************************
  * LOCAL FUNCTIONS
  **********************************************************************************************************************/
@@ -192,4 +232,4 @@ uint32_t cs47l15_dsp_buf_eof(cs47l15_t *driver, dsp_buffer_t *buffer);
 }
 #endif
 
-#endif // CS47L15_EXT_H
+#endif // CS47L35_EXT_H

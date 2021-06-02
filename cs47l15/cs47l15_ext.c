@@ -4,7 +4,7 @@
  * @brief The CS47L15 Driver Extended API module
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2020 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2020-2021 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -79,7 +79,7 @@ uint32_t cs47l15_dsp_buf_write(cs47l15_t *driver,
     uint32_t dsp_buff_add;
     uint32_t ret;
 
-    if ((data_len > buffer->dsp_buf.space_avail) ||
+    if ((data_len > buffer->dsp_buf.avail) ||
         (data_len > buffer->buf_size))
     {
         return CS47L15_STATUS_FAIL;
@@ -247,14 +247,14 @@ uint32_t cs47l15_dsp_buf_avail(cs47l15_t *driver,
     }
     if (size <= 3)
     {
-        buffer->dsp_buf.space_avail =  0;
-        *space_avail = buffer->dsp_buf.space_avail;
+        buffer->dsp_buf.avail =  0;
+        *space_avail = buffer->dsp_buf.avail;
         return CS47L15_STATUS_OK;
     }
 
     // maintain minimum 1 3-byte word gap between writeindex and readindex while filling the buffer */
-    buffer->dsp_buf.space_avail = (size - 3);
-    *space_avail = buffer->dsp_buf.space_avail;
+    buffer->dsp_buf.avail = (size - 3);
+    *space_avail = buffer->dsp_buf.avail;
     return CS47L15_STATUS_OK;
 }
 
@@ -302,7 +302,7 @@ static uint32_t cs47l15_init_dsp_ringbuf_structure(cs47l15_t *driver,
     }
     cs47l15_get_dsp_element_value(driver, rb_struct_base_addr, buffer_size, &(dsp_buffer->buffer_size));
     dsp_buffer->buffer_size *= 3; //convert to unpadded bytes
-    dsp_buffer->space_avail = dsp_buffer->buffer_size - 3;
+    dsp_buffer->avail = dsp_buffer->buffer_size - 3;
     cs47l15_get_dsp_element_value(driver, rb_struct_base_addr, irq_ack, &(dsp_buffer->irq_ack));
     dsp_buffer->next_write_index = 0;
     cs47l15_set_dsp_element_value(driver, rb_struct_base_addr, next_write_index, dsp_buffer->next_write_index);

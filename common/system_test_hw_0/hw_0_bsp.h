@@ -89,6 +89,8 @@ typedef void (*bsp_app_callback_t)(uint32_t status, void *arg);
  **********************************************************************************************************************/
 extern bool trigger_audio_change;
 extern bool bsp_write_process_done;
+extern bool bsp_read_process_done;
+
 extern FILE* test_file;
 extern FILE* coverage_file;
 extern FILE* bridge_write_file;

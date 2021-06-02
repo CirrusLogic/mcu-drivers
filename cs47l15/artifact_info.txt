@@ -1,18 +1,18 @@
 Artifact Info:
-Artifact           : CS35L41Alt-OS Driver: 4.3.0 - 7238244d03d01b6731081de8e51c9ea686994612
+Artifact           : CS47L15Alt-OS Driver: 4.3.0 - 7238244d03d01b6731081de8e51c9ea686994612
 Test Target MCU SDK: STM32Cube_FW_F4: 1.24.1
 Target toolchain   : GNU Arm Embedded Toolchain: arm-none-eabi-gcc (GNU Tools for Arm Embedded Processors 8-2019-q3-update) 8.3.1 20190703 (release) [gcc-8-branch revision 273027]
 Build system       : make: GNU Make 3.82
-OS                 : Linux: 3.10.0-1160.25.1.el7.x86_64
+OS                 : Linux: 3.10.0-1160.24.1.el7.x86_64
 Shell              : bash: GNU bash, version 4.2.46(2)-release (x86_64-redhat-linux-gnu)
 Host toolchain     : MinGW GCC: gcc (GCC) 4.8.5 20150623 (Red Hat 4.8.5-39)
-Build Job          : prince_alt_os_nightly: 726
+Build Job          : gaines_alt_os_nightly: 100
 Git SHA            : 7238244d03d01b6731081de8e51c9ea686994612
 
 System resources:
 
-Library name    : libcs35l41
-Library TEXT    : 6496 bytes
+Library name    : /var/lib/jenkins/jobs/gaines_alt_os_nightly/workspace/build_driver_lib_cm4/build/cs47l15/libcs47l15
+Library TEXT    : 3990 bytes
 Library BSS     : 0 bytes
 Library DATA    : 0 bytes
 BSP RAM         : 0 bytes
