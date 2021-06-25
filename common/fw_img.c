@@ -272,3 +272,23 @@ uint32_t fw_img_process(fw_img_boot_state_t *state)
 
     return ret;
 }
+
+/**
+ * Find if a symbol is in the symbol table and return its address if it is.
+ *
+ */
+uint32_t fw_img_find_symbol(fw_img_info_t *fw_info, uint32_t symbol_id)
+{
+    if (fw_info)
+    {
+        for (uint32_t i = 0; i < fw_info->header.sym_table_size; i++)
+        {
+            if (fw_info->sym_table[i].sym_id == symbol_id)
+            {
+                return fw_info->sym_table[i].sym_addr;
+            }
+        }
+    }
+
+    return 0;
+}

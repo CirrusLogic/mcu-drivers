@@ -89,7 +89,7 @@ class packet:
     def encode(self):
         temp_bytes = b'\x01'
         temp_bytes += bytes([self.type])
-        temp_bytes += bytes([self.count])
+        temp_bytes += bytes([self.count & 0xFF])    # packet parameter for 'count' is only 8-bits
         temp_bytes += bytes([(self.length & 0xFF00) >> 8])
         temp_bytes += bytes([(self.length & 0xFF)])
         temp_bytes += b'\x02'

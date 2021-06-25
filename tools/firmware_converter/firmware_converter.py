@@ -275,7 +275,7 @@ def print_start():
     print("")
     print("firmware_converter")
     print("Convert from WMFW/WMDR (\"BIN\") Files to C Header/Source")
-    print("SDK Version " + print_sdk_version(repo_path + '/sdk_version.h'))
+    print("SDK version " + print_sdk_version(repo_path + '/sdk_version.h'))
 
     return
 

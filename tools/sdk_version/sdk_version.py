@@ -28,6 +28,7 @@ import os
 import sys
 repo_path = os.path.dirname(os.path.abspath(__file__)) + '/../..'
 import argparse
+import datetime
 
 # ==========================================================================
 # VERSION
@@ -44,7 +45,7 @@ sdk_version_h_template = """/**
  * @brief Alt-OS SDK version literals
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2020 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic {year} All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -164,12 +165,24 @@ class sdk_version:
     @classmethod
     def setVersions(cls, fn, m, n, u, sha):
 
+        if ((m is None) or (n is None) or (u is None) or (sha is None)):
+            tempcls = cls.getVersions(fn)
+            if (m is None):
+                m = tempcls.m
+            if (n is None):
+                n = tempcls.n
+            if (u is None):
+                u = tempcls.u
+            if (sha is None):
+                sha = tempcls.sha
+
         f = open(fn, 'w')
         lines = sdk_version_h_template
         lines = lines.replace('{major_version}', m)
         lines = lines.replace('{minor_version}', n)
         lines = lines.replace('{update_version}', u)
         lines = lines.replace('{git_sha}', sha)
+        lines = lines.replace('{year}', str(datetime.date.today().year))
         f.writelines(lines)
         f.close()
 
@@ -195,6 +208,7 @@ def get_args(args):
     parser.add_argument('-n', '--minor', dest='minor_version', type=str, default=None, help='The minor SDK version.')
     parser.add_argument('-u', '--update', dest='update_version', type=str, default=None, help='The update SDK version.')
     parser.add_argument('-s', '--sha', dest='git_sha', type=str, default=None, help='The Git SHA for the SDK version.')
+    parser.add_argument('-o', '--oneline', dest='oneline', action="store_true", help='Only print one line version')
 
     return parser.parse_args(args[1:])
 
@@ -207,18 +221,12 @@ def validate_args(args):
 
     # Check that major/minor/update and SHA are specified for 'set' command
     if (args.command == 'set'):
-        if (args.major_version is None):
-             print("Major version not specified.")
+        if ((args.major_version is None) and (args.minor_version is None) and (args.update_version is None) and (args.git_sha is None)):
+             print("No version parameters are specified.")
              ret = False
-        if (args.minor_version is None):
-             print("Minor version not specified.")
-             ret = False
-        if (args.update_version is None):
-             print("Update version not specified.")
-             ret = False
-        if (args.git_sha is None):
-             print("Git SHA not specified.")
-             ret = False
+
+        # oneline is only valid for 'get'
+        args.oneline = False
 
     return ret
 
@@ -240,6 +248,9 @@ def print_args(args):
         print("Minor version: " + str(args.minor_version))
         print("Update version: " + str(args.update_version))
         print("Git SHA: " + str(args.git_sha))
+    if (args.oneline):
+            print("Oneline: true")
+
     print("")
 
     return
@@ -262,16 +273,22 @@ def error_exit(error_message):
 # MAIN PROGRAM
 # ==========================================================================
 def main(argv):
-    print_start()
     args = get_args(argv)
-    print_args(args)
+
     if (not (validate_args(args))):
+        print_start()
+        print_args(args)
         error_exit("Invalid Arguments")
+
+    if (not args.oneline):
+        print_start()
+        print_args(args)
 
     results_str = '\n'
 
     if (args.command == 'get'):
-        results_str += str(sdk_version.getVersions(args.sdk_version_h_filename))
+        sdk_version_str = str(sdk_version.getVersions(args.sdk_version_h_filename))
+        results_str += sdk_version_str
     else:
         v = sdk_version.setVersions(args.sdk_version_h_filename,
                                     args.major_version,
@@ -280,8 +297,11 @@ def main(argv):
                                     args.git_sha)
         results_str += 'File written'
 
-    print_results(results_str)
-    print_end()
+    if (not args.oneline):
+        print_results(results_str)
+        print_end()
+    else:
+        print(sdk_version_str.split(' - ')[0])
 
     return
 

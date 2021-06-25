@@ -50,17 +50,19 @@ static uint32_t bsp_dut_dig_gain = CS35L41_AMP_VOLUME_0DB;
 static cs35l41_bsp_config_t bsp_config =
 {
 #ifdef USE_CS35L41_SPI
-    .bsp_dev_id = BSP_DUT_DEV_ID_SPI2,
+    .cp_config.dev_id = BSP_DUT_DEV_ID_SPI2,
 #else
-    .bsp_dev_id = BSP_DUT_DEV_ID,
+    .cp_config.dev_id = BSP_DUT_DEV_ID,
 #endif
-    .bsp_reset_gpio_id = BSP_GPIO_ID_DUT_DSP_RESET,
-    .bsp_int_gpio_id = BSP_GPIO_ID_DUT_DSP_INT,
+    .reset_gpio_id = BSP_GPIO_ID_DUT_DSP_RESET,
+    .int_gpio_id = BSP_GPIO_ID_DUT_DSP_INT,
 #ifdef USE_CS35L41_SPI
-    .bus_type = BSP_BUS_TYPE_SPI,
+    .cp_config.bus_type = REGMAP_BUS_TYPE_SPI,
 #else
-    .bus_type = BSP_BUS_TYPE_I2C,
+    .cp_config.bus_type = REGMAP_BUS_TYPE_I2C,
 #endif
+    .cp_config.receive_max = CS35L41_OTP_SIZE_BYTES,
+    .cp_config.spi_pad_len = 2,
     .notification_cb = &bsp_notification_callback,
     .notification_cb_arg = NULL
 };
@@ -136,8 +138,10 @@ uint32_t bsp_dut_write_fw_img(const uint8_t *fw_img, fw_img_info_t *fw_img_info)
         if (ret == FW_IMG_STATUS_DATA_READY)
         {
             // Data is ready to be sent to the device, so pass it to the driver
-            ret = cs35l41_write_block(&cs35l41_driver, boot_state.block.block_addr,
-                                      boot_state.block_data, boot_state.block.block_size);
+            ret = regmap_write_block(&(cs35l41_driver.config.bsp_config.cp_config),
+                                       boot_state.block.block_addr,
+                                       boot_state.block_data,
+                                       boot_state.block.block_size);
             if (ret == CS35L41_STATUS_FAIL)
             {
                 ret = BSP_STATUS_FAIL;
@@ -224,7 +228,7 @@ uint32_t bsp_dut_initialize(void)
     temp_buffer = __builtin_bswap32(0x00B90018);
     bsp_i2c_write(BSP_LN2_DEV_ID, (uint8_t *)&temp_buffer, 4, NULL, NULL);
 
-    if (cs35l41_driver.config.bsp_config.bus_type == BSP_BUS_TYPE_SPI)
+    if (cs35l41_driver.config.bsp_config.cp_config.bus_type == BSP_BUS_TYPE_SPI)
     {
         // Bypass LN2 FPGA
         temp_buffer = __builtin_bswap32(0x00EE0000);
@@ -441,16 +445,12 @@ uint32_t bsp_dut_is_processing(bool *is_processing)
 {
     uint32_t ret;
     cs35l41_dsp_status_t status;
-    cs35l41_control_request_t req = {0};
 
     status.is_calibration_applied = false;
     status.is_hb_inc = false;
     status.is_temp_changed = false;
 
-    req.id = CS35L41_CONTROL_ID_GET_DSP_STATUS;
-    req.arg = &status;
-
-    ret = cs35l41_control(&cs35l41_driver, req);
+    ret = cs35l41_get_dsp_status(&cs35l41_driver, &status);
 
     *is_processing = status.is_hb_inc;
 

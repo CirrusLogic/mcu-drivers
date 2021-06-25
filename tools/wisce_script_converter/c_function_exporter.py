@@ -171,6 +171,7 @@ class c_function_exporter(wisce_script_exporter):
             output_str = header_file_template_str
             output_str = output_str.replace('{metadata_text}', self.terms['metadata_text'])
         else:
+            using_symbols = False
             output_str = source_file_template_str
             temp_str = ''
             for t in self.transaction_list:
@@ -186,10 +187,26 @@ class c_function_exporter(wisce_script_exporter):
                         temp_str = temp_str.replace('{comment}', '')
                         continue
                 elif t.cmd == 'write':
-                    temp_str = temp_str.replace('{command}', '_write_reg')
-                    temp_str = temp_str.replace('{params}', "(driver, " + # {part_number_lc}_t *driver
-                                                            "0x{:04x}".format(t.params[0]) + ", " + # uint32_t addr
-                                                            "0x{:04x}".format(t.params[1]) + ")") # uint32_t val
+                    if "{part_number_uc}_SYM_" in t.params[0]:
+                        using_symbols = True
+                        temp_str = temp_str.replace('{space}', '{space}addr = ')
+                        temp_str = temp_str.replace('{command}', '_find_symbol')
+                        temp_str = temp_str.replace('{params}', "(driver, " +  # {part_number_lc}_t *driver
+                                                    "0, " +  # uint32_t dsp_core
+                                                    t.params[0] + ");") # uint32_t symbol_id)
+                        temp_str = temp_str.replace('{comment}', ';')
+                        temp_str += '\n'
+                        temp_str += "{space}if (!addr)\n{space}{space}{return_fail}\n"
+                        temp_str += function_template
+                        temp_str = temp_str.replace('{command}', '_write_reg')
+                        temp_str = temp_str.replace('{params}', "(driver, " +  # {part_number_lc}_t *driver
+                                                    "addr" + ", " +  # uint32_t addr
+                                                    t.params[1] + ")")  # uint32_t val
+                    else:
+                        temp_str = temp_str.replace('{command}', '_write_reg')
+                        temp_str = temp_str.replace('{params}', "(driver, " + # {part_number_lc}_t *driver
+                                                                t.params[0] + ", " + # uint32_t addr
+                                                                t.params[1] + ")") # uint32_t val
                 elif t.cmd == 'wait' or t.cmd == 'insert_delay_ms':
                     temp_str = temp_str.replace('{command}', '_wait')
                     temp_str = temp_str.replace('{params}', "(" + str(t.params[0]) + ")")
@@ -198,41 +215,18 @@ class c_function_exporter(wisce_script_exporter):
                     temp_str = temp_str.replace('{params}', "(" + str(t.params[0]*1000) + ")") # change to ms
                 elif t.cmd == 'block_write':
                     temp_str = temp_str.replace('{command}', '_write_block')
-                    # Cut 32bit values into array of uint8's
-                    byte_array = t.params[1]
-                    for i in range(0, len(byte_array)):
-                        if byte_array[i].endswith('\n'):
-                            byte_array[i] = byte_array[i][:-1]
-                        if byte_array[i].startswith('0x'):
-                            byte_array[i] = byte_array[i][2:]
-                        if (len(byte_array[i]) % 2) != 0:
-                            byte_array[i] = '0' + byte_array[i]
-                        byte_array[i] = [byte_array[i][j:j+2] for j in range(0, len(byte_array[i]), 2)]
-                    byte_array = [j for i in byte_array for j in i]
-                    byte_array_len = len(byte_array)
-
-                    # Format for printing
-                    byte_array = str(['0x' + item for item in byte_array]).replace('\'', '')\
-                                                                              .replace('[', '')\
-                                                                              .replace(']', '')
-                    j = 0
-                    for i in range(0, len(byte_array)):
-                        if i % 47 == 0 and i != 0:
-                            byte_array = byte_array[0:j] + " \\\n" + ("{space}" * 13) + byte_array[j:]
-                            j += 95
-                        j += 1
                     temp_str = temp_str.replace('{params}', "(driver, " + # {part_number_lc}_t *driver
-                                                            "0x{:04x}".format(t.params[0]) + ", " + # uint32_t addr
-                                                            "(uint8_t[]){" + byte_array + "} , " + # uint8_t *data
-                                                            str(byte_array_len) + ")") #uint32_t size
+                                                            t.params[0] + ", " + # uint32_t addr
+                                                            t.params[1] + ", " + # uint8_t *data
+                                                            t.params[2] + ")") #uint32_t size
 
                 elif t.cmd == 'rmodw':
                     temp_str = temp_str.replace('{command}', '_update_reg')
                     temp_str = temp_str.replace('{params}',
                                                 "(driver, " +           # {part_number_lc}_t *driver
-                                                "0x{:04x}".format(t.params[0]) + ", " +  # uint32_t addr
-                                                "0x{:04x}".format(t.params[2]) + ", " +  # uint32_t mask
-                                                "0x{:04x}".format(t.params[1]) + ")")    # uint32_t val
+                                                t.params[0] + ", " +  # uint32_t addr
+                                                t.params[2] + ", " +  # uint32_t mask
+                                                t.params[1] + ")")    # uint32_t val
 
                 if (self.include_comments and (t.comment is not None)):
                     temp_str = temp_str.replace('{comment}', '; // ' + t.comment)
@@ -243,9 +237,12 @@ class c_function_exporter(wisce_script_exporter):
                     temp_str += '\n'
                 temp_str = temp_str.replace('{part_number_lc}', self.terms['part_number_lc'])
                 temp_str = temp_str.replace('{space}', "    ")
+            if using_symbols:
+                temp_str = "{space}uint32_t addr;\n" + temp_str
             output_str = output_str.replace('{syscfg_cmd_list}', temp_str)
 
         output_str = output_str.replace('{return}', "return {part_number_uc}_STATUS_OK;")
+        output_str = output_str.replace('{return_fail}', "return {part_number_uc}_STATUS_FAIL;")
         output_str = output_str.replace('{part_number_lc}', self.terms['part_number_lc'])
         output_str = output_str.replace('{part_number_uc}', self.terms['part_number_uc'])
         output_str = output_str.replace('\n\n\n', '\n\n')

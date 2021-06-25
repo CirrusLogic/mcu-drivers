@@ -24,7 +24,6 @@
  **********************************************************************************************************************/
 #include <stddef.h>
 #include "cs35l41.h"
-#include "bsp_driver_if.h"
 #include "string.h"
 
 /***********************************************************************************************************************
@@ -151,6 +150,18 @@
  */
 #define CS35L41_OTP_READ_MAX_SPI_CLOCK_HZ       (4000000)
 
+#define CS35L41_OTP_MAP_BIT_OFFSET              (80)
+
+/**
+ * Entry in OTP Map of packed bitfield entries
+ */
+typedef struct
+{
+    uint32_t reg;   ///< Register address to trim
+    uint8_t shift;  ///< Bitwise shift of register bitfield
+    uint8_t size;   ///< Bitwise size of register bitfield
+} cs35l41_otp_packed_entry_t;
+
 /***********************************************************************************************************************
  * LOCAL VARIABLES
  **********************************************************************************************************************/
@@ -179,7 +190,6 @@
  */
 static const uint32_t cs35l41_revb2_errata_patch[] =
 {
-    0x00000018, //
     CS35L41_CTRL_KEYS_TEST_KEY_CTRL_REG, CS35L41_TEST_KEY_CTRL_UNLOCK_1,
     CS35L41_CTRL_KEYS_TEST_KEY_CTRL_REG, CS35L41_TEST_KEY_CTRL_UNLOCK_2,
     0x00004100, 0x00000000,
@@ -211,7 +221,7 @@ static const uint32_t cs35l41_revb2_errata_patch[] =
  * @see cs35l41_otp_packed_entry_t
  *
  */
-static const cs35l41_otp_packed_entry_t otp_map_1[] =
+static const cs35l41_otp_packed_entry_t otp_map[] =
 {
     /* addr         shift   size */
     {0x00002030,    0,      4}, /*TRIM_OSC_FREQ_TRIM*/
@@ -352,7 +362,7 @@ static const uint32_t cs35l41_post_boot_config[] =
  * - wordx - address of TEST_KEY_CTRL
  * - wordx - 2nd lock value
  *
- * @see cs35l41_power_up_sm
+ * @see cs35l41_power_up
  *
  */
 static const uint32_t cs35l41_pup_patch[] =
@@ -382,7 +392,7 @@ static const uint32_t cs35l41_pup_patch[] =
  * - wordx - address of TEST_KEY_CTRL
  * - wordx - 2nd lock value
  *
- * @see cs35l41_power_down_sm
+ * @see cs35l41_power_down
  *
  */
 static const uint32_t cs35l41_pdn_patch[] =
@@ -412,7 +422,7 @@ static const uint32_t cs35l41_pdn_patch[] =
  * - wordx - address of DSP1_MPU_LOCK_CONFIG
  * - wordx - 1st lock value
  *
- * @see cs35l41_power_up_sm
+ * @see cs35l41_power_up
  *
  */
 static const uint32_t cs35l41_mem_lock[] =
@@ -453,7 +463,7 @@ static const uint32_t cs35l41_mem_lock[] =
  * - word1 - Address of second configuration register
  * - ...
  *
- * @see cs35l41_power_up_sm
+ * @see cs35l41_power_up
  * @see CS35L41_DSP1_SAMPLE_RATE_G1R2
  *
  */
@@ -478,14 +488,14 @@ static const uint32_t cs35l41_frame_sync_regs[] =
 };
 
 /**
- * Register/DSP Memory addresses to read during Get DSP Status SM
+ * Register/DSP Memory addresses to read during Get DSP Status
  *
  * List is in the form:
  * - word0 - Address of first status register
  * - word1 - Address of second status register
  * - ...
  *
- * @see cs35l41_get_dsp_status_sm
+ * @see cs35l41_get_dsp_status
  * @see cs35l41_dsp_status_t
  *
  * @warning  The list of registers MUST correspond to the union of structs in  in cs35l41_dsp_status_t.
@@ -504,34 +514,29 @@ static const uint32_t cs35l41_dsp_status_controls[CS35L41_DSP_STATUS_WORDS_TOTAL
         CS35L41_SYM_CSPL_CSPL_TEMPERATURE
 };
 
+/**
+ * Mapping of CS35L41 IRQ Flag to Event Flag
+ *
+ * List is in the form:
+ * - word0 - IRQ Flag
+ * - word1 - Event Flag
+ * - ...
+ *
+ * @see cs35l41_irq_to_event_id
+ *
+ */
+uint32_t cs35l41_irq_to_event_flag_map[] =
+{
+    IRQ1_IRQ1_EINT_1_AMP_ERR_EINT1_BITMASK, CS35L41_EVENT_FLAG_AMP_SHORT,
+    IRQ1_IRQ1_EINT_1_TEMP_ERR_EINT1_BITMASK, CS35L41_EVENT_FLAG_OVERTEMP,
+    IRQ1_IRQ1_EINT_1_BST_SHORT_ERR_EINT1_BITMASK, CS35L41_EVENT_FLAG_BOOST_INDUCTOR_SHORT,
+    IRQ1_IRQ1_EINT_1_BST_DCM_UVP_ERR_EINT1_BITMASK, CS35L41_EVENT_FLAG_BOOST_UNDERVOLTAGE,
+    IRQ1_IRQ1_EINT_1_BST_OVP_ERR_EINT1_BITMASK, CS35L41_EVENT_FLAG_BOOST_OVERVOLTAGE
+};
+
 /***********************************************************************************************************************
  * GLOBAL VARIABLES
  **********************************************************************************************************************/
-
-/**
- * List of possible OTP Maps for CS35L41 RevB2
- *
- * For CS35L41 RevB2, the following values of OTPID are possible:
- * - 0x1 - on used at first release of RevB2, this driver should not experience any in the field
- * - 0x8 - currently only common ID for this driver
- *
- * @see cs35l41_otp_map_t
- *
- */
-const cs35l41_otp_map_t cs35l41_otp_maps[] = {
-    {
-        .id = 0x01,
-        .map = otp_map_1,
-        .num_elements = sizeof(otp_map_1)/sizeof(cs35l41_otp_packed_entry_t),
-        .bit_offset = 80,
-    },
-    {
-        .id = 0x08,
-        .map = otp_map_1,
-        .num_elements = sizeof(otp_map_1)/sizeof(cs35l41_otp_packed_entry_t),
-        .bit_offset = 80,
-    },
-};
 
 /***********************************************************************************************************************
  * LOCAL FUNCTIONS
@@ -568,146 +573,6 @@ static void cs35l41_irq_callback(uint32_t status, void *cb_arg)
     }
 
     return;
-}
-
-/**
- * Reads contents from a consecutive number of memory addresses
- *
- * Starting at 'addr', this will read 'length' number of 32-bit values into the BSP-allocated buffer from the
- * control port.  This bulk read will place contents into the BSP buffer starting at the 4th byte address.
- * Bytes 0-3 in the buffer are reserved for non-bulk reads (i.e. calls to cs35l41_read_reg).  This control port
- * call only supports non-blocking calls.  This function also only supports I2C and SPI transactions.
- *
- * @param [in] driver           Pointer to the driver state
- * @param [in] addr             32-bit address to be read
- * @param [in] read_buffer      pointer to buffer of bytes to read into via Control Port bus
- * @param [in] length           number of bytes to read
- *
- * @return
- * - CS35L41_STATUS_FAIL        if the call to BSP failed, or if 'length' exceeds the size of BSP buffer
- * - CS35L41_STATUS_OK          otherwise
- *
- * @warning Contains platform-dependent code.
- *
- */
-static uint32_t cs35l41_cp_bulk_read(cs35l41_t *driver, uint32_t addr, uint8_t *read_buffer, uint32_t length)
-{
-    uint32_t ret = CS35L41_STATUS_OK;
-    cs35l41_bsp_config_t *b = &(driver->config.bsp_config);
-    uint8_t write_buffer[4];
-
-    /*
-     * Place contents of uint32_t 'addr' to Big-Endian format byte stream required for Control Port
-     * transaction.
-     */
-    write_buffer[0] = GET_BYTE_FROM_WORD(addr, 3);
-    write_buffer[1] = GET_BYTE_FROM_WORD(addr, 2);
-    write_buffer[2] = GET_BYTE_FROM_WORD(addr, 1);
-    write_buffer[3] = GET_BYTE_FROM_WORD(addr, 0);
-
-    /*
-     * Start reading contents into the BSP buffer starting at byte offset 4 - bytes 0-3 are reserved for calls to
-     * cs35l41_read_reg.
-     */
-    switch (b->bus_type)
-    {
-        case CS35L41_BUS_TYPE_I2C:
-            ret = bsp_driver_if_g->i2c_read_repeated_start(b->bsp_dev_id,
-                                                           write_buffer,
-                                                           4,
-                                                           read_buffer,
-                                                           length,
-                                                           NULL,
-                                                           NULL);
-
-            break;
-
-        case CS35L41_BUS_TYPE_SPI:
-            // Set the R/W bit
-            write_buffer[0] |= 0x80;
-
-            ret = bsp_driver_if_g->spi_read(b->bsp_dev_id,
-                                            write_buffer,
-                                            4,
-                                            read_buffer,
-                                            length,
-                                            2);
-
-            break;
-
-        default:
-            ret = BSP_STATUS_FAIL;
-            break;
-    }
-
-    if (ret == BSP_STATUS_FAIL)
-    {
-        ret = CS35L41_STATUS_FAIL;
-    }
-
-    return ret;
-}
-
-/**
- * Writes from byte array to consecutive number of Control Port memory addresses
- *
- * This control port call only supports non-blocking calls.  This function also only supports I2C transactions.
- *
- * @param [in] driver           Pointer to the driver state
- * @param [in] addr             32-bit address to be read
- * @param [in] bytes            pointer to array of bytes to write via Control Port bus
- * @param [in] length           number of bytes to write
- *
- * @return
- * - CS35L41_STATUS_FAIL        if the call to BSP failed
- * - CS35L41_STATUS_OK          otherwise
- *
- * @warning Contains platform-dependent code.
- *
- */
-static uint32_t cs35l41_cp_bulk_write(cs35l41_t *driver, uint32_t addr, uint8_t *bytes, uint32_t length)
-{
-    uint32_t ret = CS35L41_STATUS_OK;
-    cs35l41_bsp_config_t *b = &(driver->config.bsp_config);
-    uint8_t write_buffer[4];
-
-    /*
-     * Place contents of uint32_t 'addr' to Big-Endian format byte stream required for Control Port
-     * transaction.
-     */
-    write_buffer[0] = GET_BYTE_FROM_WORD(addr, 3);
-    write_buffer[1] = GET_BYTE_FROM_WORD(addr, 2);
-    write_buffer[2] = GET_BYTE_FROM_WORD(addr, 1);
-    write_buffer[3] = GET_BYTE_FROM_WORD(addr, 0);
-
-    switch (b->bus_type)
-    {
-        case CS35L41_BUS_TYPE_I2C:
-            ret = bsp_driver_if_g->i2c_db_write(b->bsp_dev_id, write_buffer, 4, bytes, length, NULL, NULL);
-
-            break;
-
-        case CS35L41_BUS_TYPE_SPI:
-            ret = bsp_driver_if_g->spi_write(b->bsp_dev_id,
-                                             write_buffer,
-                                             4,
-                                             bytes,
-                                             length,
-                                             2);
-
-            break;
-
-        default:
-            ret = BSP_STATUS_FAIL;
-            break;
-    }
-
-    if (ret == BSP_STATUS_FAIL)
-    {
-        ret = CS35L41_STATUS_FAIL;
-    }
-
-    return ret;
 }
 
 /**
@@ -830,38 +695,6 @@ static bool cs35l41_is_mbox_status_correct(uint32_t cmd, uint32_t status)
 }
 
 /**
- * Find if a symbol is in the symbol table and return its address if it is.
- *
- * This will search through the symbol table pointed to in the 'fw_info' member of the driver state and return
- * the control port register address to use for access.  The 'symbol_id' parameter must be from the group CS35L41_SYM_.
- *
- * @param [in] driver           Pointer to the driver state
- * @param [in] symbol_id        id of symbol to search for
- *
- * @return
- * - non-0 - symbol register address
- * - 0 - symbol not found.
- *
- */
-static uint32_t cs35l41_find_symbol(cs35l41_t *driver, uint32_t symbol_id)
-{
-    fw_img_info_t *f = driver->fw_info;
-
-    if (f)
-    {
-        for (uint32_t i = 0; i < f->header.sym_table_size; i++)
-        {
-            if (f->sym_table[i].sym_id == symbol_id)
-            {
-                return f->sym_table[i].sym_addr;
-            }
-        }
-    }
-
-    return 0;
-}
-
-/**
  * Send a HALO Core mailbox command and check the status.
  *
  * This will send a HALO Core mailbox command to the Virtual Mailbox 1 and check the response in Virtual Mailbox 2.
@@ -882,23 +715,24 @@ static uint32_t cs35l41_send_acked_mbox_cmd(cs35l41_t *driver, uint32_t cmd)
     uint32_t ret = CS35L41_STATUS_OK;
     uint32_t i;
     uint32_t temp_reg_val;
+    regmap_cp_config_t *cp = REGMAP_GET_CP_CONFIG(driver);
 
     // Clear HALO DSP Virtual MBOX 1 IRQ flag
-    ret = cs35l41_write_reg(driver, IRQ2_IRQ2_EINT_2_REG, IRQ2_IRQ2_EINT_2_DSP_VIRTUAL1_MBOX_WR_EINT2_BITMASK);
+    ret = regmap_write(cp, IRQ2_IRQ2_EINT_2_REG, IRQ2_IRQ2_EINT_2_DSP_VIRTUAL1_MBOX_WR_EINT2_BITMASK);
     if (ret)
     {
         return ret;
     }
 
     // Clear HALO DSP Virtual MBOX 2 IRQ flag
-    ret = cs35l41_write_reg(driver, IRQ1_IRQ1_EINT_2_REG, IRQ1_IRQ1_EINT_2_DSP_VIRTUAL2_MBOX_WR_EINT1_BITMASK);
+    ret = regmap_write(cp, IRQ1_IRQ1_EINT_2_REG, IRQ1_IRQ1_EINT_2_DSP_VIRTUAL2_MBOX_WR_EINT1_BITMASK);
     if (ret)
     {
         return ret;
     }
 
     // Read IRQ2 Mask register
-    ret = cs35l41_read_reg(driver, IRQ2_IRQ2_MASK_2_REG, &temp_reg_val);
+    ret = regmap_read(cp, IRQ2_IRQ2_MASK_2_REG, &temp_reg_val);
     if (ret)
     {
         return ret;
@@ -906,14 +740,14 @@ static uint32_t cs35l41_send_acked_mbox_cmd(cs35l41_t *driver, uint32_t cmd)
 
     // Clear HALO DSP Virtual MBOX 1 IRQ mask
     temp_reg_val &= ~(IRQ2_IRQ2_MASK_2_DSP_VIRTUAL1_MBOX_WR_MASK2_BITMASK);
-    ret = cs35l41_write_reg(driver, IRQ2_IRQ2_MASK_2_REG, temp_reg_val);
+    ret = regmap_write(cp, IRQ2_IRQ2_MASK_2_REG, temp_reg_val);
     if (ret)
     {
         return ret;
     }
 
     // Send HALO DSP MBOX Command
-    ret = cs35l41_write_reg(driver, DSP_VIRTUAL1_MBOX_DSP_VIRTUAL1_MBOX_1_REG, cmd);
+    ret = regmap_write(cp, DSP_VIRTUAL1_MBOX_DSP_VIRTUAL1_MBOX_1_REG, cmd);
     if (ret)
     {
         return ret;
@@ -922,7 +756,7 @@ static uint32_t cs35l41_send_acked_mbox_cmd(cs35l41_t *driver, uint32_t cmd)
     for (i = 0; i < CS35L41_POLL_ACKED_MBOX_CMD_MAX; i++)
     {
         // Read IRQ1 flag register to poll for MBOX IRQ
-        cs35l41_read_reg(driver, IRQ1_IRQ1_EINT_2_REG, &temp_reg_val);
+        regmap_read(cp, IRQ1_IRQ1_EINT_2_REG, &temp_reg_val);
 
         if (temp_reg_val & IRQ1_IRQ1_EINT_2_DSP_VIRTUAL2_MBOX_WR_EINT1_BITMASK)
         {
@@ -938,28 +772,28 @@ static uint32_t cs35l41_send_acked_mbox_cmd(cs35l41_t *driver, uint32_t cmd)
     }
 
     // Clear MBOX IRQ flag
-    ret = cs35l41_write_reg(driver, IRQ1_IRQ1_EINT_2_REG, IRQ1_IRQ1_EINT_2_DSP_VIRTUAL2_MBOX_WR_EINT1_BITMASK);
+    ret = regmap_write(cp, IRQ1_IRQ1_EINT_2_REG, IRQ1_IRQ1_EINT_2_DSP_VIRTUAL2_MBOX_WR_EINT1_BITMASK);
     if (ret)
     {
         return ret;
     }
 
     // Read IRQ2 Mask register to re-mask HALO DSP Virtual MBOX 1 IRQ
-    ret = cs35l41_read_reg(driver, IRQ2_IRQ2_MASK_2_REG, &temp_reg_val);
+    ret = regmap_read(cp, IRQ2_IRQ2_MASK_2_REG, &temp_reg_val);
     if (ret)
     {
         return ret;
     }
     // Re-mask HALO DSP Virtual MBOX 1 IRQ
     temp_reg_val |= IRQ2_IRQ2_MASK_2_DSP_VIRTUAL1_MBOX_WR_MASK2_BITMASK;
-    ret = cs35l41_write_reg(driver, IRQ2_IRQ2_MASK_2_REG, temp_reg_val);
+    ret = regmap_write(cp, IRQ2_IRQ2_MASK_2_REG, temp_reg_val);
     if (ret)
     {
         return ret;
     }
 
     // Read the MBOX status
-    ret = cs35l41_read_reg(driver, DSP_MBOX_DSP_MBOX_2_REG, &temp_reg_val);
+    ret = regmap_read(cp, DSP_MBOX_DSP_MBOX_2_REG, &temp_reg_val);
     if (ret)
     {
         return ret;
@@ -973,7 +807,6 @@ static uint32_t cs35l41_send_acked_mbox_cmd(cs35l41_t *driver, uint32_t cmd)
 
     return ret;
 }
-
 
 /**
  * Power up from Standby
@@ -995,24 +828,22 @@ static uint32_t cs35l41_power_up(cs35l41_t *driver)
     uint32_t ret = CS35L41_STATUS_OK;
     uint32_t i;
     uint32_t temp_reg_val;
+    regmap_cp_config_t *cp = REGMAP_GET_CP_CONFIG(driver);
 
     //If the DSP is booted
     if (driver->state != CS35L41_STATE_STANDBY)
     {
         // Send HALO DSP Memory Lock sequence
-        for (i = 0; i < (sizeof(cs35l41_mem_lock) / sizeof(uint32_t)); i += 2)
+        ret = regmap_write_array(cp, (uint32_t *) cs35l41_mem_lock, (sizeof(cs35l41_mem_lock)/sizeof(uint32_t)), REGMAP_WRITE_ARRAY_TYPE_ADDR_VAL);
+        if (ret)
         {
-            ret = cs35l41_write_reg(driver, cs35l41_mem_lock[i], cs35l41_mem_lock[i + 1]);
-            if (ret)
-            {
-                return ret;
-            }
+            return CS35L41_STATUS_FAIL;
         }
 
         // Set next HALO DSP Sample Rate register to G1R2
         for (i = 0; i < (sizeof(cs35l41_frame_sync_regs)/sizeof(uint32_t)); i++)
         {
-            ret = cs35l41_write_reg(driver, cs35l41_frame_sync_regs[i], CS35L41_DSP1_SAMPLE_RATE_G1R2);
+            ret = regmap_write(cp, cs35l41_frame_sync_regs[i], CS35L41_DSP1_SAMPLE_RATE_G1R2);
             if (ret)
             {
                 return ret;
@@ -1020,7 +851,7 @@ static uint32_t cs35l41_power_up(cs35l41_t *driver)
         }
 
         // Read the HALO DSP CCM control register
-        ret = cs35l41_read_reg(driver, XM_UNPACKED24_DSP1_CCM_CORE_CONTROL_REG, &temp_reg_val);
+        ret = regmap_read(cp, XM_UNPACKED24_DSP1_CCM_CORE_CONTROL_REG, &temp_reg_val);
         if (ret)
         {
             return ret;
@@ -1028,7 +859,7 @@ static uint32_t cs35l41_power_up(cs35l41_t *driver)
 
         // Enable clocks to HALO DSP core
         temp_reg_val |= XM_UNPACKED24_DSP1_CCM_CORE_CONTROL_DSP1_CCM_CORE_EN_BITMASK;
-        ret = cs35l41_write_reg(driver, XM_UNPACKED24_DSP1_CCM_CORE_CONTROL_REG, temp_reg_val);
+        ret = regmap_write(cp, XM_UNPACKED24_DSP1_CCM_CORE_CONTROL_REG, temp_reg_val);
         if (ret)
         {
             return ret;
@@ -1036,24 +867,21 @@ static uint32_t cs35l41_power_up(cs35l41_t *driver)
     }
 
     // Send Power Up Patch
-    for (i = 0; i < (sizeof(cs35l41_pup_patch)/sizeof(uint32_t)); i += 2)
+    ret = regmap_write_array(cp, (uint32_t *) cs35l41_pup_patch, (sizeof(cs35l41_pup_patch)/sizeof(uint32_t)), REGMAP_WRITE_ARRAY_TYPE_ADDR_VAL);
+    if (ret)
     {
-        ret = cs35l41_write_reg(driver, cs35l41_pup_patch[i], cs35l41_pup_patch[i + 1]);
-        if (ret)
-        {
-            return ret;
-        }
+        return CS35L41_STATUS_FAIL;
     }
 
     // Read GLOBAL_EN register
-    ret = cs35l41_read_reg(driver, MSM_GLOBAL_ENABLES_REG, &temp_reg_val);
+    ret = regmap_read(cp, MSM_GLOBAL_ENABLES_REG, &temp_reg_val);
     if (ret)
     {
         return ret;
     }
     temp_reg_val |= MSM_GLOBAL_ENABLES_GLOBAL_EN_BITMASK;
     //Set GLOBAL_EN
-    ret = cs35l41_write_reg(driver, MSM_GLOBAL_ENABLES_REG, temp_reg_val);
+    ret = regmap_write(cp, MSM_GLOBAL_ENABLES_REG, temp_reg_val);
     if (ret)
     {
         return ret;
@@ -1070,34 +898,34 @@ static uint32_t cs35l41_power_up(cs35l41_t *driver)
 
 
     // Clear HALO DSP Virtual MBOX 1 IRQ
-    ret = cs35l41_write_reg(driver, IRQ2_IRQ2_EINT_2_REG, IRQ2_IRQ2_EINT_2_DSP_VIRTUAL1_MBOX_WR_EINT2_BITMASK);
+    ret = regmap_write(cp, IRQ2_IRQ2_EINT_2_REG, IRQ2_IRQ2_EINT_2_DSP_VIRTUAL1_MBOX_WR_EINT2_BITMASK);
     if (ret)
     {
         return ret;
     }
     // Clear HALO DSP Virtual MBOX 2 IRQ
-    ret = cs35l41_write_reg(driver, IRQ1_IRQ1_EINT_2_REG, IRQ1_IRQ1_EINT_2_DSP_VIRTUAL2_MBOX_WR_EINT1_BITMASK);
+    ret = regmap_write(cp, IRQ1_IRQ1_EINT_2_REG, IRQ1_IRQ1_EINT_2_DSP_VIRTUAL2_MBOX_WR_EINT1_BITMASK);
     if (ret)
     {
         return ret;
     }
 
     // Read IRQ2 Mask register
-    ret = cs35l41_read_reg(driver, IRQ2_IRQ2_MASK_2_REG, &temp_reg_val);
+    ret = regmap_read(cp, IRQ2_IRQ2_MASK_2_REG, &temp_reg_val);
     if (ret)
     {
         return ret;
     }
     // Unmask IRQ for HALO DSP Virtual MBOX 1
     temp_reg_val &= ~(IRQ2_IRQ2_MASK_2_DSP_VIRTUAL1_MBOX_WR_MASK2_BITMASK);
-    ret = cs35l41_write_reg(driver, IRQ2_IRQ2_MASK_2_REG, temp_reg_val);
+    ret = regmap_write(cp, IRQ2_IRQ2_MASK_2_REG, temp_reg_val);
     if (ret)
     {
         return ret;
     }
 
     // Read HALO DSP MBOX Space 2 register
-    ret = cs35l41_read_reg(driver, DSP_MBOX_DSP_MBOX_2_REG, &temp_reg_val);
+    ret = regmap_read(cp, DSP_MBOX_DSP_MBOX_2_REG, &temp_reg_val);
     if (ret)
     {
         return ret;
@@ -1128,7 +956,7 @@ static uint32_t cs35l41_power_up(cs35l41_t *driver)
     }
 
     // Write MBOX command
-    ret = cs35l41_write_reg(driver, DSP_VIRTUAL1_MBOX_DSP_VIRTUAL1_MBOX_1_REG, mbox_cmd);
+    ret = regmap_write(cp, DSP_VIRTUAL1_MBOX_DSP_VIRTUAL1_MBOX_1_REG, mbox_cmd);
     if (ret)
     {
         return ret;
@@ -1141,7 +969,7 @@ static uint32_t cs35l41_power_up(cs35l41_t *driver)
         bsp_driver_if_g->set_timer(BSP_TIMER_DURATION_2MS, NULL, NULL);
 
         // Poll MBOX IRQ flag
-        ret = cs35l41_read_reg(driver, IRQ1_IRQ1_EINT_2_REG, &temp_reg_val);
+        ret = regmap_read(cp, IRQ1_IRQ1_EINT_2_REG, &temp_reg_val);
         if (ret)
         {
             return ret;
@@ -1153,35 +981,35 @@ static uint32_t cs35l41_power_up(cs35l41_t *driver)
         }
     }
 
-    cs35l41_read_reg(driver, 0x00010098, &temp_reg_val); // Read IRQ1_STS_3
+    regmap_read(cp, 0x00010098, &temp_reg_val); // Read IRQ1_STS_3
     if (i == 5)
     {
         return CS35L41_STATUS_FAIL;
     }
 
     // Clear MBOX IRQ
-    ret = cs35l41_write_reg(driver, IRQ1_IRQ1_EINT_2_REG, IRQ1_IRQ1_EINT_2_DSP_VIRTUAL2_MBOX_WR_EINT1_BITMASK);
+    ret = regmap_write(cp, IRQ1_IRQ1_EINT_2_REG, IRQ1_IRQ1_EINT_2_DSP_VIRTUAL2_MBOX_WR_EINT1_BITMASK);
     if (ret)
     {
         return ret;
     }
 
     // Read IRQ2 Mask register to next re-mask the MBOX IRQ
-    ret = cs35l41_read_reg(driver, IRQ2_IRQ2_MASK_2_REG, &temp_reg_val);
+    ret = regmap_read(cp, IRQ2_IRQ2_MASK_2_REG, &temp_reg_val);
     if (ret)
     {
         return ret;
     }
     // Re-mask the MBOX IRQ
     temp_reg_val |= IRQ2_IRQ2_MASK_2_DSP_VIRTUAL1_MBOX_WR_MASK2_BITMASK;
-    ret = cs35l41_write_reg(driver, IRQ2_IRQ2_MASK_2_REG, temp_reg_val);
+    ret = regmap_write(cp, IRQ2_IRQ2_MASK_2_REG, temp_reg_val);
     if (ret)
     {
         return ret;
     }
 
     // Read the HALO DSP MBOX status
-    ret = cs35l41_read_reg(driver, DSP_MBOX_DSP_MBOX_2_REG, &temp_reg_val);
+    ret = regmap_read(cp, DSP_MBOX_DSP_MBOX_2_REG, &temp_reg_val);
     if (ret)
     {
         return ret;
@@ -1218,25 +1046,26 @@ static uint32_t cs35l41_power_down(cs35l41_t *driver)
     uint32_t ret = CS35L41_STATUS_OK;
     uint32_t temp_reg_val;
     uint32_t i;
+    regmap_cp_config_t *cp = REGMAP_GET_CP_CONFIG(driver);
 
     if (driver->state != CS35L41_STATE_POWER_UP)
     {
         // Clear HALO DSP Virtual MBOX 1 IRQ flag
-        ret = cs35l41_write_reg(driver, IRQ2_IRQ2_EINT_2_REG, IRQ2_IRQ2_EINT_2_DSP_VIRTUAL1_MBOX_WR_EINT2_BITMASK);
+        ret = regmap_write(cp, IRQ2_IRQ2_EINT_2_REG, IRQ2_IRQ2_EINT_2_DSP_VIRTUAL1_MBOX_WR_EINT2_BITMASK);
         if (ret)
         {
             return ret;
         }
 
         // Clear HALO DSP Virtual MBOX 2 IRQ flag
-        ret = cs35l41_write_reg(driver, IRQ1_IRQ1_EINT_2_REG, IRQ1_IRQ1_EINT_2_DSP_VIRTUAL2_MBOX_WR_EINT1_BITMASK);
+        ret = regmap_write(cp, IRQ1_IRQ1_EINT_2_REG, IRQ1_IRQ1_EINT_2_DSP_VIRTUAL2_MBOX_WR_EINT1_BITMASK);
         if (ret)
         {
             return ret;
         }
 
         // Read IRQ2 Mask register
-        ret = cs35l41_read_reg(driver, IRQ2_IRQ2_MASK_2_REG, &temp_reg_val);
+        ret = regmap_read(cp, IRQ2_IRQ2_MASK_2_REG, &temp_reg_val);
         if (ret)
         {
             return ret;
@@ -1244,14 +1073,14 @@ static uint32_t cs35l41_power_down(cs35l41_t *driver)
 
         // Clear HALO DSP Virtual MBOX 1 IRQ mask
         temp_reg_val &= ~(IRQ2_IRQ2_MASK_2_DSP_VIRTUAL1_MBOX_WR_MASK2_BITMASK);
-        ret = cs35l41_write_reg(driver, IRQ2_IRQ2_MASK_2_REG, temp_reg_val);
+        ret = regmap_write(cp, IRQ2_IRQ2_MASK_2_REG, temp_reg_val);
         if (ret)
         {
             return ret;
         }
 
         // Send HALO DSP MBOX 'Pause' Command
-        ret = cs35l41_write_reg(driver, DSP_VIRTUAL1_MBOX_DSP_VIRTUAL1_MBOX_1_REG, CS35L41_DSP_MBOX_CMD_PAUSE);
+        ret = regmap_write(cp, DSP_VIRTUAL1_MBOX_DSP_VIRTUAL1_MBOX_1_REG, CS35L41_DSP_MBOX_CMD_PAUSE);
         if (ret)
         {
             return ret;
@@ -1263,7 +1092,7 @@ static uint32_t cs35l41_power_down(cs35l41_t *driver)
         for (i = 0; i < 5; i++)
         {
             // Read IRQ1 flag register to poll for MBOX IRQ
-            cs35l41_read_reg(driver, IRQ1_IRQ1_EINT_2_REG, &temp_reg_val);
+            regmap_read(cp, IRQ1_IRQ1_EINT_2_REG, &temp_reg_val);
 
             if (temp_reg_val & IRQ1_IRQ1_EINT_2_DSP_VIRTUAL2_MBOX_WR_EINT1_BITMASK)
             {
@@ -1279,28 +1108,28 @@ static uint32_t cs35l41_power_down(cs35l41_t *driver)
         }
 
         // Clear MBOX IRQ flag
-        ret = cs35l41_write_reg(driver, IRQ1_IRQ1_EINT_2_REG, IRQ1_IRQ1_EINT_2_DSP_VIRTUAL2_MBOX_WR_EINT1_BITMASK);
+        ret = regmap_write(cp, IRQ1_IRQ1_EINT_2_REG, IRQ1_IRQ1_EINT_2_DSP_VIRTUAL2_MBOX_WR_EINT1_BITMASK);
         if (ret)
         {
             return ret;
         }
 
         // Read IRQ2 Mask register to re-mask HALO DSP Virtual MBOX 1 IRQ
-        ret = cs35l41_read_reg(driver, IRQ2_IRQ2_MASK_2_REG, &temp_reg_val);
+        ret = regmap_read(cp, IRQ2_IRQ2_MASK_2_REG, &temp_reg_val);
         if (ret)
         {
             return ret;
         }
         // Re-mask HALO DSP Virtual MBOX 1 IRQ
         temp_reg_val |= IRQ2_IRQ2_MASK_2_DSP_VIRTUAL1_MBOX_WR_MASK2_BITMASK;
-        ret = cs35l41_write_reg(driver, IRQ2_IRQ2_MASK_2_REG, temp_reg_val);
+        ret = regmap_write(cp, IRQ2_IRQ2_MASK_2_REG, temp_reg_val);
         if (ret)
         {
             return ret;
         }
 
         // Read the MBOX status
-        ret = cs35l41_read_reg(driver, DSP_MBOX_DSP_MBOX_2_REG, &temp_reg_val);
+        ret = regmap_read(cp, DSP_MBOX_DSP_MBOX_2_REG, &temp_reg_val);
         if (ret)
         {
             return ret;
@@ -1314,7 +1143,7 @@ static uint32_t cs35l41_power_down(cs35l41_t *driver)
     }
 
     // Read GLOBAL_EN register in order to clear GLOBAL_EN
-    ret = cs35l41_read_reg(driver, MSM_GLOBAL_ENABLES_REG, &temp_reg_val);
+    ret = regmap_read(cp, MSM_GLOBAL_ENABLES_REG, &temp_reg_val);
     if (ret)
     {
         return ret;
@@ -1322,7 +1151,7 @@ static uint32_t cs35l41_power_down(cs35l41_t *driver)
 
     // Clear GLOBAL_EN
     temp_reg_val &= ~(MSM_GLOBAL_ENABLES_GLOBAL_EN_BITMASK);
-    ret = cs35l41_write_reg(driver, MSM_GLOBAL_ENABLES_REG, temp_reg_val);
+    ret = regmap_write(cp, MSM_GLOBAL_ENABLES_REG, temp_reg_val);
     if (ret)
     {
         return ret;
@@ -1332,7 +1161,7 @@ static uint32_t cs35l41_power_down(cs35l41_t *driver)
     i = 100;
     do
     {
-        ret = cs35l41_read_reg(driver, IRQ1_IRQ1_EINT_1_REG, &temp_reg_val);
+        ret = regmap_read(cp, IRQ1_IRQ1_EINT_1_REG, &temp_reg_val);
         if (ret)
         {
             return ret;
@@ -1354,178 +1183,17 @@ static uint32_t cs35l41_power_down(cs35l41_t *driver)
     }
 
     // Clear MSM_PDN_DONE IRQ flag
-    ret = cs35l41_write_reg(driver, IRQ1_IRQ1_EINT_1_REG, IRQ1_IRQ1_EINT_1_MSM_PDN_DONE_EINT1_BITMASK);
+    ret = regmap_write(cp, IRQ1_IRQ1_EINT_1_REG, IRQ1_IRQ1_EINT_1_MSM_PDN_DONE_EINT1_BITMASK);
     if (ret)
     {
         return ret;
     }
 
     // Send Power Down Patch set
-    for(i = 0; i < (sizeof(cs35l41_pdn_patch)/sizeof(uint32_t)); i += 2)
-    {
-        ret = cs35l41_write_reg(driver, cs35l41_pdn_patch[i], cs35l41_pdn_patch[i + 1]);
-        if (ret)
-        {
-            return ret;
-        }
-    }
-
-    return CS35L41_STATUS_OK;
-}
-
-/**
- * Access a HW or HALO DSP Memory field
- *
- * This function performs actions required to do a Get/Set of a Control Port register or HALO DSP Memory
- * bit-field.
- *
- * @param [in] driver           Pointer to the driver state
- *
- * @return
- * - CS35L41_STATUS_FAIL if:
- *      - Control port activity fails
- *      - Required FW Control symbols are not found in the symbol table
- * - CS35L41_STATUS_OK          otherwise
- *
- * @see cs35l41_field_accessor_t
- *
- */
-static uint32_t cs35l41_field_access(cs35l41_t *driver, cs35l41_field_accessor_t fa, bool is_get)
-{
-    uint32_t temp_reg_val;
-    uint32_t ret = CS35L41_STATUS_OK;
-
-    if (fa.id)
-    {
-        fa.address = cs35l41_find_symbol(driver, fa.id);
-        if (!fa.address)
-        {
-            return CS35L41_STATUS_FAIL;
-        }
-    }
-
-    // Read the value from the field address
-    ret = cs35l41_read_reg(driver, fa.address, &temp_reg_val);
+    ret = regmap_write_array(cp, (uint32_t *) cs35l41_pdn_patch, (sizeof(cs35l41_pdn_patch)/sizeof(uint32_t)), REGMAP_WRITE_ARRAY_TYPE_ADDR_VAL);
     if (ret)
     {
-        return ret;
-    }
-
-    // Create bit-wise mask of the bit-field
-    uint32_t temp_mask = (~(0xFFFFFFFF << fa.size) << fa.shift);
-
-    // If this is only a GET request
-    if (is_get)
-    {
-        uint32_t *reg_ptr = (uint32_t *) fa.value;
-        // Mask off bit-field and shift down to LS-Bit
-        temp_reg_val &= temp_mask;
-        temp_reg_val >>= fa.shift;
-        *reg_ptr = temp_reg_val;
-    }
-    else
-    {
-        uint32_t field_val = fa.value;
-        // Shift new value to bit-field bit position
-        field_val <<= fa.shift;
-        field_val &= temp_mask;
-        // Mask off bit-field bit locations in memory's value
-        temp_reg_val &= ~temp_mask;
-        // Add new value
-        temp_reg_val |= field_val;
-
-        // Write new register/memory value
-        ret = cs35l41_write_reg(driver, fa.address, temp_reg_val);
-        if (ret)
-        {
-            return ret;
-        }
-    }
-
-    return CS35L41_STATUS_OK;
-}
-
-/**
- * Get DSP Status
- *
- * This function performs all register/memory field address reads to get the current HALO DSP status.  Since
- * some statuses are only determined by observing changes in values of a given field, the fields are read once,
- * then after a delay of 10 milliseconds, are read a second time to observe changes.
- *
- * @param [in] driver           Pointer to the driver state
- *
- * @return
- * - CS35L41_STATUS_FAIL if:
- *      - Control port activity fails
- *      - Required FW Control symbols are not found in the symbol table
- * - CS35L41_STATUS_OK          otherwise
- *
- * @see cs35l41_dsp_status_t
- *
- */
-static uint32_t cs35l41_get_dsp_status(cs35l41_t *driver)
-{
-    uint8_t i;
-    uint32_t temp_reg_val;
-    uint32_t ret = CS35L41_STATUS_OK;
-
-    // Get pointer to status passed in to Control Request
-    cs35l41_dsp_status_t *status = (cs35l41_dsp_status_t *) driver->current_request.arg;
-
-    // Read the DSP Status field addresses
-    for (i = 0; i < CS35L41_DSP_STATUS_WORDS_TOTAL; i++)
-    {
-        uint32_t reg_address = cs35l41_find_symbol(driver, cs35l41_dsp_status_controls[i]);
-        if (!reg_address)
-        {
-            return CS35L41_STATUS_FAIL;
-        }
-        ret = cs35l41_read_reg(driver, reg_address, &(status->data.words[i]));
-        if (ret)
-        {
-            return ret;
-        }
-    }
-
-    // Wait at least 10ms
-    bsp_driver_if_g->set_timer(BSP_TIMER_DURATION_10MS, NULL, NULL);
-
-    for (i = 0; i < CS35L41_DSP_STATUS_WORDS_TOTAL; i++)
-    {
-        uint32_t reg_address = cs35l41_find_symbol(driver, cs35l41_dsp_status_controls[i]);
-        if (!reg_address)
-        {
-            return CS35L41_STATUS_FAIL;
-        }
-        ret = cs35l41_read_reg(driver, reg_address, &temp_reg_val);
-        if (ret)
-        {
-            return ret;
-        }
-
-        // If the current field is HALO_HEARTBEAT, and there is a change in subsequent values
-        if ((i == 1) && (temp_reg_val != status->data.words[i]))
-        {
-            status->is_hb_inc = true;
-        }
-
-        // If the current field is CSPL_TEMPERATURE, and there is a change in subsequent values
-        if ((i == 8) && (temp_reg_val != status->data.words[i]))
-        {
-            status->is_temp_changed = true;
-        }
-
-        status->data.words[i] = temp_reg_val;
-    }
-
-    // Assess if Calibration is applied
-    if ((status->data.cal_set_status == 2) &&
-        (status->data.cal_r_selected == status->data.cal_r) &&
-        (status->data.cal_r == driver->config.cal_data.r) &&
-        (status->data.cspl_state == 0) &&
-        (status->data.halo_state == 2))
-    {
-        status->is_calibration_applied = true;
+        return CS35L41_STATUS_FAIL;
     }
 
     return CS35L41_STATUS_OK;
@@ -1548,25 +1216,12 @@ static uint32_t cs35l41_irq_to_event_id(uint32_t *irq_statuses)
 {
     uint32_t temp_event_flag = 0;
 
-    if (irq_statuses[0] & IRQ1_IRQ1_EINT_1_AMP_ERR_EINT1_BITMASK)
+    for (uint8_t i = 0; i < (sizeof(cs35l41_irq_to_event_flag_map)/sizeof(uint32_t)); i+= 2)
     {
-        CS35L41_SET_FLAG(temp_event_flag, CS35L41_EVENT_FLAG_AMP_SHORT);
-    }
-    if (irq_statuses[0] & IRQ1_IRQ1_EINT_1_TEMP_ERR_EINT1_BITMASK)
-    {
-        CS35L41_SET_FLAG(temp_event_flag, CS35L41_EVENT_FLAG_OVERTEMP);
-    }
-    if (irq_statuses[0] & IRQ1_IRQ1_EINT_1_BST_SHORT_ERR_EINT1_BITMASK)
-    {
-        CS35L41_SET_FLAG(temp_event_flag, CS35L41_EVENT_FLAG_BOOST_INDUCTOR_SHORT);
-    }
-    if (irq_statuses[0] & IRQ1_IRQ1_EINT_1_BST_DCM_UVP_ERR_EINT1_BITMASK)
-    {
-        CS35L41_SET_FLAG(temp_event_flag, CS35L41_EVENT_FLAG_BOOST_UNDERVOLTAGE);
-    }
-    if (irq_statuses[0] & IRQ1_IRQ1_EINT_1_BST_OVP_ERR_EINT1_BITMASK)
-    {
-        CS35L41_SET_FLAG(temp_event_flag, CS35L41_EVENT_FLAG_BOOST_OVERVOLTAGE);
+        if (irq_statuses[0] & cs35l41_irq_to_event_flag_map[i])
+        {
+            temp_event_flag |= (1 << cs35l41_irq_to_event_flag_map[i + 1]);
+        }
     }
 
     return temp_event_flag;
@@ -1600,12 +1255,7 @@ static uint32_t cs35l41_event_handler(void *driver)
     uint32_t irq_masks[4];
 
     cs35l41_t *d = driver;
-
-    /*
-     * Since upon entering the Event Handler SM, the BSP Control Port may be in the middle of a transaction,
-     * request the BSP to reset the Control Port and abort the current transaction.
-     */
-    bsp_driver_if_g->i2c_reset(d->config.bsp_config.bsp_dev_id, NULL);
+    regmap_cp_config_t *cp = REGMAP_GET_CP_CONFIG(d);
 
     // Read the IRQ1 flag and mask registers
     uint32_t irq1_eint_1_flags_to_clear = 0;
@@ -1614,13 +1264,13 @@ static uint32_t cs35l41_event_handler(void *driver)
     {
         uint32_t flags_to_clear = 0;
 
-        ret = cs35l41_read_reg(d, (IRQ1_IRQ1_EINT_1_REG + (i * 4)), &(irq_statuses[i]));
+        ret = regmap_read(cp, (IRQ1_IRQ1_EINT_1_REG + (i * 4)), &(irq_statuses[i]));
         if (ret)
         {
             return ret;
         }
 
-        ret = cs35l41_read_reg(d, (IRQ1_IRQ1_MASK_1_REG + (i * 4)), &(irq_masks[i]));
+        ret = regmap_read(cp, (IRQ1_IRQ1_MASK_1_REG + (i * 4)), &(irq_masks[i]));
         if (ret)
         {
             return ret;
@@ -1636,7 +1286,7 @@ static uint32_t cs35l41_event_handler(void *driver)
         if (flags_to_clear)
         {
             // Clear any IRQ1 flags from first register
-            ret = cs35l41_write_reg(d, (IRQ1_IRQ1_EINT_1_REG + (i * 4)), flags_to_clear);
+            ret = regmap_write(cp, (IRQ1_IRQ1_EINT_1_REG + (i * 4)), flags_to_clear);
             if (ret)
             {
                 return ret;
@@ -1656,14 +1306,14 @@ static uint32_t cs35l41_event_handler(void *driver)
         if (irq_statuses[0] & CS35L41_INT1_BOOST_IRQ_MASK)
         {
             // Read which MSM Blocks are enabled
-            ret = cs35l41_read_reg(d, MSM_BLOCK_ENABLES_REG, &temp_reg_val);
+            ret = regmap_read(cp, MSM_BLOCK_ENABLES_REG, &temp_reg_val);
             if (ret)
             {
                 return ret;
             }
             // Disable Boost converter
             temp_reg_val &= ~(MSM_BLOCK_ENABLES_BST_EN_BITMASK);
-            ret = cs35l41_write_reg(d, MSM_BLOCK_ENABLES_REG, temp_reg_val);
+            ret = regmap_write(cp, MSM_BLOCK_ENABLES_REG, temp_reg_val);
             if (ret)
             {
                 return ret;
@@ -1671,19 +1321,19 @@ static uint32_t cs35l41_event_handler(void *driver)
         }
 
         // Clear the Error Release register
-        ret = cs35l41_write_reg(d, MSM_ERROR_RELEASE_REG, 0);
+        ret = regmap_write(cp, MSM_ERROR_RELEASE_REG, 0);
         if (ret)
         {
             return ret;
         }
         // Set the Error Release register
-        ret = cs35l41_write_reg(d, MSM_ERROR_RELEASE_REG, CS35L41_ERR_RLS_SPEAKER_SAFE_MODE_MASK);
+        ret = regmap_write(cp, MSM_ERROR_RELEASE_REG, CS35L41_ERR_RLS_SPEAKER_SAFE_MODE_MASK);
         if (ret)
         {
             return ret;
         }
         // Clear the Error Release register
-        ret = cs35l41_write_reg(d, MSM_ERROR_RELEASE_REG, 0);
+        ret = regmap_write(cp, MSM_ERROR_RELEASE_REG, 0);
         if (ret)
         {
             return ret;
@@ -1693,14 +1343,14 @@ static uint32_t cs35l41_event_handler(void *driver)
         if (irq_statuses[0] & CS35L41_INT1_BOOST_IRQ_MASK)
         {
             // Read register containing BST_EN
-            ret = cs35l41_read_reg(d, MSM_BLOCK_ENABLES_REG, &temp_reg_val);
+            ret = regmap_read(cp, MSM_BLOCK_ENABLES_REG, &temp_reg_val);
             if (ret)
             {
                 return ret;
             }
             // Re-enable Boost Converter
             temp_reg_val |= MSM_BLOCK_ENABLES_BST_EN_BITMASK;
-            ret = cs35l41_write_reg(d, MSM_BLOCK_ENABLES_REG, temp_reg_val);
+            ret = regmap_write(cp, MSM_BLOCK_ENABLES_REG, temp_reg_val);
             if (ret)
             {
                 return ret;
@@ -1735,11 +1385,12 @@ static uint32_t cs35l41_hibernate(cs35l41_t *driver)
             PWRMGT_WAKESRC_CTL, 0x0188,
             DSP_VIRTUAL1_MBOX_DSP_VIRTUAL1_MBOX_1_REG, CS35L41_DSP_MBOX_CMD_HIBERNATE
     };
+    regmap_cp_config_t *cp = REGMAP_GET_CP_CONFIG(driver);
 
     for (uint32_t i = 0; i < (sizeof(cs35l41_hibernate_patch)/sizeof(uint32_t)); i += 2)
     {
         uint32_t ret;
-        ret = cs35l41_write_reg(driver, cs35l41_hibernate_patch[i], cs35l41_hibernate_patch[i + 1]);
+        ret = regmap_write(cp, cs35l41_hibernate_patch[i], cs35l41_hibernate_patch[i + 1]);
         if (ret)
         {
             return ret;
@@ -1763,11 +1414,12 @@ static uint32_t cs35l41_wait_for_pwrmgt_sts(cs35l41_t *driver)
 {
     uint32_t i;
     uint32_t wrpend_sts = 0x2;
+    regmap_cp_config_t *cp = REGMAP_GET_CP_CONFIG(driver);
 
     for (i = 0; (i < 10) && (wrpend_sts & PWRMGT_PWRMGT_STS_WR_PENDSTS_BITMASK); i++)
     {
         uint32_t ret;
-        ret = cs35l41_read_reg(driver, PWRMGT_PWRMGT_STS, &wrpend_sts);
+        ret = regmap_read(cp, PWRMGT_PWRMGT_STS, &wrpend_sts);
         if (ret)
         {
             return ret;
@@ -1791,32 +1443,33 @@ static uint32_t cs35l41_otp_unpack(cs35l41_t *driver)
 {
     uint32_t ret;
     uint32_t temp_reg_val, i;
+    regmap_cp_config_t *cp = REGMAP_GET_CP_CONFIG(driver);
 
     // Unlock register file to apply OTP trims
-    ret = cs35l41_write_reg(driver, CS35L41_CTRL_KEYS_TEST_KEY_CTRL_REG, CS35L41_TEST_KEY_CTRL_UNLOCK_1);
+    ret = regmap_write(cp, CS35L41_CTRL_KEYS_TEST_KEY_CTRL_REG, CS35L41_TEST_KEY_CTRL_UNLOCK_1);
     if (ret)
     {
         return ret;
     }
-    ret = cs35l41_write_reg(driver, CS35L41_CTRL_KEYS_TEST_KEY_CTRL_REG, CS35L41_TEST_KEY_CTRL_UNLOCK_2);
+    ret = regmap_write(cp, CS35L41_CTRL_KEYS_TEST_KEY_CTRL_REG, CS35L41_TEST_KEY_CTRL_UNLOCK_2);
     if (ret)
     {
         return ret;
     }
 
     // Initialize OTP unpacking state - otp_bit_count.  There are bits in OTP to skip to reach the trims
-    uint16_t otp_bit_count = driver->otp_map->bit_offset;
+    uint16_t otp_bit_count = CS35L41_OTP_MAP_BIT_OFFSET;
 
-    for (i = 0; i < driver->otp_map->num_elements; i++)
+    for (i = 0; i < (sizeof(otp_map)/sizeof(cs35l41_otp_packed_entry_t)); i++)
     {
         // Get trim entry
-        cs35l41_otp_packed_entry_t temp_trim_entry = driver->otp_map->map[i];
+        cs35l41_otp_packed_entry_t temp_trim_entry = otp_map[i];
 
         // If the entry's 'reg' member is 0x0, it means skip that trim
         if (temp_trim_entry.reg != 0x00000000)
         {
             // Read the first register to be trimmed
-            ret = cs35l41_read_reg(driver, temp_trim_entry.reg, &temp_reg_val);
+            ret = regmap_read(cp, temp_trim_entry.reg, &temp_reg_val);
             if (ret)
             {
                 return ret;
@@ -1832,7 +1485,7 @@ static uint32_t cs35l41_otp_unpack(cs35l41_t *driver)
                                     temp_trim_entry.shift,
                                     temp_trim_entry.size);
             // Write new trimmed register value back
-            ret = cs35l41_write_reg(driver, temp_trim_entry.reg, temp_reg_val);
+            ret = regmap_write(cp, temp_trim_entry.reg, temp_reg_val);
             if (ret)
             {
                 return ret;
@@ -1844,12 +1497,12 @@ static uint32_t cs35l41_otp_unpack(cs35l41_t *driver)
     }
 
     // Lock register file
-    ret = cs35l41_write_reg(driver, CS35L41_CTRL_KEYS_TEST_KEY_CTRL_REG, CS35L41_TEST_KEY_CTRL_LOCK_1);
+    ret = regmap_write(cp, CS35L41_CTRL_KEYS_TEST_KEY_CTRL_REG, CS35L41_TEST_KEY_CTRL_LOCK_1);
     if (ret)
     {
         return ret;
     }
-    ret = cs35l41_write_reg(driver, CS35L41_CTRL_KEYS_TEST_KEY_CTRL_REG, CS35L41_TEST_KEY_CTRL_LOCK_2);
+    ret = regmap_write(cp, CS35L41_CTRL_KEYS_TEST_KEY_CTRL_REG, CS35L41_TEST_KEY_CTRL_LOCK_2);
     if (ret)
     {
         return ret;
@@ -1870,21 +1523,22 @@ static uint32_t cs35l41_otp_unpack(cs35l41_t *driver)
  */
 static uint32_t cs35l41_write_errata(cs35l41_t *driver)
 {
-    uint32_t i;
+    uint32_t ret;
 
-    for (i = 1; i < cs35l41_revb2_errata_patch[0]; i += 2)
+    ret = regmap_write_array(REGMAP_GET_CP_CONFIG(driver),
+                             (uint32_t *) cs35l41_revb2_errata_patch,
+                             (sizeof(cs35l41_revb2_errata_patch)/sizeof(uint32_t)),
+                             REGMAP_WRITE_ARRAY_TYPE_ADDR_VAL);
+    if (ret)
     {
-        uint32_t ret;
-
-        ret = cs35l41_write_reg(driver, cs35l41_revb2_errata_patch[i], cs35l41_revb2_errata_patch[i + 1]);
-        if (ret)
-        {
-            return ret;
-        }
+        return CS35L41_STATUS_FAIL;
     }
-
-    return CS35L41_STATUS_OK;
+    else
+    {
+        return CS35L41_STATUS_OK;
+    }
 }
+
 /**
  * Apply configuration specifically required after loading HALO FW/COEFF files
  *
@@ -1898,25 +1552,26 @@ static uint32_t cs35l41_write_errata(cs35l41_t *driver)
 static uint32_t cs35l41_write_post_boot_config(cs35l41_t *driver)
 {
     uint32_t i, ret;
+    regmap_cp_config_t *cp = REGMAP_GET_CP_CONFIG(driver);
 
     // Write first post-boot configuration
-    for (i = 0; i < (sizeof(cs35l41_post_boot_config)/sizeof(uint32_t)); i += 2)
+    ret = regmap_write_array(cp,
+                             (uint32_t *) cs35l41_post_boot_config,
+                             (sizeof(cs35l41_post_boot_config)/sizeof(uint32_t)),
+                             REGMAP_WRITE_ARRAY_TYPE_ADDR_VAL);
+    if (ret)
     {
-        ret = cs35l41_write_reg(driver, cs35l41_post_boot_config[i], cs35l41_post_boot_config[i + 1]);
-        if (ret)
-        {
-            return ret;
-        }
+        return CS35L41_STATUS_FAIL;
     }
 
     // Write configuration data
     // Unlock the register file
-    ret = cs35l41_write_reg(driver, CS35L41_CTRL_KEYS_TEST_KEY_CTRL_REG, CS35L41_TEST_KEY_CTRL_UNLOCK_1);
+    ret = regmap_write(cp, CS35L41_CTRL_KEYS_TEST_KEY_CTRL_REG, CS35L41_TEST_KEY_CTRL_UNLOCK_1);
     if (ret)
     {
         return ret;
     }
-    ret = cs35l41_write_reg(driver, CS35L41_CTRL_KEYS_TEST_KEY_CTRL_REG, CS35L41_TEST_KEY_CTRL_UNLOCK_2);
+    ret = regmap_write(cp, CS35L41_CTRL_KEYS_TEST_KEY_CTRL_REG, CS35L41_TEST_KEY_CTRL_UNLOCK_2);
     if (ret)
     {
         return ret;
@@ -1926,7 +1581,7 @@ static uint32_t cs35l41_write_post_boot_config(cs35l41_t *driver)
     {
         uint32_t temp_reg_val, orig_val;
 
-        ret = cs35l41_read_reg(driver, driver->config.syscfg_regs[i].address, &orig_val);
+        ret = regmap_read(cp, driver->config.syscfg_regs[i].address, &orig_val);
         if (ret)
         {
             return ret;
@@ -1935,7 +1590,7 @@ static uint32_t cs35l41_write_post_boot_config(cs35l41_t *driver)
         temp_reg_val |= driver->config.syscfg_regs[i].value;
         if (orig_val != temp_reg_val)
         {
-            ret = cs35l41_write_reg(driver, driver->config.syscfg_regs[i].address, temp_reg_val);
+            ret = regmap_write(cp, driver->config.syscfg_regs[i].address, temp_reg_val);
             if (ret)
             {
                 return ret;
@@ -1944,12 +1599,12 @@ static uint32_t cs35l41_write_post_boot_config(cs35l41_t *driver)
     }
 
     // Lock the register file
-    ret = cs35l41_write_reg(driver, CS35L41_CTRL_KEYS_TEST_KEY_CTRL_REG, CS35L41_TEST_KEY_CTRL_LOCK_1);
+    ret = regmap_write(cp, CS35L41_CTRL_KEYS_TEST_KEY_CTRL_REG, CS35L41_TEST_KEY_CTRL_LOCK_1);
     if (ret)
     {
         return ret;
     }
-    ret = cs35l41_write_reg(driver, CS35L41_CTRL_KEYS_TEST_KEY_CTRL_REG, CS35L41_TEST_KEY_CTRL_LOCK_2);
+    ret = regmap_write(cp, CS35L41_CTRL_KEYS_TEST_KEY_CTRL_REG, CS35L41_TEST_KEY_CTRL_LOCK_2);
     if (ret)
     {
         return ret;
@@ -2021,18 +1676,19 @@ static uint32_t cs35l41_wake(cs35l41_t *driver)
     int8_t retries = 5;
     uint32_t mbox_cmd_drv_shift = 1 << 20;
     uint32_t mbox_cmd_fw_shift = 1 << 21;
+    regmap_cp_config_t *cp = REGMAP_GET_CP_CONFIG(driver);
 
     do {
         do {
-            ret = cs35l41_write_reg(driver,
-                                    DSP_VIRTUAL1_MBOX_DSP_VIRTUAL1_MBOX_1_REG,
-                                    CS35L41_DSP_MBOX_CMD_OUT_OF_HIBERNATE);
+            ret = regmap_write(cp,
+                               DSP_VIRTUAL1_MBOX_DSP_VIRTUAL1_MBOX_1_REG,
+                               CS35L41_DSP_MBOX_CMD_OUT_OF_HIBERNATE);
 
             bsp_driver_if_g->set_timer(4, NULL, NULL);
 
             if (ret != CS35L41_STATUS_FAIL)
             {
-                ret = cs35l41_read_reg(driver, DSP_MBOX_DSP_MBOX_2_REG,  &status);
+                ret = regmap_read(cp, DSP_MBOX_DSP_MBOX_2_REG,  &status);
                 if (ret)
                 {
                   return ret;
@@ -2051,7 +1707,7 @@ static uint32_t cs35l41_wake(cs35l41_t *driver)
         {
             return ret;
         }
-        ret = cs35l41_write_reg(driver, PWRMGT_WAKESRC_CTL, 0x0088);
+        ret = regmap_write(cp, PWRMGT_WAKESRC_CTL, 0x0088);
         if (ret)
         {
             return ret;
@@ -2061,7 +1717,7 @@ static uint32_t cs35l41_wake(cs35l41_t *driver)
         {
             return ret;
         }
-        ret = cs35l41_write_reg(driver, PWRMGT_WAKESRC_CTL, 0x0188);
+        ret = regmap_write(cp, PWRMGT_WAKESRC_CTL, 0x0188);
         if (ret)
         {
             return ret;
@@ -2071,7 +1727,7 @@ static uint32_t cs35l41_wake(cs35l41_t *driver)
         {
             return ret;
         }
-        ret = cs35l41_write_reg(driver, PWRMGT_PWRMGT_CTL, 0x3);
+        ret = regmap_write(cp, PWRMGT_PWRMGT_CTL, 0x3);
         if (ret)
         {
             return ret;
@@ -2081,12 +1737,12 @@ static uint32_t cs35l41_wake(cs35l41_t *driver)
 
     } while (--retries > 0);
 
-    ret = cs35l41_write_reg(driver, IRQ2_IRQ2_EINT_2_REG, mbox_cmd_drv_shift);
+    ret = regmap_write(cp, IRQ2_IRQ2_EINT_2_REG, mbox_cmd_drv_shift);
     if (ret)
     {
         return ret;
     }
-    ret = cs35l41_write_reg(driver, IRQ1_IRQ1_EINT_2_REG, mbox_cmd_fw_shift);
+    ret = regmap_write(cp, IRQ1_IRQ1_EINT_2_REG, mbox_cmd_fw_shift);
     if (ret)
     {
         return ret;
@@ -2154,7 +1810,7 @@ uint32_t cs35l41_configure(cs35l41_t *driver, cs35l41_config_t *config)
         // Advance driver to CONFIGURED state
         driver->state = CS35L41_STATE_CONFIGURED;
 
-        ret = bsp_driver_if_g->register_gpio_cb(driver->config.bsp_config.bsp_int_gpio_id,
+        ret = bsp_driver_if_g->register_gpio_cb(driver->config.bsp_config.int_gpio_id,
                                                 cs35l41_irq_callback,
                                                 driver);
 
@@ -2168,7 +1824,7 @@ uint32_t cs35l41_configure(cs35l41_t *driver, cs35l41_config_t *config)
 }
 
 /**
- * Processes driver state machines
+ * Processes driver states and modes
  *
  */
 uint32_t cs35l41_process(cs35l41_t *driver)
@@ -2219,18 +1875,19 @@ uint32_t cs35l41_reset(cs35l41_t *driver)
     uint32_t ret;
     uint8_t i;
     uint32_t temp_reg_val;
+    regmap_cp_config_t *cp = REGMAP_GET_CP_CONFIG(driver);
 
     // Drive RESET low for at least T_RLPW (1ms)
-    bsp_driver_if_g->set_gpio(driver->config.bsp_config.bsp_reset_gpio_id, BSP_GPIO_LOW);
+    bsp_driver_if_g->set_gpio(driver->config.bsp_config.reset_gpio_id, BSP_GPIO_LOW);
     bsp_driver_if_g->set_timer(CS35L41_T_RLPW_MS, NULL, NULL);
     // Drive RESET high and wait for at least T_IRS (1ms)
-    bsp_driver_if_g->set_gpio(driver->config.bsp_config.bsp_reset_gpio_id, BSP_GPIO_HIGH);
+    bsp_driver_if_g->set_gpio(driver->config.bsp_config.reset_gpio_id, BSP_GPIO_HIGH);
     bsp_driver_if_g->set_timer(CS35L41_T_IRS_MS, NULL, NULL);
 
     // Start polling OTP_BOOT_DONE bit every 10ms
     for (i = 0; i < CS35L41_POLL_OTP_BOOT_DONE_MAX; i++)
     {
-        ret = cs35l41_read_reg(driver, CS35L41_OTP_CTRL_OTP_CTRL8_REG, &temp_reg_val);
+        ret = regmap_read(cp, CS35L41_OTP_CTRL_OTP_CTRL8_REG, &temp_reg_val);
         if (ret)
         {
             return ret;
@@ -2251,13 +1908,13 @@ uint32_t cs35l41_reset(cs35l41_t *driver)
     }
 
     // Read DEVID
-    ret = cs35l41_read_reg(driver, CS35L41_SW_RESET_DEVID_REG, &(driver->devid));
+    ret = regmap_read(cp, CS35L41_SW_RESET_DEVID_REG, &(driver->devid));
     if (ret)
     {
         return ret;
     }
     // Read REVID
-    ret = cs35l41_read_reg(driver, CS35L41_SW_RESET_REVID_REG, &(driver->revid));
+    ret = regmap_read(cp, CS35L41_SW_RESET_REVID_REG, &(driver->revid));
     if (ret)
     {
         return ret;
@@ -2277,41 +1934,32 @@ uint32_t cs35l41_reset(cs35l41_t *driver)
     }
 
     // Read OTPID
-    ret = cs35l41_read_reg(driver, CS35L41_SW_RESET_OTPID_REG, &temp_reg_val);
+    ret = regmap_read(cp, CS35L41_SW_RESET_OTPID_REG, &temp_reg_val);
     if (ret)
     {
         return ret;
     }
     temp_reg_val &= CS35L41_SW_RESET_OTPID_OTPID_BITMASK;
 
-    // Find correct OTP Map based on OTPID
-    for (uint8_t i = 0; i < (sizeof(cs35l41_otp_maps)/sizeof(cs35l41_otp_map_t)); i++)
-    {
-        if (cs35l41_otp_maps[i].id == temp_reg_val)
-        {
-            driver->otp_map = &(cs35l41_otp_maps[i]);
-        }
-    }
-
-    // If no OTP Map found, indicate ERROR
-    if (driver->otp_map == NULL)
+    // If invalid OTPID, indicate ERROR
+    if ((temp_reg_val != 0x01) && (temp_reg_val != 0x08))
     {
         return CS35L41_STATUS_FAIL;
     }
 
-    if(driver->config.bsp_config.bus_type == CS35L41_BUS_TYPE_SPI)
+    if(driver->config.bsp_config.cp_config.bus_type == REGMAP_BUS_TYPE_SPI)
     {
         bsp_driver_if_g->spi_throttle_speed(CS35L41_OTP_READ_MAX_SPI_CLOCK_HZ);
     }
 
     // Read entire OTP trim contents
-    ret = cs35l41_cp_bulk_read(driver, CS35L41_OTP_IF_OTP_MEM0_REG, driver->otp_contents, CS35L41_OTP_SIZE_WORDS);
+    ret = regmap_read_block(cp, CS35L41_OTP_IF_OTP_MEM0_REG, driver->otp_contents, CS35L41_OTP_SIZE_BYTES);
     if (ret)
     {
         return ret;
     }
 
-    if(driver->config.bsp_config.bus_type == CS35L41_BUS_TYPE_SPI)
+    if(driver->config.bsp_config.cp_config.bus_type == REGMAP_BUS_TYPE_SPI)
     {
         bsp_driver_if_g->spi_restore_speed();
     }
@@ -2324,7 +1972,7 @@ uint32_t cs35l41_reset(cs35l41_t *driver)
     }
 
     // Stop clocks to HALO DSP Core
-    ret = cs35l41_write_reg(driver, XM_UNPACKED24_DSP1_CCM_CORE_CONTROL_REG, 0);
+    ret = regmap_write(cp, XM_UNPACKED24_DSP1_CCM_CORE_CONTROL_REG, 0);
     if (ret)
     {
         return ret;
@@ -2340,27 +1988,13 @@ uint32_t cs35l41_reset(cs35l41_t *driver)
 }
 
 /**
- * Write block of data to the CS35L41 register file
- *
- */
-uint32_t cs35l41_write_block(cs35l41_t *driver, uint32_t addr, uint8_t *data, uint32_t size)
-{
-    if (addr == 0 || data == NULL || size == 0 || size % 4 != 0)
-    {
-        return CS35L41_STATUS_FAIL;
-    }
-
-    return cs35l41_cp_bulk_write(driver, addr, data, size);
-}
-
-/**
  * Finish booting the CS35L41
  *
  */
 uint32_t cs35l41_boot(cs35l41_t *driver, fw_img_info_t *fw_info)
 {
-    uint32_t temp_reg;
     uint32_t ret = CS35L41_STATUS_OK;
+    regmap_cp_config_t *cp = REGMAP_GET_CP_CONFIG(driver);
 
     driver->fw_info = fw_info;
 
@@ -2381,39 +2015,30 @@ uint32_t cs35l41_boot(cs35l41_t *driver, fw_img_info_t *fw_info)
     if ((!driver->is_cal_boot) && (driver->config.cal_data.is_valid))
     {
         // Write calibrated load impedance
-        temp_reg = cs35l41_find_symbol(driver, CS35L41_SYM_CSPL_CAL_R);
-        if (!temp_reg)
-        {
-            return CS35L41_STATUS_FAIL;
-        }
-        ret = cs35l41_write_reg(driver, temp_reg, driver->config.cal_data.r);
+        ret = regmap_write_fw_control(cp, driver->fw_info, CS35L41_SYM_CSPL_CAL_R, driver->config.cal_data.r);
         if (ret)
         {
-            return ret;
+            return CS35L41_STATUS_FAIL;
         }
 
         // Write CAL_STATUS
-        temp_reg = cs35l41_find_symbol(driver, CS35L41_SYM_CSPL_CAL_STATUS);
-        if (!temp_reg)
-        {
-            return CS35L41_STATUS_FAIL;
-        }
-        ret = cs35l41_write_reg(driver, temp_reg, CS35L41_CAL_STATUS_CALIB_SUCCESS);
+        ret = regmap_write_fw_control(cp,
+                                      driver->fw_info,
+                                      CS35L41_SYM_CSPL_CAL_STATUS,
+                                      CS35L41_CAL_STATUS_CALIB_SUCCESS);
         if (ret)
         {
-            return ret;
+            return CS35L41_STATUS_FAIL;
         }
 
         // Write CAL_CHECKSUM
-        temp_reg = cs35l41_find_symbol(driver, CS35L41_SYM_CSPL_CAL_CHECKSUM);
-        if (!temp_reg)
-        {
-            return CS35L41_STATUS_FAIL;
-        }
-        ret = cs35l41_write_reg(driver,  temp_reg, (driver->config.cal_data.r + CS35L41_CAL_STATUS_CALIB_SUCCESS));
+        ret = regmap_write_fw_control(cp,
+                                      driver->fw_info,
+                                      CS35L41_SYM_CSPL_CAL_CHECKSUM,
+                                      (driver->config.cal_data.r + CS35L41_CAL_STATUS_CALIB_SUCCESS));
         if (ret)
         {
-            return ret;
+            return CS35L41_STATUS_FAIL;
         }
     }
 
@@ -2501,95 +2126,38 @@ uint32_t cs35l41_power(cs35l41_t *driver, uint32_t power_state)
 }
 
 /**
- * Submit a Control Request to the driver
- *
- */
-uint32_t cs35l41_control(cs35l41_t *driver, cs35l41_control_request_t req)
-{
-    uint32_t ret = CS35L41_STATUS_OK;
-
-    driver->current_request = req;
-
-    switch (req.id)
-    {
-        case CS35L41_CONTROL_ID_GET_REG:
-        case CS35L41_CONTROL_ID_SET_REG:
-        {
-            bool is_get = (CS35L41_CONTROL_ID_GET_HANDLER(req.id) == CS35L41_CONTROL_ID_HANDLER_FA_GET);
-            cs35l41_field_accessor_t *fa = (cs35l41_field_accessor_t *) req.arg;
-
-            fa->id = 0;
-            ret = cs35l41_field_access(driver, *fa, is_get);
-            break;
-        }
-
-        case CS35L41_CONTROL_ID_GET_SYM:
-        case CS35L41_CONTROL_ID_SET_SYM:
-        {
-            bool is_get = (CS35L41_CONTROL_ID_GET_HANDLER(req.id) == CS35L41_CONTROL_ID_HANDLER_FA_GET);
-            cs35l41_field_accessor_t *fa = (cs35l41_field_accessor_t *) req.arg;
-            ret = cs35l41_field_access(driver, *fa, is_get);
-            break;
-        }
-
-        case CS35L41_CONTROL_ID_GET_DSP_STATUS:
-            ret = cs35l41_get_dsp_status(driver);
-            break;
-
-        default:
-            break;
-    }
-
-    return ret;
-}
-
-/**
  * Calibrate the HALO DSP Protection Algorithm
  *
  */
 uint32_t cs35l41_calibrate(cs35l41_t *driver, uint32_t ambient_temp_deg_c)
 {
-    uint32_t temp_reg_val, temp_reg_address;
+    uint32_t temp_reg_val;
     uint32_t ret = CS35L41_STATUS_OK;
+    regmap_cp_config_t *cp = REGMAP_GET_CP_CONFIG(driver);
 
     // Set the Ambient Temp (deg C)
-    temp_reg_address = cs35l41_find_symbol(driver, CS35L41_SYM_CSPL_CAL_AMBIENT);
-    if (!temp_reg_address)
-    {
-        return CS35L41_STATUS_FAIL;
-    }
-    ret = cs35l41_write_reg(driver, temp_reg_address, ambient_temp_deg_c);
+    ret = regmap_write_fw_control(cp, driver->fw_info, CS35L41_SYM_CSPL_CAL_AMBIENT, ambient_temp_deg_c);
     if (ret)
     {
-        return ret;
+        return CS35L41_STATUS_FAIL;
     }
 
     // Wait for at least 2 seconds while DSP FW performs calibration
     bsp_driver_if_g->set_timer(BSP_TIMER_DURATION_2S, NULL, NULL);
 
     // Read the Calibration Load Impedance "R"
-    temp_reg_address = cs35l41_find_symbol(driver, CS35L41_SYM_CSPL_CAL_R);
-    if (!temp_reg_address)
-    {
-        return CS35L41_STATUS_FAIL;
-    }
-    ret = cs35l41_read_reg(driver, temp_reg_address, &temp_reg_val);
+    ret = regmap_read_fw_control(cp, driver->fw_info, CS35L41_SYM_CSPL_CAL_R, &temp_reg_val);
     if (ret)
     {
-        return ret;
+        return CS35L41_STATUS_FAIL;
     }
     driver->config.cal_data.r = temp_reg_val;
 
     // Read the Calibration Status
-    temp_reg_address = cs35l41_find_symbol(driver, CS35L41_SYM_CSPL_CAL_STATUS);
-    if (!temp_reg_address)
-    {
-        return CS35L41_STATUS_FAIL;
-    }
-    ret = cs35l41_read_reg(driver, temp_reg_address, &temp_reg_val);
+    ret = regmap_read_fw_control(cp, driver->fw_info, CS35L41_SYM_CSPL_CAL_STATUS, &temp_reg_val);
     if (ret)
     {
-        return ret;
+        return CS35L41_STATUS_FAIL;
     }
 
     if (temp_reg_val != CS35L41_CAL_STATUS_CALIB_SUCCESS)
@@ -2598,15 +2166,10 @@ uint32_t cs35l41_calibrate(cs35l41_t *driver, uint32_t ambient_temp_deg_c)
     }
 
     // Read the Calibration Checksum
-    temp_reg_address = cs35l41_find_symbol(driver, CS35L41_SYM_CSPL_CAL_CHECKSUM);
-    if (!temp_reg_address)
-    {
-        return CS35L41_STATUS_FAIL;
-    }
-    ret = cs35l41_read_reg(driver, temp_reg_address, &temp_reg_val);
+    ret = regmap_read_fw_control(cp, driver->fw_info, CS35L41_SYM_CSPL_CAL_CHECKSUM, &temp_reg_val);
     if (ret)
     {
-        return ret;
+        return CS35L41_STATUS_FAIL;
     }
 
     // Verify the Calibration Checksum
@@ -2629,10 +2192,11 @@ uint32_t cs35l41_calibrate(cs35l41_t *driver, uint32_t ambient_temp_deg_c)
 uint32_t cs35l41_send_syscfg(cs35l41_t *driver, const syscfg_reg_t *cfg, uint16_t cfg_length)
 {
     uint32_t ret, temp_reg_val, orig_val;
+    regmap_cp_config_t *cp = REGMAP_GET_CP_CONFIG(driver);
 
     for (int i = 0; i < cfg_length; i++)
     {
-        ret = cs35l41_read_reg(driver, cfg[i].address, &orig_val);
+        ret = regmap_read(cp, cfg[i].address, &orig_val);
         if (ret)
         {
             return ret;
@@ -2641,7 +2205,7 @@ uint32_t cs35l41_send_syscfg(cs35l41_t *driver, const syscfg_reg_t *cfg, uint16_
         temp_reg_val |= cfg[i].value;
         if (orig_val != temp_reg_val)
         {
-            ret = cs35l41_write_reg(driver, cfg[i].address, temp_reg_val);
+            ret = regmap_write(cp, cfg[i].address, temp_reg_val);
             if (ret)
             {
                 return ret;
@@ -2661,6 +2225,7 @@ uint32_t cs35l41_start_tuning_switch(cs35l41_t *driver)
     uint32_t ret;
     uint8_t i;
     uint32_t temp_reg_val;
+    regmap_cp_config_t *cp = REGMAP_GET_CP_CONFIG(driver);
 
     /*
      * The Host (i.e. the AP or the Codec driving the amp) sends a PAUSE request to the Prince FW and Pauses the
@@ -2675,7 +2240,7 @@ uint32_t cs35l41_start_tuning_switch(cs35l41_t *driver)
     // The Host ensures both PLL_FORCE_EN and GLOBAL_EN are set to 0
     // The Host checks the Power Down Done flag on Prince (MSM_PDN_DONE) to ensure that the PLL has stopped.
     // Read GLOBAL_EN register in order to clear GLOBAL_EN
-    ret = cs35l41_read_reg(driver, MSM_GLOBAL_ENABLES_REG, &temp_reg_val);
+    ret = regmap_read(cp, MSM_GLOBAL_ENABLES_REG, &temp_reg_val);
     if (ret)
     {
         return ret;
@@ -2683,7 +2248,7 @@ uint32_t cs35l41_start_tuning_switch(cs35l41_t *driver)
 
     // Clear GLOBAL_EN
     temp_reg_val &= ~(MSM_GLOBAL_ENABLES_GLOBAL_EN_BITMASK);
-    ret = cs35l41_write_reg(driver, MSM_GLOBAL_ENABLES_REG, temp_reg_val);
+    ret = regmap_write(cp, MSM_GLOBAL_ENABLES_REG, temp_reg_val);
     if (ret)
     {
         return ret;
@@ -2693,7 +2258,7 @@ uint32_t cs35l41_start_tuning_switch(cs35l41_t *driver)
     i = 100;
     do
     {
-        ret = cs35l41_read_reg(driver, IRQ1_IRQ1_EINT_1_REG, &temp_reg_val);
+        ret = regmap_read(cp, IRQ1_IRQ1_EINT_1_REG, &temp_reg_val);
         if (ret)
         {
             return ret;
@@ -2715,7 +2280,7 @@ uint32_t cs35l41_start_tuning_switch(cs35l41_t *driver)
     }
 
     // Clear MSM_PDN_DONE IRQ flag
-    ret = cs35l41_write_reg(driver, IRQ1_IRQ1_EINT_1_REG, IRQ1_IRQ1_EINT_1_MSM_PDN_DONE_EINT1_BITMASK);
+    ret = regmap_write(cp, IRQ1_IRQ1_EINT_1_REG, IRQ1_IRQ1_EINT_1_MSM_PDN_DONE_EINT1_BITMASK);
     if (ret)
     {
         return ret;
@@ -2745,6 +2310,7 @@ uint32_t cs35l41_finish_tuning_switch(cs35l41_t *driver)
 {
     uint32_t ret;
     uint32_t temp_reg_val;
+    regmap_cp_config_t *cp = REGMAP_GET_CP_CONFIG(driver);
 
     /*
      * The Host sends a REINIT request.   This causes the FW to read the new configuration and initialize the new CSPL
@@ -2759,14 +2325,14 @@ uint32_t cs35l41_finish_tuning_switch(cs35l41_t *driver)
 
     // The Host sets the GLOBAL_EN to 1. It is not expected that the PLL_FORCE_EN should be used
     // Read GLOBAL_EN register
-    ret = cs35l41_read_reg(driver, MSM_GLOBAL_ENABLES_REG, &temp_reg_val);
+    ret = regmap_read(cp, MSM_GLOBAL_ENABLES_REG, &temp_reg_val);
     if (ret)
     {
         return ret;
     }
     temp_reg_val |= MSM_GLOBAL_ENABLES_GLOBAL_EN_BITMASK;
     //Set GLOBAL_EN
-    ret = cs35l41_write_reg(driver, MSM_GLOBAL_ENABLES_REG, temp_reg_val);
+    ret = regmap_write(cp, MSM_GLOBAL_ENABLES_REG, temp_reg_val);
     if (ret)
     {
         return ret;
@@ -2786,122 +2352,99 @@ uint32_t cs35l41_finish_tuning_switch(cs35l41_t *driver)
 }
 
 /**
+ * Get DSP Status
+ *
+ */
+uint32_t cs35l41_get_dsp_status(cs35l41_t *driver, cs35l41_dsp_status_t *status)
+{
+    uint8_t i;
+    uint32_t temp_reg_val;
+    uint32_t ret = CS35L41_STATUS_OK;
+    regmap_cp_config_t *cp = REGMAP_GET_CP_CONFIG(driver);
+
+    // Read the DSP Status field addresses
+    for (i = 0; i < CS35L41_DSP_STATUS_WORDS_TOTAL; i++)
+    {
+        ret = regmap_read_fw_control(cp, driver->fw_info, cs35l41_dsp_status_controls[i], &(status->data.words[i]));
+        if (ret)
+        {
+            return CS35L41_STATUS_FAIL;
+        }
+    }
+
+    // Wait at least 10ms
+    bsp_driver_if_g->set_timer(BSP_TIMER_DURATION_10MS, NULL, NULL);
+
+    for (i = 0; i < CS35L41_DSP_STATUS_WORDS_TOTAL; i++)
+    {
+        ret = regmap_read_fw_control(cp, driver->fw_info, cs35l41_dsp_status_controls[i], &temp_reg_val);
+        if (ret)
+        {
+            return CS35L41_STATUS_FAIL;
+        }
+
+        // If the current field is HALO_HEARTBEAT, and there is a change in subsequent values
+        if ((i == 1) && (temp_reg_val != status->data.words[i]))
+        {
+            status->is_hb_inc = true;
+        }
+
+        // If the current field is CSPL_TEMPERATURE, and there is a change in subsequent values
+        if ((i == 8) && (temp_reg_val != status->data.words[i]))
+        {
+            status->is_temp_changed = true;
+        }
+
+        status->data.words[i] = temp_reg_val;
+    }
+
+    // Assess if Calibration is applied
+    if ((status->data.cal_set_status == 2) &&
+        (status->data.cal_r_selected == status->data.cal_r) &&
+        (status->data.cal_r == driver->config.cal_data.r) &&
+        (status->data.cspl_state == 0) &&
+        (status->data.halo_state == 2))
+    {
+        status->is_calibration_applied = true;
+    }
+
+    return CS35L41_STATUS_OK;
+}
+
+/*
  * Reads the contents of a single register/memory address
  *
  */
 uint32_t cs35l41_read_reg(cs35l41_t *driver, uint32_t addr, uint32_t *val)
 {
-    uint32_t ret = CS35L41_STATUS_FAIL;
-    cs35l41_bsp_config_t *b = &(driver->config.bsp_config);
-    uint8_t write_buffer[4];
-    uint8_t read_buffer[4];
+    uint32_t ret;
+    regmap_cp_config_t *cp = REGMAP_GET_CP_CONFIG(driver);
 
-    /*
-     * Place contents of uint32_t 'addr' to Big-Endian format byte stream required for Control Port
-     * transaction.
-     */
-    write_buffer[0] = GET_BYTE_FROM_WORD(addr, 3);
-    write_buffer[1] = GET_BYTE_FROM_WORD(addr, 2);
-    write_buffer[2] = GET_BYTE_FROM_WORD(addr, 1);
-    write_buffer[3] = GET_BYTE_FROM_WORD(addr, 0);
-
-    // Currently only I2C and SPI transactions are supported
-    switch (b->bus_type)
+    ret = regmap_read(cp, addr, val);
+    if (ret)
     {
-        case CS35L41_BUS_TYPE_I2C:
-            ret = bsp_driver_if_g->i2c_read_repeated_start(b->bsp_dev_id,
-                                                           write_buffer,
-                                                           4,
-                                                           read_buffer,
-                                                           4,
-                                                           NULL,
-                                                           NULL);
-            break;
-
-        case CS35L41_BUS_TYPE_SPI:
-            // Set the R/W bit
-            write_buffer[0] |= 0x80;
-
-            ret = bsp_driver_if_g->spi_read(b->bsp_dev_id,
-                                            write_buffer,
-                                            4,
-                                            read_buffer,
-                                            4,
-                                            2);
-            break;
-
-        default:
-            break;
+        return CS35L41_STATUS_FAIL;
     }
 
-    if (BSP_STATUS_OK == ret)
-    {
-        /*
-         * Place contents of uint32_t 'addr' to Big-Endian format byte stream required for Control Port
-         * transaction.
-         */
-        ADD_BYTE_TO_WORD(*val, read_buffer[0], 3);
-        ADD_BYTE_TO_WORD(*val, read_buffer[1], 2);
-        ADD_BYTE_TO_WORD(*val, read_buffer[2], 1);
-        ADD_BYTE_TO_WORD(*val, read_buffer[3], 0);
-
-        ret = CS35L41_STATUS_OK;
-    }
-
-    return ret;
+    return CS35L41_STATUS_OK;
 }
 
-/**
+/*
  * Writes the contents of a single register/memory address
  *
  */
 uint32_t cs35l41_write_reg(cs35l41_t *driver, uint32_t addr, uint32_t val)
 {
-    uint32_t ret = CS35L41_STATUS_FAIL;
-    cs35l41_bsp_config_t *b = &(driver->config.bsp_config);
-    uint8_t write_buffer[8];
+    uint32_t ret;
+    regmap_cp_config_t *cp = REGMAP_GET_CP_CONFIG(driver);
 
-    /*
-     * Place contents of uint32_t 'addr' and 'val' to Big-Endian format byte stream required for Control Port
-     * transaction.
-     */
-    write_buffer[0] = GET_BYTE_FROM_WORD(addr, 3);
-    write_buffer[1] = GET_BYTE_FROM_WORD(addr, 2);
-    write_buffer[2] = GET_BYTE_FROM_WORD(addr, 1);
-    write_buffer[3] = GET_BYTE_FROM_WORD(addr, 0);
-    write_buffer[4] = GET_BYTE_FROM_WORD(val, 3);
-    write_buffer[5] = GET_BYTE_FROM_WORD(val, 2);
-    write_buffer[6] = GET_BYTE_FROM_WORD(val, 1);
-    write_buffer[7] = GET_BYTE_FROM_WORD(val, 0);
-
-    // Currently only I2C and SPI transactions are supported
-    switch (b->bus_type)
+    ret = regmap_write(cp, addr, val);
+    if (ret)
     {
-        case CS35L41_BUS_TYPE_I2C:
-            ret = bsp_driver_if_g->i2c_write(b->bsp_dev_id, write_buffer, 8, NULL, NULL);
-
-
-            break;
-
-        case CS35L41_BUS_TYPE_SPI:
-            ret = bsp_driver_if_g->spi_write(b->bsp_dev_id,
-                                             write_buffer,
-                                             4,
-                                             &(write_buffer[4]),
-                                             4,
-                                             2);
-            break;
-
-        default:
-            break;
+        return CS35L41_STATUS_FAIL;
     }
 
-    if (BSP_STATUS_OK == ret)
-    {
-        ret = CS35L41_STATUS_OK;
-    }
-
-    return ret;
+    return CS35L41_STATUS_OK;
 }
 
 /*
@@ -2910,27 +2453,53 @@ uint32_t cs35l41_write_reg(cs35l41_t *driver, uint32_t addr, uint32_t val)
  */
 uint32_t cs35l41_update_reg(cs35l41_t *driver, uint32_t addr, uint32_t mask, uint32_t val)
 {
-    uint32_t tmp, ret, orig;
+    uint32_t ret;
+    regmap_cp_config_t *cp = REGMAP_GET_CP_CONFIG(driver);
 
-    ret = cs35l41_read_reg(driver, addr, &orig);
-    if (ret == CS35L41_STATUS_FAIL)
+    ret = regmap_update_reg(cp, addr, mask, val);
+    if (ret)
     {
-        return ret;
-    }
-
-    tmp = (orig & ~mask) | val;
-
-    if (tmp != orig)
-    {
-        ret = cs35l41_write_reg(driver, addr, tmp);
-        if (ret == CS35L41_STATUS_FAIL)
-        {
-            return ret;
-        }
+        return CS35L41_STATUS_FAIL;
     }
 
     return CS35L41_STATUS_OK;
 }
+
+/*
+ * Write block of data to the CS35L41 register file
+ *
+ * This call is used to load the HALO FW/COEFF files to HALO RAM.
+ *
+ * @param [in] driver           Pointer to the driver state
+ * @param [in] addr             Starting address of loading destination
+ * @param [in] data             Pointer to array of bytes to be written
+ * @param [in] size             Size of array of bytes to be written
+ *
+ * @return
+ * - CS35L41_STATUS_FAIL if:
+ *      - Any pointers are NULL
+ *      - size is not multiple of 4
+ *      - Control port activity fails
+ * - otherwise, returns CS35L41_STATUS_OK
+ *
+ */
+uint32_t cs35l41_write_block(cs35l41_t *driver, uint32_t addr, uint8_t *data, uint32_t size)
+{
+    uint32_t ret;
+    regmap_cp_config_t *cp = REGMAP_GET_CP_CONFIG(driver);
+
+    ret = regmap_write_block(cp,
+                             addr,
+                             data,
+                             size);
+    if (ret)
+    {
+        return CS35L41_STATUS_FAIL;
+    }
+
+    return CS35L41_STATUS_OK;
+}
+
 
 /*!
  * \mainpage Introduction

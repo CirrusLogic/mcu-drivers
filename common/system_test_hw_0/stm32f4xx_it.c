@@ -51,7 +51,7 @@ extern TIM_HandleTypeDef tim_drv_handle;
 extern TIM_HandleTypeDef led_tim_drv_handle;
 extern I2C_HandleTypeDef i2c_drv_handle;
 extern I2S_HandleTypeDef i2s_drv_handle;
-extern EXTI_HandleTypeDef exti_pb_handle, exti_cdc_int_handle, exti_dsp_int_handle;
+extern EXTI_HandleTypeDef exti_pb0_handle, exti_pb1_handle, exti_pb2_handle, exti_pb3_handle, exti_pb4_handle, exti_cdc_int_handle, exti_dsp_int_handle;
 extern UART_HandleTypeDef uart_drv_handle;
 /* USER CODE END PV */
 
@@ -218,11 +218,43 @@ void EXTI0_IRQHandler(void)
 }
 #endif
 
+/**
+  * @brief This function handles EXTI line2 interrupt.
+  */
+void EXTI2_IRQHandler(void)
+{
+    if (HAL_EXTI_GetPending(&exti_pb1_handle, EXTI_TRIGGER_RISING))
+    {
+        HAL_EXTI_IRQHandler(&exti_pb1_handle);
+    }
+}
+
+/**
+  * @brief This function handles EXTI line[9:5] interrupts.
+  */
+void EXTI9_5_IRQHandler(void)
+{
+    if (HAL_EXTI_GetPending(&exti_pb2_handle, EXTI_TRIGGER_RISING))
+    {
+        HAL_EXTI_IRQHandler(&exti_pb2_handle);
+    }
+
+    if (HAL_EXTI_GetPending(&exti_pb3_handle, EXTI_TRIGGER_RISING))
+    {
+        HAL_EXTI_IRQHandler(&exti_pb3_handle);
+    }
+}
+
 void EXTI15_10_IRQHandler(void)
 {
-    if (HAL_EXTI_GetPending(&exti_pb_handle, EXTI_TRIGGER_RISING))
+    if (HAL_EXTI_GetPending(&exti_pb0_handle, EXTI_TRIGGER_RISING))
     {
-        HAL_EXTI_IRQHandler(&exti_pb_handle);
+        HAL_EXTI_IRQHandler(&exti_pb0_handle);
+    }
+
+    if (HAL_EXTI_GetPending(&exti_pb4_handle, EXTI_TRIGGER_RISING))
+    {
+        HAL_EXTI_IRQHandler(&exti_pb4_handle);
     }
 
     if (HAL_EXTI_GetPending(&exti_dsp_int_handle, EXTI_TRIGGER_RISING))

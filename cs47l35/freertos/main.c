@@ -192,8 +192,6 @@ int main(void)
 {
     int ret_val = 0;
 
-    app_init();
-
     xTaskCreate(HapticControlThread,
                 "HapticControlTask",
                 configMINIMAL_STACK_SIZE,
@@ -207,6 +205,8 @@ int main(void)
                 (void *) NULL,
                 (tskIDLE_PRIORITY + 1),
                 &HapticEventTaskHandle);
+
+    app_init();
 
     bsp_dut_reset();
 

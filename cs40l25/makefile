@@ -63,17 +63,17 @@ CREATE_FIRMWARE_TARGET = firmware_converter
 
 # Process command line variables per make goal
 ifeq ($(MAKECMDGOALS), driver_lib_cm4)
-	BULLSEYE_INCLUSIONS =
-	BULLSEYE_ON_CMD =
-	BULLSEYE_OFF_CMD =
+    BULLSEYE_INCLUSIONS =
+    BULLSEYE_ON_CMD =
+    BULLSEYE_OFF_CMD =
 else
     ifeq ($(BULLSEYE), 1)
-    	BULLSEYE_INCLUSIONS = bullseye_inclusions
-    	BULLSEYE_ON_CMD = cov01 --on
-    	BULLSEYE_OFF_CMD = cov01 --off
+        BULLSEYE_INCLUSIONS = bullseye_inclusions
+        BULLSEYE_ON_CMD = cov01 --on
+        BULLSEYE_OFF_CMD = cov01 --off
     else
-    	BULLSEYE_ON_CMD =
-    	BULLSEYE_OFF_CMD =
+        BULLSEYE_ON_CMD =
+        BULLSEYE_OFF_CMD =
     endif
 endif
 
@@ -93,21 +93,21 @@ endif
 
 OPEN_LOOP_FLAG =
 ifeq ($(CONFIG_OPEN_LOOP), 1)
-	OPEN_LOOP_FLAG = -DCONFIG_OPEN_LOOP
+    OPEN_LOOP_FLAG = -DCONFIG_OPEN_LOOP
 endif
 
 ifeq ($(CONFIG_L25B), 1)
-	ifeq ($(CONFIG_EXT_BOOST), 1)
-		WISCE_SCRIPT = wisce_init_l25b_ext_boost.txt
-	else
-		WISCE_SCRIPT = wisce_init_l25b.txt
-	endif
+    ifeq ($(CONFIG_EXT_BOOST), 1)
+        WISCE_SCRIPT = wisce_init_l25b_ext_boost.txt
+    else
+        WISCE_SCRIPT = wisce_init_l25b.txt
+    endif
 else
-	ifeq ($(CONFIG_EXT_BOOST), 1)
+    ifeq ($(CONFIG_EXT_BOOST), 1)
 $(error Configuration CONFIG_L25B=0 and CONFIG_EXT_BOOST=1 is not supported!)
-	else
-		WISCE_SCRIPT = wisce_init.txt
-	endif
+    else
+        WISCE_SCRIPT = wisce_init.txt
+    endif
 endif
 
 # Assign toolchain, shell executable names required per target
@@ -162,7 +162,7 @@ endif
 ifeq ($(MAKECMDGOALS), unit_test)
     CFLAGS      += -g -std=c99
 ifeq ($(BULLSEYE), 1)
-	CFLAGS += -DUSE_BULLSEYE
+    CFLAGS += -DUSE_BULLSEYE
 endif
     # Build switches for driver library
 
@@ -213,7 +213,10 @@ else ifeq ($(MAKECMDGOALS), system_test)
     CFLAGS += $(ST_CFLAGS)
     CFLAGS += -DUNITY_INCLUDE_CONFIG_H -DCONFIG_USE_MULTICHANNEL_UART
 ifeq ($(BULLSEYE), 1)
-	CFLAGS += -DUSE_BULLSEYE
+    CFLAGS += -DUSE_BULLSEYE
+endif
+ifeq ($(CONFIG_USE_VREGMAP), 1)
+    CFLAGS += -DCONFIG_USE_VREGMAP
 endif
     OUTPUT_NAME =
     OUTPUT_EXT  =
@@ -242,8 +245,12 @@ else ifeq ($(MAKECMDGOALS), baremetal)
     CFLAGS += $(DEVID_CFLAG) $(ADDITIONAL_CFLAGS) $(OPEN_LOOP_FLAG)
     CFLAGS += -DNO_OS
     CFLAGS += $(ST_CFLAGS)
+    CFLAGS += -DCONFIG_USE_MULTICHANNEL_UART
 ifeq ($(SEMIHOSTING), 1)
     CFLAGS += -DSEMIHOSTING
+endif
+ifeq ($(CONFIG_USE_VREGMAP), 1)
+    CFLAGS += -DCONFIG_USE_VREGMAP
 endif
     OUTPUT_NAME =
     OUTPUT_EXT  =
@@ -275,8 +282,12 @@ else ifeq ($(MAKECMDGOALS), freertos)
     CFLAGS += $(DEVID_CFLAG) $(ADDITIONAL_CFLAGS) $(OPEN_LOOP_FLAG)
     CFLAGS += -DUSE_CMSIS_OS
     CFLAGS += $(ST_CFLAGS)
+    CFLAGS += -DCONFIG_USE_MULTICHANNEL_UART
 ifeq ($(SEMIHOSTING), 1)
     CFLAGS += -DSEMIHOSTING
+endif
+ifeq ($(CONFIG_USE_VREGMAP), 1)
+    CFLAGS += -DCONFIG_USE_VREGMAP
 endif
     OUTPUT_NAME =
     OUTPUT_EXT  =
@@ -331,6 +342,11 @@ ifeq ($(MAKECMDGOALS), system_test)
     C_SRCS += $(TEST_HW_PATH)/hw_0_bsp.c
     C_SRCS += $(TEST_HW_PATH)/test_tone_tables.c
     C_SRCS += $(TEST_HW_PATH)/stm32f4xx_it.c
+    C_SRCS += $(COMMON_PATH)/bridge/bridge.c
+ifeq ($(CONFIG_USE_VREGMAP), 1)
+    C_SRCS += $(COMMON_PATH)/bridge/vregmap.c
+endif
+    C_SRCS += $(COMMON_PATH)/regmap.c
     C_SRCS += $(TEST_HW_PATH)/sysmem.c
     C_SRCS += $(TEST_HW_PATH)/syscalls.c
     C_SRCS += $(REPO_PATH)/cs40l25/bsp/hw_0_bsp_cs40l25.c
@@ -343,6 +359,7 @@ endif
     INCLUDES += -I$(APP_PATH)
     INCLUDES += -I$(REPO_PATH)/cs40l25/bsp
     INCLUDES += -I$(TEST_HW_PATH)
+    INCLUDES += -I$(COMMON_PATH)/bridge
 ifeq ($(BULLSEYE), 1)
     INCLUDES += -I$(REPO_PATH)/third_party/bullseye/inc
 endif
@@ -364,6 +381,11 @@ endif
     C_SRCS += $(TEST_HW_PATH)/hw_0_bsp.c
     C_SRCS += $(TEST_HW_PATH)/test_tone_tables.c
     C_SRCS += $(TEST_HW_PATH)/stm32f4xx_it.c
+    C_SRCS += $(COMMON_PATH)/bridge/bridge.c
+ifeq ($(CONFIG_USE_VREGMAP), 1)
+    C_SRCS += $(COMMON_PATH)/bridge/vregmap.c
+endif
+    C_SRCS += $(COMMON_PATH)/regmap.c
 ifneq ($(SEMIHOSTING), 1)
     C_SRCS += $(TEST_HW_PATH)/syscalls.c
 endif
@@ -373,6 +395,7 @@ endif
     INCLUDES += -I$(APP_PATH)
     INCLUDES += -I$(REPO_PATH)/cs40l25/bsp
     INCLUDES += -I$(TEST_HW_PATH)
+    INCLUDES += -I$(COMMON_PATH)/bridge
 
     INCLUDES += $(ST_INCLUDES)
 
@@ -386,6 +409,11 @@ ifeq ($(MAKECMDGOALS), freertos)
     C_SRCS += $(TEST_HW_PATH)/hw_0_bsp.c
     C_SRCS += $(TEST_HW_PATH)/test_tone_tables.c
     C_SRCS += $(TEST_HW_PATH)/stm32f4xx_it.c
+    C_SRCS += $(COMMON_PATH)/bridge/bridge.c
+ifeq ($(CONFIG_USE_VREGMAP), 1)
+    C_SRCS += $(COMMON_PATH)/bridge/vregmap.c
+endif
+    C_SRCS += $(COMMON_PATH)/regmap.c
 ifneq ($(SEMIHOSTING), 1)
     C_SRCS += $(TEST_HW_PATH)/syscalls.c
 endif
@@ -395,6 +423,7 @@ endif
     INCLUDES += -I$(APP_PATH)
     INCLUDES += -I$(REPO_PATH)/cs40l25/bsp
     INCLUDES += -I$(TEST_HW_PATH)
+    INCLUDES += -I$(COMMON_PATH)/bridge
 
     INCLUDES += $(ST_INCLUDES)
 

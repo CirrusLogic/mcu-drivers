@@ -36,6 +36,8 @@ extern "C" {
 #include "cs35l41_sym.h"
 #include "cs35l41_spec.h"
 #include "cs35l41_syscfg_regs.h"
+#include "regmap.h"
+
 #include "sdk_version.h"
 
 /***********************************************************************************************************************
@@ -50,18 +52,6 @@ extern "C" {
  */
 #define CS35L41_STATUS_OK                               (0)
 #define CS35L41_STATUS_FAIL                             (1)
-/** @} */
-
-/**
- * @defgroup CS35L41_BUS_TYPE_
- * @brief Types of serial bus to control the CS35L41
- *
- * @see cs35l41_bsp_config_t member bus_type
- *
- * @{
- */
-#define CS35L41_BUS_TYPE_I2C                            (0)
-#define CS35L41_BUS_TYPE_SPI                            (1)
 /** @} */
 
 /**
@@ -94,50 +84,9 @@ extern "C" {
 #define CS35L41_MODE_HANDLING_EVENTS                    (1)
 /** @} */
 
-#define CS35L41_POLL_OTP_BOOT_DONE_MS                   (10)    ///< Delay in ms between polling OTP_BOOT_DONE
-#define CS35L41_POLL_OTP_BOOT_DONE_MAX                  (10)    ///< Maximum number of times to poll OTP_BOOT_DONE
-#define CS35L41_OTP_SIZE_WORDS                          (32)    ///< Total size of CS35L41 OTP in 32-bit words
-
-#define CS35L41_CP_BULK_READ_LENGTH_BYTES               (CS35L41_OTP_SIZE_WORDS * 4)
-///< Maximum size of Control Port Bulk Read
-#define CS35L41_CP_REG_READ_LENGTH_BYTES                (4) ///< Length of Control Port Read of registers
-
-/**
- * Length of Control Port Read buffer
- *
- * @attention The BSP is required to allocate a buffer of this length before initializing the driver.
- */
-#define CS35L41_CP_READ_BUFFER_LENGTH_BYTES             (CS35L41_CP_BULK_READ_LENGTH_BYTES + \
-                                                         CS35L41_CP_REG_READ_LENGTH_BYTES)
-
-/**
- * @defgroup CS35L41_CONTROL_ID_
- * @brief ID to indicate the type of Control Request
- *
- * @see cs35l41_control
- * @see cs35l41_control_request_t member id
- *
- * @{
- */
-#define CS35L41_CONTROL_ID_GET_HANDLER(A)               ((A & 0xF0000000) >> 28)
-#define CS35L41_CONTROL_ID_GET_CONTROL(A)               (A & 0x0FFFFFFF)
-#define CS35L41_CONTROL_ID_HANDLER_FA_GET               (0)
-#define CS35L41_CONTROL_ID_HANDLER_FA_SET               (1)
-#define CS35L41_CONTROL_ID_HANDLER_DSP_STATUS           (2)
-
-#define CS35L41_CONTROL_ID_FA_GET_MASK                  (CS35L41_CONTROL_ID_HANDLER_FA_GET << 28)
-#define CS35L41_CONTROL_ID_FA_SET_MASK                  (CS35L41_CONTROL_ID_HANDLER_FA_SET << 28)
-#define CS35L41_CONTROL_ID_FA_GET(A)                    (A | CS35L41_CONTROL_ID_FA_GET_MASK)
-#define CS35L41_CONTROL_ID_FA_SET(A)                    (A | CS35L41_CONTROL_ID_FA_SET_MASK)
-#define CS35L41_CONTROL_ID_GET_REG                      CS35L41_CONTROL_ID_FA_GET(0)
-#define CS35L41_CONTROL_ID_SET_REG                      CS35L41_CONTROL_ID_FA_SET(0)
-#define CS35L41_CONTROL_ID_GET_SYM                      CS35L41_CONTROL_ID_FA_GET(1)
-#define CS35L41_CONTROL_ID_SET_SYM                      CS35L41_CONTROL_ID_FA_SET(1)
-
-#define CS35L41_CONTROL_ID_DSP_STATUS_MASK              (CS35L41_CONTROL_ID_HANDLER_DSP_STATUS << 28)
-#define CS35L41_CONTROL_ID_DSP_STATUS(A)                (A | CS35L41_CONTROL_ID_DSP_STATUS_MASK)
-#define CS35L41_CONTROL_ID_GET_DSP_STATUS               CS35L41_CONTROL_ID_DSP_STATUS(0)
-/** @} */
+#define CS35L41_POLL_OTP_BOOT_DONE_MS                   (10)        ///< Delay in ms between polling OTP_BOOT_DONE
+#define CS35L41_POLL_OTP_BOOT_DONE_MAX                  (10)        ///< Maximum number of times to poll OTP_BOOT_DONE
+#define CS35L41_OTP_SIZE_BYTES                          (32 * 4)    ///< Total size of CS35L41 OTP in bytes
 
 /**
  * @defgroup CS35L41_POWER_
@@ -177,45 +126,9 @@ extern "C" {
  * MACROS
  **********************************************************************************************************************/
 
-/**
- * @defgroup CS35L41_FLAG_MACROS
- * @brief Macros to get/set bitfield flags
- *
- * @{
- */
-#define CS35L41_FLAG_TO_MASK(A)                (0x1 << A)
-#define CS35L41_FLAG_VAL_TO_MASK(A, B)         (B << A)
-#define CS35L41_SET_FLAG(A, B)                 (A |= CS35L41_FLAG_TO_MASK(B))
-#define CS35L41_CLEAR_FLAG(A, B)               (A &= ~(CS35L41_FLAG_TO_MASK(B)))
-#define CS35L41_IS_FLAG_SET(A, B)              ((A & CS35L41_FLAG_TO_MASK(B)) == CS35L41_FLAG_TO_MASK(B))
-#define CS35L41_IS_FLAG_CLEAR(A, B)            ((A & CS35L41_FLAG_TO_MASK(B)) == 0)
-#define CS35L41_CHANGE_FLAG(A, B, C)           (A = ((A & ~CS35L41_FLAG_TO_MASK(B)) | CS35L41_FLAG_VAL_TO_MASK(B, C)))
-/** @} */
-
 /***********************************************************************************************************************
  * ENUMS, STRUCTS, UNIONS, TYPEDEFS
  **********************************************************************************************************************/
-
-/**
- * Entry in OTP Map of packed bitfield entries
- */
-typedef struct
-{
-    uint32_t reg;   ///< Register address to trim
-    uint8_t shift;  ///< Bitwise shift of register bitfield
-    uint8_t size;   ///< Bitwise size of register bitfield
-} cs35l41_otp_packed_entry_t;
-
-/**
- * Data structure describing an OTP Map
- */
-typedef struct
-{
-    uint32_t id;                            ///< OTP Map ID (corresponds to value read from OTPID register bitfield)
-    uint32_t num_elements;                  ///< Number of entries in OTP Map
-    const cs35l41_otp_packed_entry_t *map;  ///< Pointer to OTP Map
-    uint32_t bit_offset;                    ///< Bitwise offset at which to start unpacking OTP
-} cs35l41_otp_map_t;
 
 /**
  * Function pointer to Notification Callback
@@ -233,31 +146,6 @@ typedef struct
  * @return none
  */
 typedef void (*cs35l41_notification_callback_t)(uint32_t event_flags, void *arg);
-
-/**
- * Data structure to describe a Control Request
- *
- * @see cs35l41_control
- */
-typedef struct
-{
-    uint32_t id;    ///< Control ID
-    void *arg;      ///< Argument for Control Request (nature depends on type of request)
-} cs35l41_control_request_t;
-
-/**
- * Data structure to describe a field to read via the Field Access SM
- *
- * @see cs35l41_field_access
- */
-typedef struct
-{
-    uint32_t id;        ///< Id of symbol in symbol table.  If 0, indicates fixed address
-    uint32_t address;   ///< Control Port address of field to access
-    uint32_t value;     ///< Value to write/value read
-    uint8_t size;       ///< Bitwise size of field to access in register
-    uint8_t shift;      ///< Bitwise shift of field to access in register
-} cs35l41_field_accessor_t;
 
 /**
  * State of HALO FW Calibration
@@ -309,12 +197,11 @@ typedef struct
  */
 typedef struct
 {
-    uint8_t bsp_dev_id;                                 ///< Used to ID CS35L41 in bsp_driver_if calls
-    uint32_t bsp_reset_gpio_id;                         ///< Used to ID CS35L41 Reset pin in bsp_driver_if calls
-    uint32_t bsp_int_gpio_id;                           ///< Used to ID CS35L41 INT pin in bsp_driver_if calls
-    uint8_t bus_type;                                   ///< Control Port type - I2C or SPI
+    uint32_t reset_gpio_id;                             ///< Used to ID CS35L41 Reset pin in bsp_driver_if calls
+    uint32_t int_gpio_id;                               ///< Used to ID CS35L41 INT pin in bsp_driver_if calls
     cs35l41_notification_callback_t notification_cb;    ///< Notification callback registered for detected events
     void *notification_cb_arg;                          ///< Notification callback argument
+    regmap_cp_config_t cp_config;                       ///< Regmap control port configuration
 } cs35l41_bsp_config_t;
 
 /**
@@ -345,18 +232,14 @@ typedef struct
     // Driver configuration fields - see cs35l41_config_t
     cs35l41_config_t config;
 
-    // Control Request handling fields
-    cs35l41_control_request_t current_request;  ///< Current Control Request
-
     // Extra state material used by reset and boot
     uint32_t devid;                     ///< CS35L41 DEVID of current device
     uint32_t revid;                     ///< CS35L41 REVID of current device
-    const cs35l41_otp_map_t *otp_map;   ///< Pointer to relevant OTP Map for the current device
     fw_img_info_t *fw_info;             ///< Current HALO FW/Coefficient boot configuration
     bool is_cal_boot;                   ///< Flag to indicate current HALO FW boot is for Calibration
 
     uint32_t event_flags;               ///< Flags set by Event Handler that are passed to noticiation callback
-    uint8_t otp_contents[CS35L41_CP_BULK_READ_LENGTH_BYTES];
+    uint8_t otp_contents[CS35L41_OTP_SIZE_BYTES];   ///< Cache storage for OTP contents
 } cs35l41_t;
 
 /***********************************************************************************************************************
@@ -400,7 +283,7 @@ uint32_t cs35l41_initialize(cs35l41_t *driver);
 uint32_t cs35l41_configure(cs35l41_t *driver, cs35l41_config_t *config);
 
 /**
- * Processes driver state machines
+ * Processes driver states and modes
  *
  * This implements the 'CS35L41 Process Flowchart' found in the driver Tech Note.  This includes:
  * - calling Event Handler if in HANDLING_EVENTS mode
@@ -439,26 +322,6 @@ uint32_t cs35l41_process(cs35l41_t *driver);
  *
  */
 uint32_t cs35l41_reset(cs35l41_t *driver);
-
-/*
- * Write block of data to the CS35L41 register file
- *
- * This call is used to load the HALO FW/COEFF files to HALO RAM.
- *
- * @param [in] driver           Pointer to the driver state
- * @param [in] addr             Starting address of loading destination
- * @param [in] data             Pointer to array of bytes to be written
- * @param [in] size             Size of array of bytes to be written
- *
- * @return
- * - CS35L41_STATUS_FAIL if:
- *      - Any pointers are NULL
- *      - size is not multiple of 4
- *      - Control port activity fails
- * - otherwise, returns CS35L41_STATUS_OK
- *
- */
-uint32_t cs35l41_write_block(cs35l41_t *driver, uint32_t addr, uint8_t *data, uint32_t size);
 
 /**
  * Finish booting the CS35L41
@@ -500,24 +363,6 @@ uint32_t cs35l41_boot(cs35l41_t *driver, fw_img_info_t *fw_info);
  *
  */
 uint32_t cs35l41_power(cs35l41_t *driver, uint32_t power_state);
-
-/**
- * Submit a Control Request to the driver
- *
- * Caller will initialize a cs35l41_control_request_t 'req' based on the control it wishes to access.  This request
- * will then be processed and any return values will be available via the 'req' parameter.
- *
- * @param [in] driver           Pointer to the driver state
- * @param [in] req              data structure for control request \b passed by value
- *
- * @return
- * - CS35L41_STATUS_FAIL        if Control Request ID is invalid OR if processing of control fails
- * - CS35L41_STATUS_OK          otherwise
- *
- * @see cs35l41_control_request_t
- *
- */
-uint32_t cs35l41_control(cs35l41_t *driver, cs35l41_control_request_t req);
 
 /**
  * Send a set of HW configuration registers
@@ -603,33 +448,52 @@ uint32_t cs35l41_finish_tuning_switch(cs35l41_t *driver);
 uint32_t cs35l41_calibrate(cs35l41_t *driver, uint32_t ambient_temp_deg_c);
 
 /**
+ * Get DSP Status
+ *
+ * This function performs all register/memory field address reads to get the current HALO DSP status.  Since
+ * some statuses are only determined by observing changes in values of a given field, the fields are read once,
+ * then after a delay of 10 milliseconds, are read a second time to observe changes.
+ *
+ * @param [in] driver           Pointer to the driver state
+ * @param [out] status          Struct to store HALO DSP status
+ *
+ * @return
+ * - CS35L41_STATUS_FAIL if:
+ *      - Control port activity fails
+ *      - Required FW Control symbols are not found in the symbol table
+ * - CS35L41_STATUS_OK          otherwise
+ *
+ * @see cs35l41_dsp_status_t
+ *
+ */
+uint32_t cs35l41_get_dsp_status(cs35l41_t *driver, cs35l41_dsp_status_t *status);
+
+/*
  * Reads the contents of a single register/memory address
  *
  * @param [in] driver           Pointer to the driver state
- * @param [in] addr             32-bit address to be read
- * @param [out] val             Pointer to register value read
+ * @param [in] addr             Address of the register to be read
+ * @param [out] val             Pointer to where the read register value will be stored
  *
  * @return
- * - CS35L41_STATUS_FAIL        if the call to BSP failed
- * - CS35L41_STATUS_OK          otherwise
- *
- * @warning Contains platform-dependent code.
+ * - CS35L41_STATUS_FAIL if:
+ *      - Control port activity fails
+ * - otherwise, returns CS35L41_STATUS_OK
  *
  */
 uint32_t cs35l41_read_reg(cs35l41_t *driver, uint32_t addr, uint32_t *val);
 
-/**
+/*
  * Writes the contents of a single register/memory address
  *
  * @param [in] driver           Pointer to the driver state
- * @param [in] addr             32-bit address to be written
- * @param [in] val              32-bit value to be written
+ * @param [in] addr             Address of the register to be written
+ * @param [in] val              Value to be written to the register
  *
  * @return
- * - CS35L41_STATUS_FAIL        if the call to BSP failed
- * - CS35L41_STATUS_OK          otherwise
- *
- * @warning Contains platform-dependent code.
+ * - CS35L41_STATUS_FAIL if:
+ *      - Control port activity fails
+ * - otherwise, returns CS35L41_STATUS_OK
  *
  */
 uint32_t cs35l41_write_reg(cs35l41_t *driver, uint32_t addr, uint32_t val);
@@ -650,6 +514,25 @@ uint32_t cs35l41_write_reg(cs35l41_t *driver, uint32_t addr, uint32_t val);
  */
 uint32_t cs35l41_update_reg(cs35l41_t *driver, uint32_t addr, uint32_t mask, uint32_t val);
 
+/*
+ * Write block of data to the CS35L41 register file
+ *
+ * This call is used to load the HALO FW/COEFF files to HALO RAM.
+ *
+ * @param [in] driver           Pointer to the driver state
+ * @param [in] addr             Starting address of loading destination
+ * @param [in] data             Pointer to array of bytes to be written
+ * @param [in] size             Size of array of bytes to be written
+ *
+ * @return
+ * - CS35L41_STATUS_FAIL if:
+ *      - Any pointers are NULL
+ *      - size is not multiple of 4
+ *      - Control port activity fails
+ * - otherwise, returns CS35L41_STATUS_OK
+ *
+ */
+uint32_t cs35l41_write_block(cs35l41_t *driver, uint32_t addr, uint8_t *data, uint32_t size);
 
 /**********************************************************************************************************************/
 #ifdef __cplusplus

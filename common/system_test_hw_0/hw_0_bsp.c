@@ -26,8 +26,9 @@
 #include "hw_0_bsp.h"
 #include "stm32f4xx_hal.h"
 #include "test_tone_tables.h"
-#ifndef NO_OS
+#ifdef USE_CMSIS_OS
 #include "FreeRTOS.h"
+#include "semphr.h"
 #endif
 #include <stdio.h>
 #include <errno.h>
@@ -133,7 +134,7 @@
 
 #define BSP_DUT_RESET_CLK_ENABLE                __HAL_RCC_GPIOC_CLK_ENABLE
 #define BSP_DUT_RESET_CLK_DISABLE               __HAL_RCC_GPIOC_CLK_DISABLE
-#define BSP_DUT_CDC_RESET_PIN                   GPIO_PIN_0
+#define BSP_DUT_CDC_RESET_PIN                   GPIO_PIN_5
 #define BSP_DUT_DSP_RESET_PIN                   GPIO_PIN_1
 #define BSP_DUT_RESET_GPIO_PORT                 GPIOC
 #define BSP_DUT_INT_CLK_ENABLE                  __HAL_RCC_GPIOA_CLK_ENABLE
@@ -153,9 +154,7 @@
 #define BSP_LN2_RESET_PIN                       GPIO_PIN_6
 #define BSP_LN2_RESET_GPIO_PORT                 GPIOA
 
-#define BSP_GPIO_ID_LD2                         (0)
-
-#define BSP_PB_TOTAL                            (1)
+#define BSP_PB_TOTAL                            (5)
 
 #define BSP_LN2_FPGA_I2C_ADDRESS_8BIT           (0x44)
 
@@ -281,10 +280,10 @@ static void *app_cb_arg = NULL;
 
 static volatile int32_t bsp_irq_count = 0;
 
-static bsp_callback_t bsp_dut_cdc_int_cb = NULL;
-static bsp_callback_t bsp_dut_dsp_int_cb = NULL;
-static void *bsp_dut_cdc_int_cb_arg = NULL;
-static void *bsp_dut_dsp_int_cb_arg = NULL;
+static bsp_callback_t bsp_dut_cdc_int_cb[2] = {NULL, NULL};
+static bsp_callback_t bsp_dut_dsp_int_cb[2] = {NULL, NULL};
+static void *bsp_dut_cdc_int_cb_arg[2] = {NULL, NULL};
+static void *bsp_dut_dsp_int_cb_arg[2] = {NULL, NULL};
 
 static uint32_t spi_baud_prescaler = SPI_BAUDRATEPRESCALER_16;
 
@@ -423,6 +422,9 @@ static bsp_uart_state_t uart_rx_state =
     .packet_buffer = uart_rx_packet_buffer,
 };
 
+#ifdef USE_CMSIS_OS
+static SemaphoreHandle_t mutex_spi;
+#endif
 /***********************************************************************************************************************
  * GLOBAL VARIABLES
  **********************************************************************************************************************/
@@ -431,7 +433,7 @@ TIM_HandleTypeDef led_tim_drv_handle;
 I2C_HandleTypeDef i2c_drv_handle;
 I2S_HandleTypeDef i2s_drv_handle;
 SPI_HandleTypeDef hspi1;
-EXTI_HandleTypeDef exti_pb_handle, exti_cdc_int_handle, exti_dsp_int_handle;
+EXTI_HandleTypeDef exti_pb0_handle, exti_pb1_handle, exti_pb2_handle, exti_pb3_handle, exti_pb4_handle, exti_cdc_int_handle, exti_dsp_int_handle;
 UART_HandleTypeDef uart_drv_handle;
 
 FILE __test_file;
@@ -446,7 +448,6 @@ FILE* bridge_read_file = &__bridge_read_file;
 
 uint32_t bsp_set_timer(uint32_t duration_ms, bsp_callback_t cb, void *cb_arg);
 uint32_t bsp_set_gpio(uint32_t gpio_id, uint8_t gpio_state);
-uint32_t bsp_toggle_gpio(uint32_t gpio_id);
 /***********************************************************************************************************************
  * LOCAL FUNCTIONS
  **********************************************************************************************************************/
@@ -1020,22 +1021,67 @@ int __io_getc(int file)
 }
 #endif
 
-static void bsp_exti_pb_cb(void)
+static void bsp_exti_pb_cb(uint32_t pb_id)
 {
-    bsp_pb_pressed_flags[BSP_PB_ID_USER] = true;
-    if (bsp_pb_cbs[BSP_PB_ID_USER] != NULL)
+    if (pb_id < BSP_PB_ID_NUM)
     {
-        bsp_pb_cbs[BSP_PB_ID_USER](BSP_STATUS_OK, bsp_pb_cb_args[BSP_PB_ID_USER]);
+
+        bsp_pb_pressed_flags[pb_id] = true;
+        if (bsp_pb_cbs[pb_id] != NULL)
+        {
+            bsp_pb_cbs[pb_id](BSP_STATUS_OK, bsp_pb_cb_args[pb_id]);
+        }
     }
 
     return;
 }
 
+static void bsp_exti_pb0_cb(void)
+{
+    bsp_exti_pb_cb(BSP_PB_ID_USER);
+
+    return;
+}
+
+static void bsp_exti_pb1_cb(void)
+{
+    bsp_exti_pb_cb(BSP_PB_ID_SW1);
+
+    return;
+}
+
+static void bsp_exti_pb2_cb(void)
+{
+    bsp_exti_pb_cb(BSP_PB_ID_SW2);
+
+    return;
+}
+
+static void bsp_exti_pb3_cb(void)
+{
+    bsp_exti_pb_cb(BSP_PB_ID_SW3);
+
+    return;
+}
+
+static void bsp_exti_pb4_cb(void)
+{
+    bsp_exti_pb_cb(BSP_PB_ID_SW4);
+
+    return;
+}
+
+
 static void bsp_exti_cdc_int_cb(void)
 {
-    if (bsp_dut_cdc_int_cb != NULL)
+    if (bsp_dut_cdc_int_cb[0] != NULL)
     {
-        bsp_dut_cdc_int_cb(BSP_STATUS_OK, bsp_dut_cdc_int_cb_arg);
+        bsp_dut_cdc_int_cb[0](BSP_STATUS_OK, bsp_dut_cdc_int_cb_arg[0]);
+    }
+
+    if (bsp_dut_cdc_int_cb[1] != NULL)
+    {
+        bsp_dut_cdc_int_cb[1](BSP_STATUS_OK, bsp_dut_cdc_int_cb_arg[1]);
     }
 
     if (app_cb != NULL)
@@ -1047,10 +1093,14 @@ static void bsp_exti_cdc_int_cb(void)
 
 static void bsp_exti_dsp_int_cb(void)
 {
-    if (bsp_dut_dsp_int_cb != NULL)
+    if (bsp_dut_dsp_int_cb[0] != NULL)
     {
-        bsp_dut_dsp_int_cb(BSP_STATUS_OK, bsp_dut_dsp_int_cb_arg);
-        app_cb(BSP_STATUS_DUT_EVENTS, app_cb_arg);
+        bsp_dut_dsp_int_cb[0](BSP_STATUS_OK, bsp_dut_dsp_int_cb_arg[0]);
+    }
+
+    if (bsp_dut_dsp_int_cb[1] != NULL)
+    {
+        bsp_dut_dsp_int_cb[1](BSP_STATUS_OK, bsp_dut_dsp_int_cb_arg[1]);
     }
 
     if (app_cb != NULL)
@@ -1070,6 +1120,7 @@ void HAL_MspInit(void)
 
     // Enable clocks to ports used
     __HAL_RCC_GPIOA_CLK_ENABLE();
+    __HAL_RCC_GPIOB_CLK_ENABLE();
     __HAL_RCC_GPIOC_CLK_ENABLE();
     BSP_DUT_RESET_CLK_ENABLE();
     BSP_DUT_INT_CLK_ENABLE();
@@ -1145,9 +1196,38 @@ void HAL_MspInit(void)
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
+    // Configure GPIO pins : PB2 (SW1), PB8 (SW3), PB9 (SW4), PB10 (SW2)
+    GPIO_InitStruct.Pin = GPIO_PIN_2|GPIO_PIN_10|GPIO_PIN_8|GPIO_PIN_9;
+    GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
+    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
     exti_config.Line = EXTI_LINE_13;
-    HAL_EXTI_SetConfigLine(&exti_pb_handle, &exti_config);
-    HAL_EXTI_RegisterCallback(&exti_pb_handle, HAL_EXTI_COMMON_CB_ID, &bsp_exti_pb_cb);
+    HAL_EXTI_SetConfigLine(&exti_pb0_handle, &exti_config);
+    HAL_EXTI_RegisterCallback(&exti_pb0_handle, HAL_EXTI_COMMON_CB_ID, &bsp_exti_pb0_cb);
+
+    exti_config.Line = EXTI_LINE_2;
+    HAL_EXTI_SetConfigLine(&exti_pb1_handle, &exti_config);
+    HAL_EXTI_RegisterCallback(&exti_pb1_handle, HAL_EXTI_COMMON_CB_ID, &bsp_exti_pb1_cb);
+
+    exti_config.Line = EXTI_LINE_8;
+    HAL_EXTI_SetConfigLine(&exti_pb2_handle, &exti_config);
+    HAL_EXTI_RegisterCallback(&exti_pb2_handle, HAL_EXTI_COMMON_CB_ID, &bsp_exti_pb2_cb);
+
+    exti_config.Line = EXTI_LINE_9;
+    HAL_EXTI_SetConfigLine(&exti_pb3_handle, &exti_config);
+    HAL_EXTI_RegisterCallback(&exti_pb3_handle, HAL_EXTI_COMMON_CB_ID, &bsp_exti_pb3_cb);
+
+    exti_config.Line = EXTI_LINE_10;
+    HAL_EXTI_SetConfigLine(&exti_pb4_handle, &exti_config);
+    HAL_EXTI_RegisterCallback(&exti_pb4_handle, HAL_EXTI_COMMON_CB_ID, &bsp_exti_pb4_cb);
+
+    /* EXTI interrupt init*/
+    HAL_NVIC_SetPriority(EXTI2_IRQn, BSP_DUT_DSP_INT_PREEMPT_PRIO, 0);
+    HAL_NVIC_EnableIRQ(EXTI2_IRQn);
+
+    HAL_NVIC_SetPriority(EXTI9_5_IRQn, BSP_DUT_DSP_INT_PREEMPT_PRIO, 0);
+    HAL_NVIC_EnableIRQ(EXTI9_5_IRQn);
 
     /* Enable and set Button EXTI Interrupt to the lowest priority */
     HAL_NVIC_SetPriority((IRQn_Type)EXTI15_10_IRQn, BSP_DUT_DSP_INT_PREEMPT_PRIO, 0x00);
@@ -1159,13 +1239,13 @@ void HAL_MspInit(void)
     HAL_NVIC_EnableIRQ((IRQn_Type)EXTI0_IRQn);
 #endif
 
-    HAL_GPIO_WritePin(GPIOC, GPIO_PIN_5, GPIO_PIN_RESET);
-    GPIO_InitStruct.Pin = GPIO_PIN_5;
+    HAL_GPIO_WritePin(GPIOA, GPIO_PIN_7, GPIO_PIN_RESET);
+    GPIO_InitStruct.Pin = GPIO_PIN_7;
     GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
     GPIO_InitStruct.Alternate = 0;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
-    HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
     HAL_GPIO_WritePin(GPIOC, GPIO_PIN_2, GPIO_PIN_RESET);
     GPIO_InitStruct.Pin = GPIO_PIN_2;
@@ -1204,9 +1284,9 @@ void HAL_SPI_MspInit(SPI_HandleTypeDef* hspi)
     */
 
     /* Depending on minicard config, the SPI interface and SS will differ */
-    HAL_GPIO_WritePin(GPIOA, GPIO_PIN_11, GPIO_PIN_SET);
+    HAL_GPIO_WritePin(GPIOC, GPIO_PIN_8, GPIO_PIN_SET);
     HAL_GPIO_WritePin(GPIOA, GPIO_PIN_15, GPIO_PIN_SET);
-    GPIO_InitStruct.Pin = GPIO_PIN_11 | GPIO_PIN_15;
+    GPIO_InitStruct.Pin = GPIO_PIN_15;
     GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
@@ -1219,6 +1299,13 @@ void HAL_SPI_MspInit(SPI_HandleTypeDef* hspi)
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
     GPIO_InitStruct.Alternate = GPIO_AF5_SPI1;
     HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+    GPIO_InitStruct.Pin = GPIO_PIN_8;
+    GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+    GPIO_InitStruct.Alternate = 0;
+    HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
   /* USER CODE BEGIN SPI1_MspInit 1 */
 
@@ -1249,9 +1336,11 @@ void HAL_SPI_MspDeInit(SPI_HandleTypeDef* hspi)
     PB4     ------> SPI1_MISO
     PB5     ------> SPI1_MOSI
     */
-    HAL_GPIO_DeInit(GPIOA, GPIO_PIN_11|GPIO_PIN_15);
+    HAL_GPIO_DeInit(GPIOA, GPIO_PIN_15);
 
     HAL_GPIO_DeInit(GPIOB, GPIO_PIN_3|GPIO_PIN_4|GPIO_PIN_5);
+
+    HAL_GPIO_DeInit(GPIOC, GPIO_PIN_8);
 
   /* USER CODE BEGIN SPI1_MspDeInit 1 */
 
@@ -2154,6 +2243,13 @@ uint32_t bsp_initialize(bsp_app_callback_t cb, void *cb_arg)
 #ifdef SEMIHOSTING
     initialise_monitor_handles();
 #endif
+#ifdef USE_CMSIS_OS
+    mutex_spi = xSemaphoreCreateMutex();
+    if( mutex_spi == NULL )
+    {
+        return BSP_STATUS_FAIL; /* There was insufficient heap memory available for the mutex to be created. */
+    }
+#endif
     /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
     HAL_Init();
 
@@ -2473,7 +2569,7 @@ uint32_t bsp_set_gpio(uint32_t gpio_id, uint8_t gpio_state)
             break;
 
         case BSP_GPIO_ID_GF_GPIO7:
-            HAL_GPIO_WritePin(GPIOC, GPIO_PIN_5, (GPIO_PinState) gpio_state);
+            HAL_GPIO_WritePin(GPIOA, GPIO_PIN_7, (GPIO_PinState) gpio_state);
             break;
 
         case BSP_GPIO_ID_GF_GPIO2:
@@ -2541,8 +2637,8 @@ uint32_t bsp_spi_read(uint32_t bsp_dev_id,
     switch (bsp_dev_id)
     {
         case BSP_DUT_DEV_ID_SPI2:
-            cs_gpio_per = GPIOA;
-            cs_gpio_pin = GPIO_PIN_11;
+            cs_gpio_per = GPIOC;
+            cs_gpio_pin = GPIO_PIN_8;
             break;
         case BSP_DUT_DEV_ID:
             cs_gpio_per = GPIOA;
@@ -2552,30 +2648,49 @@ uint32_t bsp_spi_read(uint32_t bsp_dev_id,
             return BSP_STATUS_FAIL;
     }
 
+#ifdef USE_CMSIS_OS
+    xSemaphoreTake(mutex_spi, portMAX_DELAY);
+#endif
     // Chip select low
     HAL_GPIO_WritePin(cs_gpio_per, cs_gpio_pin, GPIO_PIN_RESET);
 
     // Transmit R/W bit + register addr
     ret = HAL_SPI_Transmit(&hspi1, addr_buffer, addr_length, HAL_MAX_DELAY);
     if (ret)
-        return BSP_STATUS_FAIL;
+    {
+        CRUS_THROW(exit_spi_read);
+    }
 
     if (pad_len)
     {
         // Transmit Padding
         ret = HAL_SPI_Transmit(&hspi1, padding, pad_len, HAL_MAX_DELAY);
         if (ret)
-            return BSP_STATUS_FAIL;
+        {
+            CRUS_THROW(exit_spi_read);
+        }
     }
 
     // Receive value
     ret = HAL_SPI_Receive(&hspi1, data_buffer, data_length, HAL_MAX_DELAY);
     if (ret)
-        return BSP_STATUS_FAIL;
-
+    {
+        CRUS_THROW(exit_spi_read);
+    }
     HAL_GPIO_WritePin(cs_gpio_per, cs_gpio_pin, GPIO_PIN_SET);
 
-    return BSP_STATUS_OK;
+    CRUS_CATCH(exit_spi_read);
+#ifdef USE_CMSIS_OS
+    xSemaphoreGive(mutex_spi);
+#endif
+    if (ret)
+    {
+        return BSP_STATUS_FAIL;
+    }
+    else
+    {
+        return BSP_STATUS_OK;
+    }
 }
 
 uint32_t bsp_spi_write(uint32_t bsp_dev_id,
@@ -2597,8 +2712,8 @@ uint32_t bsp_spi_write(uint32_t bsp_dev_id,
     switch (bsp_dev_id)
     {
         case BSP_DUT_DEV_ID_SPI2:
-            cs_gpio_per = GPIOA;
-            cs_gpio_pin = GPIO_PIN_11;
+            cs_gpio_per = GPIOC;
+            cs_gpio_pin = GPIO_PIN_8;
             break;
         case BSP_DUT_DEV_ID:
             cs_gpio_per = GPIOA;
@@ -2607,32 +2722,51 @@ uint32_t bsp_spi_write(uint32_t bsp_dev_id,
         default:
             return BSP_STATUS_FAIL;
     }
-
+#ifdef USE_CMSIS_OS
+    xSemaphoreTake(mutex_spi, portMAX_DELAY);
+#endif
     // Chip select low
     HAL_GPIO_WritePin(cs_gpio_per, cs_gpio_pin, GPIO_PIN_RESET);
 
     // Transmit R/W bit + register addr
     ret = HAL_SPI_Transmit(&hspi1, addr_buffer, addr_length, HAL_MAX_DELAY);
     if (ret)
-        return BSP_STATUS_FAIL;
+    {
+        CRUS_THROW(exit_spi_write);
+    }
 
     if (pad_len)
     {
         // Transmit Padding
         ret = HAL_SPI_Transmit(&hspi1, padding, pad_len, HAL_MAX_DELAY);
         if (ret)
-            return BSP_STATUS_FAIL;
+        {
+            CRUS_THROW(exit_spi_write);
+        }
     }
 
     // Transmit data
     ret = HAL_SPI_Transmit(&hspi1, data_buffer, data_length, HAL_MAX_DELAY);
     if (ret)
-        return BSP_STATUS_FAIL;
+    {
+        CRUS_THROW(exit_spi_write);
+    }
 
     // Chip select high
     HAL_GPIO_WritePin(cs_gpio_per, cs_gpio_pin, GPIO_PIN_SET);
 
-    return BSP_STATUS_OK;
+    CRUS_CATCH(exit_spi_write);
+#ifdef USE_CMSIS_OS
+    xSemaphoreGive(mutex_spi);
+#endif
+    if (ret)
+    {
+        return BSP_STATUS_FAIL;
+    }
+    else
+    {
+        return BSP_STATUS_OK;
+    }
 }
 
 uint32_t bsp_i2c_read_repeated_start(uint32_t bsp_dev_id,
@@ -2647,6 +2781,7 @@ uint32_t bsp_i2c_read_repeated_start(uint32_t bsp_dev_id,
     {
         case BSP_DUT_DEV_ID:
             bsp_i2c_transaction_complete = false;
+            bsp_i2c_transaction_error = false;
             bsp_i2c_done_cb = cb;
             bsp_i2c_done_cb_arg = cb_arg;
             bsp_i2c_current_transaction_type = BSP_I2C_TRANSACTION_TYPE_READ_REPEATED_START;
@@ -2669,6 +2804,7 @@ uint32_t bsp_i2c_read_repeated_start(uint32_t bsp_dev_id,
 #ifdef BSP_LN2_DEV_ID
         case BSP_LN2_DEV_ID:
             bsp_i2c_transaction_complete = false;
+            bsp_i2c_transaction_error = false;
             bsp_i2c_done_cb = cb;
             bsp_i2c_done_cb_arg = cb_arg;
             bsp_i2c_current_transaction_type = BSP_I2C_TRANSACTION_TYPE_READ_REPEATED_START;
@@ -2693,7 +2829,14 @@ uint32_t bsp_i2c_read_repeated_start(uint32_t bsp_dev_id,
             break;
     }
 
-    return BSP_STATUS_OK;
+    if (bsp_i2c_transaction_error)
+    {
+        return BSP_STATUS_FAIL;
+    }
+    else
+    {
+        return BSP_STATUS_OK;
+    }
 }
 
 uint32_t bsp_i2c_write(uint32_t bsp_dev_id,
@@ -2802,13 +2945,29 @@ uint32_t bsp_register_gpio_cb(uint32_t gpio_id, bsp_callback_t cb, void *cb_arg)
     switch (gpio_id)
     {
         case BSP_GPIO_ID_DUT_CDC_INT:
-            bsp_dut_cdc_int_cb = cb;
-            bsp_dut_cdc_int_cb_arg = cb_arg;
+            if (bsp_dut_cdc_int_cb[0] == NULL)
+            {
+                bsp_dut_cdc_int_cb[0] = cb;
+                bsp_dut_cdc_int_cb_arg[0] = cb_arg;
+            }
+            else if (bsp_dut_cdc_int_cb[1] == NULL)
+            {
+                bsp_dut_cdc_int_cb[1] = cb;
+                bsp_dut_cdc_int_cb_arg[1] = cb_arg;
+            }
             break;
 
         case BSP_GPIO_ID_DUT_DSP_INT:
-            bsp_dut_dsp_int_cb = cb;
-            bsp_dut_dsp_int_cb_arg = cb_arg;
+            if (bsp_dut_dsp_int_cb[0] == NULL)
+            {
+                bsp_dut_dsp_int_cb[0] = cb;
+                bsp_dut_dsp_int_cb_arg[0] = cb_arg;
+            }
+            else if (bsp_dut_dsp_int_cb[1] == NULL)
+            {
+                bsp_dut_dsp_int_cb[1] = cb;
+                bsp_dut_dsp_int_cb_arg[1] = cb_arg;
+            }
             break;
 
         default:

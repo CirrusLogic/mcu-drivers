@@ -1,7 +1,7 @@
 /**
- * @file cs40l30_ext.h
+ * @file bridge.h
  *
- * @brief Functions and prototypes exported by the CS40L30 Driver Extended API module
+ * @brief Functions and prototypes exported by the WISCE/Studio Bridge handler
  *
  * @copyright
  * Copyright (c) Cirrus Logic 2021 All Rights Reserved, http://www.cirrus.com/
@@ -20,8 +20,8 @@
  *
  */
 
-#ifndef CS40L30_EXT_H
-#define CS40L30_EXT_H
+#ifndef BRIDGE_H
+#define BRIDGE_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -30,11 +30,29 @@ extern "C" {
 /***********************************************************************************************************************
  * INCLUDES
  **********************************************************************************************************************/
-#include "cs40l30.h"
+#include "regmap.h"
 
 /***********************************************************************************************************************
  * LITERALS & CONSTANTS
  **********************************************************************************************************************/
+
+#define BRIDGE_STATUS_OK    (0)
+#define BRIDGE_STATUS_FAIL  (1)
+
+// This is based on StudioLink's current policy of chunking commands that span multiple register addresses.
+// Cmds are limited to a 200 register span, after which Cmds get chunked.
+// For 32-bit wide regsiters this means BlockRead & BlockWrite cmds will not contain more the 800 bytes of data
+// However the data is represented in hex string format meaning byte needs 2 chars to represent it
+
+#define BRIDGE_MAX_WISCE_REG_SPAN               (200)
+#define BRIDGE_REG_BYTES                        (4)
+#define BRIDGE_MAX_BLOCK_WRITE_BYTES            (BRIDGE_MAX_WISCE_REG_SPAN * BRIDGE_REG_BYTES)
+#define BRIDGE_MAX_BLOCK_READ_BYTES             (800)
+#if (BRIDGE_MAX_BLOCK_WRITE_BYTES > BRIDGE_MAX_BLOCK_READ_BYTES)
+    #define BRIDGE_BLOCK_BUFFER_LENGTH_BYTES    (BRIDGE_MAX_BLOCK_WRITE_BYTES)
+#else
+    #define BRIDGE_BLOCK_BUFFER_LENGTH_BYTES    (BRIDGE_MAX_BLOCK_READ_BYTES)
+#endif
 
 /***********************************************************************************************************************
  * MACROS
@@ -43,6 +61,13 @@ extern "C" {
 /***********************************************************************************************************************
  * ENUMS, STRUCTS, UNIONS, TYPEDEFS
  **********************************************************************************************************************/
+typedef struct
+{
+    const char *device_id_str;
+    const char *dev_name_str;
+    uint8_t bus_i2c_cs_address;
+    regmap_cp_config_t b;
+} bridge_device_t;
 
 /***********************************************************************************************************************
  * GLOBAL VARIABLES
@@ -51,15 +76,32 @@ extern "C" {
 /***********************************************************************************************************************
  * API FUNCTIONS
  **********************************************************************************************************************/
-uint32_t cs40l30_trigger(cs40l30_t *driver, uint32_t index);
 
-#ifdef CS40L30_ALGORITHM_BUZZGEN
-uint32_t cs40l30_buzzgen_config(cs40l30_t *driver, uint8_t id, uint8_t freq, uint8_t level, uint32_t duration);
-#endif //CS40L30_ALGORITHM_BUZZGEN
+/**
+ * Initialize the bridge processing module.
+ *
+ * @param [in] device_list      Pointer to the array of bridge_device_t configured in BSP code
+ * @param [in] num_devices      Number of devices in device_list
+ *
+ * @return
+ * - BRIDGE_STATUS_FAIL         If device_list is NULL
+ * - BRIDGE_STATUS_OK           otherwise
+ *
+ */
+uint32_t bridge_initialize(bridge_device_t *device_list, uint8_t num_devices);
+
+/**
+ * Process any incoming Bridge commands
+ *
+ * @return
+ * - BRIDGE_STATUS_OK           always
+ *
+ */
+uint32_t bridge_process(void);
 
 /**********************************************************************************************************************/
 #ifdef __cplusplus
 }
 #endif
 
-#endif // CS40L30_EXT_H
+#endif // BRIDGE_H

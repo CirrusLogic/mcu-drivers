@@ -234,7 +234,7 @@ endif
 DRIVER_PATH = $(REPO_PATH)/cs35l41
 CONFIG_PATH = $(REPO_PATH)/cs35l41/config
 COMMON_PATH = $(REPO_PATH)/common
-DRIVER_SRCS = $(DRIVER_PATH)/cs35l41.c $(CONFIG_PATH)/cs35l41_fs_switch_syscfg.c $(CONFIG_PATH)/cs35l41_syscfg_regs.c $(COMMON_PATH)/fw_img.c
+DRIVER_SRCS = $(DRIVER_PATH)/cs35l41.c $(CONFIG_PATH)/cs35l41_fs_switch_syscfg.c $(CONFIG_PATH)/cs35l41_syscfg_regs.c $(COMMON_PATH)/fw_img.c $(COMMON_PATH)/regmap.c
 ifeq ($(MAKECMDGOALS), system_test)
 DRIVER_SRCS += $(DRIVER_PATH)/cs35l41_ext.c
 else ifeq ($(MAKECMDGOALS), baremetal)

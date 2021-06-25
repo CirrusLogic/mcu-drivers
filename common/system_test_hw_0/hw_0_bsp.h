@@ -56,6 +56,11 @@ extern "C" {
 #define BSP_SUPPLY_ID_LN2_DCVDD         (1)
 
 #define BSP_PB_ID_USER                  (0)
+#define BSP_PB_ID_SW1                   (1)
+#define BSP_PB_ID_SW2                   (2)
+#define BSP_PB_ID_SW3                   (3)
+#define BSP_PB_ID_SW4                   (4)
+#define BSP_PB_ID_NUM                   (5)
 
 #define BSP_PLAY_SILENCE                (0)
 #define BSP_PLAY_STEREO_1KHZ_20DBFS     (1)
@@ -75,9 +80,19 @@ extern "C" {
 #define BSP_LD2_MODE_ON                 (1)
 #define BSP_LD2_MODE_BLINK              (2)
 
+#define BSP_GPIO_ID_LD2                 (0)
+
+#ifndef BSP_DUT_I2C_ADDRESS_8BIT
+#define BSP_DUT_I2C_ADDRESS_8BIT (0x80)
+#endif
 /***********************************************************************************************************************
  * MACROS
  **********************************************************************************************************************/
+// Control flow escape for local exception handing. Throws to the corresponding catch within the same function.
+#define CRUS_THROW(exception) goto exception //NOSONAR
+
+// Control flow escape for local exception handing. Catches a local throw from within the same function.
+#define CRUS_CATCH(exception) while(0) exception:
 
 /***********************************************************************************************************************
  * ENUMS, STRUCTS, UNIONS, TYPEDEFS
@@ -119,6 +134,7 @@ uint32_t bsp_i2c_write(uint32_t bsp_dev_id,
 void*    bsp_malloc(size_t size);
 void     bsp_free(void* ptr);
 uint32_t bsp_set_ld2(uint8_t mode, uint32_t blink_100ms);
+uint32_t bsp_toggle_gpio(uint32_t gpio_id);
 
 /**********************************************************************************************************************/
 #ifdef __cplusplus

@@ -313,11 +313,14 @@ def send_bw_data_to_mcu(crnt_cmd, ser_ch, ch_num, state, verbose):
 def client_cmd_handler(crnt_cmd, ser_ch, ch_num, state, verbose):
     abbr_action_str = cmd_mcu_abbreviated[crnt_cmd.get_action_str()]
     abbr_dev_cmd_str = abbr_action_str
+
     # add chip target if multi-chip
-    if num_chips > 1:
+    if ((num_chips > 1) and (crnt_cmd.device_name is not None)):
         # Expect the client cmd to have a "[name-N]"
         # We only send the N to the device in order to identify the targeted chip
+        print("DEVICE: " + crnt_cmd.device_name)
         abbr_dev_cmd_str += " {}".format(devices[crnt_cmd.device_name]["chip_id"])
+
     # add args
     if crnt_cmd.arg1 is not None:
         abbr_dev_cmd_str += " {}".format(crnt_cmd.arg1)
@@ -366,22 +369,24 @@ def mcu_reply_hndlr_detect(mcu_detect_reply_s):
     # store info for ourselves
     num_chips = mcu_detect_reply_s.count(":") + 1
     mcu_reply_str_parts = mcu_detect_reply_s.split(':')
+    reply_str = 'Detect '
     for i in range(num_chips):
         (name_n, bus_name, bus_addr, drvr_ctrl) = tuple(mcu_reply_str_parts[i].split(','))
         # Check name_n is of the form <name>-N as agent to mcu protocol uses N to identify the chip
         if '-' not in name_n and len(name_n.split('-')) != 2:
             raise bridge_excpn("name value in DETECT reply from device incorrect format: {}".format(name_n))
-        name_parts = name_n.split('-')
         devices[name_n] = dict()
-        devices[name_n]["name"] = name_n.split('-')[0]
+        devices[name_n]["name"] = name_n
         devices[name_n]["chip_id"] = name_n.split('-')[1]
         devices[name_n]["name_n"] = name_n
         devices[name_n]["bus"] = bus_name
         devices[name_n]["bus_addr"] = bus_addr
         devices[name_n]["drvr_ctrl"] = drvr_ctrl
 
+        reply_str += '{},{},{},DriverControl:{}="{}" '.format(name_n, devices[name_n]["bus"], devices[name_n]["bus_addr"], devices[name_n]["drvr_ctrl"], devices[name_n]["name"])
+
     # Formulate reply to client
-    return 'Detect {},{},{},DriverControl:{}="{}"\n'.format(name_n, bus_name, bus_addr, drvr_ctrl, wisce_device_id)
+    return (reply_str[:-1] + '\n')
 
 def prepend_seq_num(current_cmd, cli_rsp_str):
     if current_cmd.seq_num is not None:
@@ -399,38 +404,23 @@ def do_reply_handler(current_cmd, mcu_reply_str):
         cli_rsp_str = mcu_reply_str + "\n"
 
     elif current_cmd.action == "R" or current_cmd.action == "Read":
-        if num_chips == 1:
-            # Expect MCU reply to be a reg read value "<regreadvalue>" in decimal ascii
-            # So we need to Convert MCU's reg read value to hex for client
-            mcu_reply_str_hex = hex(int(mcu_reply_str))
-            # response to client format : "[seqNum] <regreadvalue>"
-            cli_rsp_str = mcu_reply_str_hex + "\n"
-        else: # num_chips == 2:
-            # Expect MCU reply to be  "<chipnumber> <regreadvalue>"
-            pass
+        # Expect MCU reply to be a reg read value "<regreadvalue>" in decimal ascii
+        # So we need to Convert MCU's reg read value to hex for client
+        mcu_reply_str_hex = hex(int(mcu_reply_str))
+        # response to client format : "[seqNum] <regreadvalue>"
+        cli_rsp_str = mcu_reply_str_hex + "\n"
     elif current_cmd.action == "W" or current_cmd.action == "Write" \
             or current_cmd.action == "BlockWrite" or current_cmd.action == "BW":
-        if num_chips == 1:
-            # Expect MCU reply to be "Ok"
-            # response to client format : "[seqNum] Ok"
-            cli_rsp_str = "Ok\n"
-        else:  # num_chips == 2:
-            pass
+        # Expect MCU reply to be "Ok"
+        # response to client format : "[seqNum] Ok"
+        cli_rsp_str = "Ok\n"
     elif current_cmd.action == "BR" or current_cmd.action == "BlockRead":
-        if num_chips == 1:
-            # Expect MCU reply to be string of multiple reg read values eg "0048ac40000000a0" No! will ne in decimal?
-            # ToDo As for Read the MCU reg values might come in as dec ascii but WISCE want hex
-            # response to client format : "[seqNum] <regreadvalue>"
-            cli_rsp_str = mcu_reply_str + "\n"
-        else: # num_chips == 2:
-            # Expect MCU reply to be  "<chipnumber> <regreadvalue>"
-            pass
+        # Expect MCU reply to be string of multiple reg read values eg "0048ac40000000a0" No! will ne in decimal?
+        # response to client format : "[seqNum] <regreadvalue>"
+        cli_rsp_str = mcu_reply_str + "\n"
 
     elif current_cmd.action == "Info":
-        if num_chips == 1:
-            cli_rsp_str = mcu_reply_hndlr_info(mcu_reply_str.split(','))
-        else:  # num_chips == 2:
-            pass
+        cli_rsp_str = mcu_reply_hndlr_info(mcu_reply_str.split(','))
 
     else:
         print("NEED TO WRITE reply hndlr for Cmd {}, rxed reply: {}".format(current_cmd.action,
@@ -472,10 +462,13 @@ def wait_for_sock_recv(sock):
 
 def wait_for_serial_data(ser_ch, ch_num):
     # smcio read is non-blocking so loop read until we read a full string
-    data_str = None
+    data_str = ""
     time.sleep(1)
-    while data_str is None:
-        data_str = ser_ch.read_channel(ch_num)
+    while '\n' not in data_str:
+        data_tmp = ''
+        while data_tmp is '':
+            data_tmp = ser_ch.read_channel(ch_num)
+        data_str = data_str + data_tmp
     return data_str
 
 
@@ -485,15 +478,14 @@ def inner_loop(sock, ser_ch, ch_num, state, crnt_cmd, verbose):
         try:
             dbg_pr_general(verbose, "Loop state: {}".format(state))
             if state == BRIDGE_STATE_HANDSHAKE_READ_REG0:
-                # Initiate a Read of addr 0
-                ser_ch.write_channel(ch_num, "RE 0\n")
+                # Initiate a Current Device "CD" command
+                ser_ch.write_channel(ch_num, "CD\n")
                 state = BRIDGE_STATE_HANDSHAKE_WAIT_MCU_REPLY_READ_REG0
             elif state == BRIDGE_STATE_HANDSHAKE_WAIT_MCU_REPLY_READ_REG0:
                 dbg_pr_general(verbose, "Initial read reg 0: Waiting for device reply")
                 reply = wait_for_serial_data(ser_ch, ch_num)
                 dbg_pr_DeviceMsgToAgent(verbose, reply)
-                reply = reply[:-1]
-                wisce_device_id = "{:X}".format(int(reply))
+                wisce_device_id = reply[:-1]
                 print("wisce_device_id is {}".format(wisce_device_id))
                 state = BRIDGE_STATE_HANDSHAKE_INFO
             elif state == BRIDGE_STATE_HANDSHAKE_INFO:

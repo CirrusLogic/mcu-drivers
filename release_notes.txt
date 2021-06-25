@@ -3,6 +3,26 @@ Release Notes
 
 =============================================================================
 Summary:
+This is the release of Alt-OS Driver SDK v4.4.0
+Date: 2021/06/25
+
+Architectures/Compilers Used:
+GNU Arm Embedded Toolchain: arm-none-eabi-gcc -mcpu=cortex-m4
+
+New Features/Changes:
+[SQA-2085] Added regmap common module
+[SQA-1554] L41 - ported to regmap
+[SQA-2320] L41 driver refactored unused functionality
+[SQA-2061] Added WISCE/StudioBridge target implementation, including virtual register map
+[SQA-2315] wisce_script_converter - support for named lookups
+[SQA-2314] wisce_script_converter - support for LOAD commands
+Support for CS40L30 driver removed
+
+Fixed Bugs:
+
+=============================================================================
+=============================================================================
+Summary:
 This is the release of Alt-OS Driver SDK v4.3.0
 Date: 2021/06/02
 

@@ -63,10 +63,10 @@ static uint8_t i2c_buffer[8];
 static void l41_reset(void)
 {
     // Drive RESET low for at least T_RLPW (1ms)
-    bsp_driver_if_g->set_gpio(BSP_GPIO_ID_DUT_RESET, BSP_GPIO_LOW);
+    bsp_driver_if_g->set_gpio(BSP_GPIO_ID_DUT_DSP_RESET, BSP_GPIO_LOW);
     bsp_driver_if_g->set_timer(CS35L41_T_RLPW_MS, NULL, NULL);
     // Drive RESET high and wait for at least T_IRS (1ms)
-    bsp_driver_if_g->set_gpio(BSP_GPIO_ID_DUT_RESET, BSP_GPIO_HIGH);
+    bsp_driver_if_g->set_gpio(BSP_GPIO_ID_DUT_DSP_RESET, BSP_GPIO_HIGH);
     bsp_driver_if_g->set_timer(CS35L41_T_IRS_MS, NULL, NULL);
     bsp_driver_if_g->set_timer((CS35L41_POLL_OTP_BOOT_DONE_MS * 5), NULL, NULL);
 

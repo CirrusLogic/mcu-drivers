@@ -1,0 +1,105 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<!--============================================================================
+== @file bridge_scs_device.xml
+==
+== @brief SoundClear Studio device XML for bridge vregmap
+==
+== @copyright
+== Copyright (c) Cirrus Logic 2021 All Rights Reserved, http://www.cirrus.com/
+==
+== Licensed under the Apache License, Version 2.0 (the License); you may
+== not use this file except in compliance with the License.
+== You may obtain a copy of the License at
+==
+== www.apache.org/licenses/LICENSE-2.0
+==
+== Unless required by applicable law or agreed to in writing, software
+== distributed under the License is distributed on an AS IS BASIS, WITHOUT
+== WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+== See the License for the specific language governing permissions and
+== limitations under the License.
+==
+=============================================================================
+-->
+<SCSDevice Version="0.1" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <DeviceInfo>
+        <Type>VREGS</Type>
+        <ReportedID>VREGS</ReportedID>
+        <Revision>A</Revision>
+        <RegisterBitWidth>32</RegisterBitWidth>
+        <ControlInterfaces>
+            <ControlInterface>
+                <InterfaceProtocol>SMbus_32inx_32dat</InterfaceProtocol>
+                <DeviceAddress>0x70</DeviceAddress>
+            </ControlInterface>
+            <ControlInterface>
+                <InterfaceProtocol>4wireSPI_32inx_32dat_32pad</InterfaceProtocol>
+            </ControlInterface>
+        </ControlInterfaces>
+    </DeviceInfo>
+    <Registers>
+        <Register>
+            <Name>CONTROL</Name>
+            <Address>0x00000000</Address>
+            <DefaultValue>0x00000000</DefaultValue>
+            <Access>R/W</Access>
+        </Register>
+        <Register>
+            <Name>SDK_VERSION</Name>
+            <Address>0x0000FFFF</Address>
+            <DefaultValue>0x00000000</DefaultValue>
+            <Access>R/O</Access>
+        </Register>
+    </Registers>
+    <Fields>
+        <Field>
+            <Name>TOGGLE LED</Name>
+            <Address>CONTROL[0:0]</Address>
+            <DefaultValue>0x0</DefaultValue>
+            <Access>R/W</Access>
+            <Reset>POR</Reset>
+            <SoftReset>true</SoftReset>
+            <Values>
+                <Value>
+                    <Type>Binary</Type>
+                </Value>
+            </Values>
+        </Field>
+        <Field>
+            <Name>MAJOR</Name>
+            <Address>SDK_VERSION[31:24]</Address>
+            <DefaultValue>0x0</DefaultValue>
+            <Access>R/O</Access>
+            <Reset>POR</Reset>
+            <Values>
+                <Value>
+                    <Type>Hex</Type>
+                </Value>
+            </Values>
+        </Field>
+        <Field>
+            <Name>MINOR</Name>
+            <Address>SDK_VERSION[23:16]</Address>
+            <DefaultValue>0x0</DefaultValue>
+            <Access>R/O</Access>
+            <Reset>POR</Reset>
+            <Values>
+                <Value>
+                    <Type>Hex</Type>
+                </Value>
+            </Values>
+        </Field>
+        <Field>
+            <Name>UPDATE</Name>
+            <Address>SDK_VERSION[15:8]</Address>
+            <DefaultValue>0x0</DefaultValue>
+            <Access>R/O</Access>
+            <Reset>POR</Reset>
+            <Values>
+                <Value>
+                    <Type>Hex</Type>
+                </Value>
+            </Values>
+        </Field>
+    </Fields>
+</SCSDevice>

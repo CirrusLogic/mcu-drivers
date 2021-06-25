@@ -191,11 +191,13 @@ class c_array_exporter(wisce_script_exporter):
             temp_str = ''
             for t in self.transaction_list:
                 temp_str += source_file_template_syscfg_reg_list_entry_str
-                temp_str = temp_str.replace('{address}', "0x" + "{0:0{1}X}".format(t.address, 8))
-                temp_str = temp_str.replace('{mask}', "0x" + "{0:0{1}X}".format(0xFFFFFFFF, 8))
-                temp_str = temp_str.replace('{value}', "0x" + "{0:0{1}X}".format(t.value, 8))
+                temp_str = temp_str.replace('{address}', t.address)
+                temp_str = temp_str.replace('{mask}', t.mask)
+                temp_str = temp_str.replace('{value}', t.value)
                 if (self.include_comments and (t.comment is not None)):
                     temp_str = temp_str.replace('{comment}', '// ' + t.comment)
+                    if not t.comment.endswith('\n'):
+                        temp_str += '\n'
                 else:
                     temp_str = temp_str.replace('{comment}', '')
                     temp_str += '\n'

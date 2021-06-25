@@ -222,6 +222,23 @@ extern uint32_t fw_img_read_header(fw_img_boot_state_t *state);
  */
 extern uint32_t fw_img_process(fw_img_boot_state_t *state);
 
+/**
+ * Find if a symbol is in the symbol table and return its address if it is.
+ *
+ * This will search through the symbol table pointed to in the 'fw_info' member of the driver state and return
+ * the control port register address to use for access.  The 'symbol_id' parameter must be from the list of
+ * <driver>_SYM_* defines in the <driver>_sym.h.
+ *
+ * @param [in] fw_info          Pointer to the data structure describing FW Info
+ * @param [in] symbol_id        id of symbol to search for
+ *
+ * @return
+ * - non-0 - symbol register address
+ * - 0 - symbol not found.
+ *
+ */
+uint32_t fw_img_find_symbol(fw_img_info_t *fw_info, uint32_t symbol_id);
+
 /**********************************************************************************************************************/
 #ifdef __cplusplus
 }

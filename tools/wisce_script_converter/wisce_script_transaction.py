@@ -33,9 +33,10 @@
 # CLASSES
 #==========================================================================
 class wisce_script_transaction:
-    def __init__(self, address, value, comment=None):
+    def __init__(self, address, value, mask, comment=None):
         self.__set_address(address)
         self.__set_value(value)
+        self.__set_mask(mask)
         self.__set_comment(comment)
         return
 
@@ -54,6 +55,14 @@ class wisce_script_transaction:
         self.__value = value
 
     value = property(__get_value, __set_value)
+
+    def __get_mask(self):
+        return self.__mask
+
+    def __set_mask(self, mask):
+        self.__mask = mask
+
+    mask = property(__get_mask, __set_mask)
 
     def __get_comment(self):
         return self.__comment

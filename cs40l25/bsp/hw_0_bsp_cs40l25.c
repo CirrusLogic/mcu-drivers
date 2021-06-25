@@ -29,6 +29,7 @@
 #include "cs40l25_syscfg_regs.h"
 #include "cs40l25_fw_img.h"
 #include "cs40l25_cal_fw_img.h"
+#include "bridge.h"
 
 /***********************************************************************************************************************
  * LOCAL LITERAL SUBSTITUTIONS
@@ -92,6 +93,35 @@ static cs40l25_haptic_config_t cs40l25_haptic_configs[] =
         }
     }
 };
+
+#ifdef CONFIG_USE_VREGMAP
+static bridge_device_t device_list[] =
+{
+    {0},    // Placeholder for vregmap entry, initialized in bridge_initialize()
+    {
+        .bus_i2c_cs_address = 0x80,
+        .device_id_str = "\"CS40L25\"",
+        .dev_name_str = "CS40A25-2",
+        .b.dev_id = BSP_DUT_DEV_ID,
+        .b.bus_type = REGMAP_BUS_TYPE_I2C,
+        .b.receive_max = BRIDGE_BLOCK_BUFFER_LENGTH_BYTES,
+        .b.spi_pad_len = 2
+    }
+};
+#else
+static bridge_device_t device_list[] =
+{
+    {
+        .bus_i2c_cs_address = 0x80,
+        .device_id_str = "\"CS40L25\"",
+        .dev_name_str = "CS40A25-1",
+        .b.dev_id = BSP_DUT_DEV_ID,
+        .b.bus_type = REGMAP_BUS_TYPE_I2C,
+        .b.receive_max = BRIDGE_BLOCK_BUFFER_LENGTH_BYTES,
+        .b.spi_pad_len = 2
+    }
+};
+#endif
 
 /***********************************************************************************************************************
  * GLOBAL VARIABLES
@@ -182,6 +212,11 @@ uint32_t bsp_dut_initialize(void)
     bsp_i2c_write(BSP_LN2_DEV_ID, (uint8_t *)&temp_buffer, 4, NULL, NULL);
     // Channel 2 source set to GF_GPIO2 (PC_2)
     temp_buffer = __builtin_bswap32(0x00BA0015);
+    bsp_i2c_write(BSP_LN2_DEV_ID, (uint8_t *)&temp_buffer, 4, NULL, NULL);
+
+    bridge_initialize(&device_list[0], (sizeof(device_list)/sizeof(bridge_device_t)));
+
+    temp_buffer = __builtin_bswap32(0x00310001);
     bsp_i2c_write(BSP_LN2_DEV_ID, (uint8_t *)&temp_buffer, 4, NULL, NULL);
 
     return ret;
@@ -617,6 +652,8 @@ uint32_t bsp_dut_process(void)
     {
         return BSP_STATUS_FAIL;
     }
+
+    bridge_process();
 
     return BSP_STATUS_OK;
 }

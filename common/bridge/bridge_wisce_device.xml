@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--============================================================================
+== @file bridge_wisce_device.xml
+==
+== @brief WISCE device XML for bridge vregmap
+==
+== @copyright
+== Copyright (c) Cirrus Logic 2021 All Rights Reserved, http://www.cirrus.com/
+==
+== Licensed under the Apache License, Version 2.0 (the License); you may
+== not use this file except in compliance with the License.
+== You may obtain a copy of the License at
+==
+== www.apache.org/licenses/LICENSE-2.0
+==
+== Unless required by applicable law or agreed to in writing, software
+== distributed under the License is distributed on an AS IS BASIS, WITHOUT
+== WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+== See the License for the specific language governing permissions and
+== limitations under the License.
+==
+=============================================================================
+-->
+<WMDevice xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+    <DeviceInfo>
+        <DeviceID>VREGS</DeviceID>
+        <ReportedID>VREGS</ReportedID>
+        <DeviceRevision>A0</DeviceRevision>
+        <RegisterBits>32</RegisterBits>
+        <ConfigCount>0</ConfigCount>
+        <AutoInc>1</AutoInc>
+        <ControlInterfaces>
+            <TwoWire>
+                <InterfaceProtocol>SMbus_32inx_32dat</InterfaceProtocol>
+                <DeviceAddress>0x70</DeviceAddress>
+            </TwoWire>
+        </ControlInterfaces>
+    </DeviceInfo>
+    <Registers width="32">
+        <Register>
+            <Address>0x00000000</Address>
+            <Name>CONTROL</Name>
+            <Default>0x00000000</Default>
+            <Access>
+                <Read />
+                <Write />
+            </Access>
+            <BitField top="0" width="1">
+                <Name>TOGGLE_LED</Name>
+                <Description>Toggle LN2 GPIO1 LED.</Description>
+                <Default format="hex">0x00000000</Default>
+                <FieldType>
+                    <Hex />
+                </FieldType>
+                <Access>
+                    <Read />
+                    <Write />
+                </Access>
+                <Reset>
+                    <POR />
+                </Reset>
+            </BitField>
+        </Register>
+        <Register>
+            <Address>0x0000FFFF</Address>
+            <Name>SDK_VERSION</Name>
+            <Default>0x00000000</Default>
+            <Access>
+                <Read />
+            </Access>
+            <BitField top="31" width="8">
+                <Name>MAJOR</Name>
+                <Description>Major Version of the Alt-OS SDK.</Description>
+                <Default format="hex">0x00000000</Default>
+                <FieldType>
+                    <Hex />
+                </FieldType>
+                <Access>
+                    <Read />
+                </Access>
+                <Reset>
+                    <POR />
+                </Reset>
+            </BitField>
+            <BitField top="23" width="8">
+                <Name>MINOR</Name>
+                <Description>Minor Version of the Alt-OS SDK.</Description>
+                <Default format="hex">0x00000000</Default>
+                <FieldType>
+                    <Hex />
+                </FieldType>
+                <Access>
+                    <Read />
+                </Access>
+                <Reset>
+                    <POR />
+                </Reset>
+            </BitField>
+            <BitField top="15" width="8">
+                <Name>UPDATE</Name>
+                <Description>Update Version of the Alt-OS SDK.</Description>
+                <Default format="hex">0x00000000</Default>
+                <FieldType>
+                    <Hex />
+                </FieldType>
+                <Access>
+                    <Read />
+                </Access>
+                <Reset>
+                    <POR />
+                </Reset>
+            </BitField>
+        </Register>
+    </Registers>
+</WMDevice>

@@ -52,14 +52,15 @@
 uint32_t cs35l41_set_dig_gain(cs35l41_t *driver, uint32_t *gain)
 {
     uint32_t ret;
+    regmap_cp_config_t *cp = REGMAP_GET_CP_CONFIG(driver);
 
     *gain <<= CS35L41_INTP_AMP_CTRL_AMP_VOL_PCM_BITOFFSET;
     *gain &= CS35L41_INTP_AMP_CTRL_AMP_VOL_PCM_BITMASK;
 
-    ret = cs35l41_update_reg(driver,
-                             CS35L41_INTP_AMP_CTRL_REG,
-                             CS35L41_INTP_AMP_CTRL_AMP_VOL_PCM_BITMASK,
-                             *gain);
+    ret = regmap_update_reg(cp,
+                            CS35L41_INTP_AMP_CTRL_REG,
+                            CS35L41_INTP_AMP_CTRL_AMP_VOL_PCM_BITMASK,
+                            *gain);
 
     return ret;
 }
@@ -73,6 +74,7 @@ uint32_t cs35l41_config_gpio(cs35l41_t *driver, cs35l41_gpio_id_t gpio_id, bool 
     uint32_t gpio_ctrl1_addr = 0;
     cs35l41_gpio_ctrl1_t ctrl;
     uint32_t ret = CS35L41_STATUS_OK;
+    regmap_cp_config_t *cp = REGMAP_GET_CP_CONFIG(driver);
 
     // Get GPIOx_CTRL1 register
     switch (gpio_id)
@@ -97,7 +99,7 @@ uint32_t cs35l41_config_gpio(cs35l41_t *driver, cs35l41_gpio_id_t gpio_id, bool 
             break;
     }
 
-    ret = cs35l41_read_reg(driver, gpio_ctrl1_addr, &(ctrl.word));
+    ret = regmap_read(cp, gpio_ctrl1_addr, &(ctrl.word));
     if (ret)
     {
         return CS35L41_STATUS_FAIL;
@@ -112,7 +114,7 @@ uint32_t cs35l41_config_gpio(cs35l41_t *driver, cs35l41_gpio_id_t gpio_id, bool 
         ctrl.gp_dir = 1;
     }
 
-    ret = cs35l41_write_reg(driver, gpio_ctrl1_addr, ctrl.word);
+    ret = regmap_write(cp, gpio_ctrl1_addr, ctrl.word);
 
     return ret;
 }
@@ -126,6 +128,7 @@ uint32_t cs35l41_set_gpio(cs35l41_t *driver, cs35l41_gpio_id_t gpio_id, bool is_
     uint32_t gpio_ctrl1_addr = 0;
     cs35l41_gpio_ctrl1_t ctrl;
     uint32_t ret = CS35L41_STATUS_OK;
+    regmap_cp_config_t *cp = REGMAP_GET_CP_CONFIG(driver);
 
     // Get GPIOx_CTRL1 register
     switch (gpio_id)
@@ -150,7 +153,7 @@ uint32_t cs35l41_set_gpio(cs35l41_t *driver, cs35l41_gpio_id_t gpio_id, bool is_
             break;
     }
 
-    ret = cs35l41_read_reg(driver, gpio_ctrl1_addr, &(ctrl.word));
+    ret = regmap_read(cp, gpio_ctrl1_addr, &(ctrl.word));
     if (ret)
     {
         return CS35L41_STATUS_FAIL;
@@ -165,7 +168,7 @@ uint32_t cs35l41_set_gpio(cs35l41_t *driver, cs35l41_gpio_id_t gpio_id, bool is_
         ctrl.gp_lvl = 1;
     }
 
-    ret = cs35l41_write_reg(driver, gpio_ctrl1_addr, ctrl.word);
+    ret = regmap_write(cp, gpio_ctrl1_addr, ctrl.word);
 
     return ret;
 }
@@ -177,6 +180,7 @@ uint32_t cs35l41_set_gpio(cs35l41_t *driver, cs35l41_gpio_id_t gpio_id, bool is_
 uint32_t cs35l41_get_gpio(cs35l41_t *driver, cs35l41_gpio_id_t gpio_id, uint32_t *level)
 {
     uint32_t val;
+    regmap_cp_config_t *cp = REGMAP_GET_CP_CONFIG(driver);
 
     // Check for null pointer
     if (level == NULL)
@@ -184,7 +188,7 @@ uint32_t cs35l41_get_gpio(cs35l41_t *driver, cs35l41_gpio_id_t gpio_id, uint32_t
         return CS35L41_STATUS_FAIL;
     }
 
-    if (cs35l41_read_reg(driver, GPIO_STATUS1_REG, &(val)))
+    if (regmap_read(cp, GPIO_STATUS1_REG, &(val)))
     {
         return CS35L41_STATUS_FAIL;
     }

@@ -1,8 +1,8 @@
 # ==========================================================================
 # (c) 2020-2021 Cirrus Logic, Inc.
 # --------------------------------------------------------------------------
-# Project : Convert from WISCE Script File to Alt-OS Syscfg Reg output
-# File    : wisce_to_syscfg_reg_converter.py
+# Project : Generate vregmap.h/vregmap.c from WISCE/Soundclear Studio device XML
+# File    : vregmap_generator.py
 # --------------------------------------------------------------------------
 # Licensed under the Apache License, Version 2.0 (the License); you may
 # not use this file except in compliance with the License.
@@ -30,8 +30,10 @@ repo_path = os.path.dirname(os.path.abspath(__file__)) + '/../..'
 sys.path.insert(1, (repo_path + '/tools/sdk_version'))
 from sdk_version import print_sdk_version
 import argparse
-from wisce_script_importer import wisce_script_importer
-from wisce_script_exporter_factory import wisce_script_exporter_factory, exporter_types
+from vregmap_wisce_xml_importer import vregmap_wisce_xml_importer
+from vregmap_scs_xml_importer import vregmap_scs_xml_importer
+import xml.etree.ElementTree as ET
+from vregmap_exporter import vregmap_exporter
 
 # ==========================================================================
 # VERSION
@@ -40,7 +42,6 @@ from wisce_script_exporter_factory import wisce_script_exporter_factory, exporte
 # ==========================================================================
 # CONSTANTS/GLOBALS
 # ==========================================================================
-supported_commands = exporter_types
 
 # ==========================================================================
 # CLASSES
@@ -53,25 +54,23 @@ supported_commands = exporter_types
 def get_args(args):
     """Parse arguments"""
     parser = argparse.ArgumentParser(description='Parse command line arguments')
-    parser.add_argument('-c', '--command', dest='command', type=str, choices=supported_commands, required=True, default=exporter_types[0],
+    parser.add_argument('-c', '--command', dest='command', type=str, choices=["print", "export"], required=True, default="print",
                         help='The command you wish to execute.')
-    parser.add_argument('-p', '--part', dest='part', type=str, required=True, help='The part number text for output.')
     parser.add_argument('-i', '--input', dest='input', type=str, required=True,
-                        help='The filename of the WISCE script to be parsed.')
-    parser.add_argument('-o', '--output', dest='output', type=str, default='.', help='The output filename.')
-    parser.add_argument('-s', '--suffix', dest='suffix', type=str, default=None, help='The suffix to insert into output filename.')
-    parser.add_argument('--include-comments', dest='include_comments', action="store_true",
-                        help='Include comments from the WISCE script.')
-    parser.add_argument('-sym', '--symbol_file', dest='symbol_file', type=str, default=None,
-                        help='The filename containing firmware symbols, produced by firmware_converter. ' +
-                             'Needed to differentiate between normal named registers and firmware registers.')
+                        help='The filename of the XML to be parsed.')
+    parser.add_argument('-o', '--output_dir', dest='output_dir', type=str, default='.', help='The path to output directory.')
 
     return parser.parse_args(args[1:])
 
 def validate_args(args):
-    # Check that input WISCE script exists
+    # Check that input XML exists
     if (not os.path.exists(args.input)):
-        print("Invalid WISCE script path: " + args.input)
+        print("Invalid XML path: " + args.input)
+        return False
+
+    # Check that output directory exists:
+    if (not os.path.exists(args.output_dir)):
+        print("Invalid output directory: " + args.output_dir)
         return False
 
     return True
@@ -79,8 +78,8 @@ def validate_args(args):
 
 def print_start():
     print("")
-    print("wisce_to_syscfg_reg_converter")
-    print("Convert from WISCE Script Text file to Alt-OS Syscfg Reg")
+    print("vregmap_generator")
+    print("Generate vregmap.h/vregmap.c from WISCE/Soundclear Studio device XML")
     print("SDK Version " + print_sdk_version(repo_path + '/sdk_version.h'))
 
     return
@@ -89,9 +88,8 @@ def print_start():
 def print_args(args):
     print("")
     print("Command: " + args.command)
-    print("WISCE script path: " + args.input)
-    if (args.output is not None):
-        print("Output path: " + args.output)
+    print("Input XML path: " + args.input)
+    print("Output directory: " + args.output_dir)
 
     return
 
@@ -112,7 +110,17 @@ def error_exit(error_message):
     print('ERROR: ' + error_message)
     exit(1)
 
+def get_xml_type(fn):
+    type = "WISCE"
 
+    tempXmlP = ET.XMLParser(encoding="utf-8")
+    tempTree = ET.parse(fn, parser=tempXmlP)
+    tempRoot = tempTree.getroot()
+
+    if (tempRoot.tag == "SCSDevice"):
+        type = "SCS"
+
+    return type
 # ==========================================================================
 # MAIN PROGRAM
 # ==========================================================================
@@ -123,43 +131,28 @@ def main(argv):
     if (not (validate_args(args))):
         error_exit("Invalid Arguments")
 
-    # Import WISCE script
-    wsi = wisce_script_importer(args.input, args.command, args.symbol_file)
+    if (get_xml_type(args.input) == "WISCE"):
+        i = vregmap_wisce_xml_importer(args.input)
+    else:
+        i = vregmap_scs_xml_importer(args.input)
+    vdevice = i.get_device()
 
-    # Create WISCE script exporter factory
-    attributes = dict()
-    attributes['part_number_str'] = args.part
-    attributes['include_comments'] = args.include_comments
-    attributes['output_path'] = args.output
-    attributes['suffix'] = args.suffix
-    wse = wisce_script_exporter_factory(attributes)
+    if (args.command == "print"):
+        print(vdevice)
+    else:
+        metadata_text_lines = []
+        metadata_text_lines.append('vregmap_generator.py SDK version: ' + print_sdk_version(repo_path + '/sdk_version.h'))
+        temp_line = ''
+        for arg in argv:
+            temp_line = temp_line + ' ' + arg
+        metadata_text_lines.append('Command: ' + temp_line)
+        e = vregmap_exporter(args.output_dir, vdevice, metadata_text_lines)
+        e.export()
 
-    # Based on command, add exporters
-    if (args.command == 'c_array'):
-        wse.add_exporter('c_array')
-    elif (args.command == 'c_functions'):
-        wse.add_exporter('c_functions')
-
-    # Export transaction list to exporter
-    for t in wsi.get_transaction_list():
-        wse.add_transaction(t)
-
-    # Add metadata text
-    metadata_text_lines = []
-    metadata_text_lines.append('wisce_to_syscfg_reg_converter.py SDK version: ' + print_sdk_version(repo_path + '/sdk_version.h'))
-    temp_line = ''
-    for arg in argv:
-        temp_line = temp_line + ' ' + arg
-    metadata_text_lines.append('Command: ' + temp_line)
-
-    for line in metadata_text_lines:
-        wse.add_metadata_text_line(line)
-
-    print_results(wse.to_file())
+    print_results("")
     print_end()
 
     return
-
 
 if __name__ == "__main__":
     main(sys.argv)
