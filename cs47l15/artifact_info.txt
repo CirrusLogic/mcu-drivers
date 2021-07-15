@@ -1,18 +1,18 @@
 Artifact Info:
-Artifact           : CS47L15 Alt-OS Driver: 4.4.0 - 53150f9c27735769b2301228744be9d3d71571ec
+Artifact           : CS47L15 Alt-OS Driver: 4.5.0 - fecad8c94280100109021b9876cc84070f016f0c
 Test Target MCU SDK: STM32Cube_FW_F4: 1.24.1
 Target toolchain   : GNU Arm Embedded Toolchain: arm-none-eabi-gcc (GNU Tools for Arm Embedded Processors 8-2019-q3-update) 8.3.1 20190703 (release) [gcc-8-branch revision 273027]
 Build system       : make: GNU Make 3.82
 OS                 : Linux: 3.10.0-1160.24.1.el7.x86_64
 Shell              : bash: GNU bash, version 4.2.46(2)-release (x86_64-redhat-linux-gnu)
 Host toolchain     : MinGW GCC: gcc (GCC) 4.8.5 20150623 (Red Hat 4.8.5-39)
-Build Job          : gaines_alt_os_nightly: 127
-Git SHA            : 53150f9c27735769b2301228744be9d3d71571ec
+Build Job          : gaines_alt_os_nightly: 153
+Git SHA            : fecad8c94280100109021b9876cc84070f016f0c
 
 System resources:
 
 Library name    : /var/lib/jenkins/jobs/gaines_alt_os_nightly/workspace/build_driver_lib_cm4/build/cs47l15/libcs47l15
-Library TEXT    : 4028 bytes
+Library TEXT    : 4062 bytes
 Library BSS     : 0 bytes
 Library DATA    : 0 bytes
 BSP RAM         : 0 bytes
@@ -30,3 +30,11 @@ Compiler flags:
     -funsigned-char
     -funsigned-bitfields
     -frecord-gcc-switches
+
+Library name    : /var/lib/jenkins/jobs/gaines_alt_os_nightly/workspace@2/build_baremetal/build/cs47l15/libcs47l15
+Library TEXT    : 0 bytes
+Library BSS     : 0 bytes
+Library DATA    : 0 bytes
+BSP RAM         : 124 bytes
+Compiler flags:
+

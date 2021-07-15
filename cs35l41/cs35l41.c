@@ -715,7 +715,7 @@ static uint32_t cs35l41_send_acked_mbox_cmd(cs35l41_t *driver, uint32_t cmd)
     uint32_t ret = CS35L41_STATUS_OK;
     uint32_t i;
     uint32_t temp_reg_val;
-    regmap_cp_config_t *cp = REGMAP_GET_CP_CONFIG(driver);
+    regmap_cp_config_t *cp = REGMAP_GET_CP(driver);
 
     // Clear HALO DSP Virtual MBOX 1 IRQ flag
     ret = regmap_write(cp, IRQ2_IRQ2_EINT_2_REG, IRQ2_IRQ2_EINT_2_DSP_VIRTUAL1_MBOX_WR_EINT2_BITMASK);
@@ -828,7 +828,7 @@ static uint32_t cs35l41_power_up(cs35l41_t *driver)
     uint32_t ret = CS35L41_STATUS_OK;
     uint32_t i;
     uint32_t temp_reg_val;
-    regmap_cp_config_t *cp = REGMAP_GET_CP_CONFIG(driver);
+    regmap_cp_config_t *cp = REGMAP_GET_CP(driver);
 
     //If the DSP is booted
     if (driver->state != CS35L41_STATE_STANDBY)
@@ -1046,7 +1046,7 @@ static uint32_t cs35l41_power_down(cs35l41_t *driver)
     uint32_t ret = CS35L41_STATUS_OK;
     uint32_t temp_reg_val;
     uint32_t i;
-    regmap_cp_config_t *cp = REGMAP_GET_CP_CONFIG(driver);
+    regmap_cp_config_t *cp = REGMAP_GET_CP(driver);
 
     if (driver->state != CS35L41_STATE_POWER_UP)
     {
@@ -1255,7 +1255,7 @@ static uint32_t cs35l41_event_handler(void *driver)
     uint32_t irq_masks[4];
 
     cs35l41_t *d = driver;
-    regmap_cp_config_t *cp = REGMAP_GET_CP_CONFIG(d);
+    regmap_cp_config_t *cp = REGMAP_GET_CP(d);
 
     // Read the IRQ1 flag and mask registers
     uint32_t irq1_eint_1_flags_to_clear = 0;
@@ -1385,7 +1385,7 @@ static uint32_t cs35l41_hibernate(cs35l41_t *driver)
             PWRMGT_WAKESRC_CTL, 0x0188,
             DSP_VIRTUAL1_MBOX_DSP_VIRTUAL1_MBOX_1_REG, CS35L41_DSP_MBOX_CMD_HIBERNATE
     };
-    regmap_cp_config_t *cp = REGMAP_GET_CP_CONFIG(driver);
+    regmap_cp_config_t *cp = REGMAP_GET_CP(driver);
 
     for (uint32_t i = 0; i < (sizeof(cs35l41_hibernate_patch)/sizeof(uint32_t)); i += 2)
     {
@@ -1414,7 +1414,7 @@ static uint32_t cs35l41_wait_for_pwrmgt_sts(cs35l41_t *driver)
 {
     uint32_t i;
     uint32_t wrpend_sts = 0x2;
-    regmap_cp_config_t *cp = REGMAP_GET_CP_CONFIG(driver);
+    regmap_cp_config_t *cp = REGMAP_GET_CP(driver);
 
     for (i = 0; (i < 10) && (wrpend_sts & PWRMGT_PWRMGT_STS_WR_PENDSTS_BITMASK); i++)
     {
@@ -1443,7 +1443,7 @@ static uint32_t cs35l41_otp_unpack(cs35l41_t *driver)
 {
     uint32_t ret;
     uint32_t temp_reg_val, i;
-    regmap_cp_config_t *cp = REGMAP_GET_CP_CONFIG(driver);
+    regmap_cp_config_t *cp = REGMAP_GET_CP(driver);
 
     // Unlock register file to apply OTP trims
     ret = regmap_write(cp, CS35L41_CTRL_KEYS_TEST_KEY_CTRL_REG, CS35L41_TEST_KEY_CTRL_UNLOCK_1);
@@ -1525,7 +1525,7 @@ static uint32_t cs35l41_write_errata(cs35l41_t *driver)
 {
     uint32_t ret;
 
-    ret = regmap_write_array(REGMAP_GET_CP_CONFIG(driver),
+    ret = regmap_write_array(REGMAP_GET_CP(driver),
                              (uint32_t *) cs35l41_revb2_errata_patch,
                              (sizeof(cs35l41_revb2_errata_patch)/sizeof(uint32_t)),
                              REGMAP_WRITE_ARRAY_TYPE_ADDR_VAL);
@@ -1552,7 +1552,7 @@ static uint32_t cs35l41_write_errata(cs35l41_t *driver)
 static uint32_t cs35l41_write_post_boot_config(cs35l41_t *driver)
 {
     uint32_t i, ret;
-    regmap_cp_config_t *cp = REGMAP_GET_CP_CONFIG(driver);
+    regmap_cp_config_t *cp = REGMAP_GET_CP(driver);
 
     // Write first post-boot configuration
     ret = regmap_write_array(cp,
@@ -1676,7 +1676,7 @@ static uint32_t cs35l41_wake(cs35l41_t *driver)
     int8_t retries = 5;
     uint32_t mbox_cmd_drv_shift = 1 << 20;
     uint32_t mbox_cmd_fw_shift = 1 << 21;
-    regmap_cp_config_t *cp = REGMAP_GET_CP_CONFIG(driver);
+    regmap_cp_config_t *cp = REGMAP_GET_CP(driver);
 
     do {
         do {
@@ -1875,7 +1875,7 @@ uint32_t cs35l41_reset(cs35l41_t *driver)
     uint32_t ret;
     uint8_t i;
     uint32_t temp_reg_val;
-    regmap_cp_config_t *cp = REGMAP_GET_CP_CONFIG(driver);
+    regmap_cp_config_t *cp = REGMAP_GET_CP(driver);
 
     // Drive RESET low for at least T_RLPW (1ms)
     bsp_driver_if_g->set_gpio(driver->config.bsp_config.reset_gpio_id, BSP_GPIO_LOW);
@@ -1994,7 +1994,7 @@ uint32_t cs35l41_reset(cs35l41_t *driver)
 uint32_t cs35l41_boot(cs35l41_t *driver, fw_img_info_t *fw_info)
 {
     uint32_t ret = CS35L41_STATUS_OK;
-    regmap_cp_config_t *cp = REGMAP_GET_CP_CONFIG(driver);
+    regmap_cp_config_t *cp = REGMAP_GET_CP(driver);
 
     driver->fw_info = fw_info;
 
@@ -2133,7 +2133,7 @@ uint32_t cs35l41_calibrate(cs35l41_t *driver, uint32_t ambient_temp_deg_c)
 {
     uint32_t temp_reg_val;
     uint32_t ret = CS35L41_STATUS_OK;
-    regmap_cp_config_t *cp = REGMAP_GET_CP_CONFIG(driver);
+    regmap_cp_config_t *cp = REGMAP_GET_CP(driver);
 
     // Set the Ambient Temp (deg C)
     ret = regmap_write_fw_control(cp, driver->fw_info, CS35L41_SYM_CSPL_CAL_AMBIENT, ambient_temp_deg_c);
@@ -2192,7 +2192,7 @@ uint32_t cs35l41_calibrate(cs35l41_t *driver, uint32_t ambient_temp_deg_c)
 uint32_t cs35l41_send_syscfg(cs35l41_t *driver, const syscfg_reg_t *cfg, uint16_t cfg_length)
 {
     uint32_t ret, temp_reg_val, orig_val;
-    regmap_cp_config_t *cp = REGMAP_GET_CP_CONFIG(driver);
+    regmap_cp_config_t *cp = REGMAP_GET_CP(driver);
 
     for (int i = 0; i < cfg_length; i++)
     {
@@ -2225,7 +2225,7 @@ uint32_t cs35l41_start_tuning_switch(cs35l41_t *driver)
     uint32_t ret;
     uint8_t i;
     uint32_t temp_reg_val;
-    regmap_cp_config_t *cp = REGMAP_GET_CP_CONFIG(driver);
+    regmap_cp_config_t *cp = REGMAP_GET_CP(driver);
 
     /*
      * The Host (i.e. the AP or the Codec driving the amp) sends a PAUSE request to the Prince FW and Pauses the
@@ -2310,7 +2310,7 @@ uint32_t cs35l41_finish_tuning_switch(cs35l41_t *driver)
 {
     uint32_t ret;
     uint32_t temp_reg_val;
-    regmap_cp_config_t *cp = REGMAP_GET_CP_CONFIG(driver);
+    regmap_cp_config_t *cp = REGMAP_GET_CP(driver);
 
     /*
      * The Host sends a REINIT request.   This causes the FW to read the new configuration and initialize the new CSPL
@@ -2360,7 +2360,7 @@ uint32_t cs35l41_get_dsp_status(cs35l41_t *driver, cs35l41_dsp_status_t *status)
     uint8_t i;
     uint32_t temp_reg_val;
     uint32_t ret = CS35L41_STATUS_OK;
-    regmap_cp_config_t *cp = REGMAP_GET_CP_CONFIG(driver);
+    regmap_cp_config_t *cp = REGMAP_GET_CP(driver);
 
     // Read the DSP Status field addresses
     for (i = 0; i < CS35L41_DSP_STATUS_WORDS_TOTAL; i++)
@@ -2418,7 +2418,7 @@ uint32_t cs35l41_get_dsp_status(cs35l41_t *driver, cs35l41_dsp_status_t *status)
 uint32_t cs35l41_read_reg(cs35l41_t *driver, uint32_t addr, uint32_t *val)
 {
     uint32_t ret;
-    regmap_cp_config_t *cp = REGMAP_GET_CP_CONFIG(driver);
+    regmap_cp_config_t *cp = REGMAP_GET_CP(driver);
 
     ret = regmap_read(cp, addr, val);
     if (ret)
@@ -2436,7 +2436,7 @@ uint32_t cs35l41_read_reg(cs35l41_t *driver, uint32_t addr, uint32_t *val)
 uint32_t cs35l41_write_reg(cs35l41_t *driver, uint32_t addr, uint32_t val)
 {
     uint32_t ret;
-    regmap_cp_config_t *cp = REGMAP_GET_CP_CONFIG(driver);
+    regmap_cp_config_t *cp = REGMAP_GET_CP(driver);
 
     ret = regmap_write(cp, addr, val);
     if (ret)
@@ -2454,7 +2454,7 @@ uint32_t cs35l41_write_reg(cs35l41_t *driver, uint32_t addr, uint32_t val)
 uint32_t cs35l41_update_reg(cs35l41_t *driver, uint32_t addr, uint32_t mask, uint32_t val)
 {
     uint32_t ret;
-    regmap_cp_config_t *cp = REGMAP_GET_CP_CONFIG(driver);
+    regmap_cp_config_t *cp = REGMAP_GET_CP(driver);
 
     ret = regmap_update_reg(cp, addr, mask, val);
     if (ret)
@@ -2486,7 +2486,7 @@ uint32_t cs35l41_update_reg(cs35l41_t *driver, uint32_t addr, uint32_t mask, uin
 uint32_t cs35l41_write_block(cs35l41_t *driver, uint32_t addr, uint8_t *data, uint32_t size)
 {
     uint32_t ret;
-    regmap_cp_config_t *cp = REGMAP_GET_CP_CONFIG(driver);
+    regmap_cp_config_t *cp = REGMAP_GET_CP(driver);
 
     ret = regmap_write_block(cp,
                              addr,

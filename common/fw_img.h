@@ -239,6 +239,21 @@ extern uint32_t fw_img_process(fw_img_boot_state_t *state);
  */
 uint32_t fw_img_find_symbol(fw_img_info_t *fw_info, uint32_t symbol_id);
 
+/**
+ * Find if an algorithm is in the algorithm list.
+ *
+ * This will search through the algorithm id table pointed to in the 'fw_info' member of the driver state.
+ *
+ * @param [in] fw_info          Pointer to the data structure describing FW Info
+ * @param [in] alg_id           id of algorithm to search for
+ *
+ * @return
+ * - true - algorithm is present in fw_img
+ * - false - algorithm is not present in fw_img
+ *
+ */
+bool fw_img_find_algid(fw_img_info_t *fw_info, uint32_t alg_id);
+
 /**********************************************************************************************************************/
 #ifdef __cplusplus
 }

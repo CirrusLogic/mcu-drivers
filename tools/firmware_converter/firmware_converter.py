@@ -241,6 +241,7 @@ def get_args(args):
     parser.add_argument('--wmdr-only', dest='wmdr_only', action="store_true", help='Request to ONLY store WMDR files in fw_img.')
     parser.add_argument('--generic-sym', dest='generic_sym', action="store_true", help='Use generic algorithm name for \'FIRMWARE_*\' algorithm controls')
     parser.add_argument('--fw-img-version', type=lambda x: int(x,0), default='0', dest='fw_img_version', help='Release version for the fw_img that ties together a WMFW fw revision with releases of BIN files. Accepts type int of any base.')
+    parser.add_argument('--revision-check', dest='revision_check', action="store_true", help='Request to fail if WMDR FW revision does not match WMFW')
 
     return parser.parse_args(args[1:])
 
@@ -302,6 +303,9 @@ def print_args(args):
         if (args.symbol_id_output is not None):
             print("Output Symbol ID Header: " + args.symbol_id_output)
 
+    if (args.revision_check):
+        print("WMDR FW Revision Check enabled")
+
     return
 
 def print_results(results_string):
@@ -353,6 +357,22 @@ def main(argv):
     suffix = ""
     if (args.suffix):
         suffix = "_" + args.suffix
+
+    # If requested, check WMDR-WMFW compatibility
+    if ((args.revision_check) and (process_wmdr)):
+        incompatible_wmdrs = []
+        wmfw_fw_revision_str = hex(wmfw.fw_id_block.fields['firmware_revision'])
+        for wmdr in wmdrs:
+            wmdr_fw_revision_str = hex(wmdr.header.fields['firmware_revision'])
+            if (wmdr_fw_revision_str != wmfw_fw_revision_str):
+                incompatible_wmdrs.append((wmdr.filename, wmdr_fw_revision_str))
+
+        if (len(incompatible_wmdrs) > 0):
+            error_str = 'WMDR Incompatible with WMFW!\n'
+            error_str += 'WMFW FW Revision: ' + wmfw_fw_revision_str + '\n'
+            for w in incompatible_wmdrs:
+                error_str += 'WMDR \'' + w[0] + '\' FW Revision: ' + w[1] + '\n'
+            error_exit(error_str)
 
     # Create address resolver
     res = address_resolver(args.part_number)

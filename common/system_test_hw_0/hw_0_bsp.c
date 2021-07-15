@@ -157,6 +157,7 @@
 #define BSP_PB_TOTAL                            (5)
 
 #define BSP_LN2_FPGA_I2C_ADDRESS_8BIT           (0x44)
+#define BSP_INTP_EXP_I2C_ADDRESS_8BIT           (0x4E)
 
 #define BSP_LED_MODE_FIXED                      (0)
 #define BSP_LED_MODE_BLINK                      (1)
@@ -267,6 +268,7 @@ static bool bsp_pb_pressed_flags[BSP_PB_TOTAL] = {false};
 static bsp_app_callback_t bsp_pb_cbs[BSP_PB_TOTAL] = {NULL};
 static void* bsp_pb_cb_args[BSP_PB_TOTAL] = {NULL};
 
+static uint8_t bsp_interposer_led_status;
 
 /* These PLL parameters are valid when the f(VCO clock) = 1Mhz */
 const uint32_t I2SFreq[8] = {8000, 11025, 16000, 22050, 32000, 44100, 48000, 96000};
@@ -2237,6 +2239,7 @@ extern void initialise_monitor_handles(void);
 
 uint32_t bsp_initialize(bsp_app_callback_t cb, void *cb_arg)
 {
+    uint8_t write_buffer[2];
     app_cb = cb;
     app_cb_arg = cb_arg;
 
@@ -2306,6 +2309,14 @@ uint32_t bsp_initialize(bsp_app_callback_t cb, void *cb_arg)
 
     // Setup UART to Receive
     HAL_UART_Receive_IT(&uart_drv_handle, uart_rx_state.packet_buffer, 1);
+
+    // setup interposer's LEDs
+    write_buffer[0] = 6;
+    write_buffer[1] = 0xF0;
+
+    bsp_i2c_write(BSP_INTP_EXP_DEV_ID, write_buffer, 2, NULL, NULL);
+    bsp_set_gpio(BSP_GPIO_ID_INTP_LED_ALL, 0);
+    bsp_interposer_led_status = 0;
 
     // Toggle LN2 Reset
     HAL_GPIO_WritePin(BSP_LN2_RESET_GPIO_PORT, BSP_LN2_RESET_PIN, GPIO_PIN_RESET);
@@ -2544,6 +2555,7 @@ uint32_t bsp_set_timer(uint32_t duration_ms, bsp_callback_t cb, void *cb_arg)
 
 uint32_t bsp_set_gpio(uint32_t gpio_id, uint8_t gpio_state)
 {
+    uint8_t buffer[2] = {0, 0};
     switch (gpio_id)
     {
         case BSP_GPIO_ID_LD2:
@@ -2576,6 +2588,64 @@ uint32_t bsp_set_gpio(uint32_t gpio_id, uint8_t gpio_state)
             HAL_GPIO_WritePin(GPIOC, GPIO_PIN_2, (GPIO_PinState) gpio_state);
             break;
 
+        case BSP_GPIO_ID_INTP_LED1:
+            // Enable only the desired LED
+            buffer[0] = 2;
+            bsp_interposer_led_status &= ~(1 << 0);
+            bsp_interposer_led_status |= (gpio_state << 0);
+            buffer[1] = bsp_interposer_led_status;
+
+            bsp_i2c_write(BSP_INTP_EXP_DEV_ID, &buffer[0], 2, NULL, NULL);
+            break;
+
+        case BSP_GPIO_ID_INTP_LED2:
+            // Enable only the desired LED
+            buffer[0] = 2;
+            bsp_interposer_led_status &= ~(1 << 1);
+            bsp_interposer_led_status |= (gpio_state << 1);
+            buffer[1] = bsp_interposer_led_status;
+
+            bsp_i2c_write(BSP_INTP_EXP_DEV_ID, &buffer[0], 2, NULL, NULL);
+            break;
+
+        case BSP_GPIO_ID_INTP_LED3:
+            // Enable only the desired LED
+            buffer[0] = 2;
+            bsp_interposer_led_status &= ~(1 << 2);
+            bsp_interposer_led_status |= (gpio_state << 2);
+            buffer[1] = bsp_interposer_led_status;
+
+            bsp_i2c_write(BSP_INTP_EXP_DEV_ID, &buffer[0], 2, NULL, NULL);
+
+            break;
+
+        case BSP_GPIO_ID_INTP_LED4:
+            // Enable only the desired LED
+            buffer[0] = 2;
+            bsp_interposer_led_status &= ~(1 << 3);
+            bsp_interposer_led_status |= (gpio_state << 3);
+            buffer[1] = bsp_interposer_led_status;
+
+            bsp_i2c_write(BSP_INTP_EXP_DEV_ID, &buffer[0], 2, NULL, NULL);
+            break;
+
+        case BSP_GPIO_ID_INTP_LED_ALL:
+            // Update all LEDs at once
+            buffer[0] = 2;
+            if (gpio_state == BSP_GPIO_HIGH)
+            {
+                bsp_interposer_led_status = 0x0F;
+                buffer[1] = bsp_interposer_led_status;
+            }
+            else
+            {
+                bsp_interposer_led_status = 0x00;
+                buffer[1] = bsp_interposer_led_status;
+            }
+
+            bsp_i2c_write(BSP_INTP_EXP_DEV_ID, &buffer[0], 2, NULL, NULL);
+            break;
+
         default:
             break;
     }
@@ -2605,10 +2675,57 @@ uint32_t bsp_set_supply(uint32_t supply_id, uint8_t supply_state)
 
 uint32_t bsp_toggle_gpio(uint32_t gpio_id)
 {
+    uint8_t buffer[2] = {0, 0};
+
     switch (gpio_id)
     {
         case BSP_GPIO_ID_LD2:
             HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
+            break;
+
+        case BSP_GPIO_ID_INTP_LED1:
+            // Toggle only the desired LED
+            buffer[0] = 2;
+            bsp_interposer_led_status ^= (1 << 0);
+            buffer[1] = bsp_interposer_led_status;
+
+            bsp_i2c_write(BSP_INTP_EXP_DEV_ID, buffer, 2, NULL, NULL);
+            break;
+
+        case BSP_GPIO_ID_INTP_LED2:
+            // Toggle only the desired LED
+            buffer[0] = 2;
+            bsp_interposer_led_status ^= (1 << 1);
+            buffer[1] = bsp_interposer_led_status;
+
+            bsp_i2c_write(BSP_INTP_EXP_DEV_ID, buffer, 2, NULL, NULL);
+            break;
+
+        case BSP_GPIO_ID_INTP_LED3:
+            // Toggle only the desired LED
+            buffer[0] = 2;
+            bsp_interposer_led_status ^= (1 << 2);
+            buffer[1] = bsp_interposer_led_status;
+
+            bsp_i2c_write(BSP_INTP_EXP_DEV_ID, buffer, 2, NULL, NULL);
+            break;
+
+        case BSP_GPIO_ID_INTP_LED4:
+            // Toggle only the desired LED
+            buffer[0] = 2;
+            bsp_interposer_led_status ^= (1 << 3);
+            buffer[1] = bsp_interposer_led_status;
+
+            bsp_i2c_write(BSP_INTP_EXP_DEV_ID, buffer, 2, NULL, NULL);
+            break;
+
+        case BSP_GPIO_ID_INTP_LED_ALL:
+            // Toggle all LEDs
+            buffer[0] = 2;
+            bsp_interposer_led_status ^= 0x0F;
+            buffer[1] = bsp_interposer_led_status;
+
+            bsp_i2c_write(BSP_INTP_EXP_DEV_ID, &buffer[0], 2, NULL, NULL);
             break;
 
         default:
@@ -2825,6 +2942,31 @@ uint32_t bsp_i2c_read_repeated_start(uint32_t bsp_dev_id,
             break;
 #endif
 
+
+#ifdef BSP_INTP_EXP_DEV_ID
+        case BSP_INTP_EXP_DEV_ID:
+            bsp_i2c_transaction_complete = false;
+            bsp_i2c_transaction_error = false;
+            bsp_i2c_done_cb = cb;
+            bsp_i2c_done_cb_arg = cb_arg;
+            bsp_i2c_current_transaction_type = BSP_I2C_TRANSACTION_TYPE_READ_REPEATED_START;
+            bsp_i2c_read_buffer_ptr = read_buffer;
+            bsp_i2c_read_length = read_length;
+            bsp_i2c_read_address = BSP_INTP_EXP_I2C_ADDRESS_8BIT;
+            HAL_I2C_Master_Seq_Transmit_IT(&i2c_drv_handle,
+                                           bsp_i2c_read_address,
+                                           write_buffer,
+                                           write_length,
+                                           I2C_FIRST_FRAME);
+
+            if (cb == NULL)
+            {
+                while (!bsp_i2c_transaction_complete);
+            }
+
+            break;
+#endif
+
         default:
             break;
     }
@@ -2881,6 +3023,31 @@ uint32_t bsp_i2c_write(uint32_t bsp_dev_id,
             bsp_i2c_current_transaction_type = BSP_I2C_TRANSACTION_TYPE_WRITE;
             HAL_I2C_Master_Seq_Transmit_IT(&i2c_drv_handle,
                                            BSP_LN2_FPGA_I2C_ADDRESS_8BIT,
+                                           write_buffer,
+                                           write_length,
+                                           I2C_FIRST_AND_LAST_FRAME);
+
+            if (cb == NULL)
+            {
+                while ((!bsp_i2c_transaction_complete) && (!bsp_i2c_transaction_error));
+                if (bsp_i2c_transaction_error)
+                {
+                    ret = BSP_STATUS_FAIL;
+                }
+            }
+
+            break;
+#endif
+
+#ifdef BSP_INTP_EXP_DEV_ID
+        case BSP_INTP_EXP_DEV_ID:
+            bsp_i2c_transaction_complete = false;
+            bsp_i2c_transaction_error = false;
+            bsp_i2c_done_cb = cb;
+            bsp_i2c_done_cb_arg = cb_arg;
+            bsp_i2c_current_transaction_type = BSP_I2C_TRANSACTION_TYPE_WRITE;
+            HAL_I2C_Master_Seq_Transmit_IT(&i2c_drv_handle,
+                                           BSP_INTP_EXP_I2C_ADDRESS_8BIT,
                                            write_buffer,
                                            write_length,
                                            I2C_FIRST_AND_LAST_FRAME);

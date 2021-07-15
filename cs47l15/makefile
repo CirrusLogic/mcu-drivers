@@ -60,6 +60,27 @@ else
     endif
 endif
 
+ifeq ($(OPTIMIZATION_LEVEL), 0)
+    DEBUG_OPTIONS =
+    OPTIMIZATION_OPTIONS=-O0
+else ifeq ($(OPTIMIZATION_LEVEL), 1)
+    DEBUG_OPTIONS =
+    OPTIMIZATION_OPTIONS=-O1
+else ifeq ($(OPTIMIZATION_LEVEL), 2)
+    DEBUG_OPTIONS =
+    OPTIMIZATION_OPTIONS=-O2
+else ifeq ($(OPTIMIZATION_LEVEL), 3)
+    DEBUG_OPTIONS =
+    OPTIMIZATION_OPTIONS=-O3
+else ifeq ($(OPTIMIZATION_LEVEL), s)
+    DEBUG_OPTIONS =
+    OPTIMIZATION_OPTIONS=-Os
+else
+    DEBUG_OPTIONS += -DDEBUG
+    DEBUG_OPTIONS += -g3
+    OPTIMIZATION_OPTIONS=-O0
+endif
+
 CREATE_SYSCFG_REGS_TARGET = wisce_script_converter
 CREATE_FIRMWARE_TARGET = firmware_converter
 
@@ -114,6 +135,8 @@ endif
 # Assign compiler, assembler, linker flags required per target
 ifeq ($(MAKECMDGOALS), unit_test)
     CFLAGS      += -g -std=c99
+    CFLAGS += $(DEBUG_OPTIONS)
+    CFLAGS += $(OPTIMIZATION_OPTIONS)
 ifeq ($(BULLSEYE), 1)
 	CFLAGS += -DUSE_BULLSEYE
 endif
@@ -126,7 +149,6 @@ endif
     LDFLAGS     =
     ASM_FLAGS   =
 else ifeq ($(MAKECMDGOALS), driver_lib_cm4)
-    OPTIMIZATION_OPTIONS += -Os
 
     # Build switches for driver library
 
@@ -140,6 +162,7 @@ else ifeq ($(MAKECMDGOALS), driver_lib_cm4)
     CFLAGS += -fno-diagnostics-show-caret
     CFLAGS += -fdata-sections -ffunction-sections
     CFLAGS += -funsigned-char -funsigned-bitfields
+    CFLAGS += $(DEBUG_OPTIONS)
     CFLAGS += $(OPTIMIZATION_OPTIONS)
     CFLAGS += $(APP_OPTIONS)
     OUTPUT_NAME =
@@ -148,8 +171,6 @@ else ifeq ($(MAKECMDGOALS), driver_lib_cm4)
     LDFLAGS     =
     ASM_FLAGS   =
 else ifeq ($(MAKECMDGOALS), system_test)
-    DEBUG_OPTIONS += -DDEBUG
-    DEBUG_OPTIONS += -g3
 
     # Build switches for driver library
 
@@ -159,6 +180,7 @@ else ifeq ($(MAKECMDGOALS), system_test)
     CFLAGS += -fno-diagnostics-show-caret
     CFLAGS += -fdata-sections -ffunction-sections -fstack-usage
     CFLAGS += $(DEBUG_OPTIONS)
+    CFLAGS += $(OPTIMIZATION_OPTIONS)
     CFLAGS += $(APP_OPTIONS)
     CFLAGS += -DNO_OS
     CFLAGS += $(ST_CFLAGS)
@@ -178,8 +200,6 @@ endif
     LDFLAGS += -static
     LDFLAGS += -Wl,--start-group -lc -lm -Wl,--end-group
 else ifeq ($(MAKECMDGOALS), baremetal)
-    DEBUG_OPTIONS += -DDEBUG
-    DEBUG_OPTIONS += -g3
 
     # Build switches for driver library
 
@@ -189,6 +209,7 @@ else ifeq ($(MAKECMDGOALS), baremetal)
     CFLAGS += -fno-diagnostics-show-caret
     CFLAGS += -fdata-sections -ffunction-sections -fstack-usage
     CFLAGS += $(DEBUG_OPTIONS)
+    CFLAGS += $(OPTIMIZATION_OPTIONS)
     CFLAGS += $(APP_OPTIONS)
     CFLAGS += -DNO_OS
     CFLAGS += $(ST_CFLAGS)
@@ -210,8 +231,6 @@ endif
     LDFLAGS += -static
     LDFLAGS += -Wl,--start-group -lc -lm -Wl,--end-group
 else ifeq ($(MAKECMDGOALS), freertos)
-    DEBUG_OPTIONS += -DDEBUG
-    DEBUG_OPTIONS += -g3
 
     # Build switches for driver library
 
@@ -221,6 +240,7 @@ else ifeq ($(MAKECMDGOALS), freertos)
     CFLAGS += -fno-diagnostics-show-caret
     CFLAGS += -fdata-sections -ffunction-sections -fstack-usage
     CFLAGS += $(DEBUG_OPTIONS)
+    CFLAGS += $(OPTIMIZATION_OPTIONS)
     CFLAGS += $(APP_OPTIONS)
     CFLAGS += -DUSE_CMSIS_OS
     CFLAGS += $(ST_CFLAGS)
@@ -555,6 +575,12 @@ print_targets:
 	@echo Valid command line variables:
 	@echo		BULLSEYE=0	\(will disable Bullseye coverage\)
 	@echo		BULLSEYE=1	\(will enable Bullseye coverage\)
+	@echo
+	@echo       OPTIMIZATION_LEVEL=0    \(configure for -O0 optimization level\)
+	@echo       OPTIMIZATION_LEVEL=1    \(configure for -O1 optimization level\)
+	@echo       OPTIMIZATION_LEVEL=2    \(configure for -O2 optimization level\)
+	@echo       OPTIMIZATION_LEVEL=3    \(configure for -O3 optimization level\)
+	@echo       OPTIMIZATION_LEVEL=s    \(configure for -Os optimization level\)
 
 clean:
 	$(RM) $(BUILD_DIR)

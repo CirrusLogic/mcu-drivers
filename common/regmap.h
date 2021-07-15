@@ -76,7 +76,7 @@ extern "C" {
 /**
  * Macro for getting pointer to Control Port config from driver handle
  */
-#define REGMAP_GET_CP_CONFIG(A)            (&((A)->config.bsp_config.cp_config))
+#define REGMAP_GET_CP(A)            (&((A)->config.bsp_config.cp_config))
 
 /***********************************************************************************************************************
  * ENUMS, STRUCTS, UNIONS, TYPEDEFS
@@ -126,8 +126,6 @@ typedef struct
  * - REGMAP_STATUS_FAIL         if the call to BSP failed
  * - REGMAP_STATUS_OK           otherwise
  *
- * @warning Contains platform-dependent code.
- *
  */
 uint32_t regmap_read(regmap_cp_config_t *cp, uint32_t addr, uint32_t *val);
 
@@ -144,8 +142,6 @@ uint32_t regmap_read(regmap_cp_config_t *cp, uint32_t addr, uint32_t *val);
  * - REGMAP_STATUS_FAIL         if the call to BSP failed
  * - REGMAP_STATUS_OK           otherwise
  *
- * @warning Contains platform-dependent code.
- *
  */
 uint32_t regmap_write(regmap_cp_config_t *cp, uint32_t addr, uint32_t val);
 
@@ -157,24 +153,59 @@ uint32_t regmap_write(regmap_cp_config_t *cp, uint32_t addr, uint32_t val);
  * @param [in] cp               Pointer to the BSP control port configuration
  * @param [in] addr             32-bit address to be read
  * @param [in] mask             32-bit mask for bits to be modified
- * @param [out] val             Pointer to register value read
+ * @param [in] val              32-bit value to be written
  *
  * @return
  * - REGMAP_STATUS_FAIL         if the call to BSP failed
  * - REGMAP_STATUS_OK           otherwise
  *
- * @warning Contains platform-dependent code.
- *
  */
 uint32_t regmap_update_reg(regmap_cp_config_t *cp, uint32_t addr, uint32_t mask, uint32_t val);
+
+/**
+ * Reads a register for a specific value for a specified amount of tries while waiting between reads.
+ *
+ * @param [in] cp               Pointer to the BSP control port configuration
+ * @param [in] addr             Address to read from.
+ * @param [in] val              Value to compare the read value to.
+ * @param [in] tries            How many times to read the address.
+ * @param [in] delay            How long to delay between each read.
+ *
+ * @return
+ * - REGMAP_STATUS_FAIL         if the call to BSP failed or if value not polled
+ *                              within the amount of tries
+ * - REGMAP_STATUS_OK           otherwise
+ */
+uint32_t regmap_poll_reg(regmap_cp_config_t *cp, uint32_t addr, uint32_t val, uint8_t tries, uint32_t delay);
+
+/**
+ * Write a value to a register and poll for an updated value
+ *
+ * @param [in] cp               Pointer to the BSP control port configuration
+ * @param [in] addr             Address to read from.
+ * @param [in] val              32-bit value to be written
+ * @param [in] acked_val        Value to poll for after writing 'val'
+ * @param [in] tries            How many times to read the address.
+ * @param [in] delay            How long to delay between each read.
+ *
+ * @return
+ * - REGMAP_STATUS_FAIL         if the call to BSP failed or if value not polled
+ *                              within the amount of tries
+ * - REGMAP_STATUS_OK           otherwise
+ */
+uint32_t regmap_write_acked_reg(regmap_cp_config_t *cp,
+                                uint32_t addr,
+                                uint32_t val,
+                                uint32_t acked_val,
+                                uint8_t tries,
+                                uint32_t delay);
 
 /**
  * Reads contents from a consecutive number of memory addresses
  *
  * Starting at 'addr', this will read 'length' number of 32-bit values into the BSP-allocated buffer from the
  * control port.  This bulk read will place contents into the BSP buffer starting at the 4th byte address.
- * Bytes 0-3 in the buffer are reserved for non-bulk reads (i.e. calls to cs35l41_read_reg).  This control port
- * call only supports non-blocking calls.  This function also only supports I2C transactions.
+ * Bytes 0-3 in the buffer are reserved for non-bulk reads (i.e. calls to cs35l41_read_reg).
  *
  * @param [in] cp               Pointer to the BSP control port configuration
  * @param [in] addr             32-bit address to be read
@@ -185,15 +216,11 @@ uint32_t regmap_update_reg(regmap_cp_config_t *cp, uint32_t addr, uint32_t mask,
  * - REGMAP_STATUS_FAIL         if the call to BSP failed, or if 'length' exceeds the size of BSP buffer
  * - REGMAP_STATUS_OK           otherwise
  *
- * @warning Contains platform-dependent code.
- *
  */
 uint32_t regmap_read_block(regmap_cp_config_t *cp, uint32_t addr, uint8_t *bytes, uint32_t length);
 
 /**
  * Writes from byte array to consecutive number of Control Port memory addresses
- *
- * This control port call only supports non-blocking calls.  This function also only supports I2C transactions.
  *
  * @param [in] cp               Pointer to the BSP control port configuration
  * @param [in] addr             32-bit address to be read
@@ -204,14 +231,11 @@ uint32_t regmap_read_block(regmap_cp_config_t *cp, uint32_t addr, uint8_t *bytes
  * - REGMAP_STATUS_FAIL         if the call to BSP failed
  * - REGMAP_STATUS_OK           otherwise
  *
- * @warning Contains platform-dependent code.
- *
  */
 uint32_t regmap_write_block(regmap_cp_config_t *cp, uint32_t addr, uint8_t *bytes, uint32_t length);
 
 /**
- * Writes a value in a list to corresponding address. Can support multiple formats and you can choose
- * which with the format input.
+ * Writes a value in a list to corresponding address. Can support multiple formats of data to write.
  *
  * @param [in] cp               Pointer to the BSP control port configuration
  * @param [in] addr_val         Pointer to address and value list.
@@ -222,48 +246,26 @@ uint32_t regmap_write_block(regmap_cp_config_t *cp, uint32_t addr, uint8_t *byte
  * - REGMAP_STATUS_FAIL         if the call to BSP failed
  * - REGMAP_STATUS_OK           otherwise
  *
- * @warning Contains platform-dependent code.
- *
  */
 uint32_t regmap_write_array(regmap_cp_config_t *cp, uint32_t *addr_val, uint32_t size, uint32_t type);
 
 /**
- * Reads a register for a specific bit for a specified amount of tries while waiting between reads.
- *
- * @param [in] cp               Pointer to the BSP control port configuration
- * @param [in] addr             Address to read from.
- * @param [in] val              What value to compare the read value to.
- * @param [in] tries            How many times to read the address.
- * @param [in] delay            How long to delay between each read.
- *
- * @return
- * - REGMAP_STATUS_FAIL         if the call to BSP failed or if value not polled
- *                              within the amount of tries
- * - REGMAP_STATUS_OK           otherwise
- *
- * @warning Contains platform-dependent code.
- */
-uint32_t regmap_poll_reg(regmap_cp_config_t *cp, uint32_t addr, uint32_t val, uint8_t tries, uint32_t delay);
-
-/**
- * Reads a register corresponding to the respective symbol_id.
+ * Reads a firmware control corresponding to the respective symbol_id.
  *
  * @param [in] cp               Pointer to the BSP control port configuration
  * @param [in] f                Pointer to fw_img_info struct
  * @param [in] symbol_id        id to a specific register address
- * @param [in] val              Pointer to val which will contain the read value of the register
+ * @param [out] val             Pointer to val which will contain the read value of the register
  *
  * @return
  * - REGMAP_STATUS_FAIL         if the call to BSP failed
  * - REGMAP_STATUS_OK           otherwise
  *
- * @warning Contains platform-dependent code.
- *
  */
 uint32_t regmap_read_fw_control(regmap_cp_config_t *cp, fw_img_info_t *f, uint32_t symbol_id, uint32_t *val);
 
 /**
- * Writes a value to a register corresponding to the respective symbol_id.
+ * Writes a firmware control corresponding to the respective symbol_id.
  *
  * @param [in] cp               Pointer to the BSP control port configuration
  * @param [in] f                Pointer to fw_img_info struct
@@ -274,10 +276,95 @@ uint32_t regmap_read_fw_control(regmap_cp_config_t *cp, fw_img_info_t *f, uint32
  * - REGMAP_STATUS_FAIL         if the call to BSP failed
  * - REGMAP_STATUS_OK           otherwise
  *
- * @warning Contains platform-dependent code.
- *
  */
 uint32_t regmap_write_fw_control(regmap_cp_config_t *cp, fw_img_info_t *f, uint32_t symbol_id, uint32_t val);
+
+/**
+ * Updates bitfields in a firmware control corresponding to the respective symbol_id.
+ *
+ * @param [in] cp               Pointer to the BSP control port configuration
+ * @param [in] f                Pointer to fw_img_info struct
+ * @param [in] symbol_id        id to a specific register address
+ * @param [in] mask             32-bit mask for bits to be modified
+ * @param [in] val              Value to be written to register
+ *
+ * @return
+ * - REGMAP_STATUS_FAIL         if the call to BSP failed
+ * - REGMAP_STATUS_OK           otherwise
+ *
+ */
+uint32_t regmap_update_fw_control(regmap_cp_config_t *cp,
+                                  fw_img_info_t *f,
+                                  uint32_t symbol_id,
+                                  uint32_t mask,
+                                  uint32_t val);
+
+/**
+ * Reads a firmware control for a specific bit for a specified amount of tries while waiting between reads.
+ *
+ * @param [in] cp               Pointer to the BSP control port configuration
+ * @param [in] f                Pointer to fw_img_info struct
+ * @param [in] symbol_id        id to a specific register address
+ * @param [in] val              What value to compare the read value to.
+ * @param [in] tries            How many times to read the address.
+ * @param [in] delay            How long to delay between each read.
+ *
+ * @return
+ * - REGMAP_STATUS_FAIL         if the call to BSP failed or if value not polled
+ *                              within the amount of tries
+ * - REGMAP_STATUS_OK           otherwise
+ *
+ */
+uint32_t regmap_poll_fw_control(regmap_cp_config_t *cp,
+                                fw_img_info_t *f,
+                                uint32_t symbol_id,
+                                uint32_t val,
+                                uint8_t tries,
+                                uint32_t delay);
+
+/**
+ * Write a value to a firmware control and poll for an updated value
+ *
+ * @param [in] cp               Pointer to the BSP control port configuration
+ * @param [in] f                Pointer to fw_img_info struct
+ * @param [in] symbol_id        id to a specific register address
+ * @param [in] val              32-bit value to be written
+ * @param [in] acked_val        Value to poll for after writing 'val'
+ * @param [in] tries            How many times to read the address.
+ * @param [in] delay            How long to delay between each read.
+ *
+ * @return
+ * - REGMAP_STATUS_FAIL         if the call to BSP failed or if value not polled
+ *                              within the amount of tries
+ * - REGMAP_STATUS_OK           otherwise
+ */
+uint32_t regmap_write_acked_fw_control(regmap_cp_config_t *cp,
+                                       fw_img_info_t *f,
+                                       uint32_t symbol_id,
+                                       uint32_t val,
+                                       uint32_t acked_val,
+                                       uint8_t tries,
+                                       uint32_t delay);
+
+/**
+ * Writes from word array to a firmware control array corresponding to a symbol_id.
+ *
+ * @param [in] cp               Pointer to the BSP control port configuration
+ * @param [in] f                Pointer to fw_img_info struct
+ * @param [in] symbol_id        id to a specific register address
+ * @param [out] val             Pointer to 32-bit word value list.
+ * @param [in] size             Size of val list.
+ *
+ * @return
+ * - REGMAP_STATUS_FAIL         if the call to BSP failed
+ * - REGMAP_STATUS_OK           otherwise
+ *
+ */
+uint32_t regmap_write_fw_vals(regmap_cp_config_t *cp,
+                              fw_img_info_t *f,
+                              uint32_t symbol_id,
+                              uint32_t *val,
+                              uint32_t size);
 
 /**********************************************************************************************************************/
 #ifdef __cplusplus

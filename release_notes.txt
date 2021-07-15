@@ -3,6 +3,26 @@ Release Notes
 
 =============================================================================
 Summary:
+This is the release of Alt-OS Driver SDK v4.5.0
+Date: 2021/07/15
+
+Architectures/Compilers Used:
+GNU Arm Embedded Toolchain: arm-none-eabi-gcc -mcpu=cortex-m4
+
+New Features/Changes:
+[SQA-1539] Shortened REGMAP_GET_CP_CONFIG to REGMAP_GET_CP
+[SQA-2362] firmware_converter - added option to check WMDR fw revision against WMFW
+[SQA-2320] L25 - ported to regmap, refactored unused code
+[SQA-2299] bridge/smcio: Changes to improve performance
+
+Fixed Bugs:
+[SQA-2346] firmware_converter - binary output misses image version and has incorrect checksum
+[SQA-2319] L25 - No method for ReDC-Compensation
+[SQA-2372] Bridge: Fix agent does not handle multi-chip on block-writes
+
+=============================================================================
+=============================================================================
+Summary:
 This is the release of Alt-OS Driver SDK v4.4.0
 Date: 2021/06/25
 

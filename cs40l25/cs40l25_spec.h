@@ -4,7 +4,7 @@
  * @brief Constants and Types from CS40L25 datasheet
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2019, 2020 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2019-2021 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -819,36 +819,10 @@ typedef union
     uint32_t word;
 
     struct {
-        uint32_t gpio1_enable : 1;
-        uint32_t gpio2_enable : 1;
-        uint32_t gpio3_enable : 1;
-        uint32_t gpio4_enable : 1;
-        uint32_t reserved     : 24;
-    };
-} dsp_gpio_button_detect_reg_t;
-
-typedef union
-{
-    uint32_t word;
-
-    struct {
         uint32_t halo_word    : 24;
         uint32_t reserved     : 8;
     };
 } dsp_reg_t;
-
-typedef union
-{
-    uint32_t word;
-
-    struct {
-        uint32_t              : 4;
-        uint32_t control_gain : 10;
-        uint32_t gpi_gain     : 10;
-        uint32_t reserved     : 8;
-    };
-} dsp_gain_control_reg_t;
-
 
 /**
  * @defgroup SECTION_7_36_XM_UNPACKED24

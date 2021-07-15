@@ -43,6 +43,7 @@ extern "C" {
 #define BSP_DUT_DEV_ID                  (1)
 #define BSP_LN2_DEV_ID                  (2)
 #define BSP_DUT_DEV_ID_SPI2             (3)
+#define BSP_INTP_EXP_DEV_ID             (4)
 
 #define BSP_GPIO_ID_NULL                (0)
 #define BSP_GPIO_ID_DUT_CDC_RESET       (1)
@@ -52,6 +53,12 @@ extern "C" {
 #define BSP_GPIO_ID_LN2_CDC_GPIO1       (5)
 #define BSP_GPIO_ID_GF_GPIO7            (6)
 #define BSP_GPIO_ID_GF_GPIO2            (7)
+#define BSP_GPIO_ID_INTP_LED1           (8)
+#define BSP_GPIO_ID_INTP_LED2           (9)
+#define BSP_GPIO_ID_INTP_LED3           (10)
+#define BSP_GPIO_ID_INTP_LED4           (11)
+#define BSP_GPIO_ID_INTP_LED_ALL        (12)
+
 
 #define BSP_SUPPLY_ID_LN2_DCVDD         (1)
 
@@ -126,6 +133,13 @@ bool     bsp_was_pb_pressed(uint8_t pb_id);
 void     bsp_sleep(void);
 uint32_t bsp_register_pb_cb(uint32_t pb_id, bsp_app_callback_t cb, void *cb_arg);
 void     bsp_notification_callback(uint32_t event_flags, void *arg);
+uint32_t bsp_i2c_read_repeated_start(uint32_t bsp_dev_id,
+                                     uint8_t *write_buffer,
+                                     uint32_t write_length,
+                                     uint8_t *read_buffer,
+                                     uint32_t read_length,
+                                     bsp_callback_t cb,
+                                     void *cb_arg);
 uint32_t bsp_i2c_write(uint32_t bsp_dev_id,
                        uint8_t *write_buffer,
                        uint32_t write_length,

@@ -110,6 +110,8 @@ def init_bridge_socket(host='127.0.0.1', port=CLIENT_PORT):
             sys.exit()
 
     print('Socket bind complete')
+    # Set socket's NoDelay flag
+    sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
 
     sock.listen(10)
     portstr = format(sock.getsockname()[1], 'd')
@@ -244,7 +246,7 @@ def hexstr_to_decstr(hexstr):
 # Send block-write cmd data to device in chunks
 #=========================================================================
 
-def send_bw_data_to_mcu(crnt_cmd, ser_ch, ch_num, state, verbose):
+def send_bw_data_to_mcu(crnt_cmd, chip_id, ser_ch, ch_num, state, verbose):
     if crnt_cmd.arg1 is None or crnt_cmd.arg2 is None:
         raise blockwrite_chunk_excpn("BlockWrite cmd has no addr and/or data")
     # TODO we should remove BW from cmds_with_numerical_args then can still use arg2
@@ -260,10 +262,12 @@ def send_bw_data_to_mcu(crnt_cmd, ser_ch, ch_num, state, verbose):
             if state == BRIDGE_STATE_BW_START:
                 dbg_pr_general(verbose, "Agent state BWs: write cmd to device")
                 # Send MCU BW start msg: "BWs <regAddr> <regData>\n"
-                # TODO handle chip num for multi chip platforms
                 parcel_str_hex = data_str[data_indx:8]
                 parcel_str_dec = hexstr_to_decstr(parcel_str_hex)
-                dev_cmd_str = "{} {} {}\n".format(BWs, crnt_cmd.arg1, parcel_str_dec)
+                if chip_id is None:
+                    dev_cmd_str = "{} {} {}\n".format(BWs, crnt_cmd.arg1, parcel_str_dec)
+                else:
+                    dev_cmd_str = "{} {} {} {}\n".format(BWs, chip_id, crnt_cmd.arg1, parcel_str_dec)
                 dbg_pr_AgentMsgToDevice(verbose, dev_cmd_str)
                 ser_ch.write_channel(ch_num, dev_cmd_str)
                 data_indx += 8
@@ -292,7 +296,6 @@ def send_bw_data_to_mcu(crnt_cmd, ser_ch, ch_num, state, verbose):
                     raise blockwrite_chunk_excpn("BWc: Device replied with some error")
             elif state == BRIDGE_STATE_BW_END:
                 dbg_pr_general(verbose, "Agent state BWe: Waiting for last BWc reply from device")
-                time.sleep(1)   # This was necessary to throttle
                 mcu_reply_str = wait_for_serial_data(ser_ch, ch_num)
                 # Check for MCU BWc or Error reply
                 if len(mcu_reply_str) and BWc in mcu_reply_str[:len(BWc)]:
@@ -311,15 +314,17 @@ def send_bw_data_to_mcu(crnt_cmd, ser_ch, ch_num, state, verbose):
 # Command Handler Function
 #=========================================================================
 def client_cmd_handler(crnt_cmd, ser_ch, ch_num, state, verbose):
+    chip_id = None
     abbr_action_str = cmd_mcu_abbreviated[crnt_cmd.get_action_str()]
     abbr_dev_cmd_str = abbr_action_str
 
     # add chip target if multi-chip
-    if ((num_chips > 1) and (crnt_cmd.device_name is not None)):
+    if num_chips > 1 and crnt_cmd.device_name is not None:
         # Expect the client cmd to have a "[name-N]"
         # We only send the N to the device in order to identify the targeted chip
         print("DEVICE: " + crnt_cmd.device_name)
-        abbr_dev_cmd_str += " {}".format(devices[crnt_cmd.device_name]["chip_id"])
+        chip_id = devices[crnt_cmd.device_name]["chip_id"]
+        abbr_dev_cmd_str += " {}".format(chip_id)
 
     # add args
     if crnt_cmd.arg1 is not None:
@@ -335,7 +340,7 @@ def client_cmd_handler(crnt_cmd, ser_ch, ch_num, state, verbose):
     # "BW c10 E1000000E1000000E1000001E1000001E1000001"
     if abbr_action_str == "BW":
         try:
-            send_bw_data_to_mcu(crnt_cmd, ser_ch, ch_num, state, verbose)
+            send_bw_data_to_mcu(crnt_cmd, chip_id, ser_ch, ch_num, state, verbose)
         except blockwrite_chunk_excpn as bwe:
             print(bwe)
             raise
@@ -463,7 +468,6 @@ def wait_for_sock_recv(sock):
 def wait_for_serial_data(ser_ch, ch_num):
     # smcio read is non-blocking so loop read until we read a full string
     data_str = ""
-    time.sleep(1)
     while '\n' not in data_str:
         data_tmp = ''
         while data_tmp is '':

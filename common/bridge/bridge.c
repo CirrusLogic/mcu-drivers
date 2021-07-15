@@ -106,7 +106,13 @@
 #define APP_NAME        ("\"StudioBridge\"")
 #define APP_VER         ("\"1.5.13.0\"")   // copied from protocol doc. Adjust
 #define PROTO_VER       ("\"106\"")
-#define SYSTEM_ID       ("\"DEADBEEF\"")
+#define STR(A) #A
+#ifdef SYS_ID
+#define STR_X(A) STR(A)
+#define SYSTEM_ID STR_X(SYS_ID)
+#else
+#define SYSTEM_ID       STR(DEADBEEF)
+#endif
 #define OP_SYS          ("\"Alt-OS\"")
 #define OP_SYS_VER      ("\"0.0.0\"")
 #define DRIVER_CTRL     ("false")
@@ -224,7 +230,7 @@ static uint32_t handle_protocol_version(char *cmd)
 static uint32_t handle_info(char *cmd)
 {
     // Abrreviated format: "app,versions,protocolversions,systemID,OS,OSversion"
-    sprintf(cmd, "%s,%s,%s,%s,%s,%s", APP_NAME, APP_VER, PROTO_VER, SYSTEM_ID, OP_SYS, OP_SYS_VER);
+    sprintf(cmd, "%s,%s,%s,%s,%s,%s", APP_NAME, APP_VER, PROTO_VER, "\"" SYSTEM_ID "\"", OP_SYS, OP_SYS_VER);
 
     return BRIDGE_STATUS_OK;
 }

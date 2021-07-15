@@ -116,6 +116,7 @@ class packet:
 
 class packet_parser:
     def __init__(self):
+        self.packets = queue.Queue()
         self.reset()
 
         return
@@ -128,52 +129,51 @@ class packet_parser:
     def parse(self, b):
         self.byte_list += b
 
-        #print(self.state + str(b))
-        temp_int = int.from_bytes(b, byteorder='little', signed=False)
-        if ((self.state == 'idle') and (temp_int == 0x01)):
-            self.state = 'soh'
-        elif (self.state == 'soh'):
-            self.temp_packet = packet()
-            self.temp_packet.type = chr(temp_int)
-            self.state = 'type'
-        elif (self.state == 'type'):
-            self.temp_packet.count = temp_int
-            self.byte_count = 0
-            self.state = 'count'
-        elif (self.state == 'count'):
-            if (self.byte_count == 0):
-                self.temp_packet.length = temp_int
-                self.byte_count += 1
-            else:
-                self.temp_packet.length <<= 8
-                self.temp_packet.length |= temp_int
-                self.state = 'length'
-        elif (self.state == 'length'):
-            if (temp_int == 0x02):
-                self.byte_count = 1
-                self.state = 'sot'
-            else:
+        for temp_int in b:
+            if ((self.state == 'idle') and (temp_int == 0x01)):
+                self.state = 'soh'
+            elif (self.state == 'soh'):
+                self.temp_packet = packet()
+                self.temp_packet.type = chr(temp_int)
+                self.state = 'type'
+            elif (self.state == 'type'):
+                self.temp_packet.count = temp_int
+                self.byte_count = 0
+                self.state = 'count'
+            elif (self.state == 'count'):
+                if (self.byte_count == 0):
+                    self.temp_packet.length = temp_int
+                    self.byte_count += 1
+                else:
+                    self.temp_packet.length <<= 8
+                    self.temp_packet.length |= temp_int
+                    self.state = 'length'
+            elif (self.state == 'length'):
+                if (temp_int == 0x02):
+                    self.byte_count = 1
+                    self.state = 'sot'
+                else:
+                    self.state = 'idle'
+            elif (self.state == 'sot'):
+                self.temp_packet.payload.append(temp_int)
+                if (self.byte_count < self.temp_packet.length):
+                    self.byte_count += 1
+                else:
+                    self.state = 'payload'
+            elif (self.state == 'payload'):
+                if (temp_int == 0x03):
+                    self.state = 'eo_text'
+                else:
+                    self.state = 'idle'
+            elif (self.state == 'eo_text'):
+                self.temp_packet.checksum = temp_int
+                self.state = 'checksum'
+            elif (self.state == 'checksum'):
+                if (temp_int == 0x04):
+                    self.packets.put(self.temp_packet)
+                    self.packets.task_done()
+                    self.temp_packet = None
                 self.state = 'idle'
-        elif (self.state == 'sot'):
-            self.temp_packet.payload.append(temp_int)
-            if (self.byte_count < self.temp_packet.length):
-                self.byte_count += 1
-            else:
-                self.state = 'payload'
-        elif (self.state == 'payload'):
-            if (temp_int == 0x03):
-                self.state = 'eo_text'
-            else:
-                self.state = 'idle'
-        elif (self.state == 'eo_text'):
-            self.temp_packet.checksum = temp_int
-            self.state = 'checksum'
-        elif (self.state == 'checksum'):
-            if (temp_int == 0x04):
-                #print(self.temp_packet)
-                self.latest_packet = self.temp_packet
-                self.temp_packet = None
-            self.state = 'idle'
 
         return
 
@@ -182,14 +182,14 @@ class packet_parser:
         self.state = 'idle'
         self.byte_count = 0
         self.temp_packet = None
-        self.latest_packet = None
+        self.packets.queue.clear()
 
         return
 
     def get_new_packet(self):
-        temp = self.latest_packet
-        self.latest_packet = None
-        return temp
+        if self.packets.empty():
+            return None
+        return self.packets.get()
 
 class serial_io_interface(metaclass=abc.ABCMeta):
     @classmethod
@@ -232,6 +232,8 @@ class channel:
     def read(self):
         temp_str = ''
 
+        temp_str += self.rx_q.get()
+
         while (not self.rx_q.empty()):
             temp_str += self.rx_q.get()
 
@@ -258,7 +260,7 @@ class processor:
                 self.parser.parse(l)
 
                 p = self.parser.get_new_packet()
-                if (p is not None):
+                while (p is not None):
                     if (self.verbose):
                         print("RX Packet:")
                         print(p)
@@ -277,20 +279,23 @@ class processor:
                         c.rx_q.task_done()
                         if (c.rx_callback is not None):
                             c.rx_callback(c.rx_callback_arg, s)
+                    p = self.parser.get_new_packet()
 
         return
 
     def tx_packets(self):
 
         while not self.stop_event.is_set():
-            if (not self.tx_q.empty()):
-                tx_packet = self.tx_q.get()
+            try:
+                tx_packet = self.tx_q.get(timeout=1)
 
                 if (self.verbose):
                     print("TX Packet:")
                     print(tx_packet)
                 self.io.write(tx_packet.encode())
                 self.tx_q.task_done()
+            except queue.Empty:
+                pass
 
         return
 

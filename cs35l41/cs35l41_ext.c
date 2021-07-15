@@ -4,7 +4,7 @@
  * @brief The CS35L41 Driver Extended API module
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2020 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2020-2021 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -52,7 +52,7 @@
 uint32_t cs35l41_set_dig_gain(cs35l41_t *driver, uint32_t *gain)
 {
     uint32_t ret;
-    regmap_cp_config_t *cp = REGMAP_GET_CP_CONFIG(driver);
+    regmap_cp_config_t *cp = REGMAP_GET_CP(driver);
 
     *gain <<= CS35L41_INTP_AMP_CTRL_AMP_VOL_PCM_BITOFFSET;
     *gain &= CS35L41_INTP_AMP_CTRL_AMP_VOL_PCM_BITMASK;
@@ -74,7 +74,7 @@ uint32_t cs35l41_config_gpio(cs35l41_t *driver, cs35l41_gpio_id_t gpio_id, bool 
     uint32_t gpio_ctrl1_addr = 0;
     cs35l41_gpio_ctrl1_t ctrl;
     uint32_t ret = CS35L41_STATUS_OK;
-    regmap_cp_config_t *cp = REGMAP_GET_CP_CONFIG(driver);
+    regmap_cp_config_t *cp = REGMAP_GET_CP(driver);
 
     // Get GPIOx_CTRL1 register
     switch (gpio_id)
@@ -128,7 +128,7 @@ uint32_t cs35l41_set_gpio(cs35l41_t *driver, cs35l41_gpio_id_t gpio_id, bool is_
     uint32_t gpio_ctrl1_addr = 0;
     cs35l41_gpio_ctrl1_t ctrl;
     uint32_t ret = CS35L41_STATUS_OK;
-    regmap_cp_config_t *cp = REGMAP_GET_CP_CONFIG(driver);
+    regmap_cp_config_t *cp = REGMAP_GET_CP(driver);
 
     // Get GPIOx_CTRL1 register
     switch (gpio_id)
@@ -180,7 +180,7 @@ uint32_t cs35l41_set_gpio(cs35l41_t *driver, cs35l41_gpio_id_t gpio_id, bool is_
 uint32_t cs35l41_get_gpio(cs35l41_t *driver, cs35l41_gpio_id_t gpio_id, uint32_t *level)
 {
     uint32_t val;
-    regmap_cp_config_t *cp = REGMAP_GET_CP_CONFIG(driver);
+    regmap_cp_config_t *cp = REGMAP_GET_CP(driver);
 
     // Check for null pointer
     if (level == NULL)

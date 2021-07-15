@@ -265,6 +265,73 @@ uint32_t regmap_update_reg(regmap_cp_config_t *cp, uint32_t addr, uint32_t mask,
 }
 
 /**
+ * Reads a register for a specific value for a specified amount of tries while waiting between reads.
+ *
+ */
+uint32_t regmap_poll_reg(regmap_cp_config_t *cp, uint32_t addr, uint32_t val, uint8_t tries, uint32_t delay)
+{
+    uint32_t tmp, ret;
+
+    ret = REGMAP_STATUS_FAIL;
+
+    for (int i = 0; i < tries; i++)
+    {
+        ret = regmap_read(cp, addr, &tmp);
+
+        if (ret)
+        {
+          return ret;
+        }
+
+        if (tmp == val)
+        {
+          return REGMAP_STATUS_OK;;
+        }
+
+        bsp_driver_if_g->set_timer(delay, NULL, NULL);
+    }
+
+    return REGMAP_STATUS_FAIL;
+}
+
+/**
+ * Write a value to a register and poll for an updated value
+ *
+ */
+uint32_t regmap_write_acked_reg(regmap_cp_config_t *cp,
+                                uint32_t addr,
+                                uint32_t val,
+                                uint32_t acked_val,
+                                uint8_t tries,
+                                uint32_t delay)
+{
+    uint32_t ret;
+
+    ret = regmap_write(cp, addr, val);
+
+    if (ret)
+    {
+        return REGMAP_STATUS_FAIL;
+    }
+
+    for (uint8_t i = 0 ; i < tries; i++)
+    {
+        uint32_t temp_reg_val;
+
+        bsp_driver_if_g->set_timer(delay, NULL, NULL);
+
+        regmap_read(cp, addr, &temp_reg_val);
+
+        if (temp_reg_val == acked_val)
+        {
+            return REGMAP_STATUS_OK;
+        }
+    }
+
+    return REGMAP_STATUS_FAIL;
+}
+
+/**
  * Reads contents from a consecutive number of memory addresses
  *
  */
@@ -392,17 +459,17 @@ uint32_t regmap_write_block(regmap_cp_config_t *cp, uint32_t addr, uint8_t *byte
 }
 
 /**
- * Writes a value in a list to corresponding address. Can support multiple type and you can choose
+ * Writes a value in a list to corresponding address. Can support multiple formats of data to write.
  *
  */
-uint32_t regmap_write_array(regmap_cp_config_t *cp, uint32_t *addr_val, uint32_t size, uint32_t type)
+uint32_t regmap_write_array(regmap_cp_config_t *cp, uint32_t *addr_val, uint32_t length, uint32_t type)
 {
     uint32_t ret = REGMAP_STATUS_FAIL;
 
     switch (type)
     {
         case REGMAP_WRITE_ARRAY_TYPE_ADDR_VAL:
-            for (uint32_t i = 0; i < size; i+=2)
+            for (uint32_t i = 0; i < length; i+=2)
             {
                 ret = regmap_write(cp, addr_val[i], addr_val[i+1]);
                 if (ret)
@@ -420,41 +487,10 @@ uint32_t regmap_write_array(regmap_cp_config_t *cp, uint32_t *addr_val, uint32_t
 }
 
 /**
- * Reads a register for a specific bit for a specified amount of tries while waiting between reads.
+ * Reads a firmware control corresponding to the respective symbol_id.
  *
  */
-uint32_t regmap_poll_reg(regmap_cp_config_t *cp, uint32_t addr, uint32_t val, uint8_t tries, uint32_t delay)
-{
-    uint32_t tmp, ret;
-
-    ret = REGMAP_STATUS_FAIL;
-
-    for (int i = 0; i < tries; i++)
-    {
-        ret = regmap_read(cp, addr, &tmp);
-
-        if (ret)
-        {
-          return ret;
-        }
-
-        if (tmp & val)
-        {
-          return REGMAP_STATUS_OK;;
-        }
-
-        bsp_driver_if_g->set_timer(delay, NULL, NULL);
-    }
-
-    return REGMAP_STATUS_FAIL;
-}
-
-/**
- * Reads a register corresponding to the respective symbol_id.
- *
- */
-uint32_t regmap_read_fw_control(regmap_cp_config_t *cp,
-                                  fw_img_info_t *f, uint32_t symbol_id, uint32_t *val)
+uint32_t regmap_read_fw_control(regmap_cp_config_t *cp, fw_img_info_t *f, uint32_t symbol_id, uint32_t *val)
 {
     uint32_t temp_reg_addr, ret;
 
@@ -476,11 +512,10 @@ uint32_t regmap_read_fw_control(regmap_cp_config_t *cp,
 }
 
 /**
- * Writes a value to a register corresponding to the respective symbol_id.
+ * Writes a firmware control corresponding to the respective symbol_id.
  *
  */
-uint32_t regmap_write_fw_control(regmap_cp_config_t *cp, fw_img_info_t *f,
-                                   uint32_t symbol_id, uint32_t val)
+uint32_t regmap_write_fw_control(regmap_cp_config_t *cp, fw_img_info_t *f, uint32_t symbol_id, uint32_t val)
 {
     uint32_t temp_reg_addr, ret;
 
@@ -496,6 +531,121 @@ uint32_t regmap_write_fw_control(regmap_cp_config_t *cp, fw_img_info_t *f,
     if (ret)
     {
         return REGMAP_STATUS_FAIL;
+    }
+
+    return REGMAP_STATUS_OK;
+}
+
+/**
+ * Updates bitfields in a firmware control corresponding to the respective symbol_id.
+ *
+ */
+uint32_t regmap_update_fw_control(regmap_cp_config_t *cp,
+                                  fw_img_info_t *f,
+                                  uint32_t symbol_id,
+                                  uint32_t mask,
+                                  uint32_t val)
+{
+    uint32_t temp_reg_addr;
+
+    temp_reg_addr = fw_img_find_symbol(f, symbol_id);
+
+    if (temp_reg_addr == 0)
+    {
+        return REGMAP_STATUS_FAIL;
+    }
+
+    return regmap_update_reg(cp, temp_reg_addr, mask, val);
+}
+
+/**
+ * Reads a firmware control for a specific bit for a specified amount of tries while waiting between reads.
+ *
+ */
+uint32_t regmap_poll_fw_control(regmap_cp_config_t *cp,
+                                fw_img_info_t *f,
+                                uint32_t symbol_id,
+                                uint32_t val,
+                                uint8_t tries,
+                                uint32_t delay)
+{
+    uint32_t temp_reg_val, temp_reg_addr;
+    uint32_t ret = REGMAP_STATUS_FAIL;
+
+    temp_reg_addr = fw_img_find_symbol(f, symbol_id);
+    temp_reg_val = ~val;
+
+    if (temp_reg_addr != 0)
+    {
+        for (uint8_t i = 0; i < tries; i++)
+        {
+            regmap_read(cp, temp_reg_addr, &temp_reg_val);
+
+            if (temp_reg_val == val)
+            {
+                ret = REGMAP_STATUS_OK;
+                break;
+            }
+
+            bsp_driver_if_g->set_timer(delay, NULL, NULL);
+        }
+    }
+
+    return ret;
+}
+
+/**
+ * Write a value to a firmware control and poll for an updated value
+ *
+ */
+uint32_t regmap_write_acked_fw_control(regmap_cp_config_t *cp,
+                                       fw_img_info_t *f,
+                                       uint32_t symbol_id,
+                                       uint32_t val,
+                                       uint32_t acked_val,
+                                       uint8_t tries,
+                                       uint32_t delay)
+{
+    uint32_t temp_reg_addr;
+
+    temp_reg_addr = fw_img_find_symbol(f, symbol_id);
+
+    if (temp_reg_addr == 0)
+    {
+        return REGMAP_STATUS_FAIL;
+    }
+
+    return regmap_write_acked_reg(cp, temp_reg_addr, val, acked_val, tries, delay);
+}
+
+/**
+ * Writes from word array to a firmware control array corresponding to a symbol_id.
+ *
+ */
+uint32_t regmap_write_fw_vals(regmap_cp_config_t *cp,
+                               fw_img_info_t *f,
+                               uint32_t symbol_id,
+                               uint32_t *val,
+                               uint32_t length)
+{
+    uint32_t temp_reg_addr, ret;
+
+    temp_reg_addr = fw_img_find_symbol(f, symbol_id);
+
+    if (temp_reg_addr == 0)
+    {
+        return REGMAP_STATUS_FAIL;
+    }
+
+    for (uint32_t i = 0; i < length; i++)
+    {
+
+        ret = regmap_write(cp, (temp_reg_addr + (i * 4)), val[i]);
+
+        if (ret)
+        {
+            return REGMAP_STATUS_FAIL;
+        }
     }
 
     return REGMAP_STATUS_OK;

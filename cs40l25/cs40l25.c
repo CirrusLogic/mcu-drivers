@@ -4,7 +4,7 @@
  * @brief The CS40L25 Driver module
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2020 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2020-2021 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -223,7 +223,6 @@
  */
 static const uint32_t cs40l25_revb0_errata_patch[] =
 {
-    0x00000018, //
     0x00003008, 0x000C1837,
     0x00003014, 0x03008E0E,
     CS40L25_CTRL_KEYS_TEST_KEY_CTRL_REG, CS40L25_TEST_KEY_CTRL_UNLOCK_1,
@@ -236,22 +235,6 @@ static const uint32_t cs40l25_revb0_errata_patch[] =
     CS40L25_CTRL_KEYS_TEST_KEY_CTRL_REG, CS40L25_TEST_KEY_CTRL_LOCK_1,
     CS40L25_CTRL_KEYS_TEST_KEY_CTRL_REG, CS40L25_TEST_KEY_CTRL_LOCK_2,
     0x00004400, 0x00000000,
-};
-
-/**
- * Register configuration after HALO Core DSP FW is loaded in cs40l25_boot
- *
- * List is in the form:
- * - word0 - Address of first configuration register
- * - word1 - Value of first configuration register
- * - word2 - Address of second configuration register
- * - word3 - Value of second configuration register
- * - ...
- *
- */
-static const uint32_t cs40l25_post_boot_config[] =
-{
-    CS40L25_MIXER_DSP1RX4_INPUT_REG, CS40L25_INPUT_SRC_VPMON,
 };
 
 /**
@@ -385,26 +368,7 @@ static const uint32_t cs40l25_wseq_regs[] =
     CS40L25_MIXER_DSP1RX1_INPUT_REG, CS40L25_INPUT_SRC_ASPRX1,
     CS40L25_MIXER_DSP1RX2_INPUT_REG, CS40L25_INPUT_SRC_VMON,
     CS40L25_MIXER_DSP1RX3_INPUT_REG, CS40L25_INPUT_SRC_VMON,
-    CS40L25_MIXER_DSP1RX4_INPUT_REG, CS40L25_INPUT_SRC_VMON
-};
-
-/**
- * Register/DSP Memory addresses to read during cs40l25_get_dsp_status
- *
- * List is in the form:
- * - word0 - Address of first status register
- * - word1 - Address of second status register
- * - ...
- *
- * @see cs40l25_dsp_status_t
- *
- * @warning  The list of registers MUST correspond to the union of structs in  in cs40l25_dsp_status_t.
- *
- */
-static const uint32_t cs40l25_dsp_status_symbols[CS40L25_DSP_STATUS_WORDS_TOTAL] =
-{
-    CS40L25_SYM_FIRMWARE_HALO_STATE,
-    CS40L25_SYM_FIRMWARE_HALO_HEARTBEAT
+    CS40L25_MIXER_DSP1RX4_INPUT_REG, CS40L25_INPUT_SRC_VMON,
 };
 
 /**
@@ -516,74 +480,6 @@ static const uint32_t cs40l25_irqmaskseq_patch[] =
 /***********************************************************************************************************************
  * LOCAL FUNCTIONS
  **********************************************************************************************************************/
-#ifdef CS40L25_USEFUL_UNUSED
-/**
- * Find if an algorithm is in the algorithm list and return true if it is.
- * Returns false if not.
- */
-static bool cs40l25_find_algid(cs40l25_t *driver, uint32_t algid_id)
-{
-    if (driver->fw_info)
-    {
-        for (uint32_t i = 0; i < driver->fw_info->header.alg_id_list_size; i++)
-        {
-            if (driver->fw_info->alg_id_list[i] == algid_id)
-                return true;
-        }
-    }
-
-    return false;
-}
-#endif
-
-/**
- * Writes from byte array to consecutive number of Control Port memory addresses
- *
- * This control port call only supports non-blocking calls.  This function also only supports I2C transactions.
- *
- * @param [in] driver           Pointer to the driver state
- * @param [in] addr             32-bit address to be read
- * @param [in] bytes            pointer to array of bytes to write via Control Port bus
- * @param [in] length           number of bytes to write
- *
- * @return
- * - CS40L25_STATUS_FAIL        if the call to BSP failed
- * - CS40L25_STATUS_OK          otherwise
- *
- * @warning Contains platform-dependent code.
- *
- */
-static uint32_t cs40l25_cp_bulk_write_block(cs40l25_t *driver, uint32_t addr, uint8_t *bytes, uint32_t length)
-{
-    uint32_t ret = CS40L25_STATUS_OK;
-    uint32_t bsp_status;
-    cs40l25_bsp_config_t *b = &(driver->config.bsp_config);
-    uint8_t write_buffer[4];
-
-    /*
-     * Place contents of uint32_t 'addr' to Big-Endian format byte stream required for Control Port
-     * transaction.
-     */
-    write_buffer[0] = GET_BYTE_FROM_WORD(addr, 3);
-    write_buffer[1] = GET_BYTE_FROM_WORD(addr, 2);
-    write_buffer[2] = GET_BYTE_FROM_WORD(addr, 1);
-    write_buffer[3] = GET_BYTE_FROM_WORD(addr, 0);
-
-    bsp_status = bsp_driver_if_g->i2c_db_write(b->bsp_dev_id,
-                                               &(write_buffer[0]),
-                                               4,
-                                               bytes,
-                                               length,
-                                               NULL,
-                                               NULL);
-
-    if (bsp_status == BSP_STATUS_FAIL)
-    {
-        ret = CS40L25_STATUS_FAIL;
-    }
-
-    return ret;
-}
 
 /**
  * Notify the driver when the CS40L25 INTb GPIO drops low.
@@ -595,7 +491,7 @@ static uint32_t cs40l25_cp_bulk_write_block(cs40l25_t *driver, uint32_t addr, ui
  *
  * @param [in] status           BSP status for the INTb IRQ.
  * @param [in] cb_arg           A pointer to callback argument registered.  For the driver, this arg is used for a
- *                              pointer to the driver state cs35l41_t.
+ *                              pointer to the driver state cs40l25_t.
  *
  * @return none
  *
@@ -677,14 +573,26 @@ static uint32_t cs40l25_wseq_table_add(cs40l25_t *driver, uint32_t address, uint
  * - CS40L25_STATUS_OK          otherwise
  *
  */
-static uint32_t cs40l25_wseq_table_update(cs40l25_t *driver, uint32_t address, uint32_t value)
+static uint32_t cs40l25_write_wseq_reg(cs40l25_t *driver, uint32_t address, uint32_t value)
 {
-    uint32_t ret = CS40L25_STATUS_OK;
+    uint32_t ret;
+    regmap_cp_config_t *cp = REGMAP_GET_CP(driver);
+
+    ret = regmap_write(cp, address, value);
+    if (ret)
+    {
+        return CS40L25_STATUS_FAIL;
+    }
+
+    ret = CS40L25_STATUS_OK;
+
     if (!driver->wseq_initialized)
     {
         return ret;
     }
+
     cs40l25_wseq_entry_t *table = (cs40l25_wseq_entry_t *) &driver->wseq_table;
+
     if (address < 0xFFFF)
     {
         uint32_t num_entries = driver->wseq_num_entries;
@@ -784,65 +692,59 @@ static uint32_t cs40l25_power_up(cs40l25_t *driver)
 {
     uint32_t count = 0;
     uint32_t temp_reg_val = 0;
-    uint32_t reg_address;
+    uint32_t ret;
+    regmap_cp_config_t *cp = REGMAP_GET_CP(driver);
 
-    const uint32_t *errata_write = cs40l25_revb0_errata_patch;
-    uint32_t errata_length = *errata_write;
-    // Skip first word which is errata length
-    errata_write++;
-    // Start sending errata
-    for (count = 0; count < errata_length; count += 2)
-    {
-        cs40l25_write_reg(driver, *(errata_write), *(errata_write + 1));
-        errata_write += 2;
-    }
+    // Write errata
+    regmap_write_array(cp,
+                       (uint32_t *) cs40l25_revb0_errata_patch,
+                       (sizeof(cs40l25_revb0_errata_patch)/sizeof(uint32_t)),
+                       REGMAP_WRITE_ARRAY_TYPE_ADDR_VAL);
 
     // Set HALO Core DSP Sample Rate registers to G1R2
     for (count = 0; count < (sizeof(cs40l25_frame_sync_regs)/sizeof(uint32_t)); count++)
     {
-        cs40l25_write_reg(driver, cs40l25_frame_sync_regs[count], CS40L25_DSP1_SAMPLE_RATE_G1R2);
+        regmap_write(cp, cs40l25_frame_sync_regs[count], CS40L25_DSP1_SAMPLE_RATE_G1R2);
     }
 
     // Send words of Power Up Patch
-    for (count = 0; count < (sizeof(cs40l25_pup_patch)/sizeof(uint32_t)); count += 2)
-    {
-        cs40l25_write_reg(driver, cs40l25_pup_patch[count], cs40l25_pup_patch[count + 1]);
-    }
+    regmap_write_array(cp,
+                       (uint32_t *) cs40l25_pup_patch,
+                       (sizeof(cs40l25_pup_patch)/sizeof(uint32_t)),
+                       REGMAP_WRITE_ARRAY_TYPE_ADDR_VAL);
 
-    // Read the HALO Core DSP CCM control register
-    cs40l25_read_reg(driver, XM_UNPACKED24_DSP1_CCM_CORE_CONTROL_REG, &temp_reg_val);
-    // Enable clocks to HALO Core DSP
-    temp_reg_val |= XM_UNPACKED24_DSP1_CCM_CORE_CONTROL_DSP1_CCM_CORE_EN_BITMASK | XM_UNPACKED24_DSP1_CCM_CORE_CONTROL_DSP1_CCM_CORE_RESET_BITMASK;
-    cs40l25_write_reg(driver, XM_UNPACKED24_DSP1_CCM_CORE_CONTROL_REG, temp_reg_val);
+    // Enable clocks to HALO Core DSP in DSP CCM control register
+    regmap_update_reg(cp,
+                      XM_UNPACKED24_DSP1_CCM_CORE_CONTROL_REG,
+                      (XM_UNPACKED24_DSP1_CCM_CORE_CONTROL_DSP1_CCM_CORE_EN_BITMASK | \
+                        XM_UNPACKED24_DSP1_CCM_CORE_CONTROL_DSP1_CCM_CORE_RESET_BITMASK),
+                      (XM_UNPACKED24_DSP1_CCM_CORE_CONTROL_DSP1_CCM_CORE_EN_BITMASK | \
+                       XM_UNPACKED24_DSP1_CCM_CORE_CONTROL_DSP1_CCM_CORE_RESET_BITMASK));
 
     if (driver->state == CS40L25_STATE_CAL_STANDBY)
     {
-        reg_address = cs40l25_find_symbol(driver, CS40L25_CAL_SYM_FIRMWARE_HALO_STATE);
+        ret = regmap_poll_fw_control(cp,
+                                     driver->fw_info,
+                                     CS40L25_CAL_SYM_FIRMWARE_HALO_STATE,
+                                     0xCB,
+                                     CS40L25_POLL_OTP_BOOT_DONE_MAX,
+                                     CS40L25_T_BST_PUP_MS);
     }
     else
     {
-        reg_address = cs40l25_find_symbol(driver, CS40L25_SYM_FIRMWARE_HALO_STATE);
+        ret = regmap_poll_fw_control(cp,
+                                     driver->fw_info,
+                                     CS40L25_SYM_FIRMWARE_HALO_STATE,
+                                     0xCB,
+                                     CS40L25_POLL_OTP_BOOT_DONE_MAX,
+                                     CS40L25_T_BST_PUP_MS);
     }
-    if (!reg_address)
+    if (ret)
     {
         return CS40L25_STATUS_FAIL;
     }
 
-    for (count = 0; count < CS40L25_POLL_OTP_BOOT_DONE_MAX; count++)
-    {
-        cs40l25_read_reg(driver, reg_address, &temp_reg_val);
-        if (temp_reg_val == 0xCB)
-        {
-            break;
-        }
-        bsp_driver_if_g->set_timer(CS40L25_T_BST_PUP_MS, NULL, NULL);
-    }
-    if (count >= CS40L25_POLL_OTP_BOOT_DONE_MAX)
-    {
-        return CS40L25_STATUS_FAIL;
-    }
-
-    cs40l25_read_reg(driver, XM_UNPACKED24_DSP1_SCRATCH_REG, &temp_reg_val);
+    regmap_read(cp, XM_UNPACKED24_DSP1_SCRATCH_REG, &temp_reg_val);
 
     if (temp_reg_val)
     {
@@ -870,45 +772,40 @@ static uint32_t cs40l25_power_up(cs40l25_t *driver)
  */
 static uint32_t cs40l25_power_down(cs40l25_t *driver)
 {
-    uint32_t temp_reg_val = 0;
-    uint32_t reg_address;
     uint32_t ret;
+    regmap_cp_config_t *cp = REGMAP_GET_CP(driver);
 
     // Force fw into standby
     if (driver->state == CS40L25_STATE_CAL_POWER_UP)
     {
-        reg_address = cs40l25_find_symbol(driver,
-                                          CS40L25_CAL_SYM_FIRMWARE_SHUTDOWNREQUEST);
-        if (!reg_address)
-        {
-            return CS40L25_STATUS_FAIL;
-        }
-
-        ret = cs40l25_write_acked_reg(driver, reg_address, 1, 0);
-
-        if (ret != CS40L25_STATUS_OK)
-        {
-            return CS40L25_STATUS_FAIL;
-        }
+        ret = regmap_write_acked_fw_control(cp,
+                                            driver->fw_info,
+                                            CS40L25_CAL_SYM_FIRMWARE_SHUTDOWNREQUEST,
+                                            1,
+                                            0,
+                                            CS40L25_POLL_ACK_CTRL_MAX,
+                                            CS40L25_POLL_ACK_CTRL_MS);
     }
     else
     {
-        ret = cs40l25_write_acked_reg(driver,
-                                      DSP_VIRTUAL1_MBOX_DSP_VIRTUAL1_MBOX_4_REG,
-                                      CS40L25_POWERCONTROL_FRC_STDBY,
-                                      CS40L25_POWERCONTROL_NONE);
-
-        if (ret != CS40L25_STATUS_OK)
-        {
-            return CS40L25_STATUS_FAIL;
-        }
+        ret = regmap_write_acked_reg(cp,
+                                     DSP_VIRTUAL1_MBOX_DSP_VIRTUAL1_MBOX_4_REG,
+                                     CS40L25_POWERCONTROL_FRC_STDBY,
+                                     CS40L25_POWERCONTROL_NONE,
+                                     CS40L25_POLL_ACK_CTRL_MAX,
+                                     CS40L25_POLL_ACK_CTRL_MS);
     }
 
-    // Read so we can update bits
-    cs40l25_read_reg(driver, XM_UNPACKED24_DSP1_CCM_CORE_CONTROL_REG, &temp_reg_val);
+    if (ret != REGMAP_STATUS_OK)
+    {
+        return CS40L25_STATUS_FAIL;
+    }
+
     // Disable HALO Core DSP
-    temp_reg_val &= ~XM_UNPACKED24_DSP1_CCM_CORE_CONTROL_DSP1_CCM_CORE_EN_BITMASK;
-    cs40l25_write_reg(driver, XM_UNPACKED24_DSP1_CCM_CORE_CONTROL_REG, temp_reg_val);
+    regmap_update_reg(cp,
+                      XM_UNPACKED24_DSP1_CCM_CORE_CONTROL_REG,
+                      XM_UNPACKED24_DSP1_CCM_CORE_CONTROL_DSP1_CCM_CORE_EN_BITMASK,
+                      0);
 
     return CS40L25_STATUS_OK;
 }
@@ -930,36 +827,34 @@ static uint32_t cs40l25_power_down(cs40l25_t *driver)
  */
 static uint32_t cs40l25_exit_bhm(cs40l25_t *driver)
 {
-    uint32_t count = 0;
+    uint32_t *patch;
+    uint32_t patch_length;
+    regmap_cp_config_t *cp = REGMAP_GET_CP(driver);
 
 #ifndef CONFIG_OPEN_LOOP
     uint32_t temp_reg_val = 0;
+    uint32_t ret;
 
     // Request BHM shuts down
-    cs40l25_write_reg(driver, DSP_BHM_AMP_SHUTDOWNREQUEST_REG, DSP_BHM_AMP_SHUTDOWNREQUEST_BITMASK);
+    regmap_write(cp, DSP_BHM_AMP_SHUTDOWNREQUEST_REG, DSP_BHM_AMP_SHUTDOWNREQUEST_BITMASK);
     // Wait for at least 1ms
     bsp_driver_if_g->set_timer(BSP_TIMER_DURATION_2MS, NULL, NULL);
 
     // If OTP_BOOT_DONE is set
-    for (count = 0; count < CS40L25_POLL_OTP_BOOT_DONE_MAX; count++)
-    {
-        // Read SHUTDOWNREQUEST to see if the reg has been cleared
-        cs40l25_read_reg(driver, DSP_BHM_AMP_SHUTDOWNREQUEST_REG, &temp_reg_val);
-        if (temp_reg_val == 0)
-        {
-            break;
-        }
-        // If time left to poll, read OTP_BOOT_DONE again
-        bsp_driver_if_g->set_timer(CS40L25_POLL_OTP_BOOT_DONE_MS, NULL, NULL);
-    }
-    // If polling period expired, indicate ERROR
-    if (count >= CS40L25_POLL_OTP_BOOT_DONE_MAX)
+    // Read SHUTDOWNREQUEST to see if the reg has been cleared
+    ret = regmap_poll_reg(cp,
+                          DSP_BHM_AMP_SHUTDOWNREQUEST_REG,
+                          0,
+                          CS40L25_POLL_OTP_BOOT_DONE_MAX,
+                          CS40L25_POLL_OTP_BOOT_DONE_MS);
+
+    if (ret)
     {
         return CS40L25_STATUS_FAIL;
     }
 
     // Read BHM_STATEMACHINE
-    cs40l25_read_reg(driver, DSP_BHM_STATEMACHINE_REG, &temp_reg_val);
+    regmap_read(cp, DSP_BHM_STATEMACHINE_REG, &temp_reg_val);
 
     // If STATEMACHINE != shutdown
     if (temp_reg_val != DSP_BHM_STATEMACHINE_SHUTDOWN)
@@ -968,7 +863,7 @@ static uint32_t cs40l25_exit_bhm(cs40l25_t *driver)
     }
 
     // Read BHM_AMP_STATUS
-    cs40l25_read_reg(driver, DSP_BHM_AMP_STATUS_REG, &temp_reg_val);
+    regmap_read(cp, DSP_BHM_AMP_STATUS_REG, &temp_reg_val);
 
     // If any errors:
     if (temp_reg_val & (DSP_BHM_AMP_STATUS_OTP_ERROR_BITMASK |
@@ -981,89 +876,19 @@ static uint32_t cs40l25_exit_bhm(cs40l25_t *driver)
 #endif
 
     // start basic mode revert
-    const uint32_t *patch;
-    uint32_t patch_length;
-
     if (driver->config.ext_boost.use_ext_boost)
     {
-        patch = cs40l25_ext_boost_bhm_revert_patch;
+        patch = (uint32_t *) cs40l25_ext_boost_bhm_revert_patch;
         patch_length = (sizeof(cs40l25_ext_boost_bhm_revert_patch)/sizeof(uint32_t));
     }
     else
     {
-        patch = cs40l25_bhm_revert_patch;
+        patch = (uint32_t *) cs40l25_bhm_revert_patch;
         patch_length = (sizeof(cs40l25_bhm_revert_patch)/sizeof(uint32_t));
     }
 
-    for (count = 0; count < patch_length; count += 2)
-    {
-        // Send next words of BHM revert patch set
-        cs40l25_write_reg(driver, (uint32_t) patch[count], patch[count + 1]);
-    }
-
-    return CS40L25_STATUS_OK;
-}
-
-/**
- * Get DSP Status
- *
- * This function performs all register/memory field address reads to get the current HALO Core DSP status.  Since
- * some statuses are only determined by observing changes in values of a given field, the fields are read once,
- * then after a delay of 10 milliseconds, are read a second time to observe changes.
- *
- * @param [in] driver           Pointer to the driver state
- *
- * @return
- * - CS40L25_STATUS_FAIL if:
- *      - Control port activity fails
- *      - Required FW Control symbols are not found in the symbol table
- * - CS40L25_STATUS_OK          otherwise
- *
- * @see cs40l25_dsp_status_t
- *
- */
-static uint32_t cs40l25_get_dsp_status(cs40l25_t *driver)
-{
-    uint32_t count = 0;
-
-    // Get pointer to status passed in to Control Request
-    cs40l25_dsp_status_t *status = (cs40l25_dsp_status_t *) driver->current_request.arg;
-
-    uint32_t reg_address;
-    for (count = 0; count < CS40L25_DSP_STATUS_WORDS_TOTAL; count++)
-    {
-        reg_address = cs40l25_find_symbol(driver, cs40l25_dsp_status_symbols[count]);
-        if (!reg_address)
-        {
-            return CS40L25_STATUS_FAIL;
-        }
-        // Read the DSP Status field address
-        cs40l25_read_reg(driver, reg_address, &(status->data.words[count]));
-    }
-
-    // Wait at least 10ms
-    bsp_driver_if_g->set_timer(BSP_TIMER_DURATION_10MS, NULL, NULL);
-
-    for (count = 0; count < CS40L25_DSP_STATUS_WORDS_TOTAL; count++)
-    {
-        uint32_t temp_reg_val = 0;
-
-        reg_address = cs40l25_find_symbol(driver, cs40l25_dsp_status_symbols[count]);
-        if (!reg_address)
-        {
-            return CS40L25_STATUS_FAIL;
-        }
-        // Read the DSP Status field address
-        cs40l25_read_reg(driver, reg_address, &temp_reg_val);
-
-        // If the current field is HALO_HEARTBEAT, and there is a change in subsequent values
-        if ((count == 1) && (temp_reg_val != status->data.words[count]))
-        {
-            status->is_hb_inc = true;
-        }
-
-        status->data.words[count] = temp_reg_val;
-    }
+    // Send BHM revert patch set
+    regmap_write_array(cp, patch, patch_length, REGMAP_WRITE_ARRAY_TYPE_ADDR_VAL);
 
     return CS40L25_STATUS_OK;
 }
@@ -1082,8 +907,9 @@ static uint32_t cs40l25_hibernate(cs40l25_t *driver)
 {
     uint32_t count = 0;
     uint32_t reg_address;
+    regmap_cp_config_t *cp = REGMAP_GET_CP(driver);
 
-    reg_address = cs40l25_find_symbol(driver, CS40L25_SYM_FIRMWARE_POWERONSEQUENCE);
+    reg_address = fw_img_find_symbol(driver->fw_info, CS40L25_SYM_FIRMWARE_POWERONSEQUENCE);
     if (!reg_address)
     {
         return CS40L25_STATUS_FAIL;
@@ -1094,21 +920,20 @@ static uint32_t cs40l25_hibernate(cs40l25_t *driver)
         if (driver->wseq_table[count].changed == 1)
         {
             //Write 16bit address and 32bit value to poweronsequence
-            cs40l25_cp_bulk_write_block(driver,
-                                        reg_address + (8 * count),
-                                        (uint8_t *) driver->wseq_table[count].words,
-                                        8);
+            regmap_write_block(cp,
+                               reg_address + (8 * count),
+                               (uint8_t *) driver->wseq_table[count].words,
+                               8);
 
             driver->wseq_table[count].changed = 0;
-            count++;
-            continue;
         }
+
         count++;
     }
 
-    cs40l25_write_reg(driver, reg_address + (8 * count), 0x00FFFFFF);
+    regmap_write(cp, reg_address + (8 * count), 0x00FFFFFF);
 
-    cs40l25_write_reg(driver, DSP_VIRTUAL1_MBOX_DSP_VIRTUAL1_MBOX_4_REG, CS40L25_POWERCONTROL_HIBERNATE);
+    regmap_write(cp, DSP_VIRTUAL1_MBOX_DSP_VIRTUAL1_MBOX_4_REG, CS40L25_POWERCONTROL_HIBERNATE);
 
     return CS40L25_STATUS_OK;
 }
@@ -1127,6 +952,7 @@ static uint32_t cs40l25_wake(cs40l25_t *driver)
 {
     uint32_t i, j;
     uint32_t temp_reg_val = 0;
+    regmap_cp_config_t *cp = REGMAP_GET_CP(driver);
 
     // Outer loop for wake-hibernate attempts
     for (i = 0; i < 10; i++)
@@ -1136,13 +962,13 @@ static uint32_t cs40l25_wake(cs40l25_t *driver)
         {
             uint32_t ret;
             // Request Wake
-            ret = cs40l25_write_reg(driver,
-                                    DSP_VIRTUAL1_MBOX_DSP_VIRTUAL1_MBOX_4_REG,
-                                    CS40L25_POWERCONTROL_WAKEUP);
+            ret = regmap_write(cp,
+                               DSP_VIRTUAL1_MBOX_DSP_VIRTUAL1_MBOX_4_REG,
+                               CS40L25_POWERCONTROL_WAKEUP);
 
             // Check for control port write error, indicating possible wake from control port
             // If I2C command failed, then wait 1ms and try again
-            if (ret == CS40L25_STATUS_FAIL)
+            if (ret == REGMAP_STATUS_FAIL)
             {
                 bsp_driver_if_g->set_timer(BSP_TIMER_DURATION_1MS, NULL, NULL);
             }
@@ -1164,7 +990,7 @@ static uint32_t cs40l25_wake(cs40l25_t *driver)
             bsp_driver_if_g->set_timer(BSP_TIMER_DURATION_5MS, NULL, NULL);
 
             // Read FW ID
-            cs40l25_read_reg(driver, CS40L25_FIRMWARE_ID_ADDR, &temp_reg_val);
+            regmap_read(cp, CS40L25_FIRMWARE_ID_ADDR, &temp_reg_val);
 
             // Check if FW ID is correct
             if (temp_reg_val == driver->fw_info->header.fw_id)
@@ -1177,7 +1003,7 @@ static uint32_t cs40l25_wake(cs40l25_t *driver)
         if (j >= 10)
         {
             // Request Hibernate manually (not via HALO MBOX)
-            cs40l25_write_reg(driver, CS40L25_PWRMGT_CTL_REG, CS40L25_PWRMGT_CTL_MEM_RDY_TRIG_HIBER);
+            cs40l25_write_wseq_reg(driver, CS40L25_PWRMGT_CTL_REG, CS40L25_PWRMGT_CTL_MEM_RDY_TRIG_HIBER);
             // Wait for at least 1ms
             bsp_driver_if_g->set_timer(BSP_TIMER_DURATION_1MS, NULL, NULL);
         }
@@ -1186,15 +1012,8 @@ static uint32_t cs40l25_wake(cs40l25_t *driver)
             for (j = 0; j < 10; j++)
             {
                 // Read POWERSTATE
-                uint32_t reg_address;
+                regmap_read_fw_control(cp, driver->fw_info, CS40L25_SYM_FIRMWARE_POWERSTATE, &temp_reg_val);
 
-                reg_address = cs40l25_find_symbol(driver, CS40L25_SYM_FIRMWARE_POWERSTATE);
-                if (!reg_address)
-                {
-                    return CS40L25_STATUS_FAIL;
-                }
-
-                cs40l25_read_reg(driver, reg_address, &temp_reg_val);
                 if ((temp_reg_val == CS40L25_POWERSTATE_ACTIVE) || (temp_reg_val == CS40L25_POWERSTATE_STANDBY))
                 {
                     break;
@@ -1242,16 +1061,16 @@ static uint32_t cs40l25_event_handler(cs40l25_t *driver)
 {
     uint32_t ret = CS40L25_STATUS_OK;
     uint32_t temp_reg_val;
-    uint32_t reg_address;
     uint32_t msm_block_enables_val;
     uint8_t count;
     uint32_t temp_event_control = driver->config.event_control.reg.word;
+    regmap_cp_config_t *cp = REGMAP_GET_CP(driver);
 
     // Clear the event flags
     driver->event_flags = 0;
 
     // Read the first IRQ1 flag register
-    ret = cs40l25_read_reg(driver, XM_UNPACKED24_DSP1_SCRATCH_REG, &temp_reg_val);
+    ret = regmap_read(cp, XM_UNPACKED24_DSP1_SCRATCH_REG, &temp_reg_val);
 
     // If SCRATCH is nonzero OR CP transaction error
     if (temp_reg_val || (ret != CS40L25_STATUS_OK))
@@ -1264,13 +1083,7 @@ static uint32_t cs40l25_event_handler(cs40l25_t *driver)
     // Read unmasked event registers
     for (count = 0; count < (sizeof(cs40l2x_event_controls)/sizeof(uint32_t)); count++)
     {
-        reg_address = cs40l25_find_symbol(driver, cs40l2x_event_controls[count]);
-        if (!reg_address)
-        {
-            return CS40L25_STATUS_FAIL;
-        }
-
-        cs40l25_read_reg(driver, reg_address, &temp_reg_val);
+        regmap_read_fw_control(cp, driver->fw_info, cs40l2x_event_controls[count], &temp_reg_val);
 
         if ((temp_reg_val == CS40L2X_EVENT_CTRL_NONE) || ((temp_event_control & cs40l2x_event_masks[count]) == 0))
         {
@@ -1281,7 +1094,8 @@ static uint32_t cs40l25_event_handler(cs40l25_t *driver)
         if (temp_reg_val == CS40L2X_EVENT_CTRL_HARDWARE)
         {
             // Read the first IRQ2 flag register
-            cs40l25_read_reg(driver, IRQ2_IRQ2_EINT_1_REG, &temp_reg_val);
+            regmap_read(cp, IRQ2_IRQ2_EINT_1_REG, &temp_reg_val);
+
             // Set flags in event_flags
             for (uint8_t i = 0; i < (CS40L25_EVENT_HW_SOURCES * 2); i += 2)
             {
@@ -1293,29 +1107,29 @@ static uint32_t cs40l25_event_handler(cs40l25_t *driver)
 
             // Clear any IRQ2 flags from first register
             temp_reg_val &= ~CS40L25_INT2_MASK_DEFAULT;
-            cs40l25_write_reg(driver, IRQ2_IRQ2_EINT_1_REG, temp_reg_val);
+            regmap_write(cp, IRQ2_IRQ2_EINT_1_REG, temp_reg_val);
 
             // If there are Boost-related Errors, proceed to DISABLE_BOOST
             if (driver->event_flags & CS40L25_EVENT_FLAGS_BOOST_CYCLE)
             {
                 // Read which MSM Blocks are enabled
-                cs40l25_read_reg(driver, MSM_BLOCK_ENABLES_REG, &msm_block_enables_val);
+                regmap_read(cp, MSM_BLOCK_ENABLES_REG, &msm_block_enables_val);
                 // Disable Boost converter
                 temp_reg_val = msm_block_enables_val & ~(MSM_BLOCK_ENABLES_BST_EN_BITMASK);
-                cs40l25_write_reg(driver, MSM_BLOCK_ENABLES_REG, temp_reg_val);
+                cs40l25_write_wseq_reg(driver, MSM_BLOCK_ENABLES_REG, temp_reg_val);
             }
             // IF there are no Boost-related Errors, proceed to TOGGLE_ERR_RLS
             // Clear the Error Release register
-            cs40l25_write_reg(driver, MSM_ERROR_RELEASE_REG, 0);
+            cs40l25_write_wseq_reg(driver, MSM_ERROR_RELEASE_REG, 0);
             // Set the Error Release register
-            cs40l25_write_reg(driver, MSM_ERROR_RELEASE_REG, CS40L25_ERR_RLS_ACTUATOR_SAFE_MODE_MASK);
+            cs40l25_write_wseq_reg(driver, MSM_ERROR_RELEASE_REG, CS40L25_ERR_RLS_ACTUATOR_SAFE_MODE_MASK);
             // Clear the Error Release register
-            cs40l25_write_reg(driver, MSM_ERROR_RELEASE_REG, 0);
+            cs40l25_write_wseq_reg(driver, MSM_ERROR_RELEASE_REG, 0);
 
             // If there are Boost-related Errors, re-enable Boost
             if (driver->event_flags & CS40L25_EVENT_FLAGS_BOOST_CYCLE)
             {
-                cs40l25_write_reg(driver, MSM_BLOCK_ENABLES_REG, msm_block_enables_val);
+                cs40l25_write_wseq_reg(driver, MSM_BLOCK_ENABLES_REG, msm_block_enables_val);
             }
 
         }
@@ -1331,7 +1145,7 @@ static uint32_t cs40l25_event_handler(cs40l25_t *driver)
         }
 
         // Write EVENT_CTRL_NONE to the triggered event register
-        ret = cs40l25_write_reg(driver, reg_address, CS40L2X_EVENT_CTRL_NONE);
+        regmap_write_fw_control(cp, driver->fw_info, cs40l2x_event_controls[count], CS40L2X_EVENT_CTRL_NONE);
     }
 
     // Write WAKE to POWERCONTROL register
@@ -1340,112 +1154,7 @@ static uint32_t cs40l25_event_handler(cs40l25_t *driver)
      * is unnecessary in this case and adds latency, so only send
      * the wake-up command to complete the notification sequence
      */
-    cs40l25_write_reg(driver, DSP_VIRTUAL1_MBOX_DSP_VIRTUAL1_MBOX_4_REG, CS40L25_POWERCONTROL_WAKEUP);
-
-    return CS40L25_STATUS_OK;
-}
-
-/**
- * Access a HW or HALO Core DSP Memory field
- *
- * This function performs actions required to do a Get/Set of a Control Port register or HALO Core DSP Memory
- * bit-field.
- *
- * @param [in] driver           Pointer to the driver state
- *
- * @return
- * - CS40L25_STATUS_FAIL if:
- *      - Control port activity fails
- *      - Required FW Control symbols are not found in the symbol table
- * - CS40L25_STATUS_OK          otherwise
- *
- * @see cs40l25_field_accessor_t
- *
- */
-static uint32_t cs40l25_field_access(cs40l25_t *driver, cs40l25_field_accessor_t fa, bool is_get)
-{
-    uint32_t reg_value;
-    uint32_t reg_address;
-    uint32_t field_mask;
-    uint32_t field_value;
-    uint32_t ret = CS40L25_STATUS_OK;
-
-    // Retrieve address if it is a mapped HALO Core DSP FW control
-    if (fa.id)
-    {
-        reg_address = cs40l25_find_symbol(driver, fa.id);
-        if (!reg_address)
-        {
-            return CS40L25_STATUS_FAIL;
-        }
-
-        reg_address += (fa.address * 4);
-    }
-    else
-    {
-        reg_address = fa.address;
-    }
-
-    // Create bit-wise mask of the bit-field
-    field_mask = (~(0xFFFFFFFF << fa.size) << fa.shift);
-
-    // Only read the register if the bitfield of interested is < 32bits (i.e. not the entire register)
-    if ((is_get) || (fa.size < 32))
-    {
-        // Read the value from the field address
-        ret = cs40l25_read_reg(driver, reg_address, &reg_value);
-        if (ret)
-        {
-            return ret;
-        }
-
-        // Get bitfield value
-        field_value = (reg_value & field_mask) >> fa.shift;
-    }
-    else
-    {
-        field_value = 0;
-    }
-
-    if (is_get)
-    {
-        uint32_t *reg_ptr = (uint32_t *) fa.value;
-        *reg_ptr = field_value;
-    }
-    else
-    {
-        // TODO:  compare if field_val is different from new value to potentially avoid the write
-
-        // Remove bitfield from reg value
-        reg_value &= ~field_mask;
-
-        // Add in masked value of new bitfield
-        reg_value |= (fa.value << fa.shift) & field_mask;
-
-        // Write new register/memory value
-        cs40l25_write_reg(driver, reg_address, reg_value);
-
-        if (fa.ack_ctrl)
-        {
-            for (uint32_t count = 0; count < CS40L25_POLL_ACK_CTRL_MAX; count++)
-            {
-                bsp_driver_if_g->set_timer(CS40L25_POLL_ACK_CTRL_MS, NULL, NULL);
-
-                // Read the value from the field address
-                cs40l25_read_reg(driver, reg_address, &reg_value);
-                if (reg_value == fa.ack_reset)
-                {
-                    break;
-                }
-            }
-
-            // Fail if register never reset to ACK value
-            if (reg_value != fa.ack_reset)
-            {
-                ret = CS40L25_STATUS_FAIL;
-            }
-        }
-    }
+    regmap_write(cp, DSP_VIRTUAL1_MBOX_DSP_VIRTUAL1_MBOX_4_REG, CS40L25_POWERCONTROL_WAKEUP);
 
     return CS40L25_STATUS_OK;
 }
@@ -1560,48 +1269,6 @@ uint32_t cs40l25_process(cs40l25_t *driver)
 }
 
 /**
- * Submit a Control Request to the driver
- *
- */
-uint32_t cs40l25_control(cs40l25_t *driver, cs40l25_control_request_t req)
-{
-    uint32_t ret = CS40L25_STATUS_OK;
-
-    driver->current_request = req;
-
-    switch (req.id)
-    {
-        case CS40L25_CONTROL_ID_GET_REG:
-        case CS40L25_CONTROL_ID_SET_REG:
-        {
-            bool is_get = (CS40L25_CONTROL_ID_GET_HANDLER(req.id) == CS40L25_CONTROL_ID_HANDLER_FA_GET);
-            cs40l25_field_accessor_t *fa = (cs40l25_field_accessor_t *) req.arg;
-
-            fa->id = 0;
-            ret = cs40l25_field_access(driver, *fa, is_get);
-            break;
-        }
-
-        case CS40L25_CONTROL_ID_GET_SYM:
-        case CS40L25_CONTROL_ID_SET_SYM:
-        {
-            bool is_get = (CS40L25_CONTROL_ID_GET_HANDLER(req.id) == CS40L25_CONTROL_ID_HANDLER_FA_GET);
-            ret = cs40l25_field_access(driver, *((cs40l25_field_accessor_t *) req.arg), is_get);
-            break;
-        }
-
-        case CS40L25_CONTROL_ID_GET_DSP_STATUS:
-            ret = cs40l25_get_dsp_status(driver);
-            break;
-
-        default:
-            ret = CS40L25_STATUS_FAIL;
-    }
-
-    return ret;
-}
-
-/**
  * Reset the CS40L25
  *
  */
@@ -1609,6 +1276,7 @@ uint32_t cs40l25_reset(cs40l25_t *driver)
 {
     uint32_t count;
     uint32_t temp_reg_val;
+    regmap_cp_config_t *cp = REGMAP_GET_CP(driver);
 
     if ((driver->state == CS40L25_STATE_UNCONFIGURED) || (driver->state == CS40L25_STATE_ERROR))
     {
@@ -1627,7 +1295,7 @@ uint32_t cs40l25_reset(cs40l25_t *driver)
     count = 0;
     do
     {
-        cs40l25_read_reg(driver, IRQ1_IRQ1_EINT_4_REG,  &temp_reg_val);
+        regmap_read(cp, IRQ1_IRQ1_EINT_4_REG,  &temp_reg_val);
         if (temp_reg_val & IRQ1_IRQ1_EINT_4_BOOT_DONE_BITMASK)
             break;
         else if (count < CS40L25_POLL_OTP_BOOT_DONE_MAX)
@@ -1643,24 +1311,24 @@ uint32_t cs40l25_reset(cs40l25_t *driver)
     while (!(temp_reg_val & IRQ1_IRQ1_EINT_4_BOOT_DONE_BITMASK));
 
     // Read OTP_BOOT_ERR
-    cs40l25_read_reg(driver, IRQ1_IRQ1_EINT_3_REG, &temp_reg_val);
+    regmap_read(cp, IRQ1_IRQ1_EINT_3_REG, &temp_reg_val);
     if (temp_reg_val & IRQ1_IRQ1_EINT_3_OTP_BOOT_ERR_BITMASK)
     {
         return CS40L25_STATUS_FAIL;
     }
 
     // Read DEVID
-    cs40l25_read_reg(driver, CS40L25_SW_RESET_DEVID_REG, &temp_reg_val);
+    regmap_read(cp, CS40L25_SW_RESET_DEVID_REG, &temp_reg_val);
     driver->devid = temp_reg_val;
     // Read REVID
-    cs40l25_read_reg(driver, CS40L25_SW_RESET_REVID_REG, &temp_reg_val);
+    regmap_read(cp, CS40L25_SW_RESET_REVID_REG, &temp_reg_val);
     driver->revid = temp_reg_val;
 
     // Start polling BHM_AMP_STATUS_BOOT_DONE bit every 10ms
     count = 0;
     do
     {
-        cs40l25_read_reg(driver, DSP_BHM_AMP_STATUS_REG, &temp_reg_val);
+        regmap_read(cp, DSP_BHM_AMP_STATUS_REG, &temp_reg_val);
         if (temp_reg_val & DSP_BHM_AMP_STATUS_BOOT_DONE_BITMASK)
             break;
         else if (count < CS40L25_POLL_OTP_BOOT_DONE_MAX)
@@ -1681,20 +1349,6 @@ uint32_t cs40l25_reset(cs40l25_t *driver)
 }
 
 /**
- * Write block of data to the CS40L25 register file
- *
- */
-uint32_t cs40l25_write_block(cs40l25_t *driver, uint32_t addr, uint8_t *data, uint32_t size)
-{
-    if (addr == 0 || data == NULL || size == 0 || size % 4 != 0)
-    {
-        return CS40L25_STATUS_FAIL;
-    }
-
-    return cs40l25_cp_bulk_write_block(driver, addr, data, size);
-}
-
-/**
  * Finish booting the CS40L25
  *
  */
@@ -1702,7 +1356,7 @@ uint32_t cs40l25_boot(cs40l25_t *driver, fw_img_info_t *fw_info)
 {
     uint32_t count = 0;
     bool is_cal_boot = false;
-    uint32_t reg_address;
+    regmap_cp_config_t *cp = REGMAP_GET_CP(driver);
 
     driver->fw_info = fw_info;
 
@@ -1718,14 +1372,13 @@ uint32_t cs40l25_boot(cs40l25_t *driver, fw_img_info_t *fw_info)
 
     if (!is_cal_boot)
     {
-        //Ignore first word of errata_patch
-        int errata_entries = (sizeof(cs40l25_revb0_errata_patch) - sizeof(uint32_t)) / (2 * sizeof(uint32_t));
+        int errata_entries = sizeof(cs40l25_revb0_errata_patch) / (2 * sizeof(uint32_t));
         int wseq_entries = sizeof(cs40l25_wseq_regs) / (2 * sizeof(uint32_t));
 
         driver->wseq_num_entries = 0;
         cs40l25_wseq_table_add(driver, CS40L25_CTRL_KEYS_TEST_KEY_CTRL_REG, CS40L25_TEST_KEY_CTRL_UNLOCK_1);
         cs40l25_wseq_table_add(driver, CS40L25_CTRL_KEYS_TEST_KEY_CTRL_REG, CS40L25_TEST_KEY_CTRL_UNLOCK_2);
-        cs40l25_wseq_add_block(driver, (uint32_t *) (cs40l25_revb0_errata_patch + 1), errata_entries);
+        cs40l25_wseq_add_block(driver, (uint32_t *) cs40l25_revb0_errata_patch, errata_entries);
         cs40l25_wseq_add_block(driver, (uint32_t *) cs40l25_wseq_regs, wseq_entries);
         if (driver->config.ext_boost.use_ext_boost)
         {
@@ -1740,44 +1393,22 @@ uint32_t cs40l25_boot(cs40l25_t *driver, fw_img_info_t *fw_info)
         driver->wseq_initialized = true;
     }
 
-    // Write next post-boot configuration
-    for (count = 0; count < (sizeof(cs40l25_post_boot_config)/(sizeof(uint32_t) * 2)); count++)
-    {
-        cs40l25_write_reg(driver,
-                          cs40l25_post_boot_config[count * 2],
-                          cs40l25_post_boot_config[(count * 2) + 1]);
-    }
-
     // Apply Calibration data
     if (!is_cal_boot)
     {
-        uint32_t reg_address;
-
         if (driver->config.cal_data.is_valid_f0)
         {
-            reg_address = cs40l25_find_symbol(driver, CS40L25_SYM_FIRMWARE_F0_STORED);
-            if (!reg_address)
-            {
-                return CS40L25_STATUS_FAIL;
-            }
-            cs40l25_write_reg(driver, reg_address, driver->config.cal_data.f0);
+            regmap_write_fw_control(cp, driver->fw_info, CS40L25_SYM_FIRMWARE_F0_STORED, driver->config.cal_data.f0);
+            regmap_write_fw_control(cp,
+                                    driver->fw_info,
+                                    CS40L25_SYM_FIRMWARE_REDC_STORED,
+                                    driver->config.cal_data.redc);
 
-            reg_address = cs40l25_find_symbol(driver, CS40L25_SYM_FIRMWARE_REDC_STORED);
-            if (!reg_address)
-            {
-                return CS40L25_STATUS_FAIL;
-            }
-            cs40l25_write_reg(driver, reg_address, driver->config.cal_data.redc);
         }
 
         if (driver->config.cal_data.is_valid_qest)
         {
-            reg_address = cs40l25_find_symbol(driver, CS40L25_SYM_FIRMWARE_Q_STORED);
-            if (!reg_address)
-            {
-                return CS40L25_STATUS_FAIL;
-            }
-            cs40l25_write_reg(driver, reg_address, driver->config.cal_data.qest);
+            regmap_write_fw_control(cp, driver->fw_info, CS40L25_SYM_FIRMWARE_Q_STORED, driver->config.cal_data.qest);
         }
 
         driver->state = CS40L25_STATE_DSP_STANDBY;
@@ -1789,19 +1420,19 @@ uint32_t cs40l25_boot(cs40l25_t *driver, fw_img_info_t *fw_info)
 
     // Write configuration data
     // Unlock the register file
-    cs40l25_write_reg(driver, CS40L25_CTRL_KEYS_TEST_KEY_CTRL_REG, CS40L25_TEST_KEY_CTRL_UNLOCK_1);
-    cs40l25_write_reg(driver, CS40L25_CTRL_KEYS_TEST_KEY_CTRL_REG, CS40L25_TEST_KEY_CTRL_UNLOCK_2);
+    regmap_write(cp, CS40L25_CTRL_KEYS_TEST_KEY_CTRL_REG, CS40L25_TEST_KEY_CTRL_UNLOCK_1);
+    regmap_write(cp, CS40L25_CTRL_KEYS_TEST_KEY_CTRL_REG, CS40L25_TEST_KEY_CTRL_UNLOCK_2);
 
     for (count = 0; count < driver->config.syscfg_regs_total; count++)
     {
         uint32_t temp_reg_val, orig_val;
 
-        cs40l25_read_reg(driver, driver->config.syscfg_regs[count].address, &orig_val);
+        regmap_read(cp, driver->config.syscfg_regs[count].address, &orig_val);
         temp_reg_val = orig_val & ~(driver->config.syscfg_regs[count].mask);
         temp_reg_val |= driver->config.syscfg_regs[count].value;
         if (orig_val != temp_reg_val)
         {
-            cs40l25_write_reg(driver, driver->config.syscfg_regs[count].address, temp_reg_val);
+            cs40l25_write_wseq_reg(driver, driver->config.syscfg_regs[count].address, temp_reg_val);
         }
     }
 
@@ -1809,57 +1440,33 @@ uint32_t cs40l25_boot(cs40l25_t *driver, fw_img_info_t *fw_info)
     if (driver->state == CS40L25_STATE_DSP_STANDBY)
     {
         // Apply Event Control settings
-        reg_address = cs40l25_find_symbol(driver, CS40L25_SYM_FIRMWARE_EVENTCONTROL);
-        if (!reg_address)
-        {
-            return CS40L25_STATUS_FAIL;
-        }
-
-        cs40l25_write_reg(driver, reg_address, driver->config.event_control.reg.word);
+        regmap_write_fw_control(cp,
+                                driver->fw_info,
+                                CS40L25_SYM_FIRMWARE_EVENTCONTROL,
+                                driver->config.event_control.reg.word);
 
         // Apply IRQMASKSEQ Patch set
-        reg_address = cs40l25_find_symbol(driver, CS40L25_SYM_FIRMWARE_IRQMASKSEQUENCE);
-        if (!reg_address)
-        {
-            return CS40L25_STATUS_FAIL;
-        }
-
-        for (count = 0; count < (sizeof(cs40l25_irqmaskseq_patch) / sizeof(uint32_t)); count++)
-        {
-            cs40l25_write_reg(driver, (reg_address + (count * 4)), cs40l25_irqmaskseq_patch[count]);
-        }
-
-        reg_address = cs40l25_find_symbol(driver, CS40L25_SYM_FIRMWARE_IRQMASKSEQUENCE_VALID);
-        if (!reg_address)
-        {
-            return CS40L25_STATUS_FAIL;
-        }
-        cs40l25_write_reg(driver, reg_address, 0x1);
+        regmap_write_fw_vals(cp,
+                             driver->fw_info,
+                             CS40L25_SYM_FIRMWARE_IRQMASKSEQUENCE,
+                             (uint32_t *) cs40l25_irqmaskseq_patch,
+                             (sizeof(cs40l25_irqmaskseq_patch) / sizeof(uint32_t)));
+        regmap_write_fw_control(cp, driver->fw_info, CS40L25_SYM_FIRMWARE_IRQMASKSEQUENCE_VALID, 0x1);
 
         // Apply External Boost configuration
         if (driver->config.ext_boost.use_ext_boost)
         {
-            reg_address = cs40l25_find_symbol(driver, CS40L25_SYM_FIRMWARE_USE_EXT_BOOST);
-            if (!reg_address)
-            {
-                return CS40L25_STATUS_FAIL;
-            }
-
-            cs40l25_write_reg(driver, reg_address, 0x1);
-
-            reg_address = cs40l25_find_symbol(driver, CS40L25_SYM_FIRMWARE_GPI_PLAYBACK_DELAY);
-            if (!reg_address)
-            {
-                return CS40L25_STATUS_FAIL;
-            }
-
-            cs40l25_write_reg(driver, reg_address, driver->config.ext_boost.gpi_playback_delay);
+            regmap_write_fw_control(cp, driver->fw_info, CS40L25_SYM_FIRMWARE_USE_EXT_BOOST, 0x1);
+            regmap_write_fw_control(cp,
+                                    driver->fw_info,
+                                    CS40L25_SYM_FIRMWARE_GPI_PLAYBACK_DELAY,
+                                    driver->config.ext_boost.gpi_playback_delay);
         }
     }
 
     // Lock the register file
-    cs40l25_write_reg(driver, CS40L25_CTRL_KEYS_TEST_KEY_CTRL_REG, CS40L25_TEST_KEY_CTRL_LOCK_1);
-    cs40l25_write_reg(driver, CS40L25_CTRL_KEYS_TEST_KEY_CTRL_REG, CS40L25_TEST_KEY_CTRL_LOCK_2);
+    regmap_write(cp, CS40L25_CTRL_KEYS_TEST_KEY_CTRL_REG, CS40L25_TEST_KEY_CTRL_LOCK_1);
+    regmap_write(cp, CS40L25_CTRL_KEYS_TEST_KEY_CTRL_REG, CS40L25_TEST_KEY_CTRL_LOCK_2);
 
     return CS40L25_STATUS_OK;
 }
@@ -1954,6 +1561,7 @@ uint32_t cs40l25_calibrate(cs40l25_t *driver, uint32_t calib_type)
 {
     uint32_t temp_reg_val = 0;
     uint32_t calib_pcm_vol = 0;
+    regmap_cp_config_t *cp = REGMAP_GET_CP(driver);
 
     if (!(calib_type & CS40L25_CALIB_ALL) || (driver->state != CS40L25_STATE_CAL_POWER_UP))
     {
@@ -1973,7 +1581,7 @@ uint32_t cs40l25_calibrate(cs40l25_t *driver, uint32_t calib_type)
 
     for (uint8_t i = 0; i < (sizeof(ctrl_addresses) / sizeof(uint32_t)); i++)
     {
-        ctrl_addresses[i] = cs40l25_find_symbol(driver, ctrl_addresses[i]);
+        ctrl_addresses[i] = fw_img_find_symbol(driver->fw_info, ctrl_addresses[i]);
         if (!ctrl_addresses[i])
         {
             return CS40L25_STATUS_FAIL;
@@ -1984,44 +1592,44 @@ uint32_t cs40l25_calibrate(cs40l25_t *driver, uint32_t calib_type)
     driver->config.cal_data.is_valid_qest = false;
 
     // Read current volume
-    cs40l25_read_reg(driver, CS40L25_INTP_AMP_CTRL_REG, &temp_reg_val);
+    regmap_read(cp, CS40L25_INTP_AMP_CTRL_REG, &temp_reg_val);
     uint32_t temp_mask = (~(0xFFFFFFFF << CS40L25_INTP_AMP_CTRL_AMP_VOL_PCM_BITWIDTH) << CS40L25_INTP_AMP_CTRL_AMP_VOL_PCM_BITOFFSET);
 
     // Save volume level
     calib_pcm_vol = temp_reg_val;
-    cs40l25_write_reg(driver, CS40L25_INTP_AMP_CTRL_REG, temp_reg_val & ~temp_mask);
+    cs40l25_write_wseq_reg(driver, CS40L25_INTP_AMP_CTRL_REG, temp_reg_val & ~temp_mask);
 
     if (calib_type & CS40L25_CALIB_F0)
     {
-        cs40l25_write_reg(driver, ctrl_addresses[0], 0); // MAXBACKEMF
-        cs40l25_write_reg(driver, ctrl_addresses[1], 0); // CLOSED_LOOP
-        cs40l25_write_reg(driver, ctrl_addresses[2], 1); // F0_TRACKING_ENABLE
+        regmap_write(cp, ctrl_addresses[0], 0); // MAXBACKEMF
+        regmap_write(cp, ctrl_addresses[1], 0); // CLOSED_LOOP
+        regmap_write(cp, ctrl_addresses[2], 1); // F0_TRACKING_ENABLE
 
         // Wait 500ms
         bsp_driver_if_g->set_timer(500, NULL, NULL);
 
-        cs40l25_write_reg(driver, ctrl_addresses[1], 1); // CLOSED_LOOP
+        regmap_write(cp, ctrl_addresses[1], 1); // CLOSED_LOOP
 
         // Wait 2s
         bsp_driver_if_g->set_timer(BSP_TIMER_DURATION_2S, NULL, NULL);
 
-        cs40l25_write_reg(driver, ctrl_addresses[2], 0); // F0_TRACKING_ENABLE
-        cs40l25_read_reg(driver, ctrl_addresses[3], &(driver->config.cal_data.f0)); // F0
-        cs40l25_read_reg(driver, ctrl_addresses[4], &(driver->config.cal_data.redc)); // REDC
-        cs40l25_read_reg(driver, ctrl_addresses[0], &(driver->config.cal_data.backemf)); // MAXBACKEMF
+        regmap_write(cp, ctrl_addresses[2], 0); // F0_TRACKING_ENABLE
+        regmap_read(cp, ctrl_addresses[3], &(driver->config.cal_data.f0)); // F0
+        regmap_read(cp, ctrl_addresses[4], &(driver->config.cal_data.redc)); // REDC
+        regmap_read(cp, ctrl_addresses[0], &(driver->config.cal_data.backemf)); // MAXBACKEMF
         driver->config.cal_data.is_valid_f0 = true;
     }
 
     if (calib_type & CS40L25_CALIB_QEST)
     {
-        cs40l25_write_reg(driver, ctrl_addresses[2], 2); // F0_TRACKING_ENABLE
+        regmap_write(cp, ctrl_addresses[2], 2); // F0_TRACKING_ENABLE
 
         uint32_t count;
         for (count = 0; count < CS40L25_POLL_CAL_Q_MAX; count++)
         {
             bsp_driver_if_g->set_timer(100, NULL, NULL);
 
-            cs40l25_read_reg(driver, ctrl_addresses[2], &temp_reg_val); // F0_TRACKING_ENABLE
+            regmap_read(cp, ctrl_addresses[2], &temp_reg_val); // F0_TRACKING_ENABLE
 
             if (temp_reg_val == 0)
             {
@@ -2034,11 +1642,11 @@ uint32_t cs40l25_calibrate(cs40l25_t *driver, uint32_t calib_type)
             return CS40L25_STATUS_FAIL;
         }
 
-        cs40l25_read_reg(driver, ctrl_addresses[5], &(driver->config.cal_data.qest)); // Q_EST
+        regmap_read(cp, ctrl_addresses[5], &(driver->config.cal_data.qest)); // Q_EST
         driver->config.cal_data.is_valid_qest = true;
     }
 
-    cs40l25_write_reg(driver, CS40L25_INTP_AMP_CTRL_REG, calib_pcm_vol);
+    cs40l25_write_wseq_reg(driver, CS40L25_INTP_AMP_CTRL_REG, calib_pcm_vol);
 
     return CS40L25_STATUS_OK;
 }
@@ -2049,40 +1657,38 @@ uint32_t cs40l25_calibrate(cs40l25_t *driver, uint32_t calib_type)
  */
 uint32_t cs40l25_start_i2s(cs40l25_t *driver)
 {
-    uint32_t ret, reg, val;
+    uint32_t ret, val;
     bool i2s_passthrough = true;
+    regmap_cp_config_t *cp = REGMAP_GET_CP(driver);
 
     /* If the firmware doesn't support i2s pass-through:
      * - bypass the DSP
      * - force the DSP into standby
      * - set global_enable
      */
-    reg = cs40l25_find_symbol(driver, CS40L25_SYM_FIRMWARE_FEATURE_BITMAP);
-    if (reg)
+    regmap_read_fw_control(cp, driver->fw_info, CS40L25_SYM_FIRMWARE_FEATURE_BITMAP, &val);
+    if (!(val & CS40L25_FEATURE_BITMAP_I2s))
     {
-        cs40l25_read_reg(driver, reg, &val);
-        if (!(val & CS40L25_FEATURE_BITMAP_I2s))
-        {
-            i2s_passthrough = false;
-            cs40l25_write_reg(driver, CS40L25_MIXER_DACPCM1_INPUT_REG, CS40L25_INPUT_SRC_ASPRX1);
-        }
-
+        i2s_passthrough = false;
+        cs40l25_write_wseq_reg(driver, CS40L25_MIXER_DACPCM1_INPUT_REG, CS40L25_INPUT_SRC_ASPRX1);
     }
 
     // Enable ASPs
     cs40l25_dataif_asp_enables1_t asp_reg_val;
-    cs40l25_read_reg(driver, DATAIF_ASP_ENABLES1_REG, &(asp_reg_val.word));
+    regmap_read(cp, DATAIF_ASP_ENABLES1_REG, &(asp_reg_val.word));
     asp_reg_val.asp_rx1_en = 1;
     asp_reg_val.asp_rx2_en = 1;
-    cs40l25_write_reg(driver, DATAIF_ASP_ENABLES1_REG, asp_reg_val.word);
+    cs40l25_write_wseq_reg(driver, DATAIF_ASP_ENABLES1_REG, asp_reg_val.word);
 
     // Force DSP into standby
-    ret = cs40l25_write_acked_reg(driver,
-                                  DSP_VIRTUAL1_MBOX_DSP_VIRTUAL1_MBOX_4_REG,
-                                  DSP_VIRTUAL1_MBOX_DSP_VIRTUAL1_MBOX_4_FORCE_STANDBY,
-                                  DSP_VIRTUAL1_MBOX_DSP_VIRTUAL1_MBOX_4_NONE);
+    ret = regmap_write_acked_reg(cp,
+                                 DSP_VIRTUAL1_MBOX_DSP_VIRTUAL1_MBOX_4_REG,
+                                 DSP_VIRTUAL1_MBOX_DSP_VIRTUAL1_MBOX_4_FORCE_STANDBY,
+                                 DSP_VIRTUAL1_MBOX_DSP_VIRTUAL1_MBOX_4_NONE,
+                                 CS40L25_POLL_ACK_CTRL_MAX,
+                                 CS40L25_POLL_ACK_CTRL_MS);
 
-    if (ret != CS40L25_STATUS_OK)
+    if (ret != REGMAP_STATUS_OK)
     {
         return CS40L25_STATUS_FAIL;
     }
@@ -2091,48 +1697,57 @@ uint32_t cs40l25_start_i2s(cs40l25_t *driver)
     cs40l25_dataif_asp_control1_t asp_control1;
     cs40l25_ccm_refclk_input_t clk_reg_val;
 
-    cs40l25_read_reg(driver, DATAIF_ASP_CONTROL1_REG, &(asp_control1.word));
-    cs40l25_read_reg(driver, CCM_REFCLK_INPUT_REG, &(clk_reg_val.word));
+    regmap_read(cp, DATAIF_ASP_CONTROL1_REG, &(asp_control1.word));
+    regmap_read(cp, CCM_REFCLK_INPUT_REG, &(clk_reg_val.word));
 
     clk_reg_val.pll_refclk_sel = CS40L25_PLL_REFLCLK_SEL_BCLK;
     clk_reg_val.pll_refclk_freq = asp_control1.asp_bclk_freq;
 
 #ifdef CONFIG_OPEN_LOOP
-    cs40l25_write_reg(driver, CS40L25_CTRL_KEYS_TEST_KEY_CTRL_REG, CS40L25_TEST_KEY_CTRL_UNLOCK_1);
-    cs40l25_write_reg(driver, CS40L25_CTRL_KEYS_TEST_KEY_CTRL_REG, CS40L25_TEST_KEY_CTRL_UNLOCK_2);
-    cs40l25_write_reg(driver, 0x2D20, 0x0);
-    cs40l25_write_reg(driver, CS40L25_CTRL_KEYS_TEST_KEY_CTRL_REG, CS40L25_TEST_KEY_CTRL_LOCK_1);
-    cs40l25_write_reg(driver, CS40L25_CTRL_KEYS_TEST_KEY_CTRL_REG, CS40L25_TEST_KEY_CTRL_LOCK_2);
-    cs40l25_write_reg(driver, 0x3018, 0x0);
+    regmap_write(cp, CS40L25_CTRL_KEYS_TEST_KEY_CTRL_REG, CS40L25_TEST_KEY_CTRL_UNLOCK_1);
+    regmap_write(cp, CS40L25_CTRL_KEYS_TEST_KEY_CTRL_REG, CS40L25_TEST_KEY_CTRL_UNLOCK_2);
+    cs40l25_write_wseq_reg(driver, 0x2D20, 0x0);
+    regmap_write(cp, CS40L25_CTRL_KEYS_TEST_KEY_CTRL_REG, CS40L25_TEST_KEY_CTRL_LOCK_1);
+    regmap_write(cp, CS40L25_CTRL_KEYS_TEST_KEY_CTRL_REG, CS40L25_TEST_KEY_CTRL_LOCK_2);
+    cs40l25_write_wseq_reg(driver, 0x3018, 0x0);
 #endif
 
-    cs40l25_write_reg(driver, CCM_REFCLK_INPUT_REG, clk_reg_val.word);
+    cs40l25_write_wseq_reg(driver, CCM_REFCLK_INPUT_REG, clk_reg_val.word);
 
     if (i2s_passthrough)
     {
         //Wake the firmware
-        ret = cs40l25_write_acked_reg(driver,
-                                      DSP_VIRTUAL1_MBOX_DSP_VIRTUAL1_MBOX_4_REG,
-                                      DSP_VIRTUAL1_MBOX_DSP_VIRTUAL1_MBOX_4_WAKEUP,
-                                      DSP_VIRTUAL1_MBOX_DSP_VIRTUAL1_MBOX_4_NONE);
+        ret = regmap_write_acked_reg(cp,
+                                     DSP_VIRTUAL1_MBOX_DSP_VIRTUAL1_MBOX_4_REG,
+                                     DSP_VIRTUAL1_MBOX_DSP_VIRTUAL1_MBOX_4_WAKEUP,
+                                     DSP_VIRTUAL1_MBOX_DSP_VIRTUAL1_MBOX_4_NONE,
+                                     CS40L25_POLL_ACK_CTRL_MAX,
+                                     CS40L25_POLL_ACK_CTRL_MS);
 
-        if (ret != CS40L25_STATUS_OK)
+        if (ret != REGMAP_STATUS_OK)
         {
             return CS40L25_STATUS_FAIL;
         }
 
         //Enable I2S
-        return cs40l25_write_acked_reg(driver,
-                                       DSP_VIRTUAL1_MBOX_DSP_VIRTUAL1_MBOX_5_REG,
-                                       DSP_VIRTUAL1_MBOX_DSP_VIRTUAL1_MBOX_5_START_I2S,
-                                       DSP_VIRTUAL1_MBOX_DSP_VIRTUAL1_MBOX_5_NONE);
+        ret = regmap_write_acked_reg(cp,
+                                     DSP_VIRTUAL1_MBOX_DSP_VIRTUAL1_MBOX_5_REG,
+                                     DSP_VIRTUAL1_MBOX_DSP_VIRTUAL1_MBOX_5_START_I2S,
+                                     DSP_VIRTUAL1_MBOX_DSP_VIRTUAL1_MBOX_5_NONE,
+                                     CS40L25_POLL_ACK_CTRL_MAX,
+                                     CS40L25_POLL_ACK_CTRL_MS);
     }
     else
     {
-        ret = cs40l25_write_reg(driver, MSM_GLOBAL_ENABLES_REG, MSM_GLOBAL_ENABLES_GLOBAL_EN_BITMASK);
+        ret = cs40l25_write_wseq_reg(driver, MSM_GLOBAL_ENABLES_REG, MSM_GLOBAL_ENABLES_GLOBAL_EN_BITMASK);
     }
 
-    return ret;
+    if (ret)
+    {
+        return CS40L25_STATUS_FAIL;
+    }
+
+    return CS40L25_STATUS_OK;
 }
 
 /**
@@ -2141,34 +1756,32 @@ uint32_t cs40l25_start_i2s(cs40l25_t *driver)
  */
 uint32_t cs40l25_stop_i2s(cs40l25_t *driver)
 {
-    uint32_t ret, reg, val;
+    uint32_t ret, val;
     bool i2s_passthrough = true;
+    regmap_cp_config_t *cp = REGMAP_GET_CP(driver);
 
     /* If the firmware doesn't support i2s pass-through:
      * - disable global_enable
      * - the DSP will aready be in standby
      * - re-route the ASP through the DSP
      */
-    reg = cs40l25_find_symbol(driver, CS40L25_SYM_FIRMWARE_FEATURE_BITMAP);
-    if (reg)
+    regmap_read_fw_control(cp, driver->fw_info, CS40L25_SYM_FIRMWARE_FEATURE_BITMAP, &val);
+    if (!(val & CS40L25_FEATURE_BITMAP_I2s))
     {
-        cs40l25_read_reg(driver, reg, &val);
-        if (!(val & CS40L25_FEATURE_BITMAP_I2s))
-        {
-            i2s_passthrough = false;
-            cs40l25_write_reg(driver, MSM_GLOBAL_ENABLES_REG, 0);
-        }
-
+        i2s_passthrough = false;
+        cs40l25_write_wseq_reg(driver, MSM_GLOBAL_ENABLES_REG, 0);
     }
 
     if (i2s_passthrough)
     {
-        ret = cs40l25_write_acked_reg(driver,
-                                      DSP_VIRTUAL1_MBOX_DSP_VIRTUAL1_MBOX_4_REG,
-                                      DSP_VIRTUAL1_MBOX_DSP_VIRTUAL1_MBOX_4_FORCE_STANDBY,
-                                      DSP_VIRTUAL1_MBOX_DSP_VIRTUAL1_MBOX_5_NONE);
+        ret = regmap_write_acked_reg(cp,
+                                     DSP_VIRTUAL1_MBOX_DSP_VIRTUAL1_MBOX_4_REG,
+                                     DSP_VIRTUAL1_MBOX_DSP_VIRTUAL1_MBOX_4_FORCE_STANDBY,
+                                     DSP_VIRTUAL1_MBOX_DSP_VIRTUAL1_MBOX_4_NONE,
+                                     CS40L25_POLL_ACK_CTRL_MAX,
+                                     CS40L25_POLL_ACK_CTRL_MS);
 
-        if (ret != CS40L25_STATUS_OK)
+        if (ret != REGMAP_STATUS_OK)
         {
             return CS40L25_STATUS_FAIL;
         }
@@ -2187,39 +1800,44 @@ uint32_t cs40l25_stop_i2s(cs40l25_t *driver)
         }
     }
 
-    ret = cs40l25_write_reg(driver, CCM_REFCLK_INPUT_REG, clk_reg_val.word);
+    ret = cs40l25_write_wseq_reg(driver, CCM_REFCLK_INPUT_REG, clk_reg_val.word);
     if (ret != CS40L25_STATUS_OK)
     {
         return CS40L25_STATUS_FAIL;
     }
 
 #ifdef CONFIG_OPEN_LOOP
-    cs40l25_write_reg(driver, 0x3018, 0x02000000);
-    cs40l25_write_reg(driver, CS40L25_CTRL_KEYS_TEST_KEY_CTRL_REG, CS40L25_TEST_KEY_CTRL_UNLOCK_1);
-    cs40l25_write_reg(driver, CS40L25_CTRL_KEYS_TEST_KEY_CTRL_REG, CS40L25_TEST_KEY_CTRL_UNLOCK_2);
-    cs40l25_write_reg(driver, 0x2D20, 0x00000030);
-    cs40l25_write_reg(driver, CS40L25_CTRL_KEYS_TEST_KEY_CTRL_REG, CS40L25_TEST_KEY_CTRL_LOCK_1);
-    cs40l25_write_reg(driver, CS40L25_CTRL_KEYS_TEST_KEY_CTRL_REG, CS40L25_TEST_KEY_CTRL_LOCK_2);
+    cs40l25_write_wseq_reg(driver, 0x3018, 0x02000000);
+    regmap_write(cp, CS40L25_CTRL_KEYS_TEST_KEY_CTRL_REG, CS40L25_TEST_KEY_CTRL_UNLOCK_1);
+    regmap_write(cp, CS40L25_CTRL_KEYS_TEST_KEY_CTRL_REG, CS40L25_TEST_KEY_CTRL_UNLOCK_2);
+    cs40l25_write_wseq_reg(driver, 0x2D20, 0x00000030);
+    regmap_write(cp, CS40L25_CTRL_KEYS_TEST_KEY_CTRL_REG, CS40L25_TEST_KEY_CTRL_LOCK_1);
+    regmap_write(cp, CS40L25_CTRL_KEYS_TEST_KEY_CTRL_REG, CS40L25_TEST_KEY_CTRL_LOCK_2);
 #endif
 
     //Wake the firmware
-    ret = cs40l25_write_acked_reg(driver,
-                                  DSP_VIRTUAL1_MBOX_DSP_VIRTUAL1_MBOX_4_REG,
-                                  DSP_VIRTUAL1_MBOX_DSP_VIRTUAL1_MBOX_4_WAKEUP,
-                                  DSP_VIRTUAL1_MBOX_DSP_VIRTUAL1_MBOX_4_NONE);
 
-    if (ret != CS40L25_STATUS_OK)
+    ret = regmap_write_acked_reg(cp,
+                                 DSP_VIRTUAL1_MBOX_DSP_VIRTUAL1_MBOX_4_REG,
+                                 DSP_VIRTUAL1_MBOX_DSP_VIRTUAL1_MBOX_4_WAKEUP,
+                                 DSP_VIRTUAL1_MBOX_DSP_VIRTUAL1_MBOX_4_NONE,
+                                 CS40L25_POLL_ACK_CTRL_MAX,
+                                 CS40L25_POLL_ACK_CTRL_MS);
+
+    if (ret != REGMAP_STATUS_OK)
     {
         return CS40L25_STATUS_FAIL;
     }
 
     if (i2s_passthrough)
     {
-        ret = cs40l25_write_acked_reg(driver,
-                                      DSP_VIRTUAL1_MBOX_DSP_VIRTUAL1_MBOX_5_REG,
-                                      DSP_VIRTUAL1_MBOX_DSP_VIRTUAL1_MBOX_5_STOP_I2S,
-                                      DSP_VIRTUAL1_MBOX_DSP_VIRTUAL1_MBOX_5_NONE);
-        if (ret != CS40L25_STATUS_OK)
+        ret = regmap_write_acked_reg(cp,
+                                     DSP_VIRTUAL1_MBOX_DSP_VIRTUAL1_MBOX_5_REG,
+                                     DSP_VIRTUAL1_MBOX_DSP_VIRTUAL1_MBOX_5_STOP_I2S,
+                                     DSP_VIRTUAL1_MBOX_DSP_VIRTUAL1_MBOX_5_NONE,
+                                     CS40L25_POLL_ACK_CTRL_MAX,
+                                     CS40L25_POLL_ACK_CTRL_MS);
+        if (ret != REGMAP_STATUS_OK)
         {
             return CS40L25_STATUS_FAIL;
         }
@@ -2227,14 +1845,14 @@ uint32_t cs40l25_stop_i2s(cs40l25_t *driver)
 
     //Disable ASP
     cs40l25_dataif_asp_enables1_t asp_reg_val;
-    cs40l25_read_reg(driver, DATAIF_ASP_ENABLES1_REG, &(asp_reg_val.word));
+    regmap_read(cp, DATAIF_ASP_ENABLES1_REG, &(asp_reg_val.word));
     asp_reg_val.asp_rx1_en = 0;
     asp_reg_val.asp_rx2_en = 0;
-    cs40l25_write_reg(driver, DATAIF_ASP_ENABLES1_REG, asp_reg_val.word);
+    cs40l25_write_wseq_reg(driver, DATAIF_ASP_ENABLES1_REG, asp_reg_val.word);
 
     if (!i2s_passthrough)
     {
-        cs40l25_write_reg(driver, CS40L25_MIXER_DACPCM1_INPUT_REG, CS40L25_INPUT_SRC_DSP1TX1);
+        cs40l25_write_wseq_reg(driver, CS40L25_MIXER_DACPCM1_INPUT_REG, CS40L25_INPUT_SRC_DSP1TX1);
     }
 
     return CS40L25_STATUS_OK;
@@ -2247,26 +1865,18 @@ uint32_t cs40l25_stop_i2s(cs40l25_t *driver)
 uint32_t cs40l25_enable_vamp_discharge(cs40l25_t *driver, bool is_enable)
 {
     uint32_t ret;
+    regmap_cp_config_t *cp = REGMAP_GET_CP(driver);
 
     // If External Boost is used, then first send DISCHARGE command
     if (driver->config.ext_boost.use_ext_boost)
     {
-        uint32_t reg_address;
-
-        reg_address = cs40l25_find_symbol(driver,
-                                          CS40L25_SYM_FIRMWARE_USER_CONTROL_IPDATA);
-        if (!reg_address)
-        {
-            return CS40L25_STATUS_FAIL;
-        }
-
         if (is_enable)
         {
-            ret = cs40l25_write_reg(driver, reg_address, 0);
+            ret = regmap_write_fw_control(cp, driver->fw_info, CS40L25_SYM_FIRMWARE_USER_CONTROL_IPDATA, 0);
         }
         else
         {
-            ret = cs40l25_write_reg(driver, reg_address, 1);
+            ret = regmap_write_fw_control(cp, driver->fw_info, CS40L25_SYM_FIRMWARE_USER_CONTROL_IPDATA, 1);
         }
 
         if (ret != CS40L25_STATUS_OK)
@@ -2274,10 +1884,12 @@ uint32_t cs40l25_enable_vamp_discharge(cs40l25_t *driver, bool is_enable)
             return CS40L25_STATUS_FAIL;
         }
 
-        ret = cs40l25_write_acked_reg(driver,
-                                      DSP_VIRTUAL1_MBOX_DSP_VIRTUAL1_MBOX_5_REG,
-                                      DSP_VIRTUAL1_MBOX_DSP_VIRTUAL1_MBOX_5_DISCHARGE_VAMP,
-                                      DSP_VIRTUAL1_MBOX_DSP_VIRTUAL1_MBOX_5_NONE);
+        ret = regmap_write_acked_reg(cp,
+                                     DSP_VIRTUAL1_MBOX_DSP_VIRTUAL1_MBOX_5_REG,
+                                     DSP_VIRTUAL1_MBOX_DSP_VIRTUAL1_MBOX_5_DISCHARGE_VAMP,
+                                     DSP_VIRTUAL1_MBOX_DSP_VIRTUAL1_MBOX_5_NONE,
+                                     CS40L25_POLL_ACK_CTRL_MAX,
+                                     CS40L25_POLL_ACK_CTRL_MS);
     }
     else
     {
@@ -2287,141 +1899,40 @@ uint32_t cs40l25_enable_vamp_discharge(cs40l25_t *driver, bool is_enable)
     return ret;
 }
 
-/**
+/*
  * Reads the contents of a single register/memory address
  *
  */
 uint32_t cs40l25_read_reg(cs40l25_t *driver, uint32_t addr, uint32_t *val)
 {
-    uint32_t ret = CS40L25_STATUS_FAIL;
-    cs40l25_bsp_config_t *b = &(driver->config.bsp_config);
-    uint8_t write_buffer[4];
-    uint8_t read_buffer[4];
+    uint32_t ret;
+    regmap_cp_config_t *cp = REGMAP_GET_CP(driver);
 
-    /*
-     * Place contents of uint32_t 'addr' to Big-Endian format byte stream required for Control Port
-     * transaction.
-     */
-    write_buffer[0] = GET_BYTE_FROM_WORD(addr, 3);
-    write_buffer[1] = GET_BYTE_FROM_WORD(addr, 2);
-    write_buffer[2] = GET_BYTE_FROM_WORD(addr, 1);
-    write_buffer[3] = GET_BYTE_FROM_WORD(addr, 0);
-
-    // Currently only I2C transactions are supported
-    if (b->bus_type == CS40L25_BUS_TYPE_I2C)
+    ret = regmap_read(cp, addr, val);
+    if (ret)
     {
-        uint32_t bsp_status;
-
-        bsp_status = bsp_driver_if_g->i2c_read_repeated_start(b->bsp_dev_id,
-                                                              &(write_buffer[0]),
-                                                              4,
-                                                              &(read_buffer[0]),
-                                                              4,
-                                                              NULL,
-                                                              NULL);
-        if (BSP_STATUS_OK == bsp_status)
-        {
-            /*
-             * Switch from Big-Endian format byte stream required for Control Port transaction to
-             * uint32_t 'val'
-             */
-            ADD_BYTE_TO_WORD(*val, read_buffer[0], 3);
-            ADD_BYTE_TO_WORD(*val, read_buffer[1], 2);
-            ADD_BYTE_TO_WORD(*val, read_buffer[2], 1);
-            ADD_BYTE_TO_WORD(*val, read_buffer[3], 0);
-
-            ret = CS40L25_STATUS_OK;
-        }
+        return CS40L25_STATUS_FAIL;
     }
 
-    return ret;
+    return CS40L25_STATUS_OK;
 }
 
-/**
+/*
  * Writes the contents of a single register/memory address
  *
  */
 uint32_t cs40l25_write_reg(cs40l25_t *driver, uint32_t addr, uint32_t val)
 {
-    uint32_t ret = CS40L25_STATUS_FAIL;
-    uint32_t bsp_status = BSP_STATUS_OK;
-    cs40l25_bsp_config_t *b = &(driver->config.bsp_config);
-    uint8_t write_buffer[8];
+    uint32_t ret;
+    regmap_cp_config_t *cp = REGMAP_GET_CP(driver);
 
-    //Update corresponding entry in wseq_table if it exists
-    cs40l25_wseq_table_update(driver, addr, val);
-
-    /*
-     * Place contents of uint32_t 'addr' and 'val' to Big-Endian format byte stream required for Control Port
-     * transaction.
-     */
-    write_buffer[0] = GET_BYTE_FROM_WORD(addr, 3);
-    write_buffer[1] = GET_BYTE_FROM_WORD(addr, 2);
-    write_buffer[2] = GET_BYTE_FROM_WORD(addr, 1);
-    write_buffer[3] = GET_BYTE_FROM_WORD(addr, 0);
-
-    write_buffer[4] = GET_BYTE_FROM_WORD(val, 3);
-    write_buffer[5] = GET_BYTE_FROM_WORD(val, 2);
-    write_buffer[6] = GET_BYTE_FROM_WORD(val, 1);
-    write_buffer[7] = GET_BYTE_FROM_WORD(val, 0);
-
-    // Currently only I2C transactions are supported
-    if (b->bus_type == CS40L25_BUS_TYPE_I2C)
+    ret = regmap_write(cp, addr, val);
+    if (ret)
     {
-        bsp_status = bsp_driver_if_g->i2c_write(b->bsp_dev_id,
-                                                &(write_buffer[0]),
-                                                8,
-                                                NULL,
-                                                NULL);
+        return CS40L25_STATUS_FAIL;
     }
 
-    if (BSP_STATUS_OK == bsp_status)
-    {
-        ret = CS40L25_STATUS_OK;
-    }
-
-    return ret;
-}
-
-/**
- * Writes the contents of a single register/memory address that ACK's with a default value
- *
- */
-uint32_t cs40l25_write_acked_reg(cs40l25_t *driver, uint32_t addr, uint32_t val, uint32_t acked_val)
-{
-    int count;
-    uint32_t temp_val;
-    cs40l25_write_reg(driver, addr, val);
-
-    for (count = 0 ; count < CS40L25_POLL_ACK_CTRL_MAX; count++)
-    {
-        bsp_driver_if_g->set_timer(CS40L25_POLL_ACK_CTRL_MS, NULL, NULL);
-
-        cs40l25_read_reg(driver, addr, &temp_val);
-        if (temp_val == acked_val)
-        {
-            return CS40L25_STATUS_OK;
-        }
-    }
-    return CS40L25_STATUS_FAIL;
-}
-
-/**
- * Find if a symbol is in the symbol table and return its address if it is.
- *
- */
-uint32_t cs40l25_find_symbol(cs40l25_t *driver, uint32_t symbol_id)
-{
-    if (driver->fw_info)
-    {
-        for (uint32_t i = 0; i < driver->fw_info->header.sym_table_size; i++)
-        {
-            if (driver->fw_info->sym_table[i].sym_id == symbol_id)
-                return driver->fw_info->sym_table[i].sym_addr;
-        }
-    }
-
-    return 0;
+    return CS40L25_STATUS_OK;
 }
 
 /*!

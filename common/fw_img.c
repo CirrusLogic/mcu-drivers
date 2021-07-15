@@ -292,3 +292,20 @@ uint32_t fw_img_find_symbol(fw_img_info_t *fw_info, uint32_t symbol_id)
 
     return 0;
 }
+
+/**
+ * Find if an algorithm is in the algorithm list.
+ */
+bool fw_img_find_algid(fw_img_info_t *fw_info, uint32_t alg_id)
+{
+    if (fw_info)
+    {
+        for (uint32_t i = 0; i < fw_info->header.alg_id_list_size; i++)
+        {
+            if (fw_info->alg_id_list[i] == alg_id)
+                return true;
+        }
+    }
+
+    return false;
+}

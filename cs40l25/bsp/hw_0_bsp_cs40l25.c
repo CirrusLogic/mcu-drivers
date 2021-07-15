@@ -58,40 +58,53 @@ static uint32_t cache_asp_control1 = 0;
 
 static cs40l25_bsp_config_t bsp_config =
 {
-    .bsp_dev_id = BSP_DUT_DEV_ID,
     .bsp_reset_gpio_id = BSP_GPIO_ID_DUT_CDC_RESET,
     .bsp_int_gpio_id = BSP_GPIO_ID_DUT_CDC_INT,
-    .bus_type = BSP_BUS_TYPE_I2C,
     .notification_cb = &bsp_notification_callback,
-    .notification_cb_arg = NULL
+    .notification_cb_arg = NULL,
+    .cp_config.dev_id = BSP_DUT_DEV_ID,
+    .cp_config.bus_type = REGMAP_BUS_TYPE_I2C,
+    .cp_config.receive_max = 0, // No calls to regmap_read_block for the cs40l25 driver
 };
 
 static cs40l25_haptic_config_t cs40l25_haptic_configs[] =
 {
     {
-        .cp_gain_control = 0,
-        .gpio_enable = false,
-        .gpio_gain_control = 0,
-        .gpio_trigger_config =
-        {
-            { .enable = false, .button_press_index = 3, .button_release_index = 4},
-            { .enable = false, .button_press_index = 0, .button_release_index = 0},
-            { .enable = false, .button_press_index = 0, .button_release_index = 0},
-            { .enable = false, .button_press_index = 0, .button_release_index = 0}
-        }
+        .index_button_press = {3, 0, 0, 0},
+        .index_button_release = {4, 0, 0, 0},
+        .gpio_button_detect.gpio1_enable = 0,
+        .gpio_button_detect.gpio2_enable = 0,
+        .gpio_button_detect.gpio3_enable = 0,
+        .gpio_button_detect.gpio4_enable = 0,
+        .gain_control.control_gain = 0,
+        .gain_control.gpi_gain = 0,
+        .gpio_enable.gpio_enable = 0,
     },
+#ifndef CONFIG_L25B
     {
-        .cp_gain_control = 0,
-        .gpio_enable = true,
-        .gpio_gain_control = 0,
-        .gpio_trigger_config =
-        {
-            { .enable = true, .button_press_index = 1, .button_release_index = 2},
-            { .enable = true, .button_press_index = 0, .button_release_index = 0},
-            { .enable = true, .button_press_index = 0, .button_release_index = 0},
-            { .enable = true, .button_press_index = 0, .button_release_index = 0}
-        }
+        .index_button_press = {1, 0, 0, 0},
+        .index_button_release = {2, 0, 0, 0},
+        .gpio_button_detect.gpio1_enable = 1,
+        .gpio_button_detect.gpio2_enable = 0,
+        .gpio_button_detect.gpio3_enable = 0,
+        .gpio_button_detect.gpio4_enable = 0,
+        .gain_control.control_gain = 0,
+        .gain_control.gpi_gain = 0,
+        .gpio_enable.gpio_enable = 1,
     }
+#else
+    {
+        .index_button_press = {1, 1, 1, 1},
+        .index_button_release = {2, 2, 2, 2},
+        .gpio_button_detect.gpio1_enable = 1,
+        .gpio_button_detect.gpio2_enable = 1,
+        .gpio_button_detect.gpio3_enable = 1,
+        .gpio_button_detect.gpio4_enable = 1,
+        .gain_control.control_gain = 0,
+        .gain_control.gpi_gain = 0,
+        .gpio_enable.gpio_enable = 1,
+    }
+#endif
 };
 
 #ifdef CONFIG_USE_VREGMAP
@@ -334,9 +347,11 @@ uint32_t bsp_dut_boot(bool cal_boot)
         if (ret == FW_IMG_STATUS_DATA_READY)
         {
             // Data is ready to be sent to the device, so pass it to the driver
-            ret = cs40l25_write_block(&cs40l25_driver, boot_state.block.block_addr,
-                                      boot_state.block_data, boot_state.block.block_size);
-            if (ret == CS40L25_STATUS_FAIL)
+            ret = regmap_write_block(REGMAP_GET_CP(&cs40l25_driver),
+                                     boot_state.block.block_addr,
+                                     boot_state.block_data,
+                                     boot_state.block.block_size);
+            if (ret == REGMAP_STATUS_FAIL)
             {
                 return BSP_STATUS_FAIL;
             }
@@ -455,16 +470,13 @@ uint32_t bsp_dut_wake(void)
 uint32_t bsp_dut_start_i2s(void)
 {
     uint32_t ret;
-#ifdef CS40L25_ALGORITHM_DVL
-    cs40l25_control_request_t req;
-    cs40l25_field_accessor_t fa = {0};
-#endif
+    regmap_cp_config_t *cp = REGMAP_GET_CP(&cs40l25_driver);
 
 #if CONFIG_8K_I2S
-    cs40l25_read_reg(&cs40l25_driver, 0x2C0C, &cache_global_fs);
-    cs40l25_read_reg(&cs40l25_driver, 0x4804, &cache_asp_control1);
-    cs40l25_write_reg(&cs40l25_driver, 0x2C0C, 0x0011);
-    cs40l25_write_reg(&cs40l25_driver, 0x4804, 0x0012);
+    regmap_read(cp, 0x2C0C, &cache_global_fs);
+    regmap_read(cp, 0x4804, &cache_asp_control1);
+    regmap_write(cp, 0x2C0C, 0x0011);
+    regmap_write(cp, 0x4804, 0x0012);
 #endif
     ret = cs40l25_start_i2s(&cs40l25_driver);
     if (ret == CS40L25_STATUS_FAIL)
@@ -472,23 +484,18 @@ uint32_t bsp_dut_start_i2s(void)
         return BSP_STATUS_FAIL;
     }
 
-#ifdef CS40L25_ALGORITHM_DVL
-    // Example: Wait 3 seconds and then disable DVL
-    bsp_set_timer(3000, NULL, NULL);
-
-    req.id = CS40L25_CONTROL_ID_SET_SYM;
-    req.arg = (void *) &fa;
-
-    fa.id = CS40L25_SYM_DVL_EN;
-    fa.value = 0;
-    fa.size = 32;
-
-    ret = cs40l25_control(&cs40l25_driver, req);
-    if (ret == CS40L25_STATUS_FAIL)
+    // If DVL Algorithm is present, then disable DVL after 3 seconds
+    if (fw_img_find_algid(cs40l25_driver.fw_info, 0x113))
     {
-        return BSP_STATUS_FAIL;
+        bsp_driver_if_g->set_timer(3000, NULL, NULL);
+
+        ret = regmap_write_fw_control(cp, cs40l25_driver.fw_info, CS40L25_SYM_DVL_EN, 0);
+
+        if (ret)
+        {
+            return BSP_STATUS_FAIL;
+        }
     }
-#endif
 
     return BSP_STATUS_OK;
 }
@@ -505,8 +512,9 @@ uint32_t bsp_dut_stop_i2s(void)
     }
 
 #if CONFIG_8K_I2S
-    cs40l25_write_reg(&cs40l25_driver, 0x2C0C, cache_global_fs);
-    cs40l25_write_reg(&cs40l25_driver, 0x4804, cache_asp_control1);
+    regmap_cp_config_t *cp = REGMAP_GET_CP(&cs40l25_driver);
+    regmap_write(cp, 0x2C0C, cache_global_fs);
+    regmap_write(cp, 0x4804, cache_asp_control1);
 #endif
 
     return BSP_STATUS_OK;

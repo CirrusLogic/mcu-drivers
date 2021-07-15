@@ -58,7 +58,6 @@
             <DefaultValue>0x0</DefaultValue>
             <Access>R/W</Access>
             <Reset>POR</Reset>
-            <SoftReset>true</SoftReset>
             <Values>
                 <Value>
                     <Type>Binary</Type>

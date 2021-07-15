@@ -4,7 +4,7 @@
  * @brief Functions and prototypes exported by the CS40L25 Driver Extended API module
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2020 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2020-2021 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -45,6 +45,57 @@ extern "C" {
 /***********************************************************************************************************************
  * ENUMS, STRUCTS, UNIONS, TYPEDEFS
  **********************************************************************************************************************/
+typedef union
+{
+    uint32_t word;
+
+    struct
+    {
+        uint32_t gpio1_enable : 1;
+        uint32_t gpio2_enable : 1;
+        uint32_t gpio3_enable : 1;
+        uint32_t gpio4_enable : 1;
+        uint32_t reserved     : 28;
+    };
+} fw_ctrl_gpio_button_detect_t;
+
+typedef union
+{
+    uint32_t word;
+
+    struct
+    {
+        uint32_t              : 4;
+        uint32_t control_gain : 10;
+        uint32_t gpi_gain     : 10;
+        uint32_t reserved     : 8;
+    };
+} fw_ctrl_gain_control_t;
+
+typedef union
+{
+    uint32_t word;
+
+    struct
+    {
+        uint32_t gpio_enable : 1;
+        uint32_t reserved     : 31;
+    };
+} fw_ctrl_gpio_enable_t;
+
+/**
+ * Configuration of HALO FW Haptic controls
+ *
+ * @see cs40l25_update_haptic_config
+ */
+typedef struct
+{
+    uint32_t index_button_press[4];                     ///< Indeces in wavetable of wave to play upon button press
+    uint32_t index_button_release[4];                   ///< Indeces in wavetable of wave to play upon button release
+    fw_ctrl_gpio_button_detect_t gpio_button_detect;    ///< Individual enables for GPIO1-GPIO4
+    fw_ctrl_gain_control_t gain_control;                ///< Gain for Control Port and GPIO triggered effects
+    fw_ctrl_gpio_enable_t gpio_enable;                  ///< Global enable for triggering via GPIO
+} cs40l25_haptic_config_t;
 
 typedef struct
 {
@@ -131,14 +182,15 @@ uint32_t cs40l25_trigger(cs40l25_t *driver, uint32_t index, uint32_t duration_ms
  * Enable the HALO FW Click Compensation
  *
  * @param [in] driver           Pointer to the driver state
- * @param [in] enable           true to enable Click Compensation, false to disable Click Compensation
+ * @param [in] f0_enable        true to enable F0 Compensation, false to disable F0 Compensation
+ * @param [in] redc_enable      true to enable ReDC Compensation, false to disable ReDC Compensation
  *
  * @return
  * - CS40L25_STATUS_FAIL        if update of any HALO FW control fails
  * - CS40L25_STATUS_OK          otherwise
  *
  */
-uint32_t cs40l25_set_click_compensation_enable(cs40l25_t *driver, bool enable);
+uint32_t cs40l25_set_click_compensation_enable(cs40l25_t *driver, bool f0_enable, bool redc_enable);
 
 /**
  * Enable the HALO FW CLAB Algorithm

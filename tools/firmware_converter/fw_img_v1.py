@@ -1,5 +1,5 @@
 #==========================================================================
-# (c) 2020 Cirrus Logic, Inc.
+# (c) 2020-2021 Cirrus Logic, Inc.
 #--------------------------------------------------------------------------
 # Project : Class definition and parser for fw_img_v1
 # File    : fw_img_v1.py
@@ -161,9 +161,65 @@ class fw_img_v1:
 
         return '\n'.join(lines)
 
-class fw_img_v1_parser:
+class fw_img_v2(fw_img_v1):
     def __init__(self):
+        fw_img_v1.__init__(self)
+        self.img_format_rev = 2
+        self.max_block_size = 0
+        self.fw_img_version = 0
+        self.img_size += (2 * 4)
+
+        return
+
+    def integrity_check(self):
+        # check magic numbers
+        if ((self.img_magic_number_1 != 0x54b998ff) or (self.img_magic_number_2 != 0x936be2a6)):
+            print("Incorrect magic number(s)")
+            return False
+
+        # check that max_block_size is less than 4140 bytes
+        if (self.max_block_size > 4140):
+            print("Invalid max_block_size")
+            return False
+
+        # check list sizes are correct
+        if (self.sym_table_size != len(self.symbol_linking_table)):
+            print("Incorrect sym_table_size")
+            return False
+
+        if (self.alg_list_size != len(self.algorithm_id_list)):
+            print("Incorrect alg_list_size")
+            return False
+
+        if (self.data_blocks != len(self.payload_data_blocks)):
+            print("Incorrect data_blocks")
+            return False
+
+        size = (12 + (self.sym_table_size * 2) + self.alg_list_size) * 4
+        for d in self.payload_data_blocks:
+            size = size + 8 + d[0]
+
+        if (self.img_size != size):
+            print(self.img_size)
+            print(size)
+            print("Incorrect img_size")
+            return False
+
+        # check checksum
+
+        return True
+
+    def __str__(self):
+        lines = fw_img_v1.__str__(self).split('\n')
+        lines.insert(9, "    MAX_BLOCK_SIZE     : " + hex(self.max_block_size))
+        lines.insert(10, "    FW_IMG_VERSION     : " + hex(self.fw_img_version))
+
+        return '\n'.join(lines)
+
+class fw_img_parser:
+    def __init__(self, version):
         self.img = None
+        self.fw_img_version = version
 
         return
 
@@ -181,7 +237,10 @@ class fw_img_v1_parser:
             word = word | (bytes[i + 3] << 24)
             words.append(word)
 
-        self.img = fw_img_v1()
+        if (self.fw_img_version == 1):
+            self.img = fw_img_v1()
+        else:
+            self.img = fw_img_v2()
 
         # Load Header words
         self.img.img_magic_number_1 = words[0]
@@ -191,6 +250,8 @@ class fw_img_v1_parser:
         if self.img.img_format_rev == 1:
             word_count = 8
         else:
+            self.img.max_block_size = words[7]
+            self.fw_img_version = words[8]
             word_count = 10
 
         # Load Symbol Linking Table words

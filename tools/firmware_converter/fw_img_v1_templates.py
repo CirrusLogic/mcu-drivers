@@ -34,6 +34,9 @@ import time
 #==========================================================================
 # CONSTANTS/GLOBALS
 #==========================================================================
+IMG_MAGIC_NUMBER_1 = 0x54b998ff
+IMG_MAGIC_NUMBER_2 = 0x936be2a6
+
 header_file_template_str = """/**
  * @file {part_number_lc}_fw_img.h
  *
@@ -233,13 +236,8 @@ class fw_img_v1_file(firmware_exporter):
         self.terms['part_lc'] = self.attributes['part_number_str'].lower()
         self.terms['part_number_lc'] = (self.attributes['part_number_str'] + self.attributes['suffix']).lower()
         self.terms['part_number_uc'] = (self.attributes['part_number_str'] + self.attributes['suffix']).upper()
-        self.terms['total_fw_blocks'] = 0
-        self.terms['algorithm_defines'] = ''
-        self.terms['control_defines'] = ''
         self.terms['include_coeff_0'] = ''
         self.terms['metadata_text'] = ' *\n'
-        self.terms['algorithm_defines'] = ''
-        self.total_coeff_blocks = []
         self.fw_data_block_list = []
         self.coeff_data_block_list = []
         self.uint8_per_line = 24
@@ -247,47 +245,56 @@ class fw_img_v1_file(firmware_exporter):
         self.sym_id_input = self.attributes['symbol_id_input']
         self.sym_id_output = self.attributes['symbol_id_output']
 
-        self.terms['magic_num1'] = 0x54b998ff
         self.terms['version'] = version
         self.terms['img_size'] = 0
-        self.terms['sym_table_size'] = 0
-        self.terms['alg_list_size'] = 0
         self.terms['fw_id'] = self.attributes['fw_meta']['fw_id']
         self.terms['fw_rev'] = self.attributes['fw_meta']['fw_rev']
         self.terms['bin_ver'] = self.attributes['fw_img_version']
-        self.terms['data_blocks'] = 0
         self.terms['max_block_size'] = self.attributes['max_block_size']
 
         self.algorithms = OrderedDict()
-
         self.algorithm_controls = OrderedDict()
-
-        self.terms['fw_block_arrays'] = ''
-        self.terms['coeff_block_arrays'] = []
-
-        self.terms['magic_num2'] = 0x936be2a6
-        self.terms['checksum'] = 0
 
         self.c0 = 0x0
         self.c1 = 0x0
 
+        self.image_word_list = []
+
         return
 
-    def create_block_string(self, data_bytes):
+    def get_bytes_string(self, data_bytes):
         temp_data_str = ''
         byte_count = 0
         for data_byte in data_bytes:
             temp_byte_str = "0x" + "{0:0{1}X}".format(data_byte, 2) + ","
-            byte_count = byte_count + 1
+
+            byte_count += 1
             if (((byte_count % self.uint8_per_line) == 0) and (byte_count < len(data_bytes))):
                 temp_byte_str = temp_byte_str + "\n"
             temp_data_str = temp_data_str + temp_byte_str
 
-        self.terms['img_size'] += byte_count
         return temp_data_str
 
-    def int_to_bytes(self, val):
-        return self.create_block_string(val.to_bytes(4, byteorder='little'))
+    def add_bytes_to_img(self, data_bytes):
+        byte_count = 0
+        temp_data_word = 0
+        for data_byte in data_bytes:
+            temp_data_word |= data_byte << ((byte_count % 4) * 8)
+
+            byte_count += 1
+
+            if ((byte_count % 4) == 0):
+                self.image_word_list.append(temp_data_word)
+                temp_data_word = 0
+
+        self.terms['img_size'] += byte_count
+        return self.get_bytes_string(data_bytes)
+
+    def add_word_to_img(self, val):
+        return self.add_bytes_to_img(val.to_bytes(4, byteorder='little'))
+
+    def get_word_string(self, val):
+        return self.get_bytes_string(val.to_bytes(4, byteorder='little'))
 
     def update_block_info(self, fw_block_total, coeff_block_totals): pass
 
@@ -303,41 +310,14 @@ class fw_img_v1_file(firmware_exporter):
             # Create entry into data block list
             self.fw_data_block_list.append((len(data_bytes), address, data_bytes))
 
-            # Create string for block data
-            temp_str = source_file_template_fw_block_str.replace('{block_index}', str(self.terms['total_fw_blocks']))
-            temp_str = temp_str.replace('{fw_block_size}', self.int_to_bytes(len(data_bytes)))
-            temp_str = temp_str.replace('{fw_block_addr}', self.int_to_bytes(address))
-            temp_str = temp_str.replace('{block_bytes}', self.create_block_string(data_bytes))
-
-            self.terms['fw_block_arrays'] = self.terms['fw_block_arrays'] + temp_str + '\n'
-
-            self.terms['total_fw_blocks'] = self.terms['total_fw_blocks'] + 1
-
     def add_coeff_block(self, index, address, data_bytes):
         self.includes_coeff = True
-
-        # Create list elements if they do not exist
-        if len(self.terms['coeff_block_arrays']) < (index + 1):
-            self.terms['coeff_block_arrays'].append('')
-        if len(self.total_coeff_blocks) < (index + 1):
-            self.total_coeff_blocks.append(0)
 
         # Create entry into data block list
         if (len(self.coeff_data_block_list) < (index + 1)):
             self.coeff_data_block_list.append([])
 
         self.coeff_data_block_list[index].append((len(data_bytes), address, data_bytes))
-
-        # Create string for block data
-        temp_str = source_file_template_coeff_block_str.replace('{block_index}', str(self.total_coeff_blocks[index]))
-        temp_str = temp_str.replace('{coeff_block_size}', self.int_to_bytes(len(data_bytes)))
-        temp_str = temp_str.replace('{coeff_block_addr}', self.int_to_bytes(address))
-        temp_str = temp_str.replace('{block_bytes}', self.create_block_string(data_bytes))
-        temp_str = temp_str.replace('{coeff_index}', str(index))
-
-        self.terms['coeff_block_arrays'][index] = self.terms['coeff_block_arrays'][index] + temp_str + '\n'
-
-        self.total_coeff_blocks[index] = self.total_coeff_blocks[index] + 1
 
     def add_metadata_text_line(self, line):
         self.terms['metadata_text'] = self.terms['metadata_text'] + ' * ' + line + '\n'
@@ -393,8 +373,8 @@ class fw_img_v1_file(firmware_exporter):
                     temp_str += "// " + alg_name + "\n" + temp_alg_str
 
         # Replace algorithm list
-        output_str = output_str.replace('{algorithm_defines}\n', alg_list_str)        
-        
+        output_str = output_str.replace('{algorithm_defines}\n', alg_list_str)
+
         # Replace symbol id define list
         output_str = output_str.replace('{symbol_id_define_list}\n', temp_str)
 
@@ -439,140 +419,15 @@ class fw_img_v1_file(firmware_exporter):
         self.c1 = (self.c1 + self.c0) % modval
 
     def calc_checksum(self):
-        self.fletch32(self.terms['magic_num1'])
-        self.fletch32(self.terms['version'])
-        self.fletch32(self.terms['img_size'])
-        self.fletch32(self.terms['sym_table_size'])
-        self.fletch32(self.terms['alg_list_size'])
-        self.fletch32(self.terms['fw_id'])
-        self.fletch32(self.terms['fw_rev'])
-        self.fletch32(self.terms['data_blocks'])
-        if self.terms['version'] != 1:
-            self.fletch32(self.terms['max_block_size'])
-            self.fletch32(self.terms['bin_ver'])
-
-        if self.algorithms:
-            for alg_name, alg_id in self.algorithms.items():
-                for control in self.algorithm_controls[alg_name]:
-                    sym_id = self.find_symbol_id(control[0])
-                    if sym_id:
-                        self.fletch32(sym_id)
-                        self.fletch32(control[1])
-
-        if self.algorithms:
-            for alg_name, alg_id in self.algorithms.items():
-                self.fletch32(alg_id)
-
-        for f in self.fw_data_block_list:
-            self.fletch32(f[0])
-            self.fletch32(f[1])
-            for i in range(0, len(f[2]), 4):
-                temp_word = f[2][i]
-                temp_word = temp_word | (f[2][i + 1] << 8)
-                temp_word = temp_word | (f[2][i + 2] << 16)
-                temp_word = temp_word | (f[2][i + 3] << 24)
-                self.fletch32(temp_word)
-
-        for coeff_blocks in self.coeff_data_block_list:
-            for coeff_block in coeff_blocks:
-                self.fletch32(coeff_block[0])
-                self.fletch32(coeff_block[1])
-                for i in range(0,  len(coeff_block[2]), 4):
-                    temp_word = coeff_block[2][i]
-                    temp_word = temp_word | (coeff_block[2][i + 1] << 8)
-                    temp_word = temp_word | (coeff_block[2][i + 2] << 16)
-                    temp_word = temp_word | (coeff_block[2][i + 3] << 24)
-                    self.fletch32(temp_word)
-
-        self.fletch32(self.terms['magic_num2'])
+        for i in range(0, len(self.image_word_list)):
+            self.fletch32(self.image_word_list[i])
 
         return self.c0 + (self.c1 << 16)
 
-
     def to_byte_array(self):
-        word_list = []
-        word_list.append(self.terms['magic_num1'])
-        word_list.append(self.terms['version'])
-        word_list.append(0)
-
-        control_count = 0
-        temp_alg_words = []
-        temp_ctl_words = []
-        if self.algorithms:
-            for alg_name, alg_id in self.algorithms.items():
-                temp_alg_words.append(alg_id)
-
-                for control in self.algorithm_controls[alg_name]:
-                    sym_id = self.find_symbol_id(control[0])
-                    if sym_id:
-                        temp_ctl_words.append(sym_id)
-                        temp_ctl_words.append(control[1])
-
-                        control_count = control_count + 1
-
-            self.terms['sym_table_size'] = control_count
-            word_list.append(self.terms['sym_table_size'])
-
-            self.terms['alg_list_size'] = len(self.algorithms)
-            word_list.append(self.terms['alg_list_size'])
-        else:
-            word_list.append(0)
-            word_list.append(0)
-
-        word_list.append(self.terms['fw_id'])
-        word_list.append(self.terms['fw_rev'])
-
-        total_data_blocks = len(self.fw_data_block_list)
-        data_block_words = []
-        for f in self.fw_data_block_list:
-            data_block_words.append(f[0])
-            data_block_words.append(f[1])
-
-            for i in range(0, len(f[2]), 4):
-                temp_word = f[2][i]
-                temp_word = temp_word | (f[2][i + 1] << 8)
-                temp_word = temp_word | (f[2][i + 2] << 16)
-                temp_word = temp_word | (f[2][i + 3] << 24)
-                data_block_words.append(temp_word)
-
-        for coeff_blocks in self.coeff_data_block_list:
-
-            total_data_blocks = total_data_blocks + len(coeff_blocks)
-
-            for coeff_block in coeff_blocks:
-                data_block_words.append(coeff_block[0])
-                data_block_words.append(coeff_block[1])
-
-                for i in range(0,  len(coeff_block[2]), 4):
-                    temp_word = coeff_block[2][i]
-                    temp_word = temp_word | (coeff_block[2][i + 1] << 8)
-                    temp_word = temp_word | (coeff_block[2][i + 2] << 16)
-                    temp_word = temp_word | (coeff_block[2][i + 3] << 24)
-                    data_block_words.append(temp_word)
-
-        self.terms['data_blocks'] = total_data_blocks
-        word_list.append(self.terms['data_blocks'])
-        if self.terms['version'] != 1:
-            word_list.append(self.terms['max_block_size'])
-
-        word_list.extend(temp_ctl_words)
-        word_list.extend(temp_alg_words)
-
-        word_list.extend(data_block_words)
-
-        word_list.append(self.terms['magic_num2'])
-        if self.terms['version'] == 1:
-            word_list.append(0xf0f00f0f)
-        else:
-            word_list.append(self.calc_checksum())
-
-        # Compute image size
-        self.terms['img_size'] = len(word_list) * 4
-        word_list[2] = self.terms['img_size']
-
         # Convert to byte array
         byte_list = []
-        for w in word_list:
+        for w in self.image_word_list:
             byte_list.extend(w.to_bytes(4, byteorder="little", signed=False))
 
         return bytearray(byte_list)
@@ -583,86 +438,116 @@ class fw_img_v1_file(firmware_exporter):
     def create_source_file_text(self):
         output_str = source_file_template_str
 
-        # Update firmware metadata
-        output_str = output_str.replace('{magic_number_1}', self.int_to_bytes(self.terms['magic_num1']))
-        output_str = output_str.replace('{img_format_rev}', self.int_to_bytes(self.terms['version']))
+        # Update IMG_MAGIC_NUMBER_1 and IMG_FORMAT_REV
+        output_str = output_str.replace('{magic_number_1}', self.add_word_to_img(IMG_MAGIC_NUMBER_1))
+        output_str = output_str.replace('{img_format_rev}', self.add_word_to_img(self.terms['version']))
 
-        self.terms['alg_list_size'] = len(self.algorithms)
-        output_str = output_str.replace('{alg_list_size}', self.int_to_bytes(self.terms['alg_list_size']))
+        # Skipping IMG_SIZE - added after entire image processed
+
+        # Update SYM_TABLE_SIZE and ALG_LIST_SIZE and
         control_count = 0
-        if self.algorithms:
-            temp_alg_str = ""
-            temp_ctl_str = ""
+        if (self.algorithms):
             for alg_name, alg_id in self.algorithms.items():
-                temp_alg_str = temp_alg_str + self.int_to_bytes(alg_id) + " // " + alg_name + "\n"
-
                 for control in self.algorithm_controls[alg_name]:
                     sym_id = self.find_symbol_id(control[0])
                     if sym_id:
-                        temp_ctl_str = temp_ctl_str + self.int_to_bytes(sym_id) + " // " + control[0].upper() + "\n" \
-                            + self.int_to_bytes(control[1]) + " // " + hex(control[1]) + "\n"
-                        control_count = control_count + 1
+                        control_count += 1
+        output_str = output_str.replace('{sym_table_size}', self.add_word_to_img(control_count))
+        output_str = output_str.replace('{alg_list_size}', self.add_word_to_img(len(self.algorithms)))
 
-            self.terms['sym_table_size'] = control_count
+        # Update FW_ID and FW_VERSION
+        output_str = output_str.replace('{fw_id}', self.add_word_to_img(self.terms['fw_id']))
+        output_str = output_str.replace('{fw_ver}', self.add_word_to_img(self.terms['fw_rev']))
 
-            self.terms['algorithm_defines'] = temp_alg_str
-            output_str = output_str.replace('{alg_list}\n', self.terms['algorithm_defines'])
-            self.terms['control_defines'] = temp_ctl_str
-            output_str = output_str.replace('{sym_table}\n', self.terms['control_defines'])
-        else:
-            self.terms['sym_table_size'] = 0
+        # Calculate 'DATA_BLOCKS' - number of total data blocks
+        data_block_count = len(self.fw_data_block_list)
+        for i in range(0, len(self.coeff_data_block_list)):
+            data_block_count += len(self.coeff_data_block_list[i])
+        output_str = output_str.replace('{data_block_count}', self.add_word_to_img(data_block_count))
 
-            output_str = output_str.replace('{alg_list}\n', '')
-            output_str = output_str.replace('{sym_table}\n', '')
-
-        output_str = output_str.replace('{sym_table_size}', self.int_to_bytes(self.terms['sym_table_size']))
-
-        output_str = output_str.replace('{fw_id}', self.int_to_bytes(self.terms['fw_id']))
-        output_str = output_str.replace('{fw_ver}', self.int_to_bytes(self.terms['fw_rev']))
-
+        # Set MAX_BLOCK_SIZE and FW_IMG_VERSION
         if self.terms['version'] == 1:
+            output_str = output_str.replace('{max_block_size}', "")
             output_str = output_str.replace('{bin_ver}', "")
         else:
-            output_str = output_str.replace('{bin_ver}', self.int_to_bytes(self.terms['bin_ver']) + " // FW_IMG_VERSION")
+            output_str = output_str.replace('{max_block_size}', self.add_word_to_img(self.terms['max_block_size']) + " // MAX_BLOCK_SIZE")
+            output_str = output_str.replace('{bin_ver}', self.add_word_to_img(self.terms['bin_ver']) + " // FW_IMG_VERSION")
 
-        output_str = output_str.replace('{fw_data_blocks}', self.terms['fw_block_arrays'])
+        # Add Symbol Linking Table
+        temp_ctl_str = ''
+        if self.algorithms:
+            for alg_name, alg_id in self.algorithms.items():
+                for control in self.algorithm_controls[alg_name]:
+                    sym_id = self.find_symbol_id(control[0])
+                    if sym_id:
+                        temp_ctl_str = temp_ctl_str + self.add_word_to_img(sym_id) + " // " + control[0].upper() + "\n" \
+                            + self.add_word_to_img(control[1]) + " // " + hex(control[1]) + "\n"
 
-        blocks = self.terms['total_fw_blocks']
+        output_str = output_str.replace('{sym_table}\n', temp_ctl_str)
 
-        if self.includes_coeff:
+        # Add Algorithm ID List
+        temp_alg_str = ''
+        if self.algorithms:
+            for alg_name, alg_id in self.algorithms.items():
+                temp_alg_str = temp_alg_str + self.add_word_to_img(alg_id) + " // " + alg_name + "\n"
+
+        output_str = output_str.replace('{alg_list}\n', temp_alg_str)
+
+        # Add Firmware Data
+        fw_block_str = ''
+        for i in range(0, len(self.fw_data_block_list)):
+            address = self.fw_data_block_list[i][1]
+            data_bytes = self.fw_data_block_list[i][2]
+            # Create string for block data
+            temp_str = source_file_template_fw_block_str.replace('{block_index}', str(i))
+            temp_str = temp_str.replace('{fw_block_size}', self.add_word_to_img(len(data_bytes)))
+            temp_str = temp_str.replace('{fw_block_addr}', self.add_word_to_img(address))
+            temp_str = temp_str.replace('{block_bytes}', self.add_bytes_to_img(data_bytes))
+
+            fw_block_str += temp_str + '\n'
+
+        output_str = output_str.replace('{fw_data_blocks}', fw_block_str)
+
+        # Add COEFF_DATA_BLOCKS_
+        if (self.includes_coeff):
             temp_str = ''
-            for i in range(0, len(self.terms['coeff_block_arrays'])):
+
+            for i in range(0, len(self.coeff_data_block_list)):
                 temp_str = temp_str + source_file_template_coeff_strs['include_coeff_0'].replace('{coeff_index}', str(i))
-                blocks = blocks + self.total_coeff_blocks[i]
-                temp_str = temp_str.replace('{coeff_block_arrays}', self.terms['coeff_block_arrays'][i])
+                temp_temp_str = ''
+                for j in range(0, len(self.coeff_data_block_list[i])):
+                    # Create string for block data
+                    address = self.coeff_data_block_list[i][j][1]
+                    data_bytes = self.coeff_data_block_list[i][j][2]
+                    temp_temp_str += source_file_template_coeff_block_str.replace('{block_index}', str(j)) + '\n'
+                    temp_temp_str = temp_temp_str.replace('{coeff_index}', str(i))
+                    temp_temp_str = temp_temp_str.replace('{coeff_block_size}', self.add_word_to_img(len(data_bytes)))
+                    temp_temp_str = temp_temp_str.replace('{coeff_block_addr}', self.add_word_to_img(address))
+                    temp_temp_str = temp_temp_str.replace('{block_bytes}', self.add_bytes_to_img(data_bytes))
+                temp_str = temp_str.replace('{coeff_block_arrays}', temp_temp_str)
                 temp_str = temp_str + '\n'
+
             output_str = output_str.replace('{coeff_data}\n', temp_str)
         else:
             output_str = output_str.replace('{coeff_data}\n', '')
 
-        self.terms['data_blocks'] = blocks
-        output_str = output_str.replace('{data_block_count}', self.int_to_bytes(self.terms['data_blocks']))
+        # Update IMG_MAGIC_NUMBER_2
+        output_str = output_str.replace('{magic_number_2}', self.add_word_to_img(IMG_MAGIC_NUMBER_2))
+
+        # Update IMG_SIZE
+        # need to add 8 to include the checksum and the img_size field itself.
+        self.terms['img_size'] += 8
+        output_str = output_str.replace('{img_size}', self.get_word_string(self.terms['img_size']))
+        self.image_word_list.insert(2, self.terms['img_size'])
+
+        # Calculate IMG_CHECKSUM
         if self.terms['version'] == 1:
-            output_str = output_str.replace('{max_block_size}', "")
+            output_str = output_str.replace('{img_checksum}', self.add_word_to_img(0xf0f00f0f))
         else:
-            output_str = output_str.replace('{max_block_size}', self.int_to_bytes(self.terms['max_block_size']) + " // MAX_BLOCK_SIZE")
+            output_str = output_str.replace('{img_checksum}', self.add_word_to_img(self.calc_checksum()))
 
         output_str = output_str.replace('{part_number_lc}', self.terms['part_number_lc'])
         output_str = output_str.replace('{part_number_uc}', self.terms['part_number_uc'])
-
-        output_str = output_str.replace('{magic_number_2}', self.int_to_bytes(self.terms['magic_num2']))
-
-        # need to add 8 to include the checksum and the img_size field itself.
-        self.terms['img_size'] = self.terms['img_size'] + 8
-        output_str = output_str.replace('{img_size}', self.int_to_bytes(self.terms['img_size']))
-        # int_to_bytes increments img_size, so subtract 4 again to get us back to where we should be
-        self.terms['img_size'] = self.terms['img_size'] - 4
-
-        if self.terms['version'] == 1:
-            output_str = output_str.replace('{img_checksum}', self.int_to_bytes(0xf0f00f0f))
-        else:
-            output_str = output_str.replace('{img_checksum}', self.int_to_bytes(self.calc_checksum()))
-
         output_str = output_str.replace('{metadata_text}', self.terms['metadata_text'])
 
         output_str = output_str.replace('\n\n\n', '\n\n')
@@ -706,6 +591,8 @@ class fw_img_v1_file(firmware_exporter):
             results_str = results_str + temp_filename + '.c\n'
 
         else:
+            # Create fw_img contents
+            self.create_source_file_text()
             temp_filename = temp_filename + ".bin"
             f = open(temp_filename, "wb")
             f.write(self.to_byte_array())

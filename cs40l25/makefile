@@ -110,6 +110,27 @@ $(error Configuration CONFIG_L25B=0 and CONFIG_EXT_BOOST=1 is not supported!)
     endif
 endif
 
+ifeq ($(OPTIMIZATION_LEVEL), 0)
+    DEBUG_OPTIONS =
+    OPTIMIZATION_OPTIONS=-O0
+else ifeq ($(OPTIMIZATION_LEVEL), 1)
+    DEBUG_OPTIONS =
+    OPTIMIZATION_OPTIONS=-O1
+else ifeq ($(OPTIMIZATION_LEVEL), 2)
+    DEBUG_OPTIONS =
+    OPTIMIZATION_OPTIONS=-O2
+else ifeq ($(OPTIMIZATION_LEVEL), 3)
+    DEBUG_OPTIONS =
+    OPTIMIZATION_OPTIONS=-O3
+else ifeq ($(OPTIMIZATION_LEVEL), s)
+    DEBUG_OPTIONS =
+    OPTIMIZATION_OPTIONS=-Os
+else
+    DEBUG_OPTIONS += -DDEBUG
+    DEBUG_OPTIONS += -g3
+    OPTIMIZATION_OPTIONS=-O0
+endif
+
 # Assign toolchain, shell executable names required per target
 ifeq ($(MAKECMDGOALS), unit_test)
     CC          = gcc
@@ -164,6 +185,9 @@ ifeq ($(MAKECMDGOALS), unit_test)
 ifeq ($(BULLSEYE), 1)
     CFLAGS += -DUSE_BULLSEYE
 endif
+    CFLAGS += $(DEBUG_OPTIONS)
+    CFLAGS += $(OPTIMIZATION_OPTIONS)
+
     # Build switches for driver library
 
     OUTPUT_NAME = unit_test
@@ -173,7 +197,6 @@ endif
     LDFLAGS     =
     ASM_FLAGS   =
 else ifeq ($(MAKECMDGOALS), driver_lib_cm4)
-    OPTIMIZATION_OPTIONS += -Os
 
     # Build switches for driver library
 
@@ -187,6 +210,7 @@ else ifeq ($(MAKECMDGOALS), driver_lib_cm4)
     CFLAGS += -fno-diagnostics-show-caret
     CFLAGS += -fdata-sections -ffunction-sections
     CFLAGS += -funsigned-char -funsigned-bitfields
+    CFLAGS += $(DEBUG_OPTIONS)
     CFLAGS += $(OPTIMIZATION_OPTIONS)
     CFLAGS += $(APP_OPTIONS)
     CFLAGS += $(DEVID_CFLAG) $(ADDITIONAL_CFLAGS) $(OPEN_LOOP_FLAG)
@@ -196,9 +220,6 @@ else ifeq ($(MAKECMDGOALS), driver_lib_cm4)
     LDFLAGS     =
     ASM_FLAGS   =
 else ifeq ($(MAKECMDGOALS), system_test)
-    DEBUG_OPTIONS += -DDEBUG
-    DEBUG_OPTIONS += -g3
-
     # Build switches for driver library
 
     # use = or += not := else dependencies expand to nil
@@ -207,6 +228,7 @@ else ifeq ($(MAKECMDGOALS), system_test)
     CFLAGS += -fno-diagnostics-show-caret
     CFLAGS += -fdata-sections -ffunction-sections -fstack-usage
     CFLAGS += $(DEBUG_OPTIONS)
+    CFLAGS += $(OPTIMIZATION_OPTIONS)
     CFLAGS += $(APP_OPTIONS)
     CFLAGS += $(DEVID_CFLAG) $(ADDITIONAL_CFLAGS) $(OPEN_LOOP_FLAG)
     CFLAGS += -DNO_OS
@@ -230,17 +252,17 @@ endif
     LDFLAGS += -static
     LDFLAGS += -Wl,--start-group -lc -lm -Wl,--end-group
 else ifeq ($(MAKECMDGOALS), baremetal)
-    DEBUG_OPTIONS += -DDEBUG
-    DEBUG_OPTIONS += -g3
 
     # Build switches for driver library
 
     # use = or += not := else dependencies expand to nil
     CFLAGS += -mcpu=cortex-m4 -mthumb -mfpu=fpv4-sp-d16 -mfloat-abi=hard --specs=nano.specs
-    CFLAGS += -Werror -Wall --std=gnu11
+    #CFLAGS += -Werror -Wall --std=gnu11
+    CFLAGS += -Wall --std=gnu11
     CFLAGS += -fno-diagnostics-show-caret
     CFLAGS += -fdata-sections -ffunction-sections -fstack-usage
     CFLAGS += $(DEBUG_OPTIONS)
+    CFLAGS += $(OPTIMIZATION_OPTIONS)
     CFLAGS += $(APP_OPTIONS)
     CFLAGS += $(DEVID_CFLAG) $(ADDITIONAL_CFLAGS) $(OPEN_LOOP_FLAG)
     CFLAGS += -DNO_OS
@@ -267,8 +289,6 @@ endif
     LDFLAGS += -static
     LDFLAGS += -Wl,--start-group -lc -lm -Wl,--end-group
 else ifeq ($(MAKECMDGOALS), freertos)
-    DEBUG_OPTIONS += -DDEBUG
-    DEBUG_OPTIONS += -g3
 
     # Build switches for driver library
 
@@ -278,7 +298,9 @@ else ifeq ($(MAKECMDGOALS), freertos)
     CFLAGS += -fno-diagnostics-show-caret
     CFLAGS += -fdata-sections -ffunction-sections -fstack-usage
     CFLAGS += $(DEBUG_OPTIONS)
+    CFLAGS += $(OPTIMIZATION_OPTIONS)
     CFLAGS += $(APP_OPTIONS)
+    CFLAGS += $(OPTIMIZATION_OPTIONS)
     CFLAGS += $(DEVID_CFLAG) $(ADDITIONAL_CFLAGS) $(OPEN_LOOP_FLAG)
     CFLAGS += -DUSE_CMSIS_OS
     CFLAGS += $(ST_CFLAGS)
@@ -310,7 +332,7 @@ DRIVER_PATH = $(REPO_PATH)/cs40l25
 COMMON_PATH = $(REPO_PATH)/common
 CONFIG_PATH = $(DRIVER_PATH)/config
 HALO_FIRMWARE_PATH = $(REPO_PATH)/cs40l25/fw
-DRIVER_SRCS = $(DRIVER_PATH)/cs40l25.c $(CONFIG_PATH)/cs40l25_syscfg_regs.c $(COMMON_PATH)/fw_img.c
+DRIVER_SRCS = $(DRIVER_PATH)/cs40l25.c $(CONFIG_PATH)/cs40l25_syscfg_regs.c $(COMMON_PATH)/fw_img.c $(COMMON_PATH)/regmap.c
 ifeq ($(MAKECMDGOALS), system_test)
 DRIVER_SRCS += $(DRIVER_PATH)/cs40l25_ext.c
 else ifeq ($(MAKECMDGOALS), baremetal)
@@ -344,7 +366,7 @@ ifeq ($(MAKECMDGOALS), system_test)
     C_SRCS += $(TEST_HW_PATH)/stm32f4xx_it.c
     C_SRCS += $(COMMON_PATH)/bridge/bridge.c
 ifeq ($(CONFIG_USE_VREGMAP), 1)
-    C_SRCS += $(COMMON_PATH)/bridge/vregmap.c
+    C_SRCS += $(REPO_PATH)/cs40l25/bsp/vregmap.c
 endif
     C_SRCS += $(COMMON_PATH)/regmap.c
     C_SRCS += $(TEST_HW_PATH)/sysmem.c
@@ -383,7 +405,7 @@ endif
     C_SRCS += $(TEST_HW_PATH)/stm32f4xx_it.c
     C_SRCS += $(COMMON_PATH)/bridge/bridge.c
 ifeq ($(CONFIG_USE_VREGMAP), 1)
-    C_SRCS += $(COMMON_PATH)/bridge/vregmap.c
+    C_SRCS += $(REPO_PATH)/cs40l25/bsp/vregmap.c
 endif
     C_SRCS += $(COMMON_PATH)/regmap.c
 ifneq ($(SEMIHOSTING), 1)
@@ -411,7 +433,7 @@ ifeq ($(MAKECMDGOALS), freertos)
     C_SRCS += $(TEST_HW_PATH)/stm32f4xx_it.c
     C_SRCS += $(COMMON_PATH)/bridge/bridge.c
 ifeq ($(CONFIG_USE_VREGMAP), 1)
-    C_SRCS += $(COMMON_PATH)/bridge/vregmap.c
+    C_SRCS += $(REPO_PATH)/cs40l25/bsp/vregmap.c
 endif
     C_SRCS += $(COMMON_PATH)/regmap.c
 ifneq ($(SEMIHOSTING), 1)
@@ -640,6 +662,12 @@ print_targets:
 	@echo
 	@echo       CONFIG_OPEN_LOOP=0  \(default: configure for Closed Loop \(with external clock\)\)
 	@echo       CONFIG_OPEN_LOOP=1	\(configure for Open Loop \(without external clock\)\)
+	@echo
+	@echo       OPTIMIZATION_LEVEL=0    \(configure for -O0 optimization level\)
+	@echo       OPTIMIZATION_LEVEL=1    \(configure for -O1 optimization level\)
+	@echo       OPTIMIZATION_LEVEL=2    \(configure for -O2 optimization level\)
+	@echo       OPTIMIZATION_LEVEL=3    \(configure for -O3 optimization level\)
+	@echo       OPTIMIZATION_LEVEL=s    \(configure for -Os optimization level\)
 
 clean:
 	$(RM) $(BUILD_DIR)

@@ -167,7 +167,7 @@ def main(argv):
         f.close()
 
     # Create SMCIO processor and add channels for stdin/stdout, test, and coverage
-    p = smcio.processor(com_port(args.comport, 115200, 1), args.packet_view)
+    p = smcio.processor(com_port(args.comport, 115200, 0.001), args.packet_view)
     p.add_channel('0', channel_callback, (args.stdout_filename, '0'))
     p.add_channel('3', channel_callback, (args.bridge_filename, '3'))
 
