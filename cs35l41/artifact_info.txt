@@ -1,40 +1,58 @@
 Artifact Info:
-Artifact           : CS35L41 Alt-OS Driver: 4.5.0 - fecad8c94280100109021b9876cc84070f016f0c
+Artifact           : CS35L41 Alt-OS Driver: 4.6.0 - 24abaa3d63b0c21d801898799f64b270094197e0
 Test Target MCU SDK: STM32Cube_FW_F4: 1.24.1
 Target toolchain   : GNU Arm Embedded Toolchain: arm-none-eabi-gcc (GNU Tools for Arm Embedded Processors 8-2019-q3-update) 8.3.1 20190703 (release) [gcc-8-branch revision 273027]
 Build system       : make: GNU Make 3.82
-OS                 : Linux: 3.10.0-1160.24.1.el7.x86_64
+OS                 : Linux: 3.10.0-1160.25.1.el7.x86_64
 Shell              : bash: GNU bash, version 4.2.46(2)-release (x86_64-redhat-linux-gnu)
 Host toolchain     : MinGW GCC: gcc (GCC) 4.8.5 20150623 (Red Hat 4.8.5-39)
-Build Job          : prince_alt_os_nightly: 787
-Git SHA            : fecad8c94280100109021b9876cc84070f016f0c
+Build Job          : prince_alt_os_nightly: 817
+Git SHA            : 24abaa3d63b0c21d801898799f64b270094197e0
 
 System resources:
 
-Library name    : /home/svc_altos/workspace/prince_alt_os_nightly/build_driver_lib_cm4/build/cs35l41/libcs35l41
-Library TEXT    : 7060 bytes
-Library BSS     : 0 bytes
-Library DATA    : 40 bytes
-BSP RAM         : 0 bytes
+Build Configuration 1:
+
+Artifact filename    : libcs35l41.a
+Driver TEXT          : 7128
+Driver BSS           : 0
+Driver DATA          : 184
+Driver Max Stack     : 192 (cs35l41_power -> cs35l41_wake -> cs35l41_restore -> cs35l41_write_post_boot_config -> regmap_write_array -> regmap_update_reg -> regmap_read -> uint32_t)
+
+Artifact filename    : baremetal.elf
+Driver TEXT          : 6482
+Driver BSS           : 248
+Driver DATA          : 184
+
+Artifact filename    : cs35l41_cal_fw_img.o
+Driver TEXT          : 888
+
+Artifact filename    : cs35l41_fw_img.o
+Driver TEXT          : 29532
+
+Artifact filename    : cs35l41_tune_44p1_fw_img.o
+Driver TEXT          : 248
+
+Artifact filename    : cs35l41_tune_48_fw_img.o
+Driver TEXT          : 248
+
+Artifact filename    : cs35l41_tune_fw_img.o
+Driver TEXT          : 3004
+
 Compiler flags:
     -mcpu=cortex-m4
     -mthumb
-    -mfloat-abi=soft
-    -march=armv7e-m
+    -mfpu=fpv4-sp-d16
+    -mfloat-abi=hard
+    -march=armv7e-m+fp
     -Os
-    -fno-strict-aliasing
-    -ffreestanding
+    -Werror
+    -Wall
+    -std=gnu11
     -fno-diagnostics-show-caret
     -fdata-sections
     -ffunction-sections
-    -funsigned-char
-    -funsigned-bitfields
+    -fstack-usage
     -frecord-gcc-switches
-
-Library name    : /var/lib/jenkins/jobs/prince_alt_os_nightly/workspace/build_baremetal/build/cs35l41/libcs35l41
-Library TEXT    : 0 bytes
-Library BSS     : 0 bytes
-Library DATA    : 0 bytes
-BSP RAM         : 0 bytes
-Compiler flags:
+    -g3
 

@@ -4,7 +4,7 @@
  * @brief Implementation of the BSP for the system_test_hw_0 platform.
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2019 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2019, 2021 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -200,7 +200,7 @@ uint32_t bsp_dut_initialize(void)
         amp_config.bsp_config = bsp_config;
 
         amp_config.syscfg_regs = cs35l41_syscfg_regs;
-        amp_config.syscfg_regs_total = CS35L41_SYSCFG_REGS_TOTAL;
+        amp_config.syscfg_regs_total = sizeof(cs35l41_syscfg_regs)/sizeof(uint32_t);
 
         amp_config.cal_data.is_valid = false;
 
@@ -492,7 +492,7 @@ uint32_t bsp_dut_change_fs(uint32_t fs_hz)
 {
     uint32_t ret;
     const uint8_t *tune_img;
-    const syscfg_reg_t *cfg;
+    const uint32_t *cfg;
     uint16_t cfg_length;
 
     // Validate Fs

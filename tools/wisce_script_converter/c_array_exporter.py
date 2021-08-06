@@ -25,7 +25,6 @@
 # IMPORTS
 # ==========================================================================
 from wisce_script_exporter import wisce_script_exporter
-from wisce_script_transaction import wisce_script_transaction
 import time
 
 # ==========================================================================
@@ -65,29 +64,20 @@ extern "C" {
  * INCLUDES
  **********************************************************************************************************************/
 #include "stdint.h"
+#include "regmap.h"
 
 /***********************************************************************************************************************
  * LITERALS & CONSTANTS
  **********************************************************************************************************************/
-#define {filename_prefix_uc}_SYSCFG_REGS_TOTAL    ({syscfg_regs_total})
 
 /***********************************************************************************************************************
  * ENUMS, STRUCTS, UNIONS, TYPEDEFS
  **********************************************************************************************************************/
-#ifndef SYSCFG_REG_T_DEF
-#define SYSCFG_REG_T_DEF
-typedef struct
-{
-    uint32_t address;
-    uint32_t mask;
-    uint32_t value;
-} syscfg_reg_t;
-#endif
 
 /***********************************************************************************************************************
  * GLOBAL VARIABLES
  **********************************************************************************************************************/
-extern const syscfg_reg_t {filename_prefix_lc}_syscfg_regs[];
+extern uint32_t {filename_prefix_lc}_syscfg_regs[{syscfg_regs_total}];
 
 #ifdef __cplusplus
 }
@@ -127,13 +117,13 @@ source_file_template_str = """/**
 /***********************************************************************************************************************
  * GLOBAL VARIABLES
  **********************************************************************************************************************/
-const syscfg_reg_t {filename_prefix_lc}_syscfg_regs[] =
-{
-{syscfg_regs_list}};
+
+{syscfg_regs_list}
 
 """
 
-source_file_template_syscfg_reg_list_entry_str = """    {{address}, {mask}, {value}}, {comment}"""
+source_file_template_syscfg_reg_title_entry_str = """uint32_t {filename_prefix_lc}_syscfg_regs[{syscfg_regs_total}] =\n"""
+source_file_template_syscfg_reg_list_entry_str = """    {array}{comment}"""
 
 # ==========================================================================
 # CLASSES
@@ -142,6 +132,7 @@ class c_array_exporter(wisce_script_exporter):
     def __init__(self, attributes):
         wisce_script_exporter.__init__(self, attributes)
         self.transaction_list = []
+        self.transaction_list_length = 0
         self.terms = dict()
         self.terms['part_number_lc'] = self.attributes['part_number_str'].lower()
         self.terms['part_number_uc'] = self.attributes['part_number_str'].upper()
@@ -160,6 +151,8 @@ class c_array_exporter(wisce_script_exporter):
 
     def add_transaction(self, transaction):
         self.transaction_list.append(transaction)
+        if not isinstance(transaction, str):
+            self.transaction_list_length += transaction.length
         return
 
     def add_metadata_text_line(self, line):
@@ -186,28 +179,58 @@ class c_array_exporter(wisce_script_exporter):
 
         if (is_header):
             output_str = output_str.replace('{metadata_text}', self.terms['metadata_text'])
-            output_str = output_str.replace('{syscfg_regs_total}', str(len(self.transaction_list)))
         else:
-            temp_str = ''
+            temp_str = source_file_template_syscfg_reg_title_entry_str
+            temp_str += "{\n"
+            block_write_warning_flag = False
             for t in self.transaction_list:
+                if isinstance(t, str):
+                    if self.include_comments:
+                        temp_str += '{space}// ' + t + '\n'
+                    continue
+
+                if "{part_number_uc}_SYM_" in t.params[0]:
+                    continue
                 temp_str += source_file_template_syscfg_reg_list_entry_str
-                temp_str = temp_str.replace('{address}', t.address)
-                temp_str = temp_str.replace('{mask}', t.mask)
-                temp_str = temp_str.replace('{value}', t.value)
+                if t.cmd == 'write':
+                    command = ""
+                elif t.cmd == 'block_write':
+                    if not block_write_warning_flag:
+                        print("[WARNING] c_array block write is currently supported only on little-endian systems")
+                        block_write_warning_flag = True
+                    command = "REGMAP_ARRAY_BLOCK_WRITE, "
+                elif t.cmd == 'rmodw':
+                    command = "REGMAP_ARRAY_RMODW, "
+                elif (t.cmd == 'wait') or (t.cmd == 'insert_delay_ms') or (t.cmd == 'insert_delay'):
+                    if t.cmd == 'insert_delay':
+                        t.params = str(int(t.params) * 1000)
+                    if self.include_comments:
+                        if t.comment is None:
+                            t.comment = " (Delay for " + t.params + "ms)"
+                        else:
+                            t.comment += " (Delay for " + t.params + "ms)"
+                    command = "REGMAP_ARRAY_DELAY, "
+                temp_str = temp_str.replace('{array}', command + t.params)
+
                 if (self.include_comments and (t.comment is not None)):
-                    temp_str = temp_str.replace('{comment}', '// ' + t.comment)
                     if not t.comment.endswith('\n'):
-                        temp_str += '\n'
+                        temp_str = temp_str.replace('{comment}', ', // ' + t.comment + '\n')
+                    else:
+                        temp_str = temp_str.replace('{comment}', ', // ' + t.comment)
                 else:
-                    temp_str = temp_str.replace('{comment}', '')
-                    temp_str += '\n'
+                    temp_str = temp_str.replace('{comment}', ',\n')
+            temp_str = temp_str[:-2] # remove last comma
+            temp_str += "\n};\n"
             output_str = output_str.replace('{syscfg_regs_list}', temp_str)
 
         output_str = output_str.replace('{part_number_lc}', self.terms['part_number_lc'])
         output_str = output_str.replace('{part_number_uc}', self.terms['part_number_uc'])
         output_str = output_str.replace('{filename_prefix_lc}', self.terms['filename_prefix_lc'])
         output_str = output_str.replace('{filename_prefix_uc}', self.terms['filename_prefix_uc'])
+        output_str = output_str.replace('{space}', "    ")
+        output_str = output_str.replace('{syscfg_regs_total}', str(self.transaction_list_length))
         output_str = output_str.replace('\n\n\n', '\n\n')
+        output_str = output_str.replace('{space}', "    ")
         return output_str
 
     def to_file(self):
@@ -226,60 +249,6 @@ class c_array_exporter(wisce_script_exporter):
         results_str += temp_filename + '\n'
 
         return results_str
-
-class c_array_parser:
-    def __init__(self, filename, part_number, suffix):
-        self.filename = filename
-        self.part_number = part_number
-        if (suffix is None):
-            self.filename_prefix = self.part_number
-        else:
-            self.filename_prefix += '_' + suffix
-
-        return
-
-    def parse(self):
-        comparison_str = source_file_template_str
-        comparison_str = comparison_str.replace('{part_number_lc}', self.part_number.lower())
-        comparison_str = comparison_str.replace('{part_number_uc}', self.part_number.upper())
-        comparison_str = comparison_str.replace('{filename_prefix_lc}', self.filename_prefix.lower())
-        comparison_str = comparison_str.replace('{filename_prefix_uc}', self.filename_prefix.upper())
-        comparison_str = comparison_str.split('\n')
-        comparison_lines = []
-        for s in comparison_str:
-            comparison_lines.append(s + '\n')
-
-        f = open(self.filename, 'r')
-        lines = f.readlines()
-        f.close()
-
-        array_lines = None
-        for i in range(0, len(lines)):
-            if ('{syscfg_regs_list}};' in comparison_lines[i]):
-                array_lines = lines[i:-1]
-                for j in range(0, len(array_lines)):
-                    if '};' in array_lines[j]:
-                        array_lines = array_lines[0:j]
-                break
-
-            elif comparison_lines[i] != lines[i]:
-                return None
-
-        if (array_lines is None):
-            return None
-
-        entries = []
-        for line in array_lines:
-            line = line.replace('{', '').replace('}', '')
-            line = line.split(',')
-            address = line[0].split()
-            mask = line[1].split()
-            value = line[2].split()
-            has_comment = '//' in line[3]
-            entry = (address, mask, value, has_comment)
-            entries.append(entry)
-
-        return entries
 
 # ==========================================================================
 # HELPER FUNCTIONS

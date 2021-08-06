@@ -34,9 +34,11 @@ extern "C" {
 #include <stdbool.h>
 #include "fw_img.h"
 #include "cs47l35_sym.h"
+#include "cs47l35_sym_dsp3.h"
 #include "cs47l35_spec.h"
 #include "cs47l35_syscfg_regs.h"
 #include "sdk_version.h"
+#include "regmap.h"
 
 /***********************************************************************************************************************
  * LITERALS & CONSTANTS
@@ -231,13 +233,12 @@ typedef struct
  */
 typedef struct
 {
-    uint8_t bsp_dev_id;                                 ///< Used to ID CS47L35 in bsp_driver_if calls
     uint32_t bsp_reset_gpio_id;                         ///< Used to ID CS47L35 Reset pin in bsp_driver_if calls
     uint32_t bsp_dcvdd_supply_id;                       ///< Used to ID CS47L35 DCVDD Supply in bsp_driver_if calls
     uint32_t bsp_int_gpio_id;                           ///< Used to ID CS47L35 INT pin in bsp_driver_if calls
-    uint8_t bus_type;                                   ///< Control Port type - I2C or SPI
     cs47l35_notification_callback_t notification_cb;    ///< Notification callback registered for detected events
     void *notification_cb_arg;                          ///< Notification callback argument
+    regmap_cp_config_t cp_config;
 } cs47l35_bsp_config_t;
 
 /**
@@ -248,7 +249,7 @@ typedef struct
 typedef struct
 {
     cs47l35_bsp_config_t bsp_config;                ///< BSP Configuration
-    const syscfg_reg_t *syscfg_regs;                ///< Pointer to system configuration table
+    const uint32_t *syscfg_regs;                ///< Pointer to system configuration table
     uint32_t syscfg_regs_total;                     ///< Total entries in system configuration table
 } cs47l35_config_t;
 

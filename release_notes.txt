@@ -3,6 +3,29 @@ Release Notes
 
 =============================================================================
 Summary:
+This is the release of Alt-OS Driver SDK v4.6.0
+Date: 2021/08/06
+
+Architectures/Compilers Used:
+GNU Arm Embedded Toolchain: arm-none-eabi-gcc -mcpu=cortex-m4
+
+New Features/Changes:
+[SQA-2387] L25 - added comment to cs40l25_power to clarify power_down
+[SQA-2356] Renamed all fw_* folders to fw
+[SQA-2386] L25 - gpio_detect is sampled only at fw init
+[SQA-2320] L25 - added AN0511R1 PDF
+[SQA-2320] L25 - made wrapper for write_acked_fw_control
+[SQA-2369] Bridge: autodetect com port for Windows
+[SQA-2352] wisce_script_converter: add a comment when loading commands from another file
+[SQA-2354] wisce_script_converter: alternative c_array format.
+[SQA-2354] L35, L15 - Ported to regmap
+
+Fixed Bugs:
+[SQA-2386] L25 - Fix update of GPIO_BUTTONDETECT
+
+=============================================================================
+=============================================================================
+Summary:
 This is the release of Alt-OS Driver SDK v4.5.0
 Date: 2021/07/15
 

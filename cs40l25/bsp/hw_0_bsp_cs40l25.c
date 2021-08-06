@@ -72,10 +72,6 @@ static cs40l25_haptic_config_t cs40l25_haptic_configs[] =
     {
         .index_button_press = {3, 0, 0, 0},
         .index_button_release = {4, 0, 0, 0},
-        .gpio_button_detect.gpio1_enable = 0,
-        .gpio_button_detect.gpio2_enable = 0,
-        .gpio_button_detect.gpio3_enable = 0,
-        .gpio_button_detect.gpio4_enable = 0,
         .gain_control.control_gain = 0,
         .gain_control.gpi_gain = 0,
         .gpio_enable.gpio_enable = 0,
@@ -84,10 +80,6 @@ static cs40l25_haptic_config_t cs40l25_haptic_configs[] =
     {
         .index_button_press = {1, 0, 0, 0},
         .index_button_release = {2, 0, 0, 0},
-        .gpio_button_detect.gpio1_enable = 1,
-        .gpio_button_detect.gpio2_enable = 0,
-        .gpio_button_detect.gpio3_enable = 0,
-        .gpio_button_detect.gpio4_enable = 0,
         .gain_control.control_gain = 0,
         .gain_control.gpi_gain = 0,
         .gpio_enable.gpio_enable = 1,
@@ -96,10 +88,6 @@ static cs40l25_haptic_config_t cs40l25_haptic_configs[] =
     {
         .index_button_press = {1, 1, 1, 1},
         .index_button_release = {2, 2, 2, 2},
-        .gpio_button_detect.gpio1_enable = 1,
-        .gpio_button_detect.gpio2_enable = 1,
-        .gpio_button_detect.gpio3_enable = 1,
-        .gpio_button_detect.gpio4_enable = 1,
         .gain_control.control_gain = 0,
         .gain_control.gpi_gain = 0,
         .gpio_enable.gpio_enable = 1,
@@ -152,6 +140,7 @@ uint32_t bsp_dut_initialize(void)
     uint32_t ret = BSP_STATUS_OK;
     uint32_t haptic_status;
     cs40l25_config_t haptic_config;
+    uint32_t temp_buffer;
 
     memset(&haptic_config, 0, sizeof(cs40l25_config_t));
 
@@ -162,7 +151,7 @@ uint32_t bsp_dut_initialize(void)
         haptic_config.bsp_config = bsp_config;
 
         haptic_config.syscfg_regs = cs40l25_syscfg_regs;
-        haptic_config.syscfg_regs_total = CS40L25_SYSCFG_REGS_TOTAL;
+        haptic_config.syscfg_regs_total = sizeof(cs40l25_syscfg_regs)/sizeof(uint32_t);
 
         haptic_config.event_control.hardware = 1;
         haptic_config.event_control.playback_end_suspend = 1;
@@ -173,6 +162,13 @@ uint32_t bsp_dut_initialize(void)
         haptic_config.ext_boost.use_ext_boost = true;
 #endif
 
+        haptic_config.gpio_button_detect.gpio1_enable = true;
+#ifdef CONFIG_L25B
+        haptic_config.gpio_button_detect.gpio2_enable = true;
+        haptic_config.gpio_button_detect.gpio3_enable = true;
+        haptic_config.gpio_button_detect.gpio4_enable = true;
+#endif
+
         haptic_status = cs40l25_configure(&cs40l25_driver, &haptic_config);
     }
 
@@ -181,44 +177,36 @@ uint32_t bsp_dut_initialize(void)
         ret = BSP_STATUS_FAIL;
     }
 
-    uint32_t temp_buffer;
+#ifndef CONFIG_L25B
 #ifndef CONFIG_TEST_OPEN_LOOP
     // Enable 32kHz clock routing to CS40L25
-#ifndef CONFIG_L25B
     temp_buffer = __builtin_bswap32(0x001F8003);
     bsp_i2c_write(BSP_LN2_DEV_ID, (uint8_t *)&temp_buffer, 4, NULL, NULL);
-#else
-    // CDC_AIF2BCLK source set to Channel 3
-    temp_buffer = __builtin_bswap32(0x004C0003);
-    bsp_i2c_write(BSP_LN2_DEV_ID, (uint8_t *)&temp_buffer, 4, NULL, NULL);
-    // Channel 3 source set to PMIC_32K
-    temp_buffer = __builtin_bswap32(0x00BB0022);
-    bsp_i2c_write(BSP_LN2_DEV_ID, (uint8_t *)&temp_buffer, 4, NULL, NULL);
-#endif // CONFIG_L25B
 #endif // CONFIG_TEST_OPEN_LOOP
 
-#ifndef CONFIG_L25B
+    // CDC_GPIO1 (GPIO1) source set to Channel 1
+    temp_buffer = __builtin_bswap32(0x00370001);
+    bsp_i2c_write(BSP_LN2_DEV_ID, (uint8_t *)&temp_buffer, 4, NULL, NULL);
+    // Channel 1 source set to GF_GPIO2 (PC_2)
+    temp_buffer = __builtin_bswap32(0x00B90015);
+    bsp_i2c_write(BSP_LN2_DEV_ID, (uint8_t *)&temp_buffer, 4, NULL, NULL);
+
     // Configure Codec AIF2 source to be GF AIF1
     temp_buffer = __builtin_bswap32(0x000EE00B);
     bsp_i2c_write(BSP_LN2_DEV_ID, (uint8_t *)&temp_buffer, 4, NULL, NULL);
     // Configure GF AIF1 source to Codec AIF2
     temp_buffer = __builtin_bswap32(0x00168005);
     bsp_i2c_write(BSP_LN2_DEV_ID, (uint8_t *)&temp_buffer, 4, NULL, NULL);
-#else
-    // Configure Codec AIF2 source to be GF AIF2
-    temp_buffer = __builtin_bswap32(0x000EE00C);
+#else // CONFIG_L25B
+#ifndef CONFIG_TEST_OPEN_LOOP
+    // Enable 32kHz clock routing to CS40L25B
+    // CDC_AIF2BCLK source set to Channel 1
+    temp_buffer = __builtin_bswap32(0x004C0001);
     bsp_i2c_write(BSP_LN2_DEV_ID, (uint8_t *)&temp_buffer, 4, NULL, NULL);
-    // Configure GF AIF2 source to Codec AIF2
-    temp_buffer = __builtin_bswap32(0x00178005);
+    // Channel 1 source set to PMIC_32K
+    temp_buffer = __builtin_bswap32(0x00B90022);
     bsp_i2c_write(BSP_LN2_DEV_ID, (uint8_t *)&temp_buffer, 4, NULL, NULL);
-#endif
-
-    // CDC_GPIO5 (VAMP_EN) source set to Channel 1
-    temp_buffer = __builtin_bswap32(0x003B0001);
-    bsp_i2c_write(BSP_LN2_DEV_ID, (uint8_t *)&temp_buffer, 4, NULL, NULL);
-    // Channel 1 source set to GF_GPIO7 (PC_5)
-    temp_buffer = __builtin_bswap32(0x00B90017);
-    bsp_i2c_write(BSP_LN2_DEV_ID, (uint8_t *)&temp_buffer, 4, NULL, NULL);
+#endif // CONFIG_TEST_OPEN_LOOP
 
     // CDC_GPIO1 (GPIO1) source set to Channel 2
     temp_buffer = __builtin_bswap32(0x00370002);
@@ -226,6 +214,28 @@ uint32_t bsp_dut_initialize(void)
     // Channel 2 source set to GF_GPIO2 (PC_2)
     temp_buffer = __builtin_bswap32(0x00BA0015);
     bsp_i2c_write(BSP_LN2_DEV_ID, (uint8_t *)&temp_buffer, 4, NULL, NULL);
+
+    // CDC_AIF2RXDAT (L25B GPIO3) source set to GPIO Channel 3
+    temp_buffer = __builtin_bswap32(0x004D0003);
+    bsp_i2c_write(BSP_LN2_DEV_ID, (uint8_t *)&temp_buffer, 4, NULL, NULL);
+    // Channel 3 source set to CDC_GPIO5
+    temp_buffer = __builtin_bswap32(0x00BB000B);
+    bsp_i2c_write(BSP_LN2_DEV_ID, (uint8_t *)&temp_buffer, 4, NULL, NULL);
+
+    // CDC_AIF2LRCLK (L25B GPIO4) source set to Channel 4
+    temp_buffer = __builtin_bswap32(0x004E0004);
+    bsp_i2c_write(BSP_LN2_DEV_ID, (uint8_t *)&temp_buffer, 4, NULL, NULL);
+    // Channel 4 source set to CDC_GPIO4
+    temp_buffer = __builtin_bswap32(0x00BC000A);
+    bsp_i2c_write(BSP_LN2_DEV_ID, (uint8_t *)&temp_buffer, 4, NULL, NULL);
+
+    // CDC_GPIO5 (VAMP_EN) source set to Channel 5
+    temp_buffer = __builtin_bswap32(0x003B0005);
+    bsp_i2c_write(BSP_LN2_DEV_ID, (uint8_t *)&temp_buffer, 4, NULL, NULL);
+    // Channel 5 source set to GF_GPIO7 (PC_5)
+    temp_buffer = __builtin_bswap32(0x00BD0017);
+    bsp_i2c_write(BSP_LN2_DEV_ID, (uint8_t *)&temp_buffer, 4, NULL, NULL);
+#endif
 
     bridge_initialize(&device_list[0], (sizeof(device_list)/sizeof(bridge_device_t)));
 

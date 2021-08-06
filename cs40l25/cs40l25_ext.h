@@ -51,20 +51,6 @@ typedef union
 
     struct
     {
-        uint32_t gpio1_enable : 1;
-        uint32_t gpio2_enable : 1;
-        uint32_t gpio3_enable : 1;
-        uint32_t gpio4_enable : 1;
-        uint32_t reserved     : 28;
-    };
-} fw_ctrl_gpio_button_detect_t;
-
-typedef union
-{
-    uint32_t word;
-
-    struct
-    {
         uint32_t              : 4;
         uint32_t control_gain : 10;
         uint32_t gpi_gain     : 10;
@@ -92,7 +78,6 @@ typedef struct
 {
     uint32_t index_button_press[4];                     ///< Indeces in wavetable of wave to play upon button press
     uint32_t index_button_release[4];                   ///< Indeces in wavetable of wave to play upon button release
-    fw_ctrl_gpio_button_detect_t gpio_button_detect;    ///< Individual enables for GPIO1-GPIO4
     fw_ctrl_gain_control_t gain_control;                ///< Gain for Control Port and GPIO triggered effects
     fw_ctrl_gpio_enable_t gpio_enable;                  ///< Global enable for triggering via GPIO
 } cs40l25_haptic_config_t;

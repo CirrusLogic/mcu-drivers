@@ -674,6 +674,42 @@ static uint32_t cs40l25_wseq_add_block(cs40l25_t *driver, uint32_t *entries, uin
 }
 
 /**
+ * Write ACK-ed firmware control with CS40L25-specific polling tries and delay
+ *
+ * @param [in] driver           Pointer to the driver state
+ * @param [in] id               symbol id of firmware control to write
+ * @param [in] val              value to write
+ *
+ * @return
+ * - CS40L25_STATUS_FAIL        if underlying regmap call fails
+ * - CS40L25_STATUS_OK          otherwise
+ *
+ */
+static uint32_t cs40l25_write_acked_fw_control(cs40l25_t *driver, uint32_t id, uint32_t val)
+{
+    uint32_t ret;
+    regmap_cp_config_t *cp = REGMAP_GET_CP(driver);
+
+    ret = regmap_write_acked_fw_control(cp,
+                                        driver->fw_info,
+                                        id,
+                                        val,
+                                        0,
+                                        CS40L25_POLL_ACK_CTRL_MAX,
+                                        CS40L25_POLL_ACK_CTRL_MS);
+    if (ret)
+    {
+        ret = CS40L25_STATUS_FAIL;
+    }
+    else
+    {
+        ret = CS40L25_STATUS_OK;
+    }
+
+    return ret;
+}
+
+/**
  * Power up from Standby
  *
  * This function performs all necessary steps to transition the CS40L25 to be ready to generate haptic events.
@@ -698,8 +734,7 @@ static uint32_t cs40l25_power_up(cs40l25_t *driver)
     // Write errata
     regmap_write_array(cp,
                        (uint32_t *) cs40l25_revb0_errata_patch,
-                       (sizeof(cs40l25_revb0_errata_patch)/sizeof(uint32_t)),
-                       REGMAP_WRITE_ARRAY_TYPE_ADDR_VAL);
+                       (sizeof(cs40l25_revb0_errata_patch)/sizeof(uint32_t)));
 
     // Set HALO Core DSP Sample Rate registers to G1R2
     for (count = 0; count < (sizeof(cs40l25_frame_sync_regs)/sizeof(uint32_t)); count++)
@@ -710,8 +745,7 @@ static uint32_t cs40l25_power_up(cs40l25_t *driver)
     // Send words of Power Up Patch
     regmap_write_array(cp,
                        (uint32_t *) cs40l25_pup_patch,
-                       (sizeof(cs40l25_pup_patch)/sizeof(uint32_t)),
-                       REGMAP_WRITE_ARRAY_TYPE_ADDR_VAL);
+                       (sizeof(cs40l25_pup_patch)/sizeof(uint32_t)));
 
     // Enable clocks to HALO Core DSP in DSP CCM control register
     regmap_update_reg(cp,
@@ -778,13 +812,7 @@ static uint32_t cs40l25_power_down(cs40l25_t *driver)
     // Force fw into standby
     if (driver->state == CS40L25_STATE_CAL_POWER_UP)
     {
-        ret = regmap_write_acked_fw_control(cp,
-                                            driver->fw_info,
-                                            CS40L25_CAL_SYM_FIRMWARE_SHUTDOWNREQUEST,
-                                            1,
-                                            0,
-                                            CS40L25_POLL_ACK_CTRL_MAX,
-                                            CS40L25_POLL_ACK_CTRL_MS);
+        ret = cs40l25_write_acked_fw_control(driver, CS40L25_CAL_SYM_FIRMWARE_SHUTDOWNREQUEST, 1);
     }
     else
     {
@@ -796,7 +824,7 @@ static uint32_t cs40l25_power_down(cs40l25_t *driver)
                                      CS40L25_POLL_ACK_CTRL_MS);
     }
 
-    if (ret != REGMAP_STATUS_OK)
+    if (ret)
     {
         return CS40L25_STATUS_FAIL;
     }
@@ -888,7 +916,7 @@ static uint32_t cs40l25_exit_bhm(cs40l25_t *driver)
     }
 
     // Send BHM revert patch set
-    regmap_write_array(cp, patch, patch_length, REGMAP_WRITE_ARRAY_TYPE_ADDR_VAL);
+    regmap_write_array(cp, patch, patch_length);
 
     return CS40L25_STATUS_OK;
 }
@@ -1354,7 +1382,6 @@ uint32_t cs40l25_reset(cs40l25_t *driver)
  */
 uint32_t cs40l25_boot(cs40l25_t *driver, fw_img_info_t *fw_info)
 {
-    uint32_t count = 0;
     bool is_cal_boot = false;
     regmap_cp_config_t *cp = REGMAP_GET_CP(driver);
 
@@ -1423,18 +1450,7 @@ uint32_t cs40l25_boot(cs40l25_t *driver, fw_img_info_t *fw_info)
     regmap_write(cp, CS40L25_CTRL_KEYS_TEST_KEY_CTRL_REG, CS40L25_TEST_KEY_CTRL_UNLOCK_1);
     regmap_write(cp, CS40L25_CTRL_KEYS_TEST_KEY_CTRL_REG, CS40L25_TEST_KEY_CTRL_UNLOCK_2);
 
-    for (count = 0; count < driver->config.syscfg_regs_total; count++)
-    {
-        uint32_t temp_reg_val, orig_val;
-
-        regmap_read(cp, driver->config.syscfg_regs[count].address, &orig_val);
-        temp_reg_val = orig_val & ~(driver->config.syscfg_regs[count].mask);
-        temp_reg_val |= driver->config.syscfg_regs[count].value;
-        if (orig_val != temp_reg_val)
-        {
-            cs40l25_write_wseq_reg(driver, driver->config.syscfg_regs[count].address, temp_reg_val);
-        }
-    }
+    regmap_write_array(cp, driver->config.syscfg_regs, driver->config.syscfg_regs_total);
 
     // If NOT Calibration boot, write HALO Core DSP configuration data and IRQMASKSEQ patch
     if (driver->state == CS40L25_STATE_DSP_STANDBY)
@@ -1467,6 +1483,12 @@ uint32_t cs40l25_boot(cs40l25_t *driver, fw_img_info_t *fw_info)
     // Lock the register file
     regmap_write(cp, CS40L25_CTRL_KEYS_TEST_KEY_CTRL_REG, CS40L25_TEST_KEY_CTRL_LOCK_1);
     regmap_write(cp, CS40L25_CTRL_KEYS_TEST_KEY_CTRL_REG, CS40L25_TEST_KEY_CTRL_LOCK_2);
+
+    // Write any FW Controls only sampled at FW initialization
+    regmap_write_fw_control(cp,
+                            driver->fw_info,
+                            CS40L25_SYM_FIRMWARE_GPIO_BUTTONDETECT,
+                            driver->config.gpio_button_detect.word);
 
     return CS40L25_STATUS_OK;
 }
@@ -1793,10 +1815,9 @@ uint32_t cs40l25_stop_i2s(cs40l25_t *driver)
 
     for (uint32_t i = 0; i < driver->config.syscfg_regs_total; i++)
     {
-        if (driver->config.syscfg_regs[i].address == CCM_REFCLK_INPUT_REG)
+        if (driver->config.syscfg_regs[i] == CCM_REFCLK_INPUT_REG)
         {
-            clk_reg_val.word &= ~(driver->config.syscfg_regs[i].mask);
-            clk_reg_val.word |= driver->config.syscfg_regs[i].value;
+            clk_reg_val.word |= driver->config.syscfg_regs[i+1];
         }
     }
 

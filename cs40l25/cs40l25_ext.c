@@ -100,15 +100,6 @@ uint32_t cs40l25_update_haptic_config(cs40l25_t *driver, cs40l25_haptic_config_t
         return ret;
     }
 
-    ret = regmap_write_fw_control(cp,
-                                  driver->fw_info,
-                                  CS40L25_SYM_FIRMWARE_GPIO_BUTTONDETECT,
-                                  config->gpio_button_detect.word);
-    if (ret)
-    {
-        return ret;
-    }
-
     ret = regmap_write_fw_vals(cp,
                                driver->fw_info,
                                CS40L25_SYM_FIRMWARE_INDEXBUTTONPRESS,

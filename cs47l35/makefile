@@ -33,8 +33,7 @@ ASM_OBJS =
 INCLUDES =
 LIBS =
 WISCE_SCRIPT = wisce_init.txt
-HALO_FIRMWARE_PATH = $(REPO_PATH)/cs47l35/fw_opus
-HALO_FIRMWARE_FILE = cs47l35_silkcoder_dsp2_010000.wmfw
+HALO_FIRMWARE_PATH = $(REPO_PATH)/cs47l35/fw
 
 ifeq ($(origin STM32CUBEF4_PATH), undefined)
 STM32CUBEF4_PATH = $(REPO_PATH)/third_party/st/STM32CubeF4
@@ -267,7 +266,7 @@ endif
 DRIVER_PATH = $(REPO_PATH)/cs47l35
 CONFIG_PATH = $(REPO_PATH)/cs47l35/config
 COMMON_PATH = $(REPO_PATH)/common
-DRIVER_SRCS = $(DRIVER_PATH)/cs47l35.c $(CONFIG_PATH)/cs47l35_syscfg_regs.c $(COMMON_PATH)/fw_img.c
+DRIVER_SRCS = $(DRIVER_PATH)/cs47l35.c $(CONFIG_PATH)/cs47l35_syscfg_regs.c $(COMMON_PATH)/fw_img.c $(COMMON_PATH)/regmap.c
 ifeq ($(MAKECMDGOALS), system_test)
 DRIVER_SRCS += $(DRIVER_PATH)/cs47l35_ext.c
 else ifeq ($(MAKECMDGOALS), baremetal)
@@ -305,6 +304,7 @@ ifeq ($(MAKECMDGOALS), system_test)
     C_SRCS += $(TEST_HW_PATH)/syscalls.c
     C_SRCS += $(REPO_PATH)/cs47l35/bsp/hw_0_bsp_cs47l35.c
     C_SRCS += $(HALO_FIRMWARE_PATH)/cs47l35_dsp2_fw_img.c
+    C_SRCS += $(HALO_FIRMWARE_PATH)/cs47l35_dsp3_fw_img.c
 ifeq ($(BULLSEYE), 1)
     C_SRCS += $(REPO_PATH)/third_party/bullseye/src/libcov-altos.c
 endif
@@ -336,6 +336,7 @@ endif
     C_SRCS += $(TEST_HW_PATH)/sysmem.c
     C_SRCS += $(REPO_PATH)/cs47l35/bsp/hw_0_bsp_cs47l35.c
     C_SRCS += $(HALO_FIRMWARE_PATH)/cs47l35_dsp2_fw_img.c
+    C_SRCS += $(HALO_FIRMWARE_PATH)/cs47l35_dsp3_fw_img.c
     INCLUDES += -I$(APP_PATH)
     INCLUDES += -I$(REPO_PATH)/cs47l35/bsp
     INCLUDES += -I$(TEST_HW_PATH)
@@ -358,6 +359,7 @@ endif
     C_SRCS += $(TEST_HW_PATH)/sysmem.c
     C_SRCS += $(REPO_PATH)/cs47l35/bsp/hw_0_bsp_cs47l35.c
     C_SRCS += $(HALO_FIRMWARE_PATH)/cs47l35_dsp2_fw_img.c
+    C_SRCS += $(HALO_FIRMWARE_PATH)/cs47l35_dsp3_fw_img.c
     INCLUDES += -I$(APP_PATH)
     INCLUDES += -I$(REPO_PATH)/cs47l35/bsp
     INCLUDES += -I$(TEST_HW_PATH)
@@ -505,7 +507,9 @@ wisce_script_converter:
 firmware_converter:
 	@echo -------------------------------------------------------------------------------
 	@echo GENERATING cs47l35_dsp2_fw_img
-	cd $(HALO_FIRMWARE_PATH) && python3 ../../tools/firmware_converter/firmware_converter.py fw_img_v2 cs47l35_dsp2 $(HALO_FIRMWARE_FILE) --sym-input $(CONFIG_PATH)/cs47l35_sym.h --generic-sym
+	cd $(HALO_FIRMWARE_PATH) && python3 ../../tools/firmware_converter/firmware_converter.py fw_img_v2 cs47l35_dsp2 cs47l35_silkcoder_dsp2_010000.wmfw --sym-input $(CONFIG_PATH)/cs47l35_sym.h --generic-sym
+	@echo GENERATING cs47l35_dsp3_fw_img
+	cd $(HALO_FIRMWARE_PATH) && python3 ../../tools/firmware_converter/firmware_converter.py fw_img_v2 cs47l35_dsp3 SC_Voice_Marley_FB_SMSP_dsp3.wmfw --sym-input $(CONFIG_PATH)/cs47l35_sym_dsp3.h --generic-sym
 
 # Create the driver static library and print the resource usage
 driver_lib_cm4: build_path $(CREATE_FIRMWARE_TARGET) $(BUILD_PATHS) $(CREATE_SYSCFG_REGS_TARGET) $(DRIVER_OBJS)

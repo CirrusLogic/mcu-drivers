@@ -33,7 +33,7 @@ ASM_OBJS =
 INCLUDES =
 LIBS =
 
-HALO_FIRMWARE_PATH = $(REPO_PATH)/cs35l41/fw_6_43_0_cspl
+HALO_FIRMWARE_PATH = $(REPO_PATH)/cs35l41/fw
 HALO_FIRMWARE_FILE = halo_cspl_RAM_revB2_29.45.0.wmfw
 HALO_CAL_FIRMWARE_FILE = halo_cspl_RAM_revB2_29.45.0.wmfw
 HALO_CAL_FIRMWARE_WMDR = Protect_Lite_cal_6.43.0_7.0ohm_delta1ohm_L41_revB2.bin

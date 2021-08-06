@@ -4,7 +4,7 @@
  * @brief Implementation of the BSP for the system_test_hw_0 platform.
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2020 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2020-2021 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -58,13 +58,14 @@ dsp_buffer_t buffer;
 
 static cs47l15_bsp_config_t bsp_config =
 {
-    .bsp_dev_id = BSP_DUT_DEV_ID,
     .bsp_reset_gpio_id = BSP_GPIO_ID_DUT_CDC_RESET,
     .bsp_dcvdd_supply_id = BSP_SUPPLY_ID_LN2_DCVDD,
     .bsp_int_gpio_id = BSP_GPIO_ID_DUT_CDC_INT,
-    .bus_type = BSP_BUS_TYPE_SPI,
     .notification_cb = &cs47l15_notification_callback,
-    .notification_cb_arg = NULL
+    .notification_cb_arg = NULL,
+    .cp_config.dev_id = BSP_DUT_DEV_ID,
+    .cp_config.bus_type = REGMAP_BUS_TYPE_SPI_3000,
+    .cp_config.spi_pad_len = 2,
 };
 
 /***********************************************************************************************************************
@@ -91,7 +92,7 @@ uint32_t bsp_dut_initialize(void)
         codec_config.bsp_config = bsp_config;
 
         codec_config.syscfg_regs = cs47l15_syscfg_regs;
-        codec_config.syscfg_regs_total = CS47L15_SYSCFG_REGS_TOTAL;
+        codec_config.syscfg_regs_total = sizeof(cs47l15_syscfg_regs)/sizeof(uint32_t);
 
         ret = cs47l15_configure(&cs47l15_driver, &codec_config);
     }

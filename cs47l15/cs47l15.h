@@ -4,7 +4,7 @@
  * @brief Functions and prototypes exported by the CS47L15 Driver module
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2020 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2020-2021 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -37,6 +37,7 @@ extern "C" {
 #include "cs47l15_spec.h"
 #include "cs47l15_syscfg_regs.h"
 #include "sdk_version.h"
+#include "regmap.h"
 
 /***********************************************************************************************************************
  * LITERALS & CONSTANTS
@@ -233,13 +234,12 @@ typedef struct
  */
 typedef struct
 {
-    uint8_t bsp_dev_id;                                 ///< Used to ID CS47L15 in bsp_driver_if calls
     uint32_t bsp_reset_gpio_id;                         ///< Used to ID CS47L15 Reset pin in bsp_driver_if calls
     uint32_t bsp_dcvdd_supply_id;                       ///< Used to ID CS47L15 DCVDD Supply in bsp_driver_if calls
     uint32_t bsp_int_gpio_id;                           ///< Used to ID CS47L15 INT pin in bsp_driver_if calls
-    uint8_t bus_type;                                   ///< Control Port type - I2C or SPI
-    cs47l15_notification_callback_t notification_cb;    ///< Notification callback registered for detected events
+     cs47l15_notification_callback_t notification_cb;    ///< Notification callback registered for detected events
     void *notification_cb_arg;                          ///< Notification callback argument
+    regmap_cp_config_t cp_config;
 } cs47l15_bsp_config_t;
 
 /**
@@ -250,7 +250,7 @@ typedef struct
 typedef struct
 {
     cs47l15_bsp_config_t bsp_config;                ///< BSP Configuration
-    const syscfg_reg_t *syscfg_regs;                ///< Pointer to system configuration table
+    const uint32_t *syscfg_regs;                ///< Pointer to system configuration table
     uint32_t syscfg_regs_total;                     ///< Total entries in system configuration table
 } cs47l15_config_t;
 

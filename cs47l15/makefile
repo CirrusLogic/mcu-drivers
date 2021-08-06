@@ -33,7 +33,7 @@ ASM_OBJS =
 INCLUDES =
 LIBS =
 WISCE_SCRIPT = wisce_init.txt
-HALO_FIRMWARE_PATH = $(REPO_PATH)/cs47l15/fw_mp3_000001
+HALO_FIRMWARE_PATH = $(REPO_PATH)/cs47l15/fw
 HALO_FIRMWARE_FILE = gaines_mp3_decoder_000001.wmfw
 
 ifeq ($(origin STM32CUBEF4_PATH), undefined)
@@ -267,7 +267,7 @@ endif
 DRIVER_PATH = $(REPO_PATH)/cs47l15
 CONFIG_PATH = $(REPO_PATH)/cs47l15/config
 COMMON_PATH = $(REPO_PATH)/common
-DRIVER_SRCS = $(DRIVER_PATH)/cs47l15.c $(CONFIG_PATH)/cs47l15_syscfg_regs.c $(COMMON_PATH)/fw_img.c
+DRIVER_SRCS = $(DRIVER_PATH)/cs47l15.c $(CONFIG_PATH)/cs47l15_syscfg_regs.c $(COMMON_PATH)/fw_img.c $(COMMON_PATH)/regmap.c
 ifeq ($(MAKECMDGOALS), system_test)
 DRIVER_SRCS += $(DRIVER_PATH)/cs47l15_ext.c
 else ifeq ($(MAKECMDGOALS), baremetal)

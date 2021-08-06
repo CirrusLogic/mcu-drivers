@@ -4,7 +4,7 @@
  * @brief The CS47L15 Driver module
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2020 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2020-2021 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -275,34 +275,6 @@ bool cs47l15_find_algid(cs47l15_t *driver, uint32_t dsp_core, uint32_t algid_id)
 }
 #endif
 
-/**
- * Find if a symbol is in the symbol table and return its address if it is.
- *
- * This will search through the symbol table pointed to in the 'fw_info' member of the driver state and return
- * the control port register address to use for access.  The 'symbol_id' parameter must be from the group CS47L15_SYM_.
- *
- * @param [in] driver           Pointer to the driver state
- * @param [in] symbol_id        id of symbol to search for
- *
- * @return
- * - non-0 - symbol register address
- * - 0 - symbol not found.
- *
- */
-static uint32_t find_symbol(fw_img_info_t *fw_info, uint32_t symbol_id)
-{
-    if (fw_info)
-    {
-        for (uint32_t i = 0; i < fw_info->header.sym_table_size; i++)
-        {
-            if (fw_info->sym_table[i].sym_id == symbol_id)
-                return fw_info->sym_table[i].sym_addr;
-        }
-    }
-
-    return 0;
-}
-
 uint32_t cs47l15_find_symbol(cs47l15_t *driver, uint32_t dsp_core, uint32_t symbol_id)
 {
     uint32_t ret;
@@ -312,14 +284,14 @@ uint32_t cs47l15_find_symbol(cs47l15_t *driver, uint32_t dsp_core, uint32_t symb
 
     if (dsp_core != 0)
     {
-        return find_symbol(driver->dsp_info[dsp_core - 1].fw_info, symbol_id);
+        return fw_img_find_symbol(driver->dsp_info[dsp_core - 1].fw_info, symbol_id);
     }
     else
     {
         // search all DSPs if dsp_core is 0
         for (uint32_t i = 0; i < CS47L15_NUM_DSP; i++)
         {
-            ret = find_symbol(driver->dsp_info[i].fw_info, symbol_id);
+            ret = fw_img_find_symbol(driver->dsp_info[i].fw_info, symbol_id);
 
             if (ret)
                 return ret;
@@ -327,54 +299,6 @@ uint32_t cs47l15_find_symbol(cs47l15_t *driver, uint32_t dsp_core, uint32_t symb
     }
 
     return 0;
-}
-
-/**
- * Writes from byte array to consecutive number of Control Port memory addresses
- *
- * This control port call only supports non-blocking calls.
- *
- * @param [in] driver           Pointer to the driver state
- * @param [in] addr             32-bit address to be read
- * @param [in] bytes            pointer to array of bytes to write via Control Port bus
- * @param [in] length           number of bytes to write
- *
- * @return
- * - CS47L15_STATUS_FAIL        if the call to BSP failed
- * - CS47L15_STATUS_OK          otherwise
- *
- * @warning Contains platform-dependent code.
- *
- */
-static uint32_t cs47l15_cp_bulk_write_block(cs47l15_t *driver, uint32_t addr, uint8_t *bytes, uint32_t length)
-{
-    uint32_t ret = CS47L15_STATUS_OK;
-    uint32_t bsp_status;
-    cs47l15_bsp_config_t *b = &(driver->config.bsp_config);
-    uint8_t write_buffer[4];
-
-    /*
-     * Place contents of uint32_t 'addr' to Big-Endian format byte stream required for Control Port
-     * transaction.
-     */
-    write_buffer[0] = GET_BYTE_FROM_WORD(addr, 3);
-    write_buffer[1] = GET_BYTE_FROM_WORD(addr, 2);
-    write_buffer[2] = GET_BYTE_FROM_WORD(addr, 1);
-    write_buffer[3] = GET_BYTE_FROM_WORD(addr, 0);
-
-    bsp_status = bsp_driver_if_g->spi_write(b->bsp_dev_id,
-                                            &write_buffer[0],
-                                            4,
-                                            bytes,
-                                            length,
-                                            2);
-
-    if (bsp_status == BSP_STATUS_FAIL)
-    {
-        ret = CS47L15_STATUS_FAIL;
-    }
-
-    return ret;
 }
 
 /**
@@ -426,65 +350,16 @@ static void cs47l15_irq_callback(uint32_t status, void *cb_arg)
  */
 uint32_t cs47l15_read_reg(cs47l15_t *driver, uint32_t addr, uint32_t *val)
 {
-    uint32_t ret = CS47L15_STATUS_FAIL;
-    cs47l15_bsp_config_t *b = &(driver->config.bsp_config);
-    uint32_t read_size;
-    uint8_t write_buffer[4];
-    uint8_t read_buffer[4];
+    uint32_t ret;
+    regmap_cp_config_t *cp = REGMAP_GET_CP(driver);
 
-    /*
-     * Place contents of uint32_t 'addr' to Big-Endian format byte stream required for Control Port
-     * transaction.
-     */
-    write_buffer[0] = GET_BYTE_FROM_WORD(addr, 3);
-    write_buffer[1] = GET_BYTE_FROM_WORD(addr, 2);
-    write_buffer[2] = GET_BYTE_FROM_WORD(addr, 1);
-    write_buffer[3] = GET_BYTE_FROM_WORD(addr, 0);
-
-    // Currently only SPI transactions are supported
-    if (b->bus_type == CS47L15_BUS_TYPE_SPI)
+    ret = regmap_read(cp, addr, val);
+    if (ret)
     {
-        uint32_t bsp_status;
-
-        // Registers below 0x3000 are 16-bit, all others are 32-bit
-        if (addr < 0x3000)
-            read_size = 2;
-        else
-            read_size = 4;
-
-        // Set the R/W bit
-        write_buffer[0] = 0x80 | write_buffer[0];
-
-        bsp_status = bsp_driver_if_g->spi_read(b->bsp_dev_id,
-                                               &write_buffer[0],
-                                               4,
-                                               &read_buffer[0],
-                                               read_size,
-                                               2);
-        if (BSP_STATUS_OK == bsp_status)
-        {
-            /*
-             * Switch from Big-Endian format byte stream required for Control Port transaction to
-             * uint32_t 'val'
-             */
-            if (read_size == 2)
-            {
-                *val = 0;
-                ADD_BYTE_TO_WORD(*val, read_buffer[0], 1);
-                ADD_BYTE_TO_WORD(*val, read_buffer[1], 0);
-            }
-            else
-            {
-                ADD_BYTE_TO_WORD(*val, read_buffer[0], 3);
-                ADD_BYTE_TO_WORD(*val, read_buffer[1], 2);
-                ADD_BYTE_TO_WORD(*val, read_buffer[2], 1);
-                ADD_BYTE_TO_WORD(*val, read_buffer[3], 0);
-            }
-
-            ret = CS47L15_STATUS_OK;
-        }
+        return CS47L15_STATUS_FAIL;
     }
-    return ret;
+
+    return CS47L15_STATUS_OK;
 }
 
 /**
@@ -503,78 +378,27 @@ uint32_t cs47l15_read_reg(cs47l15_t *driver, uint32_t addr, uint32_t *val)
  */
 uint32_t cs47l15_write_reg(cs47l15_t *driver, uint32_t addr, uint32_t val)
 {
-    uint32_t ret = CS47L15_STATUS_FAIL;
-    uint32_t bsp_status = BSP_STATUS_OK;
-    cs47l15_bsp_config_t *b = &(driver->config.bsp_config);
-    uint32_t write_size;
-    uint8_t write_buffer[8];
+    uint32_t ret;
+    regmap_cp_config_t *cp = REGMAP_GET_CP(driver);
 
-    // Registers below 0x3000 are 16-bit, all others are 32-bit
-    if (addr < 0x3000)
-        write_size = 2;
-    else
-        write_size = 4;
-
-    /*
-     * Place contents of uint32_t 'addr' and 'val' to Big-Endian format byte stream required for Control Port
-     * transaction.
-     */
-    write_buffer[0] = GET_BYTE_FROM_WORD(addr, 3);
-    write_buffer[1] = GET_BYTE_FROM_WORD(addr, 2);
-    write_buffer[2] = GET_BYTE_FROM_WORD(addr, 1);
-    write_buffer[3] = GET_BYTE_FROM_WORD(addr, 0);
-
-    if (write_size == 2)
+    ret = regmap_write(cp, addr, val);
+    if (ret)
     {
-        write_buffer[4] = GET_BYTE_FROM_WORD(val, 1);
-        write_buffer[5] = GET_BYTE_FROM_WORD(val, 0);
-    }
-    else
-    {
-        write_buffer[4] = GET_BYTE_FROM_WORD(val, 3);
-        write_buffer[5] = GET_BYTE_FROM_WORD(val, 2);
-        write_buffer[6] = GET_BYTE_FROM_WORD(val, 1);
-        write_buffer[7] = GET_BYTE_FROM_WORD(val, 0);
+        return CS47L15_STATUS_FAIL;
     }
 
-    // Currently only SPI transactions are supported
-    if (b->bus_type == CS47L15_BUS_TYPE_SPI)
-    {
-        bsp_status = bsp_driver_if_g->spi_write(b->bsp_dev_id,
-                                                &write_buffer[0],
-                                                4,
-                                                &write_buffer[4],
-                                                write_size,
-                                                2);
-    }
-
-    if (BSP_STATUS_OK == bsp_status)
-    {
-        ret = CS47L15_STATUS_OK;
-    }
-
-    return ret;
+    return CS47L15_STATUS_OK;
 }
 
 uint32_t cs47l15_update_reg(cs47l15_t *driver, uint32_t addr, uint32_t mask, uint32_t val)
 {
-    uint32_t tmp, ret, orig;
+    uint32_t ret;
+    regmap_cp_config_t *cp = REGMAP_GET_CP(driver);
 
-    ret = cs47l15_read_reg(driver, addr, &orig);
-    if (ret == CS47L15_STATUS_FAIL)
+    ret = regmap_update_reg(cp, addr, mask, val);
+    if (ret)
     {
-        return ret;
-    }
-
-    tmp = (orig & ~mask) | val;
-
-    if (tmp != orig)
-    {
-        ret = cs47l15_write_reg(driver, addr, tmp);
-        if (ret == CS47L15_STATUS_FAIL)
-        {
-            return ret;
-        }
+        return CS47L15_STATUS_FAIL;
     }
 
     return CS47L15_STATUS_OK;
@@ -1644,6 +1468,7 @@ uint32_t cs47l15_reset(cs47l15_t *driver)
     uint32_t temp_reg_val;
     uint32_t ret;
     uint32_t iter_timeout = 0;
+    regmap_cp_config_t *cp = REGMAP_GET_CP(driver);
 
     // Ensure DCVDD is disabled
     bsp_driver_if_g->set_supply(driver->config.bsp_config.bsp_dcvdd_supply_id, BSP_SUPPLY_DISABLE);
@@ -1699,14 +1524,10 @@ uint32_t cs47l15_reset(cs47l15_t *driver)
     }
 
     // Write configuration data
-    // Since cs47l15 is configured via WISCE scripts, can write without masking individual bits
-    for (uint32_t count = 0; count < driver->config.syscfg_regs_total; count++)
+    ret = regmap_write_array(cp, (uint32_t *) driver->config.syscfg_regs, driver->config.syscfg_regs_total);
+    if (ret)
     {
-        ret = cs47l15_write_reg(driver, driver->config.syscfg_regs[count].address, driver->config.syscfg_regs[count].value);
-        if (ret == CS47L15_STATUS_FAIL)
-        {
-            return ret;
-        }
+        return CS47L15_STATUS_FAIL;
     }
 
     // Unmask interrupts
@@ -1734,12 +1555,21 @@ uint32_t cs47l15_reset(cs47l15_t *driver)
  */
 uint32_t cs47l15_write_block(cs47l15_t *driver, uint32_t addr, uint8_t *data, uint32_t size)
 {
+    uint32_t ret;
+    regmap_cp_config_t *cp = REGMAP_GET_CP(driver);
+
     if (addr == 0 || data == NULL || size == 0 || size % 2 != 0)
     {
         return CS47L15_STATUS_FAIL;
     }
 
-    return cs47l15_cp_bulk_write_block(driver, addr, data, size);
+    ret = regmap_write_block(cp, addr, data, size);
+    if (ret)
+    {
+        return CS47L15_STATUS_FAIL;
+    }
+
+    return CS47L15_STATUS_OK;
 }
 
 /**

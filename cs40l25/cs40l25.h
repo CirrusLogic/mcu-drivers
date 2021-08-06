@@ -314,6 +314,20 @@ typedef struct
     uint32_t gpi_playback_delay;
 } cs40l25_external_boost_config_t;
 
+typedef union
+{
+    uint32_t word;
+
+    struct
+    {
+        uint32_t gpio1_enable : 1;
+        uint32_t gpio2_enable : 1;
+        uint32_t gpio3_enable : 1;
+        uint32_t gpio4_enable : 1;
+        uint32_t reserved     : 28;
+    };
+} cs40l25_gpio_button_detect_t;
+
 /**
  * Driver configuration data structure
  *
@@ -322,11 +336,12 @@ typedef struct
 typedef struct
 {
     cs40l25_bsp_config_t bsp_config;                ///< BSP Configuration
-    const syscfg_reg_t *syscfg_regs;                ///< Pointer to system configuration table
+    uint32_t *syscfg_regs;                ///< Pointer to system configuration table
     uint32_t syscfg_regs_total;                     ///< Total entries in system configuration table
     cs40l25_calibration_t cal_data;                 ///< Calibration data from previous calibration sequence
     cs40l25_event_control_t event_control;          ///< Event Control configuration
     cs40l25_external_boost_config_t ext_boost;
+    cs40l25_gpio_button_detect_t gpio_button_detect;    ///< Individual enables for GPIO1-GPIO4
 } cs40l25_config_t;
 
 /**
@@ -461,6 +476,9 @@ uint32_t cs40l25_boot(cs40l25_t *driver, fw_img_info_t *fw_info);
  *
  * @param [in] driver           Pointer to the driver state
  * @param [in] power_state      New power state
+ *
+ * @warning CS40L25_POWER_DOWN should only be used when exiting BHM mode or switching between firmware or coefficient
+ * files.  For low power mode while running firmware, CS40L25_POWER_HIBERNATE should be used.
  *
  * @return
  * - CS40L25_STATUS_FAIL        if requested power_state is invalid, or if the call to change power state fails

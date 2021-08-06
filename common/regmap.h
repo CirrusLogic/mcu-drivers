@@ -45,8 +45,8 @@ extern "C" {
  *
  * @{
  */
-#define REGMAP_STATUS_OK       (0)
-#define REGMAP_STATUS_FAIL     (1)
+#define REGMAP_STATUS_OK                   (0)
+#define REGMAP_STATUS_FAIL                 (1)
 /** @} */
 
 /**
@@ -57,7 +57,8 @@ extern "C" {
  */
 #define REGMAP_BUS_TYPE_I2C                (0)
 #define REGMAP_BUS_TYPE_SPI                (1)
-#define REGMAP_BUS_TYPE_VIRTUAL            (2)
+#define REGMAP_BUS_TYPE_SPI_3000           (2)
+#define REGMAP_BUS_TYPE_VIRTUAL            (3)
 /** @} */
 
 /**
@@ -67,6 +68,17 @@ extern "C" {
  * @{
  */
 #define REGMAP_WRITE_ARRAY_TYPE_ADDR_VAL   (0)
+/** @} */
+
+/**
+ * @defgroup REGMAP_ARRAY_
+ * @brief Types of arrays supported for regmap_write_array
+ *
+ * @{
+ */
+#define REGMAP_ARRAY_RMODW                 (0x80000001)
+#define REGMAP_ARRAY_BLOCK_WRITE           (0x80000002)
+#define REGMAP_ARRAY_DELAY                 (0x80000003)
 /** @} */
 
 /***********************************************************************************************************************
@@ -235,19 +247,18 @@ uint32_t regmap_read_block(regmap_cp_config_t *cp, uint32_t addr, uint8_t *bytes
 uint32_t regmap_write_block(regmap_cp_config_t *cp, uint32_t addr, uint8_t *bytes, uint32_t length);
 
 /**
- * Writes a value in a list to corresponding address. Can support multiple formats of data to write.
+ * Writes a value in a list to corresponding address. Data can be encoded to perform specific operations.
  *
  * @param [in] cp               Pointer to the BSP control port configuration
- * @param [in] addr_val         Pointer to address and value list.
- * @param [in] size             Size of addr_val list.
- * @param [in] type             Specify what type of addr_val list you want to use.
+ * @param [in] array            Pointer to value list.
+ * @param [in] array_len        Size of array list.
  *
  * @return
  * - REGMAP_STATUS_FAIL         if the call to BSP failed
  * - REGMAP_STATUS_OK           otherwise
  *
  */
-uint32_t regmap_write_array(regmap_cp_config_t *cp, uint32_t *addr_val, uint32_t size, uint32_t type);
+uint32_t regmap_write_array(regmap_cp_config_t *cp, uint32_t *array, uint32_t array_len);
 
 /**
  * Reads a firmware control corresponding to the respective symbol_id.

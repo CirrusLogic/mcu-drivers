@@ -222,7 +222,6 @@ uint32_t cs47l35_dsp_buf_init(cs47l35_t *driver,
 {
     uint32_t ret;
     uint32_t addr;
-    uint32_t count = 0;
     uint32_t xmem_addr;
     ring_buffer_struct_t dsp_buf;
 
@@ -259,7 +258,8 @@ uint32_t cs47l35_dsp_buf_init(cs47l35_t *driver,
         }
         if (!addr)
         {
-            while (!addr & (count < 10))
+            uint32_t count = 0;
+            while (!addr && (count < 10))
             {
                 bsp_driver_if_g->set_timer(5, NULL, NULL);
                 ret = cs47l35_read_reg(driver, buf_symbol, &addr);
@@ -445,7 +445,6 @@ static uint32_t cs47l35_init_dsp_ringbuf_structure(cs47l35_t *driver,
 static void cs47l35_read_array(const uint8_t *array, uint8_t *target, uint32_t *length)
 {
     uint32_t rem;
-    uint32_t end_padding_len;
     uint32_t j = 0; // keep track of where to put data in target
     for (uint32_t i = 0; i < *length; i++)
     {
@@ -461,7 +460,7 @@ static void cs47l35_read_array(const uint8_t *array, uint8_t *target, uint32_t *
     rem = j % 4;
     if (rem > 0)
     {
-        end_padding_len = 4 - rem;
+        uint32_t end_padding_len = 4 - rem;
         for (uint32_t i = 0; i < end_padding_len; i++)
         {
             target[j] = 0x00;
@@ -482,7 +481,7 @@ static void cs47l35_read_array(const uint8_t *array, uint8_t *target, uint32_t *
 static void cs47l35_write_array(cs47l35_t *driver, dsp_buffer_t *buffer, uint32_t addr, uint8_t * data, uint32_t length)
 {
     uint32_t j = 0; // keep track of where to put data in target
-    cs47l35_read_block(driver, addr - 1, buffer->linear_buf, length);
+    cs47l35_read_block(driver, addr, buffer->linear_buf, length);
     for (uint32_t i = 0; i < length; i++)
     {
         if ((i) % 4 == 0)

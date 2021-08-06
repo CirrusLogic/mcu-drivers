@@ -4,7 +4,7 @@
  * @brief Register values to be applied after CS35L41 Driver boot().
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2020 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2020-2021 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -16,7 +16,7 @@
  * distributed under the License is distributed on an AS IS BASIS, WITHOUT
  * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
- * limitations under the License. 
+ * limitations under the License.
  *
  */
 
@@ -36,8 +36,8 @@ extern "C" {
 /***********************************************************************************************************************
  * LITERALS & CONSTANTS
  **********************************************************************************************************************/
-#define CS35L41_FS_48KHZ_SYSCFG_REGS_TOTAL      (3)
-#define CS35L41_FS_44P1KHZ_SYSCFG_REGS_TOTAL    (3)
+#define CS35L41_FS_48KHZ_SYSCFG_REGS_TOTAL      (6)
+#define CS35L41_FS_44P1KHZ_SYSCFG_REGS_TOTAL    (6)
 
 /***********************************************************************************************************************
  * ENUMS, STRUCTS, UNIONS, TYPEDEFS
@@ -46,8 +46,8 @@ extern "C" {
 /***********************************************************************************************************************
  * GLOBAL VARIABLES
  **********************************************************************************************************************/
-extern const syscfg_reg_t cs35l41_fs_48kHz_syscfg[];
-extern const syscfg_reg_t cs35l41_fs_44p1kHz_syscfg[];
+extern const uint32_t cs35l41_fs_48kHz_syscfg[];
+extern const uint32_t cs35l41_fs_44p1kHz_syscfg[];
 
 #ifdef __cplusplus
 }

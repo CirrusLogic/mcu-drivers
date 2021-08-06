@@ -25,7 +25,6 @@
 # IMPORTS
 # ==========================================================================
 from wisce_script_exporter import wisce_script_exporter
-from wisce_script_transaction import wisce_script_transaction
 import time
 import os
 
@@ -175,18 +174,14 @@ class c_function_exporter(wisce_script_exporter):
             output_str = source_file_template_str
             temp_str = ''
             for t in self.transaction_list:
+                if isinstance(t, str):
+                    if self.include_comments:
+                        temp_str += '{space}// ' + t + '\n'
+                    continue
+
                 temp_str += function_template
-                if t.cmd == 'comment':
-                    temp_str = temp_str.replace('{part_number_lc}', '')
-                    temp_str = temp_str.replace('{command}', '')
-                    temp_str = temp_str.replace('{params}', '')
-                    if self.include_comments and t.comment is not None:
-                        temp_str = temp_str.replace('{comment}', '// ' + t.comment)
-                    else:
-                        temp_str = temp_str.replace('{space}', '')
-                        temp_str = temp_str.replace('{comment}', '')
-                        continue
-                elif t.cmd == 'write':
+
+                if t.cmd == 'write':
                     if "{part_number_uc}_SYM_" in t.params[0]:
                         using_symbols = True
                         temp_str = temp_str.replace('{space}', '{space}addr = ')

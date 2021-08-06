@@ -109,7 +109,9 @@ uint32_t regmap_read(regmap_cp_config_t *cp, uint32_t addr, uint32_t *val)
 {
     uint32_t ret = REGMAP_STATUS_FAIL;
     uint8_t write_buffer[4];
-    uint8_t read_buffer[4];
+    uint8_t read_buffer[4] = {0};
+
+    *val = 0;
 
     // Currently only I2C and SPI transactions are supported
     switch (cp->bus_type)
@@ -151,6 +153,45 @@ uint32_t regmap_read(regmap_cp_config_t *cp, uint32_t addr, uint32_t *val)
 
                 ret = REGMAP_STATUS_OK;
             }
+            break;
+
+        case REGMAP_BUS_TYPE_SPI_3000:
+            write_buffer[0] = GET_BYTE_FROM_WORD(addr, 3);
+            write_buffer[1] = GET_BYTE_FROM_WORD(addr, 2);
+            write_buffer[2] = GET_BYTE_FROM_WORD(addr, 1);
+            write_buffer[3] = GET_BYTE_FROM_WORD(addr, 0);
+
+            // Set the R/W bit
+            write_buffer[0] = 0x80 | write_buffer[0];
+
+            if (addr < 0x3000)
+            {
+                ret = bsp_driver_if_g->spi_read(cp->dev_id,
+                                                write_buffer,
+                                                4,
+                                                read_buffer,
+                                                2,
+                                                cp->spi_pad_len);
+
+                ADD_BYTE_TO_WORD(*val, read_buffer[0], 1);
+                ADD_BYTE_TO_WORD(*val, read_buffer[1], 0);
+            }
+            else
+            {
+
+                ret = bsp_driver_if_g->spi_read(cp->dev_id,
+                                                write_buffer,
+                                                4,
+                                                read_buffer,
+                                                4,
+                                                cp->spi_pad_len);
+
+                ADD_BYTE_TO_WORD(*val, read_buffer[0], 3);
+                ADD_BYTE_TO_WORD(*val, read_buffer[1], 2);
+                ADD_BYTE_TO_WORD(*val, read_buffer[2], 1);
+                ADD_BYTE_TO_WORD(*val, read_buffer[3], 0);
+            }
+
             break;
 
         case REGMAP_BUS_TYPE_VIRTUAL:
@@ -213,6 +254,41 @@ uint32_t regmap_write(regmap_cp_config_t *cp, uint32_t addr, uint32_t val)
                                              (uint8_t *)&(write_buffer[4]),
                                              4,
                                              cp->spi_pad_len);
+            break;
+
+        case REGMAP_BUS_TYPE_SPI_3000:
+            write_buffer[0] = GET_BYTE_FROM_WORD(addr, 3);
+            write_buffer[1] = GET_BYTE_FROM_WORD(addr, 2);
+            write_buffer[2] = GET_BYTE_FROM_WORD(addr, 1);
+            write_buffer[3] = GET_BYTE_FROM_WORD(addr, 0);
+
+            // Registers below 0x3000 are 16-bit, all others are 32-bit
+            if (addr < 0x3000)
+            {
+
+                write_buffer[4] = GET_BYTE_FROM_WORD(val, 1);
+                write_buffer[5] = GET_BYTE_FROM_WORD(val, 0);
+                ret = bsp_driver_if_g->spi_write(cp->dev_id,
+                                                 write_buffer,
+                                                 4,
+                                                 (uint8_t *)&(write_buffer[4]),
+                                                 2,
+                                                 cp->spi_pad_len);
+            }
+            else
+            {
+                write_buffer[4] = GET_BYTE_FROM_WORD(val, 3);
+                write_buffer[5] = GET_BYTE_FROM_WORD(val, 2);
+                write_buffer[6] = GET_BYTE_FROM_WORD(val, 1);
+                write_buffer[7] = GET_BYTE_FROM_WORD(val, 0);
+                ret = bsp_driver_if_g->spi_write(cp->dev_id,
+                                                 write_buffer,
+                                                 4,
+                                                 (uint8_t *)&(write_buffer[4]),
+                                                 4,
+                                                 cp->spi_pad_len);
+            }
+
             break;
 
         case REGMAP_BUS_TYPE_VIRTUAL:
@@ -340,50 +416,47 @@ uint32_t regmap_read_block(regmap_cp_config_t *cp, uint32_t addr, uint8_t *bytes
     uint32_t ret = REGMAP_STATUS_FAIL;
     uint8_t write_buffer[4];
 
-    // Check that 'length' does not exceed the size of the BSP buffer
-    if (length <= cp->receive_max)
+    switch (cp->bus_type)
     {
-        switch (cp->bus_type)
-        {
-            case REGMAP_BUS_TYPE_I2C:
-                write_buffer[0] = GET_BYTE_FROM_WORD(addr, 3);
-                write_buffer[1] = GET_BYTE_FROM_WORD(addr, 2);
-                write_buffer[2] = GET_BYTE_FROM_WORD(addr, 1);
-                write_buffer[3] = GET_BYTE_FROM_WORD(addr, 0);
+        case REGMAP_BUS_TYPE_I2C:
+            write_buffer[0] = GET_BYTE_FROM_WORD(addr, 3);
+            write_buffer[1] = GET_BYTE_FROM_WORD(addr, 2);
+            write_buffer[2] = GET_BYTE_FROM_WORD(addr, 1);
+            write_buffer[3] = GET_BYTE_FROM_WORD(addr, 0);
 
-                ret = bsp_driver_if_g->i2c_read_repeated_start(cp->dev_id, write_buffer, 4, bytes, length, NULL, NULL);
-                break;
+            ret = bsp_driver_if_g->i2c_read_repeated_start(cp->dev_id, write_buffer, 4, bytes, length, NULL, NULL);
+            break;
 
-            case REGMAP_BUS_TYPE_SPI:
-                write_buffer[0] = GET_BYTE_FROM_WORD(addr, 3);
-                write_buffer[1] = GET_BYTE_FROM_WORD(addr, 2);
-                write_buffer[2] = GET_BYTE_FROM_WORD(addr, 1);
-                write_buffer[3] = GET_BYTE_FROM_WORD(addr, 0);
+        case REGMAP_BUS_TYPE_SPI:
+        case REGMAP_BUS_TYPE_SPI_3000:
+            write_buffer[0] = GET_BYTE_FROM_WORD(addr, 3);
+            write_buffer[1] = GET_BYTE_FROM_WORD(addr, 2);
+            write_buffer[2] = GET_BYTE_FROM_WORD(addr, 1);
+            write_buffer[3] = GET_BYTE_FROM_WORD(addr, 0);
 
-                // Set the R/W bit
-                write_buffer[0] = 0x80 | write_buffer[0];
-                ret = bsp_driver_if_g->spi_read(cp->dev_id, write_buffer, 4, bytes, length, cp->spi_pad_len);
+            // Set the R/W bit
+            write_buffer[0] = 0x80 | write_buffer[0];
+            ret = bsp_driver_if_g->spi_read(cp->dev_id, write_buffer, 4, bytes, length, cp->spi_pad_len);
 
-                break;
+            break;
 
-            case REGMAP_BUS_TYPE_VIRTUAL:
-                // 'length' is in bytes, so /4 to get in terms of 32-bit words
-                for (uint32_t i = 0; i < (length >> 2); i++)
+        case REGMAP_BUS_TYPE_VIRTUAL:
+            // 'length' is in bytes, so /4 to get in terms of 32-bit words
+            for (uint32_t i = 0; i < (length >> 2); i++)
+            {
+                ret = regmap_virtual_read(cp, addr, (uint32_t *) bytes);
+                if (ret)
                 {
-                    ret = regmap_virtual_read(cp, addr, (uint32_t *) bytes);
-                    if (ret)
-                    {
-                        break;
-                    }
-
-                    addr += 4;
-                    bytes += 4;
+                    break;
                 }
-                break;
 
-            default:
-                break;
-        }
+                addr += 4;
+                bytes += 4;
+            }
+            break;
+
+        default:
+            break;
     }
 
     if (ret)
@@ -419,6 +492,7 @@ uint32_t regmap_write_block(regmap_cp_config_t *cp, uint32_t addr, uint8_t *byte
             break;
 
         case REGMAP_BUS_TYPE_SPI:
+        case REGMAP_BUS_TYPE_SPI_3000:
             write_buffer[0] = GET_BYTE_FROM_WORD(addr, 3);
             write_buffer[1] = GET_BYTE_FROM_WORD(addr, 2);
             write_buffer[2] = GET_BYTE_FROM_WORD(addr, 1);
@@ -459,31 +533,50 @@ uint32_t regmap_write_block(regmap_cp_config_t *cp, uint32_t addr, uint8_t *byte
 }
 
 /**
- * Writes a value in a list to corresponding address. Can support multiple formats of data to write.
+ * Writes a value in a list to corresponding address. Data can be encoded to perform specific operations.
  *
  */
-uint32_t regmap_write_array(regmap_cp_config_t *cp, uint32_t *addr_val, uint32_t length, uint32_t type)
+uint32_t regmap_write_array(regmap_cp_config_t *cp, uint32_t * array, uint32_t array_len)
 {
-    uint32_t ret = REGMAP_STATUS_FAIL;
-
-    switch (type)
+    uint32_t ret;
+    for (uint32_t i = 0; i < array_len;)
     {
-        case REGMAP_WRITE_ARRAY_TYPE_ADDR_VAL:
-            for (uint32_t i = 0; i < length; i+=2)
-            {
-                ret = regmap_write(cp, addr_val[i], addr_val[i+1]);
+        switch (array[i])
+        {
+            case REGMAP_ARRAY_RMODW:
+                ret = regmap_update_reg(cp, array[i + 1], array[i + 3], array[i + 2]);
                 if (ret)
                 {
-                    return ret;
+                    return REGMAP_STATUS_FAIL;
                 }
-            }
-            break;
+                i += 4;
+                break;
 
-        default:
-            break;
+            case REGMAP_ARRAY_BLOCK_WRITE:
+                ret = regmap_write_block(cp, array[i + 1], (uint8_t *) &array[i + 3], array[i + 2] * 4);
+                if (ret)
+                {
+                    return REGMAP_STATUS_FAIL;
+                }
+                i += array[i + 2] + 3;
+                break;
+
+            case REGMAP_ARRAY_DELAY:
+                bsp_driver_if_g->set_timer(array[i + 1], NULL, NULL);
+                i += 2;
+                break;
+
+            default:
+                ret = regmap_write(cp, array[i], array[i + 1]);
+                if (ret)
+                {
+                    return REGMAP_STATUS_FAIL;
+                }
+                i += 2;
+                break;
+        }
     }
-
-    return ret;
+    return REGMAP_STATUS_OK;
 }
 
 /**

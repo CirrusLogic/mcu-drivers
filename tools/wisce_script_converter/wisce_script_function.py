@@ -2,7 +2,7 @@
 # (c) 2021 Cirrus Logic, Inc.
 #--------------------------------------------------------------------------
 # Project : WISCE Script Control Port Transaction class
-# File    : wisce_script_transaction.py
+# File    : wisce_script_function.py
 #--------------------------------------------------------------------------
 # Licensed under the Apache License, Version 2.0 (the License); you may
 # not use this file except in compliance with the License.
@@ -33,10 +33,11 @@
 # CLASSES
 #==========================================================================
 class wisce_script_function:
-    def __init__(self, cmd, params, comment=None):
+    def __init__(self, cmd, params, comment=None, length=None):
         self.__set_cmd(cmd)
         self.__set_params(params)
         self.__set_comment(comment)
+        self.__set_length(length)
         return
 
     def __get_cmd(self):
@@ -62,6 +63,14 @@ class wisce_script_function:
         self.__comment = comment
 
     comment = property(__get_comment, __set_comment)
+
+    def __get_length(self):
+        return self.__length
+
+    def __set_length(self, length):
+        self.__length = length
+
+    length = property(__get_length, __set_length)
 
 #==========================================================================
 # HELPER FUNCTIONS

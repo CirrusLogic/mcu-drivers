@@ -31,12 +31,15 @@ sys.path.insert(1, (repo_path + '/tools/sdk_version'))
 from sdk_version import print_sdk_version
 import argparse
 import serial
+import serial.tools.list_ports
 sys.path.insert(1, '../smcio')
 import smcio
 import signal
 import time
 import bridge_agent
 import traceback
+import re
+
 
 #==========================================================================
 # VERSION
@@ -65,6 +68,58 @@ class com_port(smcio.serial_io_interface):
         else:
             return byte_list
 
+
+class host_platform:
+    win_format_regex = "(COM[0-9]+)"
+    wsl_format_regex = "(/dev/ttyS[0-9]+)"
+    win_autdetect_regex = "STLink.+(COM[0-9]+)"
+    win_str = 'win32'
+    wsl_str = 'linux'
+    platform = sys.platform
+    autodetect_port = None
+    can_autodetect = False
+
+    @classmethod
+    def check_platform_support(cls):
+        if re.search(cls.platform, cls.win_str, re.IGNORECASE):
+            cls.comport_regex_cp = re.compile(cls.win_format_regex)
+            cls.can_autodetect = True
+        elif re.search(cls.platform, cls.wsl_str, re.IGNORECASE):
+            cls.comport_regex_cp = re.compile(cls.wsl_format_regex)
+            cls.can_autodetect = False
+        else:
+            print("Unsupported platform")
+            return False
+        return True
+
+    @classmethod
+    def check_user_com_port_format(cls, user_com_port_str):
+        if not cls.check_platform_support():
+            return False
+        if cls.comport_regex_cp.search(user_com_port_str) is not None:
+            cls.checked_user_com_port_str = user_com_port_str
+            return True
+        else:
+            return False
+
+    @classmethod
+    def autodetect_stlink_com_port(cls):
+        if not cls.check_platform_support():
+            return False
+        # Currently can only auto-detect on Windows
+        # ToDo: add support for Mac OS and Linux
+        if not cls.can_autodetect:
+            print("Can not autodetect COM port on {}.\nPlease supply valid com port".format(cls.platform))
+        else:
+            comstring_cp = re.compile(cls.win_autdetect_regex)
+            for s in serial.tools.list_ports.comports():
+                results = comstring_cp.search(s.description)
+                if results != None:
+                    cls.autodetect_port = results.group(1)
+                    print("STLink auto-detected: {}".format(cls.autodetect_port))
+                    break
+        return cls.autodetect_port
+
 #==========================================================================
 # HELPER FUNCTIONS
 #==========================================================================
@@ -78,7 +133,9 @@ def get_args(args):
     parser = argparse.ArgumentParser(description='Parse command line arguments')
     parser.add_argument(dest='stdout_filename', type=str, help='The filename for stdout channel.')
     parser.add_argument(dest='bridge_filename', type=str, help='The filename for bridge channel.')
-    parser.add_argument('-c', '--com-port', dest='comport', type=str, default=None, help='COM Port to use')
+    parser.add_argument('-c', '--com-port', dest='comport', type=str, default=None,
+                        help='COM Port to use Eg COM8 (for Windows) or /dev/ttyS8 for WSL. '
+                             'If omitted autodetection will be attempted for Windows hosts only')
     parser.add_argument('-t', '--timeout', dest='timeout', type=int, default='1', help='COM port timeout in seconds.')
     parser.add_argument('-p', '--packet-view', dest='packet_view', default=False, action='store_true')
     parser.add_argument('-v', '--verbose', dest='verbose', default=False, action='store_true')
@@ -86,17 +143,30 @@ def get_args(args):
     return parser.parse_args(args[1:])
 
 def validate_args(args):
-    return True
-
     # Check that stdout_filname path exists
-    if ((args.stdout_filename != 'stdout') and (os.path.exists(args.stdout_filename))):
+    if args.stdout_filename != 'stdout' and \
+        not os.path.exists(os.path.split(os.path.realpath(args.stdout_filename))[0]):
         print("Invalid stdout_filename path: " + args.stdout_filename)
         return False
 
     # Check that bridge_filename path exists
-    if ((args.bridge_filename != 'stdout') and (os.path.exists(args.bridge_filename))):
+    if args.bridge_filename != 'stdout' and \
+        not os.path.exists(os.path.split(os.path.realpath(args.bridge_filename))[0]):
         print("Invalid bridge_filename path: " + args.bridge_filename)
         return False
+
+    if args.comport is not None:
+        if not host_platform().check_user_com_port_format(args.comport):
+            print("Invalid comport: {}".format(args.comport))
+            return False
+    else:
+        print ("comport not supplied, attempting to autodetect ...")
+        autodetect_com_port = host_platform().autodetect_stlink_com_port()
+        if autodetect_com_port is not None:
+            args.comport = autodetect_com_port
+        else:
+            print("Could not autodetect com port")
+            return False
 
     return True
 
@@ -139,6 +209,7 @@ def channel_callback(callback_arg, packet_string):
         f = open(filename, 'a')
         f.write(packet_string)
         f.close()
+
 
 #==========================================================================
 # MAIN PROGRAM

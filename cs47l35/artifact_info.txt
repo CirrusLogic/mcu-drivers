@@ -1,40 +1,49 @@
 Artifact Info:
-Artifact           : CS47L35 Alt-OS Driver: 4.5.0 - fecad8c94280100109021b9876cc84070f016f0c
+Artifact           : CS47L35 Alt-OS Driver: 4.6.0 - 24abaa3d63b0c21d801898799f64b270094197e0
 Test Target MCU SDK: STM32Cube_FW_F4: 1.24.1
 Target toolchain   : GNU Arm Embedded Toolchain: arm-none-eabi-gcc (GNU Tools for Arm Embedded Processors 8-2019-q3-update) 8.3.1 20190703 (release) [gcc-8-branch revision 273027]
-Build system       : make: GNU Make 3.82
-OS                 : Linux: 3.10.0-1160.24.1.el7.x86_64
-Shell              : bash: GNU bash, version 4.2.46(2)-release (x86_64-redhat-linux-gnu)
-Host toolchain     : MinGW GCC: gcc (GCC) 4.8.5 20150623 (Red Hat 4.8.5-39)
-Build Job          : marley_alt_os_nightly: 54
-Git SHA            : fecad8c94280100109021b9876cc84070f016f0c
+Build system       : make: GNU Make 4.2.1
+OS                 : Windows: 10
+Shell              : MSYS2: msys2-runtime 3.0.7-6
+Host toolchain     : MinGW GCC: gcc (Rev1, Built by MSYS2 project) 9.2.0
+Build Job          : marley_alt_os_nightly: 78
+Git SHA            : 24abaa3d63b0c21d801898799f64b270094197e0
 
 System resources:
 
-Library name    : /home/svc_altos/workspace/marley_alt_os_nightly/build_driver_lib_cm4/build/cs47l35/libcs47l35
-Library TEXT    : 3956 bytes
-Library BSS     : 0 bytes
-Library DATA    : 0 bytes
-BSP RAM         : 0 bytes
+Build Configuration 1:
+
+Artifact filename    : libcs47l35.a
+Driver TEXT          : 29884
+Driver BSS           : 0
+Driver DATA          : 48
+Driver Max Stack     : 208 (cs47l35_fll_config -> cs47l35_set_fll_refclk -> cs47l35_apply_config_fll -> cs47l35_write_fll -> cs47l35_update_reg -> regmap_update_reg -> regmap_read -> GET_BYTE_FROM_WORD)
+
+Artifact filename    : baremetal.elf
+Driver TEXT          : 5346
+Driver BSS           : 136
+Driver DATA          : 48
+
+Artifact filename    : cs47l35_dsp2_fw_img.o
+Driver TEXT          : 138928
+
+Artifact filename    : cs47l35_dsp3_fw_img.o
+Driver TEXT          : 120516
+
 Compiler flags:
     -mcpu=cortex-m4
     -mthumb
-    -mfloat-abi=soft
-    -march=armv7e-m
+    -mfpu=fpv4-sp-d16
+    -mfloat-abi=hard
+    -march=armv7e-m+fp
     -Os
-    -fno-strict-aliasing
-    -ffreestanding
+    -Werror
+    -Wall
+    -std=gnu11
     -fno-diagnostics-show-caret
     -fdata-sections
     -ffunction-sections
-    -funsigned-char
-    -funsigned-bitfields
+    -fstack-usage
     -frecord-gcc-switches
-
-Library name    : /home/svc_altos/workspace/marley_alt_os_nightly/build_baremetal/build/cs47l35/libcs47l35
-Library TEXT    : 0 bytes
-Library BSS     : 0 bytes
-Library DATA    : 0 bytes
-BSP RAM         : 132 bytes
-Compiler flags:
+    -g3
 

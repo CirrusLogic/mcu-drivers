@@ -834,7 +834,7 @@ static uint32_t cs35l41_power_up(cs35l41_t *driver)
     if (driver->state != CS35L41_STATE_STANDBY)
     {
         // Send HALO DSP Memory Lock sequence
-        ret = regmap_write_array(cp, (uint32_t *) cs35l41_mem_lock, (sizeof(cs35l41_mem_lock)/sizeof(uint32_t)), REGMAP_WRITE_ARRAY_TYPE_ADDR_VAL);
+        ret = regmap_write_array(cp, (uint32_t *) cs35l41_mem_lock, (sizeof(cs35l41_mem_lock)/sizeof(uint32_t)));
         if (ret)
         {
             return CS35L41_STATUS_FAIL;
@@ -867,7 +867,7 @@ static uint32_t cs35l41_power_up(cs35l41_t *driver)
     }
 
     // Send Power Up Patch
-    ret = regmap_write_array(cp, (uint32_t *) cs35l41_pup_patch, (sizeof(cs35l41_pup_patch)/sizeof(uint32_t)), REGMAP_WRITE_ARRAY_TYPE_ADDR_VAL);
+    ret = regmap_write_array(cp, (uint32_t *) cs35l41_pup_patch, (sizeof(cs35l41_pup_patch)/sizeof(uint32_t)));
     if (ret)
     {
         return CS35L41_STATUS_FAIL;
@@ -1190,7 +1190,7 @@ static uint32_t cs35l41_power_down(cs35l41_t *driver)
     }
 
     // Send Power Down Patch set
-    ret = regmap_write_array(cp, (uint32_t *) cs35l41_pdn_patch, (sizeof(cs35l41_pdn_patch)/sizeof(uint32_t)), REGMAP_WRITE_ARRAY_TYPE_ADDR_VAL);
+    ret = regmap_write_array(cp, (uint32_t *) cs35l41_pdn_patch, (sizeof(cs35l41_pdn_patch)/sizeof(uint32_t)));
     if (ret)
     {
         return CS35L41_STATUS_FAIL;
@@ -1527,8 +1527,7 @@ static uint32_t cs35l41_write_errata(cs35l41_t *driver)
 
     ret = regmap_write_array(REGMAP_GET_CP(driver),
                              (uint32_t *) cs35l41_revb2_errata_patch,
-                             (sizeof(cs35l41_revb2_errata_patch)/sizeof(uint32_t)),
-                             REGMAP_WRITE_ARRAY_TYPE_ADDR_VAL);
+                             (sizeof(cs35l41_revb2_errata_patch)/sizeof(uint32_t)));
     if (ret)
     {
         return CS35L41_STATUS_FAIL;
@@ -1551,14 +1550,13 @@ static uint32_t cs35l41_write_errata(cs35l41_t *driver)
  */
 static uint32_t cs35l41_write_post_boot_config(cs35l41_t *driver)
 {
-    uint32_t i, ret;
+    uint32_t ret;
     regmap_cp_config_t *cp = REGMAP_GET_CP(driver);
 
     // Write first post-boot configuration
     ret = regmap_write_array(cp,
                              (uint32_t *) cs35l41_post_boot_config,
-                             (sizeof(cs35l41_post_boot_config)/sizeof(uint32_t)),
-                             REGMAP_WRITE_ARRAY_TYPE_ADDR_VAL);
+                             (sizeof(cs35l41_post_boot_config)/sizeof(uint32_t)));
     if (ret)
     {
         return CS35L41_STATUS_FAIL;
@@ -1577,25 +1575,10 @@ static uint32_t cs35l41_write_post_boot_config(cs35l41_t *driver)
         return ret;
     }
 
-    for (i = 0; i < driver->config.syscfg_regs_total; i++)
+    ret = regmap_write_array(cp, (uint32_t*) driver->config.syscfg_regs, driver->config.syscfg_regs_total);
+    if (ret)
     {
-        uint32_t temp_reg_val, orig_val;
-
-        ret = regmap_read(cp, driver->config.syscfg_regs[i].address, &orig_val);
-        if (ret)
-        {
-            return ret;
-        }
-        temp_reg_val = orig_val & ~(driver->config.syscfg_regs[i].mask);
-        temp_reg_val |= driver->config.syscfg_regs[i].value;
-        if (orig_val != temp_reg_val)
-        {
-            ret = regmap_write(cp, driver->config.syscfg_regs[i].address, temp_reg_val);
-            if (ret)
-            {
-                return ret;
-            }
-        }
+        return ret;
     }
 
     // Lock the register file
@@ -2189,28 +2172,15 @@ uint32_t cs35l41_calibrate(cs35l41_t *driver, uint32_t ambient_temp_deg_c)
  * Send a set of HW configuration registers
  *
  */
-uint32_t cs35l41_send_syscfg(cs35l41_t *driver, const syscfg_reg_t *cfg, uint16_t cfg_length)
+uint32_t cs35l41_send_syscfg(cs35l41_t *driver, const uint32_t *cfg, uint16_t cfg_length)
 {
-    uint32_t ret, temp_reg_val, orig_val;
+    uint32_t ret;
     regmap_cp_config_t *cp = REGMAP_GET_CP(driver);
 
-    for (int i = 0; i < cfg_length; i++)
+    ret = regmap_write_array(cp, (uint32_t*) cfg, cfg_length);
+    if (ret)
     {
-        ret = regmap_read(cp, cfg[i].address, &orig_val);
-        if (ret)
-        {
-            return ret;
-        }
-        temp_reg_val = orig_val & ~(cfg[i].mask);
-        temp_reg_val |= cfg[i].value;
-        if (orig_val != temp_reg_val)
-        {
-            ret = regmap_write(cp, cfg[i].address, temp_reg_val);
-            if (ret)
-            {
-                return ret;
-            }
-        }
+        return CS35L41_STATUS_FAIL;
     }
 
     return CS35L41_STATUS_OK;

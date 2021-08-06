@@ -212,7 +212,7 @@ typedef struct
 typedef struct
 {
     cs35l41_bsp_config_t bsp_config;    ///< BSP Configuration
-    const syscfg_reg_t *syscfg_regs;    ///< Pointer to array of configuration register/value pairs
+    const uint32_t *syscfg_regs;    ///< Pointer to array of configuration register/value pairs
     uint32_t syscfg_regs_total;         ///< Total pairs in syscfg_regs[]
     cs35l41_calibration_t cal_data;     ///< Calibration data from previous calibration sequence
 } cs35l41_config_t;
@@ -380,7 +380,7 @@ uint32_t cs35l41_power(cs35l41_t *driver, uint32_t power_state);
  * @see syscfg_reg_t
  *
  */
-uint32_t cs35l41_send_syscfg(cs35l41_t *driver, const syscfg_reg_t *cfg, uint16_t cfg_length);
+uint32_t cs35l41_send_syscfg(cs35l41_t *driver, const uint32_t *cfg, uint16_t cfg_length);
 
 /**
  * Start the process for updating the tuning for the HALO FW
