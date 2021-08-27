@@ -1,34 +1,31 @@
 Artifact Info:
-Artifact           : CS47L35 Alt-OS Driver: 4.7.0 - 5817c3cf5d6099d0c5ef921750fbe36d48cd66f1
+Artifact           : CS40L26 Alt-OS Driver: 4.7.0 - 5817c3cf5d6099d0c5ef921750fbe36d48cd66f1
 Test Target MCU SDK: STM32Cube_FW_F4: 1.24.1
 Target toolchain   : GNU Arm Embedded Toolchain: arm-none-eabi-gcc (GNU Tools for Arm Embedded Processors 8-2019-q3-update) 8.3.1 20190703 (release) [gcc-8-branch revision 273027]
 Build system       : make: GNU Make 3.82
 OS                 : Linux: 3.10.0-1160.24.1.el7.x86_64
 Shell              : bash: GNU bash, version 4.2.46(2)-release (x86_64-redhat-linux-gnu)
 Host toolchain     : MinGW GCC: gcc (GCC) 4.8.5 20150623 (Red Hat 4.8.5-39)
-Build Job          : marley_alt_os_nightly: 101
+Build Job          : peart_h_alt_os_nightly: 1
 Git SHA            : 5817c3cf5d6099d0c5ef921750fbe36d48cd66f1
 
 System resources:
 
 Build Configuration 1:
 
-Artifact filename    : libcs47l35.a
-Driver TEXT          : 29884
+Artifact filename    : libcs40l26.a
+Driver TEXT          : 3168
 Driver BSS           : 0
-Driver DATA          : 48
-Driver Max Stack     : 208 (cs47l35_fll_config -> cs47l35_set_fll_refclk -> cs47l35_apply_config_fll -> cs47l35_write_fll -> cs47l35_update_reg -> regmap_update_reg -> regmap_read -> GET_BYTE_FROM_WORD)
+Driver DATA          : 24
+Driver Max Stack     : 120 (cs40l26_power -> cs40l26_hibernate -> cs40l26_pm_state_transition -> regmap_write_acked_reg -> regmap_read -> GET_BYTE_FROM_WORD)
 
 Artifact filename    : baremetal.elf
-Driver TEXT          : 5346
-Driver BSS           : 136
-Driver DATA          : 48
+Driver TEXT          : 2348
+Driver BSS           : 176
+Driver DATA          : 24
 
-Artifact filename    : cs47l35_dsp2_fw_img.o
-Driver TEXT          : 122656
-
-Artifact filename    : cs47l35_dsp3_fw_img.o
-Driver TEXT          : 120516
+Artifact filename    : cs40l26_fw_img.o
+Driver TEXT          : 1748
 
 Compiler flags:
     -mcpu=cortex-m4

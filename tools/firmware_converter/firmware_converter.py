@@ -41,12 +41,14 @@ from firmware_exporter_factory import firmware_exporter_factory
 #==========================================================================
 # CONSTANTS/GLOBALS
 #==========================================================================
-supported_part_numbers = ['cs35l41', 'cs40l25', 'cs40l30', 'cs48l32', 'cs47l63', 'cs47l66', 'cs47l67', 'cs47l15', 'cs47l35_dsp1', 'cs47l35_dsp2', 'cs47l35_dsp3']
+
+supported_part_numbers = ['cs35l41', 'cs40l25', 'cs40l30', 'cs48l32', 'cs47l63', 'cs47l66', 'cs47l67', 'cs47l15', 'cs47l35_dsp1', 'cs47l35_dsp2', 'cs47l35_dsp3', 'cs40l26']
+
 supported_commands = ['print', 'export', 'wisce', 'fw_img_v1', 'fw_img_v2', 'json']
 
 supported_mem_maps = {
     'halo_type_0': {
-        'parts': ['cs35l41', 'cs40l25', 'cs40l30', 'cs48l32', 'cs47l63', 'cs47l66', 'cs47l67'],
+        'parts': ['cs35l41', 'cs40l25', 'cs40l30', 'cs48l32', 'cs47l63', 'cs47l66', 'cs47l67', 'cs40l26'],
         'xm': {
             'u24': 0x2800000,
             'p32': 0x2000000,
@@ -234,7 +236,7 @@ def get_args(args):
     parser.add_argument('-s', '--suffix', type=str, default='',
                         dest='suffix', help='Add a suffix to filenames, variables and defines.')
     parser.add_argument('-i', '--i2c-address', type=str, default='0x80', dest='i2c_address', help='Specify I2C address for WISCE script output.')
-    parser.add_argument('-b', '--block-size-limit', type=int, default='4140', dest='block_size_limit', help='Specify maximum byte size of block per control port transaction.')
+    parser.add_argument('-b', '--block-size-limit', type=int, default='4140', dest='block_size_limit', help='Specify maximum byte size of block per control port transaction.  Can be no larger than 4140.')
     parser.add_argument('--sym-input', dest='symbol_id_input', type=str, default=None, help='The location of the symbol table C header(s).  If not specified, a header is generated with all controls.')
     parser.add_argument('--sym-output', dest='symbol_id_output', type=str, default=None, help='The location of the output symbol table C header.  Only used when no --sym-input is specified.')
     parser.add_argument('--binary', dest='binary_output', action="store_true", help='Request binary fw_img output format.')
@@ -242,6 +244,8 @@ def get_args(args):
     parser.add_argument('--generic-sym', dest='generic_sym', action="store_true", help='Use generic algorithm name for \'FIRMWARE_*\' algorithm controls')
     parser.add_argument('--fw-img-version', type=lambda x: int(x,0), default='0', dest='fw_img_version', help='Release version for the fw_img that ties together a WMFW fw revision with releases of BIN files. Accepts type int of any base.')
     parser.add_argument('--revision-check', dest='revision_check', action="store_true", help='Request to fail if WMDR FW revision does not match WMFW')
+    parser.add_argument('--sym-partition', dest='sym_partition', action="store_true", help='Partition symbol IDs by algorithm so new symbols added to one algorithm don\'t cause subsequent IDs to be shifted')
+    parser.add_argument('--no-sym-table', dest='no_sym_table', action="store_true", help='Do not generate list of symbols in fw_img_v1/fw_img_v2 output array but instead generate a C header containing the symbol Ids and addresses.')
 
     return parser.parse_args(args[1:])
 
@@ -263,11 +267,12 @@ def validate_args(args):
             print("Invalid Symbol Header path: " + args.symbol_id_input)
             return False
 
-
-    # Check that block_size_limit <= 4140
-    if (args.block_size_limit > 4140):
+    # Check that block_size_limit >= 4, <= 4140 and a multiple of 4
+    if (args.block_size_limit < 4 or
+        args.block_size_limit > 4140 or
+        args.block_size_limit % 4):
         print("Invalid block_size_limit: " + str(args.block_size_limit))
-        print("Must be 4140 bytes or less.")
+        print("Value must be between 4 and 4140 bytes, and a multiple of 4.")
         return False
 
     return True
@@ -358,6 +363,49 @@ def main(argv):
     if (args.suffix):
         suffix = "_" + args.suffix
 
+    # If part is cs40l26, make halo_firmware_id_block for ROM
+    if (args.part_number == 'cs40l26'):
+        wmfw.fw_id_block.fields['core_id'] = 0x40000
+        wmfw.fw_id_block.fields['format_version'] = 0x30000
+        wmfw.fw_id_block.fields['vendor_id'] = 0x2
+        wmfw.fw_id_block.fields['firmware_id'] = 0x0
+        wmfw.fw_id_block.fields['firmware_revision'] = 0x60001
+        wmfw.fw_id_block.fields['sys_config_mem_offsets']['xm_base'] = 0x3ea
+        wmfw.fw_id_block.fields['sys_config_mem_offsets']['xm_size'] = 0x16
+        wmfw.fw_id_block.fields['sys_config_mem_offsets']['ym_base'] = 0x57f
+        wmfw.fw_id_block.fields['sys_config_mem_offsets']['ym_size'] = 0x1
+        wmfw.fw_id_block.fields['number_of_algorithms'] = 0x1c
+        wmfw.fw_id_block.fields['algorithm_info'] = [
+            {'algorithm_id': 258567, 'algorithm_version': 65539, 'algorithm_offsets': {'xm_base': 1884, 'xm_size': 238, 'ym_base': 4, 'ym_size': 238}},{'algorithm_id': 196797, 'algorithm_version': 131074, 'algorithm_offsets': {'xm_base': 2122, 'xm_size': 4013, 'ym_base': 1970, 'ym_size': 1}},
+            {'algorithm_id': 258560, 'algorithm_version': 65536, 'algorithm_offsets': {'xm_base': 7150, 'xm_size': 20, 'ym_base': 0, 'ym_size': 0}},
+            {'algorithm_id': 258561, 'algorithm_version': 65536, 'algorithm_offsets': {'xm_base': 7241, 'xm_size': 15, 'ym_base': 0, 'ym_size': 0}},
+            {'algorithm_id': 258562, 'algorithm_version': 65536, 'algorithm_offsets': {'xm_base': 7170, 'xm_size': 20, 'ym_base': 0, 'ym_size': 0}},
+            {'algorithm_id': 258563, 'algorithm_version': 65536, 'algorithm_offsets': {'xm_base': 7423, 'xm_size': 5, 'ym_base': 0, 'ym_size': 0}},
+            {'algorithm_id': 258572, 'algorithm_version': 65536, 'algorithm_offsets': {'xm_base': 6460, 'xm_size': 6, 'ym_base': 0, 'ym_size': 0}},
+            {'algorithm_id': 258566, 'algorithm_version': 65536, 'algorithm_offsets': {'xm_base': 212, 'xm_size': 210, 'ym_base': 0, 'ym_size': 0}},
+            {'algorithm_id': 258587, 'algorithm_version': 65537, 'algorithm_offsets': {'xm_base': 978, 'xm_size': 24, 'ym_base': 0, 'ym_size': 0}},
+            {'algorithm_id': 258578, 'algorithm_version': 196608, 'algorithm_offsets': {'xm_base': 1036, 'xm_size': 30, 'ym_base': 0, 'ym_size': 0}},
+            {'algorithm_id': 258575, 'algorithm_version': 65536, 'algorithm_offsets': {'xm_base': 776, 'xm_size': 12, 'ym_base': 0, 'ym_size': 0}},
+            {'algorithm_id': 258577, 'algorithm_version': 65536, 'algorithm_offsets': {'xm_base': 2566, 'xm_size': 250, 'ym_base': 0, 'ym_size': 0}},
+            {'algorithm_id': 196880, 'algorithm_version': 262146, 'algorithm_offsets': {'xm_base': 7034, 'xm_size': 60, 'ym_base': 1024, 'ym_size': 18}},
+            {'algorithm_id': 258576, 'algorithm_version': 327681, 'algorithm_offsets': {'xm_base': 2922, 'xm_size': 1410, 'ym_base': 0, 'ym_size': 0}},
+            {'algorithm_id': 258579, 'algorithm_version': 65792, 'algorithm_offsets': {'xm_base': 5327, 'xm_size': 53, 'ym_base': 0, 'ym_size': 0}},
+            {'algorithm_id': 258580, 'algorithm_version': 65536, 'algorithm_offsets': {'xm_base': 5594, 'xm_size': 164, 'ym_base': 0, 'ym_size': 0}},
+            {'algorithm_id': 258574, 'algorithm_version': 65792, 'algorithm_offsets': {'xm_base': 5759, 'xm_size': 47, 'ym_base': 0, 'ym_size': 0}},
+            {'algorithm_id': 258581, 'algorithm_version': 66048, 'algorithm_offsets': {'xm_base': 5806, 'xm_size': 148, 'ym_base': 0, 'ym_size': 0}},
+            {'algorithm_id': 258582, 'algorithm_version': 65536, 'algorithm_offsets': {'xm_base': 6033, 'xm_size': 47, 'ym_base': 0, 'ym_size': 0}},
+            {'algorithm_id': 258583, 'algorithm_version': 65536, 'algorithm_offsets': {'xm_base': 6133, 'xm_size': 46, 'ym_base': 0, 'ym_size': 0}},
+            {'algorithm_id': 258584, 'algorithm_version': 65536, 'algorithm_offsets': {'xm_base': 6256, 'xm_size': 41, 'ym_base': 0, 'ym_size': 0}},
+            {'algorithm_id': 258585, 'algorithm_version': 65793, 'algorithm_offsets': {'xm_base': 6302, 'xm_size': 128, 'ym_base': 0, 'ym_size': 1}},
+            {'algorithm_id': 258586, 'algorithm_version': 65536, 'algorithm_offsets': {'xm_base': 6442, 'xm_size': 256, 'ym_base': 0, 'ym_size': 0}},
+            {'algorithm_id': 204815, 'algorithm_version': 65536, 'algorithm_offsets': {'xm_base': 6758, 'xm_size': 161, 'ym_base': 0, 'ym_size': 0}},
+            {'algorithm_id': 258588, 'algorithm_version': 65792, 'algorithm_offsets': {'xm_base': 6919, 'xm_size': 49, 'ym_base': 0, 'ym_size': 0}},
+            {'algorithm_id': 196770, 'algorithm_version': 851968, 'algorithm_offsets': {'xm_base': 6968, 'xm_size': 52, 'ym_base': 0, 'ym_size': 0}},
+            {'algorithm_id': 258589, 'algorithm_version': 65536, 'algorithm_offsets': {'xm_base': 7077, 'xm_size': 22, 'ym_base': 0, 'ym_size': 0}},
+            {'algorithm_id': 258591, 'algorithm_version': 65536, 'algorithm_offsets': {'xm_base': 7099, 'xm_size': 17, 'ym_base': 0, 'ym_size': 0}}
+        ]
+        wmfw.fw_id_block.fields['list_terminator'] = 0xbedead
+
     # If requested, check WMDR-WMFW compatibility
     if ((args.revision_check) and (process_wmdr)):
         incompatible_wmdrs = []
@@ -404,6 +452,9 @@ def main(argv):
     attributes['wmdr_only'] = args.wmdr_only
     attributes['symbol_id_output'] = args.symbol_id_output
     attributes['max_block_size'] = args.block_size_limit
+    attributes['sym_partition'] = args.sym_partition
+    attributes['no_sym_table'] = args.no_sym_table
+
     f = firmware_exporter_factory(attributes)
 
     # Based on command, add firmware exporters
@@ -411,8 +462,12 @@ def main(argv):
         f.add_firmware_exporter('c_array')
     elif (args.command == 'fw_img_v1'):
         f.add_firmware_exporter('fw_img_v1')
+        if args.no_sym_table:
+            f.add_firmware_exporter('c_array')
     elif (args.command == 'fw_img_v2'):
         f.add_firmware_exporter('fw_img_v2')
+        if args.no_sym_table:
+            f.add_firmware_exporter('c_array')
     elif (args.command == 'wisce'):
         f.add_firmware_exporter('wisce')
     elif (args.command == 'json'):

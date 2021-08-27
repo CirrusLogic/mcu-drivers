@@ -1,6 +1,6 @@
 ##############################################################################
 #
-# Makefile for CS47L35 Alt-OS driver
+# Makefile for CS40L26 Alt-OS driver
 #
 ##############################################################################
 # Licensed under the Apache License, Version 2.0 (the License); you may
@@ -32,14 +32,19 @@ OBJS =
 ASM_OBJS =
 INCLUDES =
 LIBS =
-WISCE_SCRIPT = wisce_init.txt
-HALO_FIRMWARE_PATH = $(REPO_PATH)/cs47l35/fw
+
+HALO_FIRMWARE_PATH = $(REPO_PATH)/cs40l26/fw
+HALO_FIRMWARE_FILE = CS40L26_Rev7.2.1.wmfw
+# If any WMDR are included, don't forget the --wmdr argument
+HALO_FIRMWARE_WMDR = --wmdr-only --wmdr FW_ROM_wavetable.bin
 
 ifeq ($(origin STM32CUBEF4_PATH), undefined)
 STM32CUBEF4_PATH = $(REPO_PATH)/third_party/st/STM32CubeF4
 endif
 
 include $(REPO_PATH)/third_party/st/st.include
+
+CREATE_FIRMWARE_TARGET = firmware_converter
 
 # Initialize toolchain arguments
 
@@ -79,9 +84,6 @@ else
     DEBUG_OPTIONS += -g3
     OPTIMIZATION_OPTIONS=-O0
 endif
-
-CREATE_SYSCFG_REGS_TARGET = wisce_script_converter
-CREATE_FIRMWARE_TARGET = firmware_converter
 
 # Assign toolchain, shell executable names required per target
 ifeq ($(MAKECMDGOALS), unit_test)
@@ -134,8 +136,6 @@ endif
 # Assign compiler, assembler, linker flags required per target
 ifeq ($(MAKECMDGOALS), unit_test)
     CFLAGS      += -g -std=c99
-    CFLAGS += $(DEBUG_OPTIONS)
-    CFLAGS += $(OPTIMIZATION_OPTIONS)
 ifeq ($(BULLSEYE), 1)
 	CFLAGS += -DUSE_BULLSEYE
 endif
@@ -148,7 +148,6 @@ endif
     LDFLAGS     =
     ASM_FLAGS   =
 else ifeq ($(MAKECMDGOALS), driver_lib_cm4)
-
     # Build switches for driver library
 
     # stop winging about type-punned pointers breaking strict-aliasing rules
@@ -161,26 +160,27 @@ else ifeq ($(MAKECMDGOALS), driver_lib_cm4)
     CFLAGS += -fno-diagnostics-show-caret
     CFLAGS += -fdata-sections -ffunction-sections
     CFLAGS += -funsigned-char -funsigned-bitfields
-    CFLAGS += $(DEBUG_OPTIONS)
     CFLAGS += $(OPTIMIZATION_OPTIONS)
+	CFLAGS += $(DEBUG_OPTIONS)
     CFLAGS += $(APP_OPTIONS)
+    CFLAGS += $(DEVID_CFLAG) $(EXT_BOOST_CFLAG) $(OPEN_LOOP_FLAG)
     OUTPUT_NAME =
     OUTPUT_EXT  =
     ARFLAGS     = rcs
     LDFLAGS     =
     ASM_FLAGS   =
 else ifeq ($(MAKECMDGOALS), system_test)
-
     # Build switches for driver library
 
     # use = or += not := else dependencies expand to nil
     CFLAGS += -mcpu=cortex-m4 -mthumb -mfpu=fpv4-sp-d16 -mfloat-abi=hard --specs=nano.specs
-    CFLAGS += --std=gnu11
+    CFLAGS += -Werror -Wall --std=gnu11
     CFLAGS += -fno-diagnostics-show-caret
     CFLAGS += -fdata-sections -ffunction-sections -fstack-usage
-    CFLAGS += $(DEBUG_OPTIONS)
     CFLAGS += $(OPTIMIZATION_OPTIONS)
+	CFLAGS += $(DEBUG_OPTIONS)
     CFLAGS += $(APP_OPTIONS)
+    CFLAGS += $(DEVID_CFLAG) $(EXT_BOOST_CFLAG) $(OPEN_LOOP_FLAG)
     CFLAGS += -DNO_OS
     CFLAGS += $(ST_CFLAGS)
     CFLAGS += -DUNITY_INCLUDE_CONFIG_H -DCONFIG_USE_MULTICHANNEL_UART
@@ -199,7 +199,6 @@ endif
     LDFLAGS += -static
     LDFLAGS += -Wl,--start-group -lc -lm -Wl,--end-group
 else ifeq ($(MAKECMDGOALS), baremetal)
-
     # Build switches for driver library
 
     # use = or += not := else dependencies expand to nil
@@ -207,9 +206,10 @@ else ifeq ($(MAKECMDGOALS), baremetal)
     CFLAGS += -Werror -Wall --std=gnu11
     CFLAGS += -fno-diagnostics-show-caret
     CFLAGS += -fdata-sections -ffunction-sections -fstack-usage
-    CFLAGS += $(DEBUG_OPTIONS)
     CFLAGS += $(OPTIMIZATION_OPTIONS)
+	CFLAGS += $(DEBUG_OPTIONS)
     CFLAGS += $(APP_OPTIONS)
+    CFLAGS += $(DEVID_CFLAG) $(EXT_BOOST_CFLAG) $(OPEN_LOOP_FLAG)
     CFLAGS += -DNO_OS
     CFLAGS += $(ST_CFLAGS)
 ifeq ($(SEMIHOSTING), 1)
@@ -230,7 +230,6 @@ endif
     LDFLAGS += -static
     LDFLAGS += -Wl,--start-group -lc -lm -Wl,--end-group
 else ifeq ($(MAKECMDGOALS), freertos)
-
     # Build switches for driver library
 
     # use = or += not := else dependencies expand to nil
@@ -238,9 +237,10 @@ else ifeq ($(MAKECMDGOALS), freertos)
     CFLAGS += -Werror -Wall --std=gnu11
     CFLAGS += -fno-diagnostics-show-caret
     CFLAGS += -fdata-sections -ffunction-sections -fstack-usage
-    CFLAGS += $(DEBUG_OPTIONS)
     CFLAGS += $(OPTIMIZATION_OPTIONS)
+	CFLAGS += $(DEBUG_OPTIONS)
     CFLAGS += $(APP_OPTIONS)
+    CFLAGS += $(DEVID_CFLAG) $(EXT_BOOST_CFLAG) $(OPEN_LOOP_FLAG)
     CFLAGS += -DUSE_CMSIS_OS
     CFLAGS += $(ST_CFLAGS)
 ifeq ($(SEMIHOSTING), 1)
@@ -263,29 +263,28 @@ endif
 endif
 
 # Assign sources, includes, paths for driver library
-DRIVER_PATH = $(REPO_PATH)/cs47l35
-CONFIG_PATH = $(REPO_PATH)/cs47l35/config
+DRIVER_PATH = $(REPO_PATH)/cs40l26
 COMMON_PATH = $(REPO_PATH)/common
-DRIVER_SRCS = $(DRIVER_PATH)/cs47l35.c $(CONFIG_PATH)/cs47l35_syscfg_regs.c $(COMMON_PATH)/fw_img.c $(COMMON_PATH)/regmap.c
+CONFIG_PATH = $(DRIVER_PATH)/config
+HALO_FIRMWARE_PATH = $(REPO_PATH)/cs40l26/fw
+DRIVER_SRCS = $(DRIVER_PATH)/cs40l26.c $(CONFIG_PATH)/cs40l26_syscfg_regs.c $(COMMON_PATH)/fw_img.c $(COMMON_PATH)/regmap.c
 ifeq ($(MAKECMDGOALS), system_test)
-DRIVER_SRCS += $(DRIVER_PATH)/cs47l35_ext.c
+DRIVER_SRCS += $(DRIVER_PATH)/cs40l26_ext.c
 else ifeq ($(MAKECMDGOALS), baremetal)
-DRIVER_SRCS += $(DRIVER_PATH)/cs47l35_ext.c
-DRIVER_SRCS += $(DRIVER_PATH)/opus_test_01_16.c
+DRIVER_SRCS += $(DRIVER_PATH)/cs40l26_ext.c
 else ifeq ($(MAKECMDGOALS), freertos)
-DRIVER_SRCS += $(DRIVER_PATH)/cs47l35_ext.c
-DRIVER_SRCS += $(DRIVER_PATH)/opus_test_01_16.c
+DRIVER_SRCS += $(DRIVER_PATH)/cs40l26_ext.c
 endif
-INCLUDES += -I$(REPO_PATH) -I$(DRIVER_PATH) -I$(CONFIG_PATH) -I$(COMMON_PATH) -I$(HALO_FIRMWARE_PATH)
-DRIVER_LIBRARY = $(BUILD_DIR)/cs47l35/libcs47l35.a
+INCLUDES += -I$(DRIVER_PATH) -I$(COMMON_PATH) -I$(HALO_FIRMWARE_PATH) -I$(CONFIG_PATH) -I$(REPO_PATH)
+DRIVER_LIBRARY = $(BUILD_DIR)/cs40l26/libcs40l26.a
 LIBS += $(DRIVER_LIBRARY)
 
 # Assign list of application source files required per target
 ifeq ($(MAKECMDGOALS), unit_test)
-    APP_PATH = $(REPO_PATH)/cs47l35/unit_test
+    APP_PATH = $(REPO_PATH)/cs40l26/unit_test
     C_SRCS += $(APP_PATH)/main.c
     C_SRCS += $(APP_PATH)/mock_bsp.c
-    C_SRCS += $(APP_PATH)/test_cs47l35.c
+    C_SRCS += $(APP_PATH)/test_cs40l26.c
     C_SRCS += $(REPO_PATH)/third_party/unity/unity.c
     C_SRCS += $(REPO_PATH)/third_party/unity/unity_fixture.c
     INCLUDES += -I$(APP_PATH)
@@ -293,25 +292,24 @@ ifeq ($(MAKECMDGOALS), unit_test)
 endif
 
 ifeq ($(MAKECMDGOALS), system_test)
-    APP_PATH = $(REPO_PATH)/cs47l35/system_test
+    APP_PATH = $(REPO_PATH)/cs40l26/system_test
     TEST_HW_PATH = $(COMMON_PATH)/system_test_hw_0
     C_SRCS += $(APP_PATH)/main.c
-    C_SRCS += $(APP_PATH)/test_cs47l35.c
+    C_SRCS += $(APP_PATH)/test_cs40l26.c
     C_SRCS += $(TEST_HW_PATH)/hw_0_bsp.c
     C_SRCS += $(TEST_HW_PATH)/test_tone_tables.c
     C_SRCS += $(TEST_HW_PATH)/stm32f4xx_it.c
     C_SRCS += $(TEST_HW_PATH)/sysmem.c
     C_SRCS += $(TEST_HW_PATH)/syscalls.c
-    C_SRCS += $(REPO_PATH)/cs47l35/bsp/hw_0_bsp_cs47l35.c
-    C_SRCS += $(HALO_FIRMWARE_PATH)/cs47l35_dsp2_fw_img.c
-    C_SRCS += $(HALO_FIRMWARE_PATH)/cs47l35_dsp3_fw_img.c
+    C_SRCS += $(REPO_PATH)/cs40l26/bsp/hw_0_bsp_cs40l26.c
+		C_SRCS += $(HALO_FIRMWARE_PATH)/cs40l26_fw_img.c
 ifeq ($(BULLSEYE), 1)
     C_SRCS += $(REPO_PATH)/third_party/bullseye/src/libcov-altos.c
 endif
     C_SRCS += $(REPO_PATH)/third_party/unity/unity.c
     C_SRCS += $(REPO_PATH)/third_party/unity/unity_fixture.c
     INCLUDES += -I$(APP_PATH)
-    INCLUDES += -I$(REPO_PATH)/cs47l35/bsp
+    INCLUDES += -I$(REPO_PATH)/cs40l26/bsp
     INCLUDES += -I$(TEST_HW_PATH)
 ifeq ($(BULLSEYE), 1)
     INCLUDES += -I$(REPO_PATH)/third_party/bullseye/inc
@@ -324,7 +322,7 @@ endif
 endif
 
 ifeq ($(MAKECMDGOALS), baremetal)
-    APP_PATH = $(REPO_PATH)/cs47l35/baremetal
+    APP_PATH = $(REPO_PATH)/cs40l26/baremetal
     TEST_HW_PATH = $(COMMON_PATH)/system_test_hw_0
     C_SRCS += $(APP_PATH)/main.c
     C_SRCS += $(TEST_HW_PATH)/hw_0_bsp.c
@@ -334,11 +332,10 @@ ifneq ($(SEMIHOSTING), 1)
     C_SRCS += $(TEST_HW_PATH)/syscalls.c
 endif
     C_SRCS += $(TEST_HW_PATH)/sysmem.c
-    C_SRCS += $(REPO_PATH)/cs47l35/bsp/hw_0_bsp_cs47l35.c
-    C_SRCS += $(HALO_FIRMWARE_PATH)/cs47l35_dsp2_fw_img.c
-    C_SRCS += $(HALO_FIRMWARE_PATH)/cs47l35_dsp3_fw_img.c
+    C_SRCS += $(REPO_PATH)/cs40l26/bsp/hw_0_bsp_cs40l26.c
+    C_SRCS += $(HALO_FIRMWARE_PATH)/cs40l26_fw_img.c
     INCLUDES += -I$(APP_PATH)
-    INCLUDES += -I$(REPO_PATH)/cs47l35/bsp
+    INCLUDES += -I$(REPO_PATH)/cs40l26/bsp
     INCLUDES += -I$(TEST_HW_PATH)
 
     INCLUDES += $(ST_INCLUDES)
@@ -347,7 +344,7 @@ endif
 endif
 
 ifeq ($(MAKECMDGOALS), freertos)
-    APP_PATH = $(REPO_PATH)/cs47l35/freertos
+    APP_PATH = $(REPO_PATH)/cs40l26/freertos
     TEST_HW_PATH = $(COMMON_PATH)/system_test_hw_0
     C_SRCS += $(APP_PATH)/main.c
     C_SRCS += $(TEST_HW_PATH)/hw_0_bsp.c
@@ -357,11 +354,10 @@ ifneq ($(SEMIHOSTING), 1)
     C_SRCS += $(TEST_HW_PATH)/syscalls.c
 endif
     C_SRCS += $(TEST_HW_PATH)/sysmem.c
-    C_SRCS += $(REPO_PATH)/cs47l35/bsp/hw_0_bsp_cs47l35.c
-    C_SRCS += $(HALO_FIRMWARE_PATH)/cs47l35_dsp2_fw_img.c
-    C_SRCS += $(HALO_FIRMWARE_PATH)/cs47l35_dsp3_fw_img.c
+    C_SRCS += $(REPO_PATH)/cs40l26/bsp/hw_0_bsp_cs40l26.c
+    C_SRCS += $(HALO_FIRMWARE_PATH)/cs40l26_fw_img.c
     INCLUDES += -I$(APP_PATH)
-    INCLUDES += -I$(REPO_PATH)/cs47l35/bsp
+    INCLUDES += -I$(REPO_PATH)/cs40l26/bsp
     INCLUDES += -I$(TEST_HW_PATH)
 
     INCLUDES += $(ST_INCLUDES)
@@ -395,7 +391,6 @@ $(info -------------------------------------------------------------------------
 $(info ROOT_PATH:       $(ROOT_PATH))
 $(info REPO_PATH:       $(REPO_PATH))
 $(info DRIVER_PATH:     $(DRIVER_PATH))
-$(info CONFIG_PATH:     $(CONFIG_PATH))
 $(info APP_PATH:        $(APP_PATH))
 $(info BUILD_DIR:       $(BUILD_DIR))
 $(info STM32CUBEF4_PATH: $(STM32CUBEF4_PATH))
@@ -422,8 +417,6 @@ $(info -------------------------------------------------------------------------
 $(info ASM_FLAGS: $(addprefix $(newline),$(ASM_FLAGS)))
 $(info -------------------------------------------------------------------------------)
 $(info LDFLAGS: $(addprefix $(newline),$(LDFLAGS)))
-$(info -------------------------------------------------------------------------------)
-$(info CREATE_SYSCFG_REGS_TARGET: $(CREATE_SYSCFG_REGS_TARGET))
 $(info -------------------------------------------------------------------------------)
 $(info CREATE_FIRMWARE_TARGET: $(CREATE_FIRMWARE_TARGET))
 $(info -------------------------------------------------------------------------------)
@@ -454,7 +447,7 @@ $(foreach path,$(BUILD_PATHS),$(eval $(call mkdir_rule,$(path))))
 
 # Create a target for each .o files, depending on its corresponding .c file
 define driver_obj_rule
-$(1): $(2) $(MAKEFILE_PATH)/makefile $(CREATE_SYSCFG_REGS_TARGET)
+$(1): $(2) $(MAKEFILE_PATH)/makefile wisce_script_converter
 	@echo -------------------------------------------------------------------------------
 	@echo COMPILING $(2)
 	$(BULLSEYE_ON_CMD)
@@ -465,7 +458,7 @@ $(foreach obj,$(DRIVER_OBJS),$(eval $(call driver_obj_rule,$(obj),$(subst $(BUIL
 
 # Create a target for each .o files, depending on its corresponding .c file
 define obj_rule
-$(1): $(2) $(MAKEFILE_PATH)/makefile $(CREATE_SYSCFG_REGS_TARGET)
+$(1): $(2) $(MAKEFILE_PATH)/makefile
 	@echo -------------------------------------------------------------------------------
 	@echo COMPILING $(2) #to $(1)
 	$(CC) $(CFLAGS) $(INCLUDES) -MD -MP -MT $(1) -MF $(subst .o,.d,$(1)) -c $(2) -o $(1)
@@ -486,11 +479,11 @@ bullseye_inclusions:
 	@echo -------------------------------------------------------------------------------
 	@echo BULLSEYE INCLUSIONS
 	covselect --deleteAll
-	covselect --add $(REPO_PATH)/cs47l35/
-	covselect --add $(REPO_PATH)/cs47l35/config/
-	covselect --add !$(REPO_PATH)/cs47l35/bsp/
-	covselect --add !$(REPO_PATH)/cs47l35/unit_test/
-	covselect --add !$(REPO_PATH)/cs47l35/system_test/
+	covselect --add $(REPO_PATH)/cs40l26/
+	covselect --add $(REPO_PATH)/cs40l26/config/
+	covselect --add !$(REPO_PATH)/cs40l26/bsp/
+	covselect --add !$(REPO_PATH)/cs40l26/unit_test/
+	covselect --add !$(REPO_PATH)/cs40l26/system_test/
 	covselect --add $(REPO_PATH)/common/
 	covselect --add !$(REPO_PATH)/common/system_test_hw_0/
 	covselect --add !$(REPO_PATH)/build/
@@ -499,20 +492,18 @@ bullseye_inclusions:
 
 wisce_script_converter:
 	@echo -------------------------------------------------------------------------------
-	@echo GENERATING cs47l35_syscfg_regs
-	cd $(CONFIG_PATH) && python3 ../../tools/wisce_script_converter/wisce_script_converter.py -c c_array -p cs47l35 -i $(WISCE_SCRIPT) -o .
+	@echo GENERATING cs40l26_syscfg_regs
+	cd $(CONFIG_PATH) && python3 ../../tools/wisce_script_converter/wisce_script_converter.py -c c_array -p cs40l26 -i  wisce_init.txt -o .
 
 # Create fw_img files
 .NOTPARALLEL: firmware_converter
 firmware_converter:
 	@echo -------------------------------------------------------------------------------
-	@echo GENERATING cs47l35_dsp2_fw_img
-	cd $(HALO_FIRMWARE_PATH) && python3 ../../tools/firmware_converter/firmware_converter.py fw_img_v2 cs47l35_dsp2 cs47l35_silkcoder_dsp2_010003.wmfw --sym-input $(CONFIG_PATH)/cs47l35_sym.h --generic-sym
-	@echo GENERATING cs47l35_dsp3_fw_img
-	cd $(HALO_FIRMWARE_PATH) && python3 ../../tools/firmware_converter/firmware_converter.py fw_img_v2 cs47l35_dsp3 SC_Voice_Marley_FB_SMSP_dsp3.wmfw --sym-input $(CONFIG_PATH)/cs47l35_sym_dsp3.h --generic-sym
+	@echo GENERATING cs40l26_fw_img
+	cd $(HALO_FIRMWARE_PATH) && python3 ../../tools/firmware_converter/firmware_converter.py fw_img_v2 cs40l26 $(HALO_FIRMWARE_FILE) --generic-sym $(HALO_FIRMWARE_WMDR)
 
 # Create the driver static library and print the resource usage
-driver_lib_cm4: build_path $(CREATE_FIRMWARE_TARGET) $(BUILD_PATHS) $(CREATE_SYSCFG_REGS_TARGET) $(DRIVER_OBJS)
+driver_lib_cm4: build_path $(CREATE_FIRMWARE_TARGET) $(BUILD_PATHS) $(DRIVER_OBJS)
 	@echo -------------------------------------------------------------------------------
 	@echo ARCHIVING $(DRIVER_LIBRARY)
 	$(AR) $(ARFLAGS) $(DRIVER_LIBRARY) $(DRIVER_OBJS)

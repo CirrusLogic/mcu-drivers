@@ -92,7 +92,7 @@ uint32_t bsp_dut_initialize(void)
         codec_config.bsp_config = bsp_config;
 
         codec_config.syscfg_regs = cs47l15_syscfg_regs;
-        codec_config.syscfg_regs_total = sizeof(cs47l15_syscfg_regs)/sizeof(uint32_t);
+        codec_config.syscfg_regs_total = CS47L15_SYSCFG_REGS_TOTAL;
 
         ret = cs47l15_configure(&cs47l15_driver, &codec_config);
     }

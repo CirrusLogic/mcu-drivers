@@ -96,7 +96,15 @@ header_file_template_str = """/**
 {control_defines}
 /** @} */
 
-/**
+{fw_blocks_info}
+
+/**********************************************************************************************************************/
+
+#endif // {part_number_uc}_FIRMWARE_H
+
+"""
+
+header_file_template_fw_blocks_info = """/**
  * Total blocks of {part_number_uc} Firmware
  */
 #define {part_number_lc}_total_fw_blocks ({total_fw_blocks})
@@ -137,11 +145,6 @@ extern const halo_boot_block_t {part_number_lc}_fw_blocks[];
 /***********************************************************************************************************************
  * API FUNCTIONS
  **********************************************************************************************************************/
-
-/**********************************************************************************************************************/
-
-#endif // {part_number_uc}_FIRMWARE_H
-
 """
 
 header_file_template_coeff_strs = {
@@ -267,8 +270,12 @@ source_file_template_coeff_boot_block_entry_str = """    {
 # CLASSES
 #==========================================================================
 class header_file:
-    def __init__(self, part_number_str, fw_meta):
+    def __init__(self, part_number_str, fw_meta, no_sym_table):
         self.template_str = header_file_template_str
+        if not no_sym_table:
+            self.template_str = self.template_str.replace('{fw_blocks_info}', header_file_template_fw_blocks_info)
+        else:
+            self.template_str = self.template_str.replace('{fw_blocks_info}', '')
         self.includes_coeff = False
         self.output_str = ''
         self.terms = dict()
@@ -467,8 +474,11 @@ class source_file_exporter(firmware_exporter):
 
     def __init__(self, attributes):
         firmware_exporter.__init__(self, attributes)
-        self.hf = header_file(self.attributes['part_number_str'], self.attributes['fw_meta'])
+        self.hf = header_file(self.attributes['part_number_str'], self.attributes['fw_meta'], self.attributes['no_sym_table'])
         self.cf = source_file(self.attributes['part_number_str'])
+        self.gen_only_include_file = False
+        if self.attributes['no_sym_table']:
+            self.gen_only_include_file = True
 
         return
 
@@ -497,11 +507,12 @@ class source_file_exporter(firmware_exporter):
         f.close()
         results_str = results_str + temp_filename + '\n'
 
-        temp_filename = self.attributes['part_number_str'] + self.attributes['suffix'] + "_firmware.c"
-        f = open(temp_filename, 'w')
-        f.write(str(self.cf))
-        f.close()
-        results_str = results_str + temp_filename + '\n'
+        if not self.gen_only_include_file:
+            temp_filename = self.attributes['part_number_str'] + self.attributes['suffix'] + "_firmware.c"
+            f = open(temp_filename, 'w')
+            f.write(str(self.cf))
+            f.close()
+            results_str = results_str + temp_filename + '\n'
 
         return results_str
 

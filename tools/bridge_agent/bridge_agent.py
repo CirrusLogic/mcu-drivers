@@ -23,9 +23,9 @@
 #==========================================================================
 from __future__ import print_function
 import sys
-import time
 import socket
-import argparse
+import os
+import signal
 
 CLIENT_PORT = 22349
 SOCK_RX_BYTES = 2048
@@ -117,7 +117,15 @@ def init_bridge_socket(host='127.0.0.1', port=CLIENT_PORT):
     portstr = format(sock.getsockname()[1], 'd')
     print("Socket listening on port: {}\n".format(portstr))
 
-    conn, addr = sock.accept()
+    sock.settimeout(1)
+    conn = None
+    addr = None
+    while (conn == None and addr == None):
+        try:
+            conn, addr = sock.accept() # repeat accept until success, will react to Ctrl+C every 1 sec
+        except OSError:
+            pass
+
     print("Socket connected\n")
     return (conn, addr)
 
@@ -457,9 +465,15 @@ def socket_send(sock, data_bytes):
 def wait_for_sock_recv(sock):
     try:
         # Receive Client Command
-        recvd_data = sock.recv(SOCK_RX_BYTES)
-        if not recvd_data:
-            raise bridge_sock_excpn("No command received. Remote end may have terminated connection")
+        sock.settimeout(1)
+        recvd_data = 0
+        flag = False
+        while not flag:
+            try:
+                recvd_data = sock.recv(SOCK_RX_BYTES)  # repeat receive until no exception, will react to Ctrl+C every 1 sec
+                flag = True
+            except OSError:
+                pass
         return recvd_data
     except OSError as excp:
         print("Socket related error: {}".format(excp))
@@ -512,6 +526,8 @@ def inner_loop(sock, ser_ch, ch_num, state, crnt_cmd, verbose):
             elif state == BRIDGE_STATE_WAIT_CLI_CMD:
                 dbg_pr_general(verbose, "Waiting for Client Command")
                 cli_cmd_b = wait_for_sock_recv(sock)
+                if not cli_cmd_b:
+                    raise bridge_sock_excpn("No command received. Remote end may have terminated connection")
                 crnt_cmd.new_cmd(cli_cmd_b)
                 dbg_pr_ClientMsg(verbose, crnt_cmd.get_all_str())
                 client_cmd_handler(crnt_cmd, ser_ch, ch_num, state, verbose)
@@ -528,8 +544,9 @@ def inner_loop(sock, ser_ch, ch_num, state, crnt_cmd, verbose):
             else:
                 print("REACHED INCORRECT STATE. TERMINATING")
                 sys.exit(1)
-        except KeyboardInterrupt as kbe:  # ToDo: Ctrl-C not working possibly due to socket
-            sys.exit(1)
+
+        except KeyboardInterrupt as kbe:
+            os.kill(os.getpid(), signal.SIGINT)
         except bridge_sock_excpn as bse:
             print("{}\n".format(bse))
             raise OSError
@@ -552,9 +569,9 @@ def outer_loop(ser_ch, ch_num, verbose):
             # when a connection is closed, causing us to process garbage string.
             # Could be serious enough, start again with new connection
             print(type(err), err)
-            print("Re-starting. Please attempt new WISCE connection")
-        except KeyboardInterrupt as kbe:  # ToDo: Ctrl-C not working possibly due to socket
-            sys.exit(1)
+            print("Re-starting. Please attempt new WISCE/SCS connection")
+        except KeyboardInterrupt as kbe:
+            os.kill(os.getpid(), signal.SIGINT)
         except OSError as e:
             print("Socket related error: {}\nAny current operation will be aborted".format(e))
 

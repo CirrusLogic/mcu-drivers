@@ -50,10 +50,7 @@ static fw_img_boot_state_t boot_state_dsp3;
 
 static void * lin_buf_ptr_dec;
 static void * lin_buf_ptr_enc;
-static uint8_t * opus_data_ping;
-static uint8_t * opus_data_pong;
-static uint8_t * opus_data_enc;
-static uint8_t * opus_data_dec;
+static uint8_t * opus_data;
 static uint32_t data_avail;
 static uint32_t opus_data_len;
 static uint32_t bytes_written_total;
@@ -62,8 +59,6 @@ static bool start_decoding_flag = false;
 static bool start_encoding_flag = false;
 
 static uint32_t vad_symbol;
-
-uint32_t dec_count = 0;
 
 dsp_buffer_t buffer_dec;
 dsp_buffer_t buffer_enc;
@@ -106,7 +101,7 @@ uint32_t bsp_dut_initialize(void)
         codec_config.bsp_config = bsp_config;
 
         codec_config.syscfg_regs = cs47l35_syscfg_regs;
-        codec_config.syscfg_regs_total = sizeof(cs47l35_syscfg_regs)/sizeof(uint32_t);
+        codec_config.syscfg_regs_total = CS47L35_SYSCFG_REGS_TOTAL;
 
         ret = cs47l35_configure(&cs47l35_driver, &codec_config);
     }
@@ -284,14 +279,14 @@ uint32_t bsp_dut_boot(uint32_t core_no, const uint8_t *fw_img_ptr, fw_img_boot_s
 
 void bsp_enable_mic()
 {
-    cs47l35_write_reg(&cs47l35_driver, 0x448, 0x0283); // EDRE_Enable * fix clicking noise *
-    cs47l35_write_reg(&cs47l35_driver, CS47L35_LDO2_CONTROL_1, 0x0304);
-    cs47l35_write_reg(&cs47l35_driver, CS47L35_IN1L_CONTROL, 0x8480);
-    cs47l35_write_reg(&cs47l35_driver, CS47L35_MIC_BIAS_CTRL_1, 0x0067);
-    cs47l35_write_reg(&cs47l35_driver, CS47L35_MIC_BIAS_CTRL_5, 0x0033);
-    cs47l35_write_reg(&cs47l35_driver, CS47L35_MIC_CHARGE_PUMP_1, 0x7);
-    cs47l35_write_reg(&cs47l35_driver, CS47L35_INPUT_ENABLES, 0x2);
-    cs47l35_write_reg(&cs47l35_driver, CS47L35_ADC_DIGITAL_VOLUME_1L, 0x280);
+    cs47l35_write_reg(&cs47l35_driver, CS47L35_MIC_CHARGE_PUMP_1, 0x0007); // * Mic_Charge_Pump_1(200H): 0007  CP2_DISCH=1, CP2_BYPASS=1, CP2_ENA=1
+    cs47l35_write_reg(&cs47l35_driver, CS47L35_MIC_BIAS_CTRL_1, 0x00e7); // * Mic_Bias_Ctrl_1(218H):   00E7  MICB1_EXT_CAP=0, MICB1_LVL=2.2V, MICB1_RATE=Fast start-up / shut-down, MICB1_DISCH=MICBIAS1 discharged when disabled, MICB1_BYPASS=1, MICB1_ENA=1
+    cs47l35_write_reg(&cs47l35_driver, CS47L35_MIC_BIAS_CTRL_5, 0x0032); // * Mic_Bias_Ctrl_5(21CH):   0032  MICB1B_DISCH=MICBIAS1B discharged when disabled, MICB1B_ENA=1, MICB1A_DISCH=MICBIAS1A discharged when disabled, MICB1A_ENA=0
+    cs47l35_write_reg(&cs47l35_driver, CS47L35_IN1L_CONTROL, 0x8c80); // * IN1L_Control(310H):      8C80  IN1L_HPF=1, IN1_DMIC_SUP=MICBIAS1B, IN1_MODE=Digital input, IN1L_PGA_VOL=0dB
+    cs47l35_write_reg(&cs47l35_driver, CS47L35_DMIC1L_CONTROL, 0x0300); // * DMIC1L_Control(312H):    0300  IN1_OSR=768kHz, IN1L_DMIC_DLY=0 samples
+    cs47l35_write_reg(&cs47l35_driver, CS47L35_HPF_CONTROL, 0x0004); // * HPF_Control(30CH):       0004  IN_HPF_CUT=40Hz
+    cs47l35_write_reg(&cs47l35_driver, CS47L35_INPUT_ENABLES, 0x0002); // * Input_Enables(300H):     0002  IN2L_ENA=0, IN2R_ENA=0, IN1L_ENA=1, IN1R_ENA=0
+    cs47l35_write_reg(&cs47l35_driver, CS47L35_ADC_DIGITAL_VOLUME_1L, 0x0280); // * ADC_Digital_Volume_1L(311H): 0280  IN1L_SRC=Differential (IN1ALP - IN1ALN), IN_VU=1, IN1L_MUTE=0, IN1L_VOL=0dB
 }
 
 void bsp_disable_mic()
@@ -304,24 +299,20 @@ void bsp_disable_mic()
 
 uint32_t bsp_dut_use_case(uint32_t use_case)
 {
-    uint32_t ret = BSP_STATUS_OK;
-    uint32_t buf_symbol;
-    uint32_t space_avail;
-    uint32_t scratch;
-    uint32_t vad;
-    uint32_t count = 0;
+    uint32_t ret = BSP_STATUS_FAIL;
+    uint32_t buf_symbol, space_avail, scratch, vad, addr, i;
 
     switch(use_case) {
         case BSP_USE_CASE_TG_HP_EN:
             ret = cs47l35_fll_enable(&cs47l35_driver, CS47L35_FLL1);
             if (ret != CS47L35_STATUS_OK)
             {
-                return BSP_STATUS_FAIL;
+                break;
             }
             ret = cs47l35_fll_wait_for_lock(&cs47l35_driver, CS47L35_FLL1);
             if (ret != CS47L35_STATUS_OK)
             {
-                return BSP_STATUS_FAIL;
+                break;
             }
             cs47l35_update_reg(&cs47l35_driver, CS47L35_SYSTEM_CLOCK_1, CS47L35_SYSCLK_ENA_MASK, CS47L35_SYSCLK_ENA);
             cs47l35_write_reg(&cs47l35_driver, CS47L35_OUT1LMIX_INPUT_1_SOURCE, 0x10);
@@ -330,6 +321,8 @@ uint32_t bsp_dut_use_case(uint32_t use_case)
             cs47l35_write_reg(&cs47l35_driver, CS47L35_OUTPUT_ENABLES_1, CS47L35_HP1L_ENA | CS47L35_HP1R_ENA);
             cs47l35_write_reg(&cs47l35_driver, CS47L35_DAC_DIGITAL_VOLUME_1L, 0x260);
             cs47l35_write_reg(&cs47l35_driver, CS47L35_DAC_DIGITAL_VOLUME_1R, 0x260);
+
+            ret = BSP_STATUS_OK;
             break;
 
         case BSP_USE_CASE_TG_HP_DIS:
@@ -343,8 +336,10 @@ uint32_t bsp_dut_use_case(uint32_t use_case)
             ret = cs47l35_fll_disable(&cs47l35_driver, CS47L35_FLL1);
             if (ret != CS47L35_STATUS_OK)
             {
-                return BSP_STATUS_FAIL;
+                break;
             }
+
+            ret = BSP_STATUS_OK;
             break;
 
         case BSP_USE_CASE_OPUS_RECORD_16K_INIT:
@@ -356,17 +351,17 @@ uint32_t bsp_dut_use_case(uint32_t use_case)
                                     98304000);
             if (ret)
             {
-                return BSP_STATUS_FAIL;
+                break;
             }
             ret = cs47l35_fll_enable(&cs47l35_driver, CS47L35_FLL1);
             if (ret)
             {
-                return BSP_STATUS_FAIL;
+                break;
             }
             ret = cs47l35_fll_wait_for_lock(&cs47l35_driver, CS47L35_FLL1);
             if (ret)
             {
-                return BSP_STATUS_FAIL;
+                break;
             }
 
             cs47l35_update_reg(&cs47l35_driver, CS47L35_SAMPLE_RATE_1, CS47L35_SAMPLE_RATE_1_MASK, 0x12);
@@ -379,37 +374,63 @@ uint32_t bsp_dut_use_case(uint32_t use_case)
 
             // Set up audio input channels
             bsp_enable_mic();
-            cs47l35_write_reg(&cs47l35_driver, CS47L35_DSP3RMIX_INPUT_1_SOURCE, 0x10);
-            cs47l35_write_reg(&cs47l35_driver, CS47L35_DSP2LMIX_INPUT_1_SOURCE, 0x79);
 
-            // Set up audio output channels
-            cs47l35_write_reg(&cs47l35_driver, CS47L35_OUT1LMIX_INPUT_1_SOURCE, 0x70); // DSP2 channel 1
-            cs47l35_write_reg(&cs47l35_driver, CS47L35_OUT1RMIX_INPUT_1_SOURCE, 0x70); // DSP2 channel 1
+            // Route IN1L to SCVoice TX
+            cs47l35_write_reg(&cs47l35_driver, CS47L35_DSP3RMIX_INPUT_1_SOURCE, 0x10); // IN1L
+
+            // Route SCVoice TX to Opus Encode
+            cs47l35_write_reg(&cs47l35_driver, CS47L35_DSP2LMIX_INPUT_1_SOURCE, 0x79); // DSP3 Channel 2
+
+            // Route Opus Decode to SCVoice RX
+            cs47l35_write_reg(&cs47l35_driver, CS47L35_DSP3LMIX_INPUT_1_SOURCE, 0x70); // DSP2 Channel 1
+
+            // Route SCVoice RX to OUT1
+            cs47l35_write_reg(&cs47l35_driver, CS47L35_OUT1LMIX_INPUT_1_SOURCE, 0x78); // DSP3 channel 1
+            cs47l35_write_reg(&cs47l35_driver, CS47L35_OUT1RMIX_INPUT_1_SOURCE, 0x78); // DSP3 channel 1
 
             // Boot and load firmware
             ret = cs47l35_power(&cs47l35_driver, 2, CS47L35_POWER_MEM_ENA);
             if (ret)
             {
-                return BSP_STATUS_FAIL;
+                break;
             }
             bsp_dut_boot(2, cs47l35_dsp2_fw_img, &boot_state_dsp2);
 
             ret = cs47l35_power(&cs47l35_driver, 3, CS47L35_POWER_MEM_ENA);
             if (ret)
             {
-                return BSP_STATUS_FAIL;
+                break;
             }
             bsp_dut_boot(3, cs47l35_dsp3_fw_img, &boot_state_dsp3);
+
+            addr = cs47l35_find_symbol(&cs47l35_driver, 2, CS47L35_DSP2_SYM_SILK_ENCODER_HIGH_WATERMARK_LEVEL);
+            if (!addr)
+            {
+                break;
+            }
+            // set the initial encoder buffer watermark to 34% free space to ensure a large write to the decode buffer
+            cs47l35_write_reg(&cs47l35_driver, addr, 34);
+
+            addr = cs47l35_find_symbol(&cs47l35_driver, 2, CS47L35_DSP2_SYM_SILK_DECODER_HIGH_WATERMARK_LEVEL);
+            if (!addr)
+            {
+                break;
+            }
+            // set the decoder watermark to 10% full, which we shouldn't see trigger until the encoder finishes
+            cs47l35_write_reg(&cs47l35_driver, addr, 10);
+
+            dsp_decoder_interrupt_flag = false;
+            dsp_encoder_interrupt_flag = false;
 
             ret = cs47l35_power(&cs47l35_driver, 2, CS47L35_POWER_UP);
             if (ret)
             {
-                return BSP_STATUS_FAIL;
+                break;
             }
             ret = cs47l35_power(&cs47l35_driver, 3, CS47L35_POWER_UP);
             if (ret)
             {
-                return BSP_STATUS_FAIL;
+                break;
             }
 
             // Enable output
@@ -430,7 +451,7 @@ uint32_t bsp_dut_use_case(uint32_t use_case)
             ret = cs47l35_dsp_buf_init(&cs47l35_driver, &buffer_dec, lin_buf_ptr_dec, BSP_DUT_BUFFER_SIZE, buf_symbol, 2);
             if (ret)
             {
-                return BSP_STATUS_FAIL;
+                break;
             }
             bytes_written_total = 0;
             bsp_write_process_done = false;
@@ -442,168 +463,167 @@ uint32_t bsp_dut_use_case(uint32_t use_case)
             ret = cs47l35_dsp_buf_init(&cs47l35_driver, &buffer_enc, lin_buf_ptr_enc, BSP_DUT_BUFFER_SIZE, buf_symbol, 2);
             if (ret)
             {
-                return BSP_STATUS_FAIL;
+                break;
             }
 
-            opus_data_ping = (uint8_t *)bsp_malloc(BSP_DUT_RECORDING_SIZE);
-            opus_data_pong = (uint8_t *)bsp_malloc(BSP_DUT_RECORDING_SIZE);
-            opus_data_enc = opus_data_ping;
-            opus_data_dec = opus_data_ping;
+            opus_data = (uint8_t *)bsp_malloc(BSP_DUT_RECORDING_SIZE);
             opus_data_len = 0x8000;
             bytes_read_total = 0;
 
             bsp_read_process_done = false;
             start_encoding_flag = true;
 
-            data_avail = 0;
+            ret = BSP_STATUS_OK;
             break;
 
         case BSP_USE_CASE_OPUS_RECORD:
             // Read and play recorded data
+
+            if ((dsp_encoder_interrupt_flag && !bsp_read_process_done) || (dsp_decoder_interrupt_flag && bytes_read_total))
+            {
+                dsp_encoder_interrupt_flag = false;
+                dsp_decoder_interrupt_flag = false;
+
+                if (!bytes_read_total)
+                {
+                    addr = cs47l35_find_symbol(&cs47l35_driver, 2, CS47L35_DSP2_SYM_SILK_ENCODER_HIGH_WATERMARK_LEVEL);
+                    if (!addr)
+                    {
+                        break;
+                    }
+                    // if this is the first IRQ, reduce the watermark to 80% free space to avoid buffer underruns in the decoder
+                    cs47l35_write_reg(&cs47l35_driver, addr, 80);
+                }
+
+                ret = cs47l35_dsp_buf_data_avail(&cs47l35_driver, &buffer_enc, &data_avail);
+                if (ret)
+                {
+                    break;
+                }
+
+                ret = cs47l35_dsp_buf_read(&cs47l35_driver, &buffer_enc, opus_data, data_avail);
+                if (ret)
+                {
+                    break;
+                }
+
+                for (i = 0; i < 10; i++)
+                {
+                    ret = cs47l35_dsp_buf_space_avail(&cs47l35_driver, &buffer_dec, &space_avail);
+                    if (ret)
+                    {
+                        continue;
+                    }
+
+                    if (space_avail >= data_avail)
+                    {
+                        break;
+                    }
+                    bsp_set_timer(50, NULL, NULL);
+
+                }
+                if (i == 10)
+                {
+                    break;
+                }
+
+                if (data_avail)
+                {
+                    ret = cs47l35_dsp_buf_write(&cs47l35_driver, &buffer_dec, opus_data, data_avail);
+                    if (ret)
+                    {
+                        break;
+                    }
+                }
+
+                if (!bsp_read_process_done)
+                {
+                    bytes_read_total += data_avail;
+                    if (bytes_read_total >= opus_data_len)
+                    {
+                        cs47l35_dsp_buf_eof(&cs47l35_driver, &buffer_enc);
+                        bsp_read_process_done = true;
+                    }
+                }
+                else
+                {
+                    cs47l35_dsp_buf_eof(&cs47l35_driver, &buffer_dec);
+                    bsp_write_process_done = true;
+                }
+            }
+
             cs47l35_read_reg(&cs47l35_driver, vad_symbol, &vad);
             bsp_driver_if_g->set_gpio(BSP_GPIO_ID_INTP_LED1, vad & 1); // deglitched speech
             bsp_driver_if_g->set_gpio(BSP_GPIO_ID_INTP_LED2, (vad >> 1) & 1); // raw speech
 
-            if (dsp_encoder_interrupt_flag || (bytes_read_total /* encoding has started */ && dsp_decoder_interrupt_flag && !data_avail))
-            {
-                ret = cs47l35_dsp_buf_data_avail(&cs47l35_driver, &buffer_enc, &data_avail);
-                if (ret)
-                {
-                    dsp_decoder_interrupt_flag = false;
-                    dsp_encoder_interrupt_flag = false;
-                    bsp_write_process_done = true;
-                    bsp_read_process_done = true;
-                    return BSP_STATUS_FAIL;
-                }
-                if (data_avail)
-                {
-                    ret = cs47l35_dsp_buf_read(&cs47l35_driver, &buffer_enc, opus_data_enc, data_avail);
-                    if (ret) // error
-                    {
-                        dsp_decoder_interrupt_flag = false;
-                        dsp_encoder_interrupt_flag = false;
-                        bsp_write_process_done = true;
-                        bsp_read_process_done = true;
-                        return BSP_STATUS_FAIL;
-                    }
-                    if (opus_data_enc == opus_data_ping)
-                        opus_data_enc = opus_data_pong;
-                    if (opus_data_enc == opus_data_pong)
-                        opus_data_enc = opus_data_ping;
-                    bytes_read_total += data_avail;
-                    dsp_encoder_interrupt_flag = false;
-                }
-            }
-            if ((bytes_read_total >= opus_data_len) && (bsp_read_process_done == false))
-            {
-                cs47l35_dsp_buf_eof(&cs47l35_driver, &buffer_enc);
-                bsp_read_process_done = true;
-            }
-
-            if (dsp_decoder_interrupt_flag && data_avail)
-            {
-                if (!bytes_written_total)
-                {
-                    /* Give the encoder a head start */
-                    bsp_set_timer(200, NULL, NULL);
-                }
-                ret = cs47l35_dsp_buf_space_avail(&cs47l35_driver, &buffer_dec, &space_avail);
-                if (ret)
-                {
-                    dsp_decoder_interrupt_flag = false;
-                    dsp_encoder_interrupt_flag = false;
-                    bsp_write_process_done = true;
-                    bsp_read_process_done = true;
-                    return BSP_STATUS_FAIL;
-                }
-                if (space_avail > data_avail)
-                {
-                    space_avail = data_avail;
-                }
-                if (space_avail)
-                {
-                    if (bytes_written_total + space_avail > opus_data_len)
-                    {
-                        space_avail = opus_data_len - bytes_written_total;
-                    }
-
-                    ret = cs47l35_dsp_buf_write(&cs47l35_driver, &buffer_dec, opus_data_dec, space_avail);
-                    if (ret) // error
-                    {
-                        dsp_decoder_interrupt_flag = false;
-                        dsp_encoder_interrupt_flag = false;
-                        bsp_write_process_done = true;
-                        bsp_read_process_done = true;
-                        return BSP_STATUS_FAIL;
-                    }
-                    if (opus_data_dec == opus_data_ping)
-                        opus_data_dec = opus_data_pong;
-                    if (opus_data_dec == opus_data_pong)
-                        opus_data_dec = opus_data_ping;
-                    bytes_written_total += space_avail;
-                    data_avail = 0;
-                    dsp_decoder_interrupt_flag = false;
-                }
-            }
-            if ((bytes_written_total >= opus_data_len) && (bsp_write_process_done == false))
-            {
-                cs47l35_dsp_buf_eof(&cs47l35_driver, &buffer_dec);
-                bsp_write_process_done = true;
-            }
-
+            ret = BSP_STATUS_OK;
             break;
 
         case BSP_USE_CASE_OPUS_RECORD_DONE:
             bsp_driver_if_g->set_gpio(BSP_GPIO_ID_INTP_LED1, BSP_GPIO_LOW);
             bsp_driver_if_g->set_gpio(BSP_GPIO_ID_INTP_LED2, BSP_GPIO_LOW);
-            cs47l35_read_reg(&cs47l35_driver, CS47L35_DSP2_SCRATCH_1, &scratch);
-            while ((scratch & CS47L35_DSP_SCRATCH_1_MASK) != CS47L35_DSP_DEC_ALGORITHM_STOPPED)
+            for (i = 0; i < 30; i++)
             {
-                bsp_set_timer(5, NULL, NULL);
+                bsp_set_timer(100, NULL, NULL);
                 cs47l35_read_reg(&cs47l35_driver, CS47L35_DSP2_SCRATCH_1, &scratch);
-                if (count==10)
+                if (scratch & CS47L35_DSP_DEC_ALGORITHM_STOPPED)
                 {
                     break;
                 }
-                count++;
+            }
+
+            if (i == 30)
+            {
+                break;
             }
 
             start_encoding_flag = false;
             start_decoding_flag = false;
             bsp_free(lin_buf_ptr_dec);
             bsp_free(lin_buf_ptr_enc);
-            bsp_free(opus_data_ping);
-            bsp_free(opus_data_pong);
+            bsp_free(opus_data);
 
             cs47l35_write_reg(&cs47l35_driver, CS47L35_DAC_DIGITAL_VOLUME_1R, 0x360);
             cs47l35_write_reg(&cs47l35_driver, CS47L35_DAC_DIGITAL_VOLUME_1L, 0x360);
             cs47l35_write_reg(&cs47l35_driver, CS47L35_OUTPUT_ENABLES_1, 0);
-            cs47l35_write_reg(&cs47l35_driver, CS47L35_OUT1RMIX_INPUT_1_SOURCE, 0x0);
+            cs47l35_write_reg(&cs47l35_driver, CS47L35_DSP3RMIX_INPUT_1_SOURCE, 0x0);
+            cs47l35_write_reg(&cs47l35_driver, CS47L35_DSP2LMIX_INPUT_1_SOURCE, 0x0);
+            cs47l35_write_reg(&cs47l35_driver, CS47L35_DSP3LMIX_INPUT_1_SOURCE, 0x0);
             cs47l35_write_reg(&cs47l35_driver, CS47L35_OUT1LMIX_INPUT_1_SOURCE, 0x0);
+            cs47l35_write_reg(&cs47l35_driver, CS47L35_OUT1RMIX_INPUT_1_SOURCE, 0x0);
+            cs47l35_write_reg(&cs47l35_driver, CS47L35_DSP3AUX2MIX_INPUT_1_SOURCE, 0x0);
             bsp_disable_mic();
 
             ret = cs47l35_power(&cs47l35_driver, 3, CS47L35_POWER_DOWN);
             if (ret)
             {
-                return BSP_STATUS_FAIL;
+                break;
             }
 
             ret = cs47l35_power(&cs47l35_driver, 2, CS47L35_POWER_DOWN);
             if (ret)
             {
-                return BSP_STATUS_FAIL;
+                break;
             }
 
             cs47l35_update_reg(&cs47l35_driver, CS47L35_SYSTEM_CLOCK_1, CS47L35_SYSCLK_ENA_MASK, 0);
             ret = cs47l35_fll_disable(&cs47l35_driver, CS47L35_FLL1);
             if (ret)
             {
-                return BSP_STATUS_FAIL;
+                break;
             }
+
+            ret = BSP_STATUS_OK;
             break;
 
         default:
             break;
+    }
+
+    if (ret == BSP_STATUS_FAIL)
+    {
+        bsp_write_process_done = true;
+        bsp_read_process_done = true;
     }
 
     return ret;

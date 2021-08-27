@@ -44,8 +44,8 @@ extern "C" {
 #define CS47L35_DSP_OFFSET_MUL_VALUE              2
 #define CS47L35_DSP_IRQ_ACK_VAL                   0x1
 #define CS47L35_DSP_EOF_VAL                       0x1
-#define CS47L35_DSP_DEC_ALGORITHM_STOPPED         0x10000
-#define CS47L35_DSP_SCRATCH_1_MASK                0xFFFF0000
+#define CS47L35_DSP_ENC_ALGORITHM_STOPPED         0xFF000000
+#define CS47L35_DSP_DEC_ALGORITHM_STOPPED         0x00FF0000
 
 /***********************************************************************************************************************
  * MACROS

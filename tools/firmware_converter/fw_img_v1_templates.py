@@ -251,6 +251,8 @@ class fw_img_v1_file(firmware_exporter):
         self.terms['fw_rev'] = self.attributes['fw_meta']['fw_rev']
         self.terms['bin_ver'] = self.attributes['fw_img_version']
         self.terms['max_block_size'] = self.attributes['max_block_size']
+        self.terms['sym_partition'] = self.attributes['sym_partition']
+        self.terms['no_sym_table'] = self.attributes['no_sym_table']
 
         self.algorithms = OrderedDict()
         self.algorithm_controls = OrderedDict()
@@ -336,6 +338,7 @@ class fw_img_v1_file(firmware_exporter):
         temp_str = ''
         # the count for control ids starts at 1 - the value 0 is a special value used by parsing library
         control_id = 1
+        control_id_outer = 0
 
         alg_list_str = ''
         if self.algorithms:
@@ -356,6 +359,8 @@ class fw_img_v1_file(firmware_exporter):
 
             # Create string of all symbol id defines
             for alg_name, alg_id in self.algorithms.items():
+                if (self.terms['sym_partition']):
+                    control_id = (0x10000 * control_id_outer) + 1
                 temp_alg_str = ""
                 for control in self.algorithm_controls[alg_name]:
                     temp_ctl_str = self.terms['part_number_uc'] + "_SYM_" + control[0].upper()
@@ -368,6 +373,7 @@ class fw_img_v1_file(firmware_exporter):
                         temp_alg_str += temp_ctl_str
 
                         control_id += 1
+                control_id_outer += 1
                 if (temp_alg_str != ""):
                     alg_list_str += "#define {part_number_uc}_ALGORITHM_" + alg_name.upper() + "\n"
                     temp_str += "// " + alg_name + "\n" + temp_alg_str
@@ -446,12 +452,13 @@ class fw_img_v1_file(firmware_exporter):
 
         # Update SYM_TABLE_SIZE and ALG_LIST_SIZE and
         control_count = 0
-        if (self.algorithms):
-            for alg_name, alg_id in self.algorithms.items():
-                for control in self.algorithm_controls[alg_name]:
-                    sym_id = self.find_symbol_id(control[0])
-                    if sym_id:
-                        control_count += 1
+        if not self.terms['no_sym_table']:
+            if (self.algorithms):
+                for alg_name, alg_id in self.algorithms.items():
+                    for control in self.algorithm_controls[alg_name]:
+                        sym_id = self.find_symbol_id(control[0])
+                        if sym_id:
+                            control_count += 1
         output_str = output_str.replace('{sym_table_size}', self.add_word_to_img(control_count))
         output_str = output_str.replace('{alg_list_size}', self.add_word_to_img(len(self.algorithms)))
 
@@ -474,16 +481,20 @@ class fw_img_v1_file(firmware_exporter):
             output_str = output_str.replace('{bin_ver}', self.add_word_to_img(self.terms['bin_ver']) + " // FW_IMG_VERSION")
 
         # Add Symbol Linking Table
-        temp_ctl_str = ''
-        if self.algorithms:
-            for alg_name, alg_id in self.algorithms.items():
-                for control in self.algorithm_controls[alg_name]:
-                    sym_id = self.find_symbol_id(control[0])
-                    if sym_id:
-                        temp_ctl_str = temp_ctl_str + self.add_word_to_img(sym_id) + " // " + control[0].upper() + "\n" \
-                            + self.add_word_to_img(control[1]) + " // " + hex(control[1]) + "\n"
+        if not self.terms['no_sym_table']:
+            temp_ctl_str = ''
+            if self.algorithms:
+                for alg_name, alg_id in self.algorithms.items():
+                    for control in self.algorithm_controls[alg_name]:
+                        sym_id = self.find_symbol_id(control[0])
+                        if sym_id:
+                            temp_ctl_str = temp_ctl_str + self.add_word_to_img(sym_id) + " // " + control[0].upper() + "\n" \
+                                + self.add_word_to_img(control[1]) + " // " + hex(control[1]) + "\n"
 
-        output_str = output_str.replace('{sym_table}\n', temp_ctl_str)
+            output_str = output_str.replace('{sym_table}\n', temp_ctl_str)
+        else:
+            output_str = output_str.replace('{sym_table}\n', "")
+
 
         # Add Algorithm ID List
         temp_alg_str = ''
@@ -574,7 +585,7 @@ class fw_img_v1_file(firmware_exporter):
             tmp = open(self.sym_id_input, 'r')
             self.sym_header = tmp.read()
             tmp.close()
-        else:
+        elif not self.terms['no_sym_table']:
             self.sym_header = self.generate_symbol_header(symbol_id_list)
 
         if (not self.attributes['binary_output']):

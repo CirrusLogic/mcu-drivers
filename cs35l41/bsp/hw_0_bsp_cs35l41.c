@@ -200,7 +200,7 @@ uint32_t bsp_dut_initialize(void)
         amp_config.bsp_config = bsp_config;
 
         amp_config.syscfg_regs = cs35l41_syscfg_regs;
-        amp_config.syscfg_regs_total = sizeof(cs35l41_syscfg_regs)/sizeof(uint32_t);
+        amp_config.syscfg_regs_total = CS35L41_SYSCFG_REGS_TOTAL;
 
         amp_config.cal_data.is_valid = false;
 

@@ -3,6 +3,26 @@ Release Notes
 
 =============================================================================
 Summary:
+This is the release of Alt-OS Driver SDK v4.7.0
+Date: 2021/08/27
+
+Architectures/Compilers Used:
+GNU Arm Embedded Toolchain: arm-none-eabi-gcc -mcpu=cortex-m4
+
+New Features/Changes:
+[SQA-2041] Added cs40l26 driver for ROM mode
+[SQA-2376] cs47l35: Update to latest Opus firmware
+[SQA-2373] firmware_converter: Add no-sym-table option
+[SQA-2385] firmware_converter: Add --sym-partition option
+[SQA-2417] wisce_script_converter: add standalone comments to c_array
+[SQA-2354] wisce_script_converter: change c_array size definition
+
+Fixed Bugs:
+[SQA-2375] bridge: make Ctrl+C stop the bridge
+
+=============================================================================
+=============================================================================
+Summary:
 This is the release of Alt-OS Driver SDK v4.6.0
 Date: 2021/08/06
 

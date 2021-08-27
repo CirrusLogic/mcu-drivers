@@ -69,6 +69,7 @@ extern "C" {
 /***********************************************************************************************************************
  * LITERALS & CONSTANTS
  **********************************************************************************************************************/
+#define {filename_prefix_uc}_SYSCFG_REGS_TOTAL ({syscfg_regs_total})
 
 /***********************************************************************************************************************
  * ENUMS, STRUCTS, UNIONS, TYPEDEFS
@@ -77,7 +78,7 @@ extern "C" {
 /***********************************************************************************************************************
  * GLOBAL VARIABLES
  **********************************************************************************************************************/
-extern uint32_t {filename_prefix_lc}_syscfg_regs[{syscfg_regs_total}];
+extern uint32_t {filename_prefix_lc}_syscfg_regs[];
 
 #ifdef __cplusplus
 }
@@ -122,8 +123,8 @@ source_file_template_str = """/**
 
 """
 
-source_file_template_syscfg_reg_title_entry_str = """uint32_t {filename_prefix_lc}_syscfg_regs[{syscfg_regs_total}] =\n"""
-source_file_template_syscfg_reg_list_entry_str = """    {array}{comment}"""
+source_file_template_syscfg_reg_title_entry_str = """uint32_t {filename_prefix_lc}_syscfg_regs[] =\n"""
+source_file_template_syscfg_reg_list_entry_str = """    {array}{comma}{comment}"""
 
 # ==========================================================================
 # CLASSES
@@ -189,6 +190,8 @@ class c_array_exporter(wisce_script_exporter):
                         temp_str += '{space}// ' + t + '\n'
                     continue
 
+                temp_str = temp_str.replace('{comma}', ',')
+
                 if "{part_number_uc}_SYM_" in t.params[0]:
                     continue
                 temp_str += source_file_template_syscfg_reg_list_entry_str
@@ -214,13 +217,13 @@ class c_array_exporter(wisce_script_exporter):
 
                 if (self.include_comments and (t.comment is not None)):
                     if not t.comment.endswith('\n'):
-                        temp_str = temp_str.replace('{comment}', ', // ' + t.comment + '\n')
+                        temp_str = temp_str.replace('{comment}', ' // ' + t.comment + '\n')
                     else:
-                        temp_str = temp_str.replace('{comment}', ', // ' + t.comment)
+                        temp_str = temp_str.replace('{comment}', ' // ' + t.comment)
                 else:
-                    temp_str = temp_str.replace('{comment}', ',\n')
-            temp_str = temp_str[:-2] # remove last comma
-            temp_str += "\n};\n"
+                    temp_str = temp_str.replace('{comment}', '\n')
+            temp_str = temp_str.replace('{comma}', '')# remove last comma
+            temp_str += "};\n"
             output_str = output_str.replace('{syscfg_regs_list}', temp_str)
 
         output_str = output_str.replace('{part_number_lc}', self.terms['part_number_lc'])

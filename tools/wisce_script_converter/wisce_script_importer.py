@@ -32,7 +32,7 @@ from sys import platform
 # ==========================================================================
 # CONSTANTS/GLOBALS
 # ==========================================================================
-wisce_script_keywords_to_skip_array = ['loadbinary',
+wisce_script_keywords_to_skip = ['loadbinary',
                                        'reset',
                                        'profile',
                                        'if',
@@ -44,22 +44,8 @@ wisce_script_keywords_to_skip_array = ['loadbinary',
                                        'exit',
                                        'loadfirmware',
                                        'block_read',
-                                       'smbus_16inx_16dat',
-                                       '*',
-                                       'message']
-wisce_script_keywords_to_skip_functions = ['loadbinary',
-                                           'reset',
-                                           'profile',
-                                           'if',
-                                           'else',
-                                           'endif',
-                                           'check',
-                                           'prompt_to_continue',
-                                           'prompt_continue_or_quit',
-                                           'exit',
-                                           'loadfirmware',
-                                           'block_read',
-                                           'smbus_16inx_16dat']
+                                       'smbus_16inx_16dat']
+
 wisce_script_transaction_keywords = ['4wirespi_32inx_32dat', '4wirespi_32inx_16dat', 'smbus_32inx_32dat']
 
 
@@ -87,27 +73,32 @@ class wisce_script_importer:
         return
 
     def c_array_import(self, iter_lines, filename):
-        wisce_script_keywords_to_skip = wisce_script_keywords_to_skip_array
         for line in iter_lines:
             symbol = False
-            # Check for starting with a keyword
-            line = line.replace('\t', ' ')
-            words = line.split(' ')
-            words = [w for w in words if w != '']
-            raw_words = words
-            words = [word.lower() for word in words]
-            if (len(words) == 0) or words[0] in wisce_script_keywords_to_skip:
-                continue
 
             # Get any comments
             comment = None
             if (line.find('*') != -1):
                 comment = line[line.index('*'):]
+                line = line[:line.index('*') - 1]
             elif (line.find('message') != -1):
                 comment = line[line.index('message'):]
 
-            # First check that it is a 'Write' transaction
-            if (len(words)>3) and (words[3] == 'write'):
+            # Check for starting with a keyword
+            line = line.replace('\t', ' ')
+            words = line.split(' ')
+            words = [w for w in words if w != '']
+            words = [w.replace('\n', '') for w in words]
+            raw_words = words
+            words = [word.lower() for word in words]
+            if (len(words) == 0) or words[0] in wisce_script_keywords_to_skip:
+                continue
+
+            if (words[0].find("*") != -1) or words[0] == 'message':
+                if comment.endswith('\n'):
+                    comment = comment[:-1]
+                self.transaction_list.append(comment)
+            elif (len(words)>3) and (words[3] == 'write'):
                 if (any(access_type in word for access_type in wisce_script_transaction_keywords for word in words)):
                     addr = self.format_register(words[0])
                     value = self.format_register(words[1])
@@ -193,9 +184,17 @@ class wisce_script_importer:
                 self.load_subfile(line, raw_words, filename)
 
     def c_functions_import(self, iter_lines, filename):
-        wisce_script_keywords_to_skip = wisce_script_keywords_to_skip_functions
         for line in iter_lines:
             symbol = False
+
+            # Get any comments
+            comment = None
+            if (line.find('*') != -1):
+                comment = line[line.index('*'):]
+                line = line[:line.index('*') - 1]
+            elif (line.find('message') != -1):
+                comment = line[line.index('message'):]
+
             # Check for starting with a keyword
             line = line.replace('\t', ' ')
             words = line.split(' ')
@@ -204,13 +203,6 @@ class wisce_script_importer:
             words = [word.lower() for word in words]
             if (len(words) == 0) or words[0] in wisce_script_keywords_to_skip:
                 continue
-
-            # Get any comments
-            comment = None
-            if (line.find('*') != -1):
-                comment = line[line.index('*'):]
-            elif (line.find('message') != -1):
-                comment = line[line.index('message'):]
 
             if (words[0].find("*") != -1) or words[0] == 'message':
                 if comment.endswith('\n'):

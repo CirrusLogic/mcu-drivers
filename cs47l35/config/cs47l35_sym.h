@@ -19,8 +19,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * firmware_converter.py version: 3.2.0
- * Command:  ../../tools/firmware_converter/firmware_converter.py fw_img_v2 cs47l35_dsp2 cs47l35_silkcoder_dsp2_010000.wmfw --sym-output ../config/cs47l35_sym.h --generic-sym
+ * firmware_converter.py SDK version: 4.6.0 - internal
+ * Command:  ../../tools/firmware_converter/firmware_converter.py fw_img_v2 cs47l35_dsp2 cs47l35_silkcoder_dsp2_010003.wmfw --sym-output /home/stuarth/alt_os/cs47l35/config/cs47l35_sym.h --generic-sym
  *
  *
  */
@@ -79,7 +79,7 @@ extern "C" {
 #define CS47L35_DSP2_SYM_SILK_ENCODER_COMPLEXITY                    (0x16)
 #define CS47L35_DSP2_SYM_SILK_ENCODER_USE_VBR                       (0x17)
 #define CS47L35_DSP2_SYM_SILK_ENCODER_USE_INBANDFEC                 (0x18)
-#define CS47L35_DSP2_SYM_SILK_ENCODER_ENCODER_INDEXES               (0x19)
+#define CS47L35_DSP2_SYM_SILK_ENCODER_HIGH_WATERMARK_LEVEL          (0x19)
 #define CS47L35_DSP2_SYM_SILK_ENCODER_SILK_ENCODER_YM_STRUCT_T      (0x1a)
 #define CS47L35_DSP2_SYM_SILK_ENCODER_DUMMY_YM_CONFIG               (0x1b)
 #define CS47L35_DSP2_SYM_SILK_ENCODER_SILK_ENCODER_ZM_STRUCT_T      (0x1c)
@@ -92,7 +92,7 @@ extern "C" {
 #define CS47L35_DSP2_SYM_SILK_DECODER_CHANNELS                      (0x22)
 #define CS47L35_DSP2_SYM_SILK_DECODER_COMPLEXITY                    (0x23)
 #define CS47L35_DSP2_SYM_SILK_DECODER_FRAME_SIZE                    (0x24)
-#define CS47L35_DSP2_SYM_SILK_DECODER_DECODER_INDEXES               (0x25)
+#define CS47L35_DSP2_SYM_SILK_DECODER_HIGH_WATERMARK_LEVEL          (0x25)
 #define CS47L35_DSP2_SYM_SILK_DECODER_SILK_DECODER_YM_STRUCT_T      (0x26)
 #define CS47L35_DSP2_SYM_SILK_DECODER_DUMMY_YM_CONFIG               (0x27)
 #define CS47L35_DSP2_SYM_SILK_DECODER_SILK_DECODER_ZM_STRUCT_T      (0x28)

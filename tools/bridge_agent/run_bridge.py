@@ -131,26 +131,26 @@ def validate_environment():
 def get_args(args):
     """Parse arguments"""
     parser = argparse.ArgumentParser(description='Parse command line arguments')
-    parser.add_argument(dest='stdout_filename', type=str, help='The filename for stdout channel.')
-    parser.add_argument(dest='bridge_filename', type=str, help='The filename for bridge channel.')
     parser.add_argument('-c', '--com-port', dest='comport', type=str, default=None,
                         help='COM Port to use Eg COM8 (for Windows) or /dev/ttyS8 for WSL. '
                              'If omitted autodetection will be attempted for Windows hosts only')
     parser.add_argument('-t', '--timeout', dest='timeout', type=int, default='1', help='COM port timeout in seconds.')
     parser.add_argument('-p', '--packet-view', dest='packet_view', default=False, action='store_true')
     parser.add_argument('-v', '--verbose', dest='verbose', default=False, action='store_true')
+    parser.add_argument('-s', '--stdout_filename', dest="stdout_filename", type=str, help='The filename for stdout channel.')
+    parser.add_argument('-b', '--bridge_filename', dest='bridge_filename', type=str, help='The filename for bridge channel.')
 
     return parser.parse_args(args[1:])
 
 def validate_args(args):
     # Check that stdout_filname path exists
-    if args.stdout_filename != 'stdout' and \
+    if args.stdout_filename != 'stdout' and  args.stdout_filename != None and \
         not os.path.exists(os.path.split(os.path.realpath(args.stdout_filename))[0]):
         print("Invalid stdout_filename path: " + args.stdout_filename)
         return False
 
     # Check that bridge_filename path exists
-    if args.bridge_filename != 'stdout' and \
+    if args.bridge_filename != 'stdout' and args.bridge_filename != None and \
         not os.path.exists(os.path.split(os.path.realpath(args.bridge_filename))[0]):
         print("Invalid bridge_filename path: " + args.bridge_filename)
         return False
@@ -178,8 +178,8 @@ def print_start():
 
 def print_args(args):
     print("")
-    print("stdout_filename: " + args.stdout_filename)
-    print("bridge_filename: " + args.bridge_filename)
+    print("stdout_filename: {}".format(args.stdout_filename if args.stdout_filename is not None else "None"))
+    print("bridge_filename: {}".format(args.bridge_filename if args.bridge_filename is not None else "None"))
     print("Timeout (s): " + str(args.timeout))
     print("")
 
@@ -205,7 +205,7 @@ def channel_callback(callback_arg, packet_string):
         print(str(id) + '>', end='')
         print(packet_string, end='')
         print('\n')
-    else:
+    elif (filename != None):
         f = open(filename, 'a')
         f.write(packet_string)
         f.close()
@@ -230,10 +230,10 @@ def main(argv):
         error_exit("Invalid Arguments")
 
     # Clear any files
-    if (args.stdout_filename != 'stdout'):
+    if (args.stdout_filename != 'stdout' and args.stdout_filename != None):
         f = open(args.stdout_filename, 'w')
         f.close()
-    if (args.bridge_filename != 'stdout'):
+    if (args.bridge_filename != 'stdout' and args.bridge_filename != None):
         f = open(args.bridge_filename, 'w')
         f.close()
 
@@ -254,7 +254,7 @@ def main(argv):
         raise
     except KeyboardInterrupt as e:
         print("\nHalted by User")
-        sys.exit(1)
+        os.kill(os.getpid(), signal.SIGINT)
     except Exception as e:
         print("Uncaught exception: {}. Exception type: {}\n".format(e, type(e).__name__))
         traceback.print_exc()

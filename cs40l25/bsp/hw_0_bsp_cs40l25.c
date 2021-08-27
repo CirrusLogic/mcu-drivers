@@ -151,7 +151,7 @@ uint32_t bsp_dut_initialize(void)
         haptic_config.bsp_config = bsp_config;
 
         haptic_config.syscfg_regs = cs40l25_syscfg_regs;
-        haptic_config.syscfg_regs_total = sizeof(cs40l25_syscfg_regs)/sizeof(uint32_t);
+        haptic_config.syscfg_regs_total = CS40L25_SYSCFG_REGS_TOTAL;
 
         haptic_config.event_control.hardware = 1;
         haptic_config.event_control.playback_end_suspend = 1;
