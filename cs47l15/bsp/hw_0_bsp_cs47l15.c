@@ -108,9 +108,6 @@ uint32_t bsp_dut_initialize(void)
     // Enable MCLK2 32kHz clock routing to CS47L15
     temp_buffer = __builtin_bswap32(0x001F8003);
     bsp_i2c_write(BSP_LN2_DEV_ID, (uint8_t *)&temp_buffer, 4, NULL, NULL);
-    // Bypass LN2 FPGA
-    temp_buffer = __builtin_bswap32(0x00EE0000);
-    bsp_i2c_write(BSP_LN2_DEV_ID, (uint8_t *)&temp_buffer, 4, NULL, NULL);
     // Enable MICVDD at 1v8
     temp_buffer = __builtin_bswap32(0x011B001D);
     bsp_i2c_write(BSP_LN2_DEV_ID, (uint8_t *)&temp_buffer, 4, NULL, NULL);

@@ -1,5 +1,5 @@
 #==========================================================================
-# (c) 2019 Cirrus Logic, Inc.
+# (c) 2019, 2021 Cirrus Logic, Inc.
 #--------------------------------------------------------------------------
 # Project : Parser for WMFW files
 # File    : wmfw_parser.py
@@ -591,7 +591,7 @@ class wmfw_parser:
         self.header = wmfw_header(f)
         self.header.parse(f)
 
-        if self.header.fields['file_format_version'] is 2:
+        if self.header.fields['file_format_version'] == 2:
             self.block_types = adsp_memory_region_block_types
         else:
             self.block_types = halo_memory_region_block_types
@@ -607,7 +607,7 @@ class wmfw_parser:
         first_data_block_bytes = self.blocks[1].data
         first_data_block_memory_type = self.blocks[1].memory_type
         temp_bytestream = io.BytesIO(b''.join(first_data_block_bytes))
-        if self.header.fields['file_format_version'] is 2:
+        if self.header.fields['file_format_version'] == 2:
             self.fw_id_block = adsp_firmware_id_block(temp_bytestream, first_data_block_memory_type)
         else:
             self.fw_id_block = halo_firmware_id_block(temp_bytestream, first_data_block_memory_type)
@@ -770,11 +770,11 @@ def get_memory_region_from_type(type):
         ret = 'xm'
     elif (type in halo_block_types_memory_region_ym):
         ret = 'ym'
-    elif (type is adsp_zm_u24_block_type):
+    elif (type == adsp_zm_u24_block_type):
         ret = 'zm'
     elif (type in halo_block_types_memory_region_pm):
         ret = 'pm'
-    elif (type is adsp_pm_p32_block_type):
+    elif (type == adsp_pm_p32_block_type):
         ret = 'pm'
     elif (type == (absolute_addressing_data_block_type << 8)):
         ret = 'abs'

@@ -507,7 +507,7 @@ wisce_script_converter:
 firmware_converter:
 	@echo -------------------------------------------------------------------------------
 	@echo GENERATING cs47l35_dsp2_fw_img
-	cd $(HALO_FIRMWARE_PATH) && python3 ../../tools/firmware_converter/firmware_converter.py fw_img_v2 cs47l35_dsp2 cs47l35_silkcoder_dsp2_010003.wmfw --sym-input $(CONFIG_PATH)/cs47l35_sym.h --generic-sym
+	cd $(HALO_FIRMWARE_PATH) && python3 ../../tools/firmware_converter/firmware_converter.py fw_img_v2 cs47l35_dsp2 cs47l35_silkcoder_dsp2_010103.wmfw --sym-input $(CONFIG_PATH)/cs47l35_sym.h --generic-sym
 	@echo GENERATING cs47l35_dsp3_fw_img
 	cd $(HALO_FIRMWARE_PATH) && python3 ../../tools/firmware_converter/firmware_converter.py fw_img_v2 cs47l35_dsp3 SC_Voice_Marley_FB_SMSP_dsp3.wmfw --sym-input $(CONFIG_PATH)/cs47l35_sym_dsp3.h --generic-sym
 

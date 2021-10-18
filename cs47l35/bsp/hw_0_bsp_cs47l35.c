@@ -118,9 +118,6 @@ uint32_t bsp_dut_initialize(void)
     temp_buffer = __builtin_bswap32(0x001F8003);
     bsp_i2c_write(BSP_LN2_DEV_ID, (uint8_t *)&temp_buffer, 4, NULL, NULL);
 
-    // Bypass LN2 FPGA
-    temp_buffer = __builtin_bswap32(0x00EE0000);
-    bsp_i2c_write(BSP_LN2_DEV_ID, (uint8_t *)&temp_buffer, 4, NULL, NULL);
     // Enable MICVDD at 1v8
     temp_buffer = __builtin_bswap32(0x011B001D);
     bsp_i2c_write(BSP_LN2_DEV_ID, (uint8_t *)&temp_buffer, 4, NULL, NULL);
@@ -272,6 +269,7 @@ uint32_t bsp_dut_boot(uint32_t core_no, const uint8_t *fw_img_ptr, fw_img_boot_s
     }
 
     bsp_free(boot_state->block_data);
+    boot_state->block_data = NULL;
 
     // fw_img processing is complete, so inform the driver and pass it the fw_info block
     return cs47l35_boot(&cs47l35_driver, core_no, &boot_state->fw_info);
@@ -402,6 +400,20 @@ uint32_t bsp_dut_use_case(uint32_t use_case)
                 break;
             }
             bsp_dut_boot(3, cs47l35_dsp3_fw_img, &boot_state_dsp3);
+
+            addr = cs47l35_find_symbol(&cs47l35_driver, 2, CS47L35_DSP2_SYM_SILK_ENCODER_BITRATE_BPS);
+            if (!addr)
+            {
+                break;
+            }
+            cs47l35_write_reg(&cs47l35_driver, addr, 16000);
+
+            addr = cs47l35_find_symbol(&cs47l35_driver, 2, CS47L35_DSP2_SYM_SILK_ENCODER_USE_VBR);
+            if (!addr)
+            {
+                break;
+            }
+            cs47l35_write_reg(&cs47l35_driver, addr, 1);
 
             addr = cs47l35_find_symbol(&cs47l35_driver, 2, CS47L35_DSP2_SYM_SILK_ENCODER_HIGH_WATERMARK_LEVEL);
             if (!addr)

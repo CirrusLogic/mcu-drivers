@@ -44,6 +44,7 @@ extern "C" {
 #define BSP_LN2_DEV_ID                  (2)
 #define BSP_DUT_DEV_ID_SPI2             (3)
 #define BSP_INTP_EXP_DEV_ID             (4)
+#define BSP_EEPROM_DEV_ID               (5)
 
 #define BSP_GPIO_ID_NULL                (0)
 #define BSP_GPIO_ID_DUT_CDC_RESET       (1)
@@ -92,6 +93,22 @@ extern "C" {
 #ifndef BSP_DUT_I2C_ADDRESS_8BIT
 #define BSP_DUT_I2C_ADDRESS_8BIT (0x80)
 #endif
+
+/* Commands available for AT25SL128A EEPROM on RevB interposer */
+#define BSP_EEPROM_OPCODE_WRITE_ENABLE              (0x06)
+#define BSP_EEPROM_OPCODE_WRITE_DISBLE              (0x04)
+#define BSP_EEPROM_OPCODE_READ_STS_REG_1            (0x05)
+#define BSP_EEPROM_OPCODE_READ_STS_REG_2            (0x35)
+#define BSP_EEPROM_OPCODE_READ_DATA                 (0x03)
+#define BSP_EEPROM_OPCODE_PAGE_PROGRAM              (0x02)
+#define BSP_EEPROM_OPCODE_CHIP_ERASE                (0xC7)
+#define BSP_EEPROM_OPCODE_READ_JEDEC_ID             (0x9F)
+#define BSP_EEPROM_OPCODE_RESET_ENABLE              (0x66)
+#define BSP_EEPROM_OPCODE_RESET                     (0x99)
+#define BSP_EEPROM_OPCODE_BLOCK_ERASE_4KB           (0x20)
+#define BSP_EEPROM_OPCODE_BLOCK_ERASE_32KB          (0x52)
+#define BSP_EEPROM_OPCODE_BLOCK_ERASE_64KB          (0xD8)
+
 /***********************************************************************************************************************
  * MACROS
  **********************************************************************************************************************/
@@ -149,6 +166,19 @@ void*    bsp_malloc(size_t size);
 void     bsp_free(void* ptr);
 uint32_t bsp_set_ld2(uint8_t mode, uint32_t blink_100ms);
 uint32_t bsp_toggle_gpio(uint32_t gpio_id);
+uint32_t bsp_eeprom_control(uint8_t command);
+uint32_t bsp_eeprom_read_status(uint8_t *buffer);
+uint32_t bsp_eeprom_read_jedecid(uint8_t *buffer);
+uint32_t bsp_eeprom_read(uint32_t addr,
+                         uint8_t *data_buffer,
+                         uint32_t data_length);
+uint32_t bsp_eeprom_program(uint32_t addr,
+                            uint8_t *data_buffer,
+                            uint32_t data_length);
+uint32_t bsp_eeprom_program_verify(uint32_t addr,
+                                   uint8_t *data_buffer,
+                                   uint32_t data_length);
+uint32_t bsp_eeprom_erase(uint8_t command, uint32_t addr);
 
 /**********************************************************************************************************************/
 #ifdef __cplusplus

@@ -3,6 +3,32 @@ Release Notes
 
 =============================================================================
 Summary:
+This is the release of Alt-OS Driver SDK v4.8.0
+Date: 2021/10/19
+
+Architectures/Compilers Used:
+GNU Arm Embedded Toolchain: arm-none-eabi-gcc -mcpu=cortex-m4
+
+New Features/Changes:
+[SQA-2501] wisce_script_converter: should return 0 instead of None
+[SQA-2353] wisce_script_converter: SCS CSV activity output Add unit-test
+[SQA-2353] wisce_script_converter: Add support for SCS's CSV activity output
+[SQA-2473] wisce_script_converter: Fix -s option with c_functions output
+[SQA-2498] firmware_converter: Fix erroneous space in FWID when <6
+[SQA-2468] cs47l35: Update silkcoder to 1.1.3
+[SQA-2476] common: bridge: keep getting data from bridge file until newline
+[SQA-2467] common: Only release a packet to fifo consumers when complete
+[SQA-2453] Switch 'is' operations to '==' for literals
+[SQA-2452] Fix double free in bsp_dut_boot
+[SQA-2304] Add SPI flash read and write commands
+
+
+Fixed Bugs:
+[SQA-2473] wisce_script_converter: the -s option does not work with c_functions output
+
+=============================================================================
+=============================================================================
+Summary:
 This is the release of Alt-OS Driver SDK v4.7.0
 Date: 2021/08/27
 

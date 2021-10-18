@@ -1,8 +1,8 @@
 # ==========================================================================
-# (c) 2020-2021 Cirrus Logic, Inc.
+# (c) 2021 Cirrus Logic, Inc.
 # --------------------------------------------------------------------------
 # Project : Import WISCE Script transactions
-# File    : wisce_script_importer.py
+# File    : script_importer.py
 # --------------------------------------------------------------------------
 # Licensed under the Apache License, Version 2.0 (the License); you may
 # not use this file except in compliance with the License.
@@ -28,6 +28,7 @@ import os
 import re
 from wisce_script_function import wisce_script_function
 from sys import platform
+import csv
 
 # ==========================================================================
 # CONSTANTS/GLOBALS
@@ -142,7 +143,7 @@ class wisce_script_importer:
                     params = addr[0] + ', ' + '0x' + str(data_array_len) + ', ' + data
                     sep_location = 80
                     while sep_location < len(params):
-                        if params[sep_location] is ',':
+                        if params[sep_location] == ',':
                             sep_location += 2
                             params = params[0:sep_location] + "\\\n" + "{space}" + params[sep_location:]
                             sep_location += 110
@@ -254,6 +255,7 @@ class wisce_script_importer:
                                                                     byte_array,
                                                                     str(byte_array_len)],
                                                                    comment))
+
             elif (len(words) > 3) and (words[3] == 'write'):
                 if (any(access_type in word for access_type in wisce_script_transaction_keywords for word in words)):
 
@@ -349,6 +351,125 @@ class wisce_script_importer:
     def __str__(self):
         output_str = 'blah'
         return output_str
+
+class scs_csv_script_importer:
+
+    csv_op_export_map = {
+        "W": "write",
+        "BW": "block_write",
+    }
+
+    def __init__(self, filename, command, symbol_list=None):
+        self.transaction_list = []
+        self.command = command
+
+        if isinstance(symbol_list, set):
+            self.symbol_list = symbol_list
+        else:
+            self.prepare_symbol_list(symbol_list)
+
+        f = open(filename.strip(), "r")
+        csvreader = csv.DictReader(f)
+
+        if (self.command == 'c_array'):
+            self.c_array_import(csvreader , filename)
+        elif (self.command == 'c_functions'):
+            self.c_functions_import(csvreader , filename)
+
+        f.close()
+        return
+
+    def get_transaction_list(self):
+        return self.transaction_list
+
+    # Helper fn to and format register data, byte swap, etc.
+    # Return list of formatted data
+    def format_bw_data(self, data_str, byte_swap=True):
+        data_list = data_str.split(";")
+        # Remove 0x
+        data_list = [d.replace("0x", "").strip() for d in data_list]
+        # Make each 32-bit long
+        data_list = ["{:0>8}".format(d) for d in data_list]
+        # Byte swap
+        if byte_swap:
+            for i in range(0, len(data_list)):
+                data_list[i] = data_list[i][6:8] + data_list[i][4:6] + data_list[i][2:4] + data_list[i][0:2]
+        # Prepend with '0x'
+        data_list = ["0x{}".format(d) for d in data_list]
+        return data_list
+
+    def c_array_import(self, csvreader, filename):
+        for row in csvreader:
+            if row['Op'] in scs_csv_script_importer.csv_op_export_map.keys():
+                if row['Op'] == 'W':
+                    self.transaction_list.append(wisce_script_function(
+                        scs_csv_script_importer.csv_op_export_map[row['Op']],
+                        "0x{:04x}".format(int(row['Address'], 16))  + ", " + row['Data'],
+                        row['Comment'],
+                        2))
+                elif row['Op'] == 'BW':
+                    data_list = self.format_bw_data(row['Data'])
+                    num_data = len(data_list)
+                    self.transaction_list.append(wisce_script_function(
+                        scs_csv_script_importer.csv_op_export_map[row['Op']],
+                        "0x{:04x}".format(int(row['Address'], 16)) + ", " + hex(num_data) + ", " + ", ".join(data_list),
+                        row['Comment'],
+                        num_data + 3))
+
+    def prepare_symbol_list(self, symbol_file):
+        self.symbol_list = set()
+        if symbol_file is not None:
+            f = open(symbol_file.strip())
+            iter_lines = iter(f.readlines())
+            for line in iter_lines:
+                if "_SYM_" in line:
+                    words = line.split(' ')
+                    words = [w for w in words if w != '']
+                    symbol = re.sub(r'CS\d\dL\d\d_SYM_', '', words[1])
+                    self.symbol_list.add(symbol)
+        return
+
+    def c_functions_import(self, csvreader, filename):
+        for row in csvreader:
+            if row['Op'] in scs_csv_script_importer.csv_op_export_map.keys():
+                if row['Op'] == 'W':
+                    self.transaction_list.append(wisce_script_function(
+                         scs_csv_script_importer.csv_op_export_map[row['Op']],
+                         ["0x{:04x}".format(int(row['Address'], 16)), row['Data'].lower()],
+                        row['Comment'],
+                        2))
+                elif row['Op'] == 'BW':
+                    data_list = self.format_bw_data(row['Data'], False)
+                    # Convert data_list to uint8_t portions
+                    d_byte_arr_str = ""
+                    byte_cnt = 0
+                    for d in data_list:
+                        d_byte_arr = []
+                        d = d.replace('0x', '')
+                        j = 0
+                        for i in range(0, len(d), 2):
+                            d_byte_arr.append(d[j:j+2])
+                            j += 2
+                        for i in range(0, len(d_byte_arr)):
+                            d_byte_arr_str += "0x{}, ".format(d_byte_arr[i])
+                            byte_cnt += 1
+                            # Split output every 16 bytes
+                            if not byte_cnt % 16:
+                                d_byte_arr_str += " \\\n" + ("{space}" * 13)
+                    # Remove last ', \'
+                    if d_byte_arr_str[-1] == '\\':
+                        d_byte_arr_str = d_byte_arr_str[:-1]
+                    d_byte_arr_str = d_byte_arr_str.rstrip()
+                    if d_byte_arr_str[-1] == ',':
+                        d_byte_arr_str = d_byte_arr_str[:-1]
+
+                    d_byte_arr_str = "(uint8_t[]){" + d_byte_arr_str  + "}"
+
+                    self.transaction_list.append(wisce_script_function(
+                        scs_csv_script_importer.csv_op_export_map[row['Op']],
+                        [row['Address'], d_byte_arr_str,  hex(byte_cnt)],
+                        row['Comment']))
+
 
 # ==========================================================================
 # HELPER FUNCTIONS

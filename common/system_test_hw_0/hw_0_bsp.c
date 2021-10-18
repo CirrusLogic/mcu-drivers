@@ -218,6 +218,7 @@ typedef struct
     uint32_t in_index;
     uint32_t out_index;
     uint32_t level;
+    uint32_t level_pending;
     uint8_t *buffer;
 } bsp_fifo_t;
 
@@ -1113,6 +1114,24 @@ static void bsp_exti_dsp_int_cb(void)
     return;
 }
 
+static void bsp_wait_for_eeprom(void)
+{
+    uint8_t buffer[2] = {0xFF, 0xFF};
+    uint32_t timeout = 0;
+    while ((buffer[1] & 1)) // check busy bit
+    {
+        bsp_eeprom_read_status(buffer);
+        bsp_set_timer(5, NULL, NULL);
+        if (timeout > 100) // about 0.5s, enough for everything except chip erase (typ. 60s)
+        {
+            break;
+        }
+        else
+        {
+            timeout++;
+        }
+    }
+}
 /***********************************************************************************************************************
  * MCU HAL FUNCTIONS
  **********************************************************************************************************************/
@@ -1124,6 +1143,7 @@ void HAL_MspInit(void)
     __HAL_RCC_GPIOA_CLK_ENABLE();
     __HAL_RCC_GPIOB_CLK_ENABLE();
     __HAL_RCC_GPIOC_CLK_ENABLE();
+    __HAL_RCC_GPIOD_CLK_ENABLE();
     BSP_DUT_RESET_CLK_ENABLE();
     BSP_DUT_INT_CLK_ENABLE();
     BSP_LN2_RESET_CLK_ENABLE();
@@ -1136,6 +1156,15 @@ void HAL_MspInit(void)
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+    // Configure the EEPROM SS
+    HAL_GPIO_WritePin(GPIOD, GPIO_PIN_2, GPIO_PIN_RESET);
+    GPIO_InitStruct.Pin = GPIO_PIN_2;
+    GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+    GPIO_InitStruct.Alternate = 0;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
 
     // Configure the LN2 Reset GPO
     HAL_GPIO_WritePin(BSP_LN2_RESET_GPIO_PORT, BSP_LN2_RESET_PIN, GPIO_PIN_SET);
@@ -2078,7 +2107,7 @@ void process_uart_rx(void)
             // Update fifo
             fifo->in_index += uart_drv_handle.RxXferSize;
             fifo->in_index %= fifo->size;
-            fifo->level += uart_drv_handle.RxXferSize;
+            fifo->level_pending += uart_drv_handle.RxXferSize;
 
             // Update Checksum
             uart_rx_state.packet_checksum = 0;
@@ -2086,6 +2115,8 @@ void process_uart_rx(void)
             // If received entire payload
             if (uart_drv_handle.RxXferSize == uart_rx_state.packet_size)
             {
+                fifo->level += fifo->level_pending;
+                fifo->level_pending = 0;
                 rx_size_bytes = 1;
                 rx_buffer = uart_rx_state.packet_buffer;
                 uart_rx_state.packet_state = BSP_UART_STATE_PACKET_STATE_PAYLOAD;
@@ -2107,7 +2138,8 @@ void process_uart_rx(void)
             // Update fifo
             fifo->in_index += uart_drv_handle.RxXferSize;
             fifo->in_index %= fifo->size;
-            fifo->level += uart_drv_handle.RxXferSize;
+            fifo->level += fifo->level_pending + uart_drv_handle.RxXferSize;
+            fifo->level_pending = 0;
 
             // Update Checksum
             uart_rx_state.packet_checksum = 0;
@@ -2239,7 +2271,7 @@ extern void initialise_monitor_handles(void);
 
 uint32_t bsp_initialize(bsp_app_callback_t cb, void *cb_arg)
 {
-    uint8_t write_buffer[2];
+    uint8_t buffer[3];
     app_cb = cb;
     app_cb_arg = cb_arg;
 
@@ -2307,22 +2339,36 @@ uint32_t bsp_initialize(bsp_app_callback_t cb, void *cb_arg)
     UART_Init();
     bsp_audio_set_fs(BSP_AUDIO_FS_48000_HZ);
 
-    // Setup UART to Receive
-    HAL_UART_Receive_IT(&uart_drv_handle, uart_rx_state.packet_buffer, 1);
-
-    // setup interposer's LEDs
-    write_buffer[0] = 6;
-    write_buffer[1] = 0xF0;
-
-    bsp_i2c_write(BSP_INTP_EXP_DEV_ID, write_buffer, 2, NULL, NULL);
-    bsp_set_gpio(BSP_GPIO_ID_INTP_LED_ALL, 0);
-    bsp_interposer_led_status = 0;
-
     // Toggle LN2 Reset
     HAL_GPIO_WritePin(BSP_LN2_RESET_GPIO_PORT, BSP_LN2_RESET_PIN, GPIO_PIN_RESET);
     bsp_set_timer(5, NULL, NULL);
     HAL_GPIO_WritePin(BSP_LN2_RESET_GPIO_PORT, BSP_LN2_RESET_PIN, GPIO_PIN_SET);
     bsp_set_timer(5000, NULL, NULL);
+    // Bypass LN2 FPGA
+    uint32_t temp_buffer = __builtin_bswap32(0x00EE0000);
+    bsp_i2c_write(BSP_LN2_DEV_ID, (uint8_t *)&temp_buffer, 4, NULL, NULL);
+
+    // Setup and check EEPROM
+    bsp_eeprom_control(BSP_EEPROM_OPCODE_RESET_ENABLE);
+    bsp_eeprom_control(BSP_EEPROM_OPCODE_RESET);
+    bsp_eeprom_read_jedecid(buffer);
+    if((buffer[0] != 0x1F) ||
+       (buffer[1] != 0x42) ||
+       (buffer[2] != 0x18))
+    {
+        return BSP_STATUS_FAIL;
+    }
+
+    // Setup UART to Receive
+    HAL_UART_Receive_IT(&uart_drv_handle, uart_rx_state.packet_buffer, 1);
+
+    // setup interposer's LEDs
+    buffer[0] = 6;
+    buffer[1] = 0xF0;
+
+    bsp_i2c_write(BSP_INTP_EXP_DEV_ID, buffer, 2, NULL, NULL);
+    bsp_set_gpio(BSP_GPIO_ID_INTP_LED_ALL, 0);
+    bsp_interposer_led_status = 0;
 
     return BSP_STATUS_OK;
 }
@@ -2761,6 +2807,10 @@ uint32_t bsp_spi_read(uint32_t bsp_dev_id,
             cs_gpio_per = GPIOA;
             cs_gpio_pin = GPIO_PIN_15;
             break;
+        case BSP_EEPROM_DEV_ID:
+            cs_gpio_per = GPIOD;
+            cs_gpio_pin = GPIO_PIN_2;
+            break;
         default:
             return BSP_STATUS_FAIL;
     }
@@ -2836,6 +2886,10 @@ uint32_t bsp_spi_write(uint32_t bsp_dev_id,
             cs_gpio_per = GPIOA;
             cs_gpio_pin = GPIO_PIN_15;
             break;
+        case BSP_EEPROM_DEV_ID:
+            cs_gpio_per = GPIOD;
+            cs_gpio_pin = GPIO_PIN_2;
+            break;
         default:
             return BSP_STATUS_FAIL;
     }
@@ -2863,16 +2917,20 @@ uint32_t bsp_spi_write(uint32_t bsp_dev_id,
     }
 
     // Transmit data
-    ret = HAL_SPI_Transmit(&hspi1, data_buffer, data_length, HAL_MAX_DELAY);
-    if (ret)
+    if (data_length)
     {
-        CRUS_THROW(exit_spi_write);
+        ret = HAL_SPI_Transmit(&hspi1, data_buffer, data_length, HAL_MAX_DELAY);
+        if (ret)
+        {
+            CRUS_THROW(exit_spi_write);
+        }
     }
+
+    CRUS_CATCH(exit_spi_write);
 
     // Chip select high
     HAL_GPIO_WritePin(cs_gpio_per, cs_gpio_pin, GPIO_PIN_SET);
 
-    CRUS_CATCH(exit_spi_write);
 #ifdef USE_CMSIS_OS
     xSemaphoreGive(mutex_spi);
 #endif
@@ -3324,6 +3382,190 @@ uint32_t bsp_set_ld2(uint8_t mode, uint32_t blink_100ms)
     }
 
     return BSP_STATUS_OK;
+}
+
+uint32_t bsp_eeprom_control(uint8_t command)
+{
+    uint32_t ret;
+
+    switch (command)
+    {
+        case BSP_EEPROM_OPCODE_WRITE_ENABLE:
+        case BSP_EEPROM_OPCODE_WRITE_DISBLE:
+        case BSP_EEPROM_OPCODE_CHIP_ERASE:
+        case BSP_EEPROM_OPCODE_RESET_ENABLE:
+        case BSP_EEPROM_OPCODE_RESET:
+            break;
+        default:
+            return BSP_STATUS_FAIL;
+    }
+
+    bsp_wait_for_eeprom();
+
+    ret = bsp_spi_write(BSP_EEPROM_DEV_ID, (uint8_t*) &(command), 1, NULL, 0, 0);
+
+    return ret;
+}
+
+uint32_t bsp_eeprom_read_jedecid(uint8_t *buffer)
+{
+    uint32_t ret;
+    uint8_t cmd = BSP_EEPROM_OPCODE_READ_JEDEC_ID;
+
+    bsp_wait_for_eeprom();
+
+    ret = bsp_spi_read(BSP_EEPROM_DEV_ID, (uint8_t*) &cmd, 1, buffer, 3, 0);
+
+    return ret;
+}
+
+uint32_t bsp_eeprom_read_status(uint8_t *buffer)
+{
+    uint32_t ret;
+    uint8_t cmd = BSP_EEPROM_OPCODE_READ_STS_REG_1;
+
+    ret = bsp_spi_read(BSP_EEPROM_DEV_ID, (uint8_t*) &cmd, 1, buffer, 2, 0);
+
+    return ret;
+}
+
+uint32_t bsp_eeprom_read(uint32_t addr,
+                         uint8_t *data_buffer,
+                         uint32_t data_length)
+{
+    uint32_t ret;
+    uint8_t buffer[4];
+    uint8_t cmd = BSP_EEPROM_OPCODE_READ_DATA;
+
+    buffer[0] = cmd;
+    buffer[1] = GET_BYTE_FROM_WORD(addr, 2);
+    buffer[2] = GET_BYTE_FROM_WORD(addr, 1);
+    buffer[3] = GET_BYTE_FROM_WORD(addr, 0);
+
+    bsp_wait_for_eeprom();
+
+    ret = bsp_spi_read(BSP_EEPROM_DEV_ID, buffer, 4, data_buffer, data_length, 0);
+
+    return ret;
+}
+
+uint32_t bsp_eeprom_program(uint32_t addr,
+                            uint8_t *data_buffer,
+                            uint32_t data_length)
+{
+    uint32_t ret;
+    uint8_t buffer[4];
+    uint8_t cmd = BSP_EEPROM_OPCODE_PAGE_PROGRAM;
+    uint32_t pages;
+    uint32_t new_addr;
+    uint32_t len_to_write;
+
+    //                                           + 0xFE = round up the integer
+    pages = (((addr & 0x000000FF) + data_length) + 0xFE) / 0xFF; // num of pages to write
+
+    for (uint32_t i = 0; i < pages; i++)
+    {
+        bsp_wait_for_eeprom();
+        bsp_eeprom_control(BSP_EEPROM_OPCODE_WRITE_ENABLE);
+
+        // Address
+        new_addr = addr + (0x100 * i);
+        buffer[0] = cmd;
+        buffer[1] = GET_BYTE_FROM_WORD(new_addr, 2);
+        buffer[2] = GET_BYTE_FROM_WORD(new_addr, 1);
+        buffer[3] = GET_BYTE_FROM_WORD(new_addr, 0);
+
+        if ((new_addr & 0xFF) + data_length > 0xFF)
+        {
+
+
+            len_to_write = 0xFF - (new_addr & 0xFF) + 1;
+
+            ret = bsp_spi_write(BSP_EEPROM_DEV_ID, buffer, 4, data_buffer, len_to_write, 0);
+            if (ret)
+            {
+                CRUS_THROW(exit_eeprom_write);
+            }
+            data_buffer += len_to_write;
+            data_length -= len_to_write;
+            addr = addr & 0xFFFFFF00;
+        }
+        else
+        {
+            ret = bsp_spi_write(BSP_EEPROM_DEV_ID, buffer, 4, data_buffer, data_length, 0);
+            if (ret)
+            {
+                CRUS_THROW(exit_eeprom_write);
+            }
+        }
+    }
+    CRUS_CATCH(exit_eeprom_write);
+    return ret;
+}
+
+uint32_t bsp_eeprom_program_verify(uint32_t addr,
+                                   uint8_t *data_buffer,
+                                   uint32_t data_length)
+{
+    uint32_t ret;
+    uint8_t * return_buffer;
+    return_buffer = (uint8_t *) bsp_malloc(data_length);
+
+    ret = bsp_eeprom_program(addr, data_buffer, data_length);
+    if (ret)
+    {
+        return BSP_STATUS_FAIL;
+    }
+
+    ret = bsp_eeprom_read(addr, return_buffer, data_length);
+    if (ret)
+    {
+        return BSP_STATUS_FAIL;
+    }
+
+    for (uint32_t i = 0; i < data_length; i++)
+    {
+        if (data_buffer[i] != return_buffer[i])
+        {
+            bsp_free(return_buffer);
+            return BSP_STATUS_FAIL;
+        }
+    }
+
+    bsp_free(return_buffer);
+
+    return BSP_STATUS_OK;
+}
+
+uint32_t bsp_eeprom_erase(uint8_t command, uint32_t addr)
+{
+    uint32_t ret;
+    uint8_t buffer[3];
+
+    switch (command)
+    {
+        case BSP_EEPROM_OPCODE_BLOCK_ERASE_64KB:
+            addr = addr & 0xFFFF0000;
+            break;
+        case BSP_EEPROM_OPCODE_BLOCK_ERASE_32KB:
+            addr = addr & 0xFFFFF000;
+            break;
+        case BSP_EEPROM_OPCODE_BLOCK_ERASE_4KB:
+            addr = addr & 0xFFFFFF00;
+            break;
+        default:
+            return BSP_STATUS_FAIL;
+    }
+
+    buffer[0] = GET_BYTE_FROM_WORD(addr, 2);
+    buffer[1] = GET_BYTE_FROM_WORD(addr, 1);
+    buffer[2] = GET_BYTE_FROM_WORD(addr, 0);
+
+    bsp_wait_for_eeprom();
+    bsp_eeprom_control(BSP_EEPROM_OPCODE_WRITE_ENABLE);
+    ret = bsp_spi_write(BSP_EEPROM_DEV_ID, (uint8_t*) &(command), 1, buffer, 3, 0);
+
+    return ret;
 }
 
 static bsp_driver_if_t bsp_driver_if_s =

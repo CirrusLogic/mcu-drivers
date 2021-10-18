@@ -30,7 +30,7 @@ repo_path = os.path.dirname(os.path.abspath(__file__)) + '/../..'
 sys.path.insert(1, (repo_path + '/tools/sdk_version'))
 from sdk_version import print_sdk_version
 import argparse
-from wisce_script_importer import wisce_script_importer
+import script_importer
 from wisce_script_exporter_factory import wisce_script_exporter_factory, exporter_types
 
 # ==========================================================================
@@ -57,7 +57,7 @@ def get_args(args):
                         help='The command you wish to execute.')
     parser.add_argument('-p', '--part', dest='part', type=str, required=True, help='The part number text for output.')
     parser.add_argument('-i', '--input', dest='input', type=str, required=True,
-                        help='The filename of the WISCE script to be parsed.')
+                        help='The filename of the WISCE script or CSV file to be parsed. CSV filenames must end with a .csv extension')
     parser.add_argument('-o', '--output', dest='output', type=str, default='.', help='The output filename.')
     parser.add_argument('-s', '--suffix', dest='suffix', type=str, default=None, help='The suffix to insert into output filename.')
     parser.add_argument('--include-comments', dest='include_comments', action="store_true",
@@ -69,9 +69,9 @@ def get_args(args):
     return parser.parse_args(args[1:])
 
 def validate_args(args):
-    # Check that input WISCE script exists
+    # Check that input WISCE script or CSV file exists
     if (not os.path.exists(args.input)):
-        print("Invalid WISCE script path: " + args.input)
+        print("Invalid WISCE script or CSV file path: " + args.input)
         return False
 
     return True
@@ -80,7 +80,7 @@ def validate_args(args):
 def print_start():
     print("")
     print("wisce_to_syscfg_reg_converter")
-    print("Convert from WISCE Script Text file to Alt-OS Syscfg Reg")
+    print("Convert from either WISCE Script Text file or SCS generated CSV file to Alt-OS Syscfg Reg")
     print("SDK Version " + print_sdk_version(repo_path + '/sdk_version.h'))
 
     return
@@ -123,8 +123,11 @@ def main(argv):
     if (not (validate_args(args))):
         error_exit("Invalid Arguments")
 
-    # Import WISCE script
-    wsi = wisce_script_importer(args.input, args.command, args.symbol_file)
+    # Import WISCE script or CSV file
+    if args.input.lower().endswith('.csv'):
+        script_imp = script_importer.scs_csv_script_importer(args.input, args.command, args.symbol_file)
+    else:
+        script_imp = script_importer.wisce_script_importer(args.input, args.command, args.symbol_file)
 
     # Create WISCE script exporter factory
     attributes = dict()
@@ -141,7 +144,7 @@ def main(argv):
         wse.add_exporter('c_functions')
 
     # Export transaction list to exporter
-    for t in wsi.get_transaction_list():
+    for t in script_imp.get_transaction_list():
         wse.add_transaction(t)
 
     # Add metadata text
@@ -158,7 +161,7 @@ def main(argv):
     print_results(wse.to_file())
     print_end()
 
-    return
+    return 0
 
 
 if __name__ == "__main__":

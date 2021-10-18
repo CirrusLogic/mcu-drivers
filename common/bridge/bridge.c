@@ -665,10 +665,32 @@ uint32_t bridge_initialize(bridge_device_t *device_list, uint8_t num_devices)
 uint32_t bridge_process(void)
 {
     // If we received a Cmd from Agent
-    if (fgets(cmd_resp, sizeof(cmd_resp), bridge_read_file) != NULL)
+    uint32_t val, i = 0;
+
+    do {
+        val = fgetc(bridge_read_file);
+        if (val == EOF)
+        {
+            if (i)
+            {
+                // No more data, but we're mid transaction, so keep waiting
+                continue;
+            }
+            else
+            {
+                // No data, so just return
+                break;
+            }
+        }
+
+        cmd_resp[i++] = (char) val;
+    } while (val != '\n');
+
+    if (i)
     {
         uint32_t ret;
         bridge_command_handler_t handler = NULL;
+        cmd_resp[i++] = '\0';
 
         /* We need to handle errors sensibly. Errors with carrying out bridge cmds need to be identified
         correctly, but maybe in a coarse manner. We always want to send back a response either
@@ -683,7 +705,7 @@ uint32_t bridge_process(void)
         // Note: all text formulated for Agent here and sent over m-UART needs an added \n
         // The final fprint() call also needs a \n (this \n gets stripped at the receiving Agent)
 
-        for (uint8_t i = 0; i < (sizeof(command_handler_map)/sizeof(bridge_command_handler_map_t)); i++)
+        for (i = 0; i < (sizeof(command_handler_map)/sizeof(bridge_command_handler_map_t)); i++)
         {
             if (strncmp(cmd_resp, command_handler_map[i].cmd, strlen(command_handler_map[i].cmd)) == 0)
             {

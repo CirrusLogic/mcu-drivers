@@ -315,7 +315,7 @@ class header_file:
         output_str = self.template_str
 
         # Update firmware metadata
-        fw_id_str = " 0x" + "{0:{1}X}".format(self.terms['fw_id'], 6)
+        fw_id_str = " 0x" + "{0:X}".format(self.terms['fw_id'])
         output_str = output_str.replace('{fw_id}', fw_id_str)
 
         if (len(self.algorithm_controls) > 0):

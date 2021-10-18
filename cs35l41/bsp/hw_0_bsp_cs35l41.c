@@ -230,9 +230,6 @@ uint32_t bsp_dut_initialize(void)
 
     if (cs35l41_driver.config.bsp_config.cp_config.bus_type == BSP_BUS_TYPE_SPI)
     {
-        // Bypass LN2 FPGA
-        temp_buffer = __builtin_bswap32(0x00EE0000);
-        bsp_i2c_write(BSP_LN2_DEV_ID, (uint8_t *)&temp_buffer, 4, NULL, NULL);
         // Toggle CIF Master mode to SPI
         temp_buffer = __builtin_bswap32(0x00F00000);
         bsp_i2c_write(BSP_LN2_DEV_ID, (uint8_t *)&temp_buffer, 4, NULL, NULL);

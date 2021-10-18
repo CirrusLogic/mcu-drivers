@@ -32,7 +32,7 @@ import os
 # CONSTANTS/GLOBALS
 # ==========================================================================
 header_file_template_str = """/**
- * @file {part_number_lc}_syscfg_regs.h
+ * @file {filename_prefix_lc}_syscfg_regs.h
  *
  * @brief Register values to be applied after {part_number_uc} Driver boot().
  *
@@ -54,8 +54,8 @@ header_file_template_str = """/**
 {metadata_text} *
  */
 
-#ifndef {part_number_uc}_SYSCFG_REGS_H
-#define {part_number_uc}_SYSCFG_REGS_H
+#ifndef {filename_prefix_uc}_SYSCFG_REGS_H
+#define {filename_prefix_uc}_SYSCFG_REGS_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -81,18 +81,18 @@ extern "C" {
 /***********************************************************************************************************************
  * FUNCTIONS
  **********************************************************************************************************************/
-uint32_t {part_number_lc}_apply_syscfg({part_number_lc}_t *driver);
+uint32_t {filename_prefix_lc}_apply_syscfg({part_number_lc}_t *driver);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif // {part_number_uc}_SYSCFG_REGS_H
+#endif // {filename_prefix_uc}_SYSCFG_REGS_H
 
 """
 
 source_file_template_str = """/**
- * @file {part_number_lc}_syscfg_regs.c
+ * @file {filename_prefix_lc}_syscfg_regs.c
  *
  * @brief Register values to be applied after {part_number_uc} Driver boot().
  *
@@ -115,13 +115,13 @@ source_file_template_str = """/**
 /***********************************************************************************************************************
  * INCLUDES
  **********************************************************************************************************************/
-#include "{part_number_lc}_syscfg_regs.h"
+#include "{filename_prefix_lc}_syscfg_regs.h"
 #include "{part_number_lc}_spec.h"
 
 /***********************************************************************************************************************
  * COMMANDS
  **********************************************************************************************************************/
-uint32_t {part_number_lc}_apply_syscfg({part_number_lc}_t *driver)
+uint32_t {filename_prefix_lc}_apply_syscfg({part_number_lc}_t *driver)
 {
 {syscfg_cmd_list}
 {space}{return}
@@ -145,6 +145,14 @@ class c_function_exporter(wisce_script_exporter):
         self.terms['metadata_text'] = ''
         self.output_path = self.attributes['output_path']
         self.include_comments = self.attributes['include_comments']
+
+
+        self.terms['filename_prefix_lc'] = self.terms['part_number_lc']
+        self.terms['filename_prefix_uc'] = self.terms['part_number_uc']
+        if (self.attributes['suffix'] is not None):
+            self.terms['filename_prefix_lc'] += '_' + self.attributes['suffix'].lower()
+            self.terms['filename_prefix_uc'] += '_' + self.attributes['suffix'].upper()
+
         return
 
     def add_transaction(self, transaction):
@@ -161,6 +169,8 @@ class c_function_exporter(wisce_script_exporter):
         output_str = output_str.replace('{transaction_list}', self.terms['transaction_list'])
         output_str = output_str.replace('{part_number_lc}', self.terms['part_number_lc'])
         output_str = output_str.replace('{part_number_uc}', self.terms['part_number_uc'])
+        output_str = output_str.replace('{filename_prefix_lc}', self.terms['filename_prefix_lc'])
+        output_str = output_str.replace('{filename_prefix_uc}', self.terms['filename_prefix_uc'])
 
         output_str = output_str.replace('\n\n\n', '\n\n')
         return output_str
@@ -240,6 +250,8 @@ class c_function_exporter(wisce_script_exporter):
         output_str = output_str.replace('{return_fail}', "return {part_number_uc}_STATUS_FAIL;")
         output_str = output_str.replace('{part_number_lc}', self.terms['part_number_lc'])
         output_str = output_str.replace('{part_number_uc}', self.terms['part_number_uc'])
+        output_str = output_str.replace('{filename_prefix_lc}', self.terms['filename_prefix_lc'])
+        output_str = output_str.replace('{filename_prefix_uc}', self.terms['filename_prefix_uc'])
         output_str = output_str.replace('\n\n\n', '\n\n')
         output_str = output_str.replace('{space}', "    ")
         return output_str
@@ -250,13 +262,13 @@ class c_function_exporter(wisce_script_exporter):
         if not(os.path.exists(self.output_path)) and not(os.path.isdir(self.output_path)):
             os.mkdir(self.output_path)
 
-        temp_filename = self.output_path + '/' + self.terms['part_number_lc'] + "_syscfg_regs.h"
+        temp_filename = self.output_path + '/' + self.terms['filename_prefix_lc'] + "_syscfg_regs.h"
         f = open(temp_filename, 'w')
         f.write(self.to_string(True))
         f.close()
         results_str += temp_filename + '\n'
 
-        temp_filename = self.output_path + '/' + self.terms['part_number_lc'] + "_syscfg_regs.c"
+        temp_filename = self.output_path + '/' + self.terms['filename_prefix_lc'] + "_syscfg_regs.c"
         f = open(temp_filename, 'w')
         f.write(self.to_string(False))
         f.close()
