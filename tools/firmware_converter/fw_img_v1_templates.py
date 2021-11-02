@@ -253,6 +253,7 @@ class fw_img_v1_file(firmware_exporter):
         self.terms['max_block_size'] = self.attributes['max_block_size']
         self.terms['sym_partition'] = self.attributes['sym_partition']
         self.terms['no_sym_table'] = self.attributes['no_sym_table']
+        self.terms['exclude_dummy'] = self.attributes['exclude_dummy']
 
         self.algorithms = OrderedDict()
         self.algorithm_controls = OrderedDict()
@@ -364,15 +365,20 @@ class fw_img_v1_file(firmware_exporter):
                 temp_alg_str = ""
                 for control in self.algorithm_controls[alg_name]:
                     temp_ctl_str = self.terms['part_number_uc'] + "_SYM_" + control[0].upper()
-                    if ((symbol_id_list is None) or
-                        ((symbol_id_list is not None) and (temp_ctl_str in symbol_id_list))):
-                        temp_ctl_str = "#define " + temp_ctl_str
-                        temp_ctl_str += ' ' * (longest_str_len - len(temp_ctl_str))
-                        temp_ctl_str += '(' + hex(control_id) + ')\n'
+                    if temp_ctl_str in temp_alg_str:
+                        print("[WARNING] Duplicate symbol id skipped: " + str(temp_ctl_str) + " (" + hex(control_id) + ")")
+                    elif self.terms['exclude_dummy'] and temp_ctl_str.endswith("DUMMY"):
+                        continue
+                    else:
+                        if ((symbol_id_list is None) or
+                            ((symbol_id_list is not None) and (temp_ctl_str in symbol_id_list))):
+                            temp_ctl_str = "#define " + temp_ctl_str
+                            temp_ctl_str += ' ' * (longest_str_len - len(temp_ctl_str))
+                            temp_ctl_str += '(' + hex(control_id) + ')\n'
 
-                        temp_alg_str += temp_ctl_str
+                            temp_alg_str += temp_ctl_str
 
-                        control_id += 1
+                            control_id += 1
                 control_id_outer += 1
                 if (temp_alg_str != ""):
                     alg_list_str += "#define {part_number_uc}_ALGORITHM_" + alg_name.upper() + "\n"

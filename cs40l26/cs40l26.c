@@ -488,7 +488,7 @@ uint32_t cs40l26_reset(cs40l26_t *driver)
 {
     uint8_t dsp_state;
     uint32_t halo_state;
-    int ret;
+    int ret, i;
     regmap_cp_config_t *cp = REGMAP_GET_CP(driver);
 
     // Drive RESET low for at least T_RLPW (1ms)
@@ -510,20 +510,29 @@ uint32_t cs40l26_reset(cs40l26_t *driver)
     {
         return ret;
     }
-
-    ret = regmap_read(cp, CS40L26_A1_DSP_HALO_STATE_REG, &halo_state);
-    if (ret)
+    for (i = 0; i < 10; i++)
     {
-        return ret;
-    }
-
-    if (halo_state != CS40L26_DSP_HALO_STATE_RUN)
-    {
-        ret = cs40l26_pm_state_transition(driver, CS40L26_PM_STATE_PREVENT_HIBERNATE);
+        ret = regmap_read(cp, CS40L26_A1_DSP_HALO_STATE_REG, &halo_state);
         if (ret)
         {
             return ret;
         }
+
+        if (halo_state == CS40L26_DSP_HALO_STATE_RUN)
+        {
+            break;
+        }
+        bsp_driver_if_g->set_timer(CS40L26_1_MS, NULL, NULL);
+    }
+
+    if(i == 10)
+    {
+        return CS40L26_STATUS_FAIL;
+    }
+    ret = cs40l26_pm_state_transition(driver, CS40L26_PM_STATE_PREVENT_HIBERNATE);
+    if (ret)
+    {
+        return ret;
     }
 
     ret = cs40l26_dsp_state_get(driver, &dsp_state);
@@ -588,7 +597,7 @@ uint32_t cs40l26_boot(cs40l26_t *driver, fw_img_info_t *fw_info)
 
 uint32_t cs40l26_power(cs40l26_t *driver, uint32_t power_state)
 {
-    uint32_t ret = CS40L26_STATUS_FAIL;
+    uint32_t ret = CS40L26_STATUS_OK;
     uint32_t new_state = driver->power_state;
 
     switch (power_state)

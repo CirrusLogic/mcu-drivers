@@ -1,43 +1,31 @@
 Artifact Info:
-Artifact           : CS35L41 Alt-OS Driver: 4.9.0 - 33ff2cd2cf0bba5a18e663fcc9bdaee335bb2658
+Artifact           : CS40L26 Alt-OS Driver: 4.9.0 - 33ff2cd2cf0bba5a18e663fcc9bdaee335bb2658
 Test Target MCU SDK: STM32Cube_FW_F4: 1.24.1
 Target toolchain   : GNU Arm Embedded Toolchain: arm-none-eabi-gcc (GNU Tools for Arm Embedded Processors 8-2019-q3-update) 8.3.1 20190703 (release) [gcc-8-branch revision 273027]
 Build system       : make: GNU Make 3.82
 OS                 : Linux: 3.10.0-1160.25.1.el7.x86_64
 Shell              : bash: GNU bash, version 4.2.46(2)-release (x86_64-redhat-linux-gnu)
 Host toolchain     : MinGW GCC: gcc (GCC) 4.8.5 20150623 (Red Hat 4.8.5-39)
-Build Job          : prince_alt_os_nightly: 910
+Build Job          : peart_h_alt_os_nightly: 70
 Git SHA            : 33ff2cd2cf0bba5a18e663fcc9bdaee335bb2658
 
 System resources:
 
 Build Configuration 1:
 
-Artifact filename    : libcs35l41.a
-Driver TEXT          : 7128
+Artifact filename    : libcs40l26.a
+Driver TEXT          : 3192
 Driver BSS           : 0
-Driver DATA          : 184
-Driver Max Stack     : 192 (cs35l41_power -> cs35l41_wake -> cs35l41_restore -> cs35l41_write_post_boot_config -> regmap_write_array -> regmap_update_reg -> regmap_read -> uint32_t)
+Driver DATA          : 24
+Driver Max Stack     : 120 (cs40l26_power -> cs40l26_hibernate -> cs40l26_pm_state_transition -> regmap_write_acked_reg -> regmap_read -> GET_BYTE_FROM_WORD)
 
 Artifact filename    : baremetal.elf
-Driver TEXT          : 6482
-Driver BSS           : 248
-Driver DATA          : 184
+Driver TEXT          : 2372
+Driver BSS           : 176
+Driver DATA          : 24
 
-Artifact filename    : cs35l41_cal_fw_img.o
-Driver TEXT          : 888
-
-Artifact filename    : cs35l41_fw_img.o
-Driver TEXT          : 29532
-
-Artifact filename    : cs35l41_tune_44p1_fw_img.o
-Driver TEXT          : 248
-
-Artifact filename    : cs35l41_tune_48_fw_img.o
-Driver TEXT          : 248
-
-Artifact filename    : cs35l41_tune_fw_img.o
-Driver TEXT          : 3004
+Artifact filename    : cs40l26_fw_img.o
+Driver TEXT          : 1748
 
 Compiler flags:
     -mcpu=cortex-m4

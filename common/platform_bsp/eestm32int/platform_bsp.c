@@ -1,10 +1,10 @@
 /**
- * @file hw_0_bsp.c
+ * @file platform_bsp.c
  *
  * @brief Implementation of the BSP for the HW ID0 platform.
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2020-2021 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2021 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -23,7 +23,7 @@
  * INCLUDES
  **********************************************************************************************************************/
 #include <stdlib.h>
-#include "hw_0_bsp.h"
+#include "platform_bsp.h"
 #include "stm32f4xx_hal.h"
 #include "test_tone_tables.h"
 #ifdef USE_CMSIS_OS

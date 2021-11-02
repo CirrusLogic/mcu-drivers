@@ -4,7 +4,7 @@
  * @brief The main function for CS40L25 System Test Harness
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2019 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2019, 2021 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -24,7 +24,7 @@
  **********************************************************************************************************************/
 #include <stddef.h>
 #include <stdlib.h>
-#include "hw_0_bsp.h"
+#include "platform_bsp.h"
 #include "FreeRTOS.h"
 #include "task.h"
 

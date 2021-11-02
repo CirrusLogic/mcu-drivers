@@ -22,7 +22,7 @@
 /***********************************************************************************************************************
  * INCLUDES
  **********************************************************************************************************************/
-#include "hw_0_bsp.h"
+#include "platform_bsp.h"
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -69,19 +69,19 @@
 
 
 /* Error Codes
- 23 (WMT_INVALID_PARAMETER) – Encountered an unexpected null pointer in the server.
- 27 (WMT_WRITE_FAILED) – Failed to write debug control value
- 28 (WMT_READ_FAILED) – Unable to parse the register line from the codec file.
+ 23 (WMT_INVALID_PARAMETER) - Encountered an unexpected null pointer in the server.
+ 27 (WMT_WRITE_FAILED) - Failed to write debug control value
+ 28 (WMT_READ_FAILED) - Unable to parse the register line from the codec file.
     Either the device is in low power mode or the line is in an unrecognized format.
- 32 (WMT_RESOURCE_FAIL) – Failed to allocate memory.
- 33 (WMT_UNSUPPORTED) – Operation is not supported by the current StudioBridge implementation.
- 36 (WMT_NO_DEVICE) – No device present or failed to open codec file.
- 37 (WMT_REG_NOT_PRESENT) – Register is not present on device.
- 46 (WMT_TRUNCATED) – Successfully read from the codec file, but the given buffer
+ 32 (WMT_RESOURCE_FAIL) - Failed to allocate memory.
+ 33 (WMT_UNSUPPORTED) - Operation is not supported by the current StudioBridge implementation.
+ 36 (WMT_NO_DEVICE) - No device present or failed to open codec file.
+ 37 (WMT_REG_NOT_PRESENT) - Register is not present on device.
+ 46 (WMT_TRUNCATED) - Successfully read from the codec file, but the given buffer
     was not large enough for the requested count of bytes to be read - data has been truncated.
- 63 General failure — String manipulation error in the server, failed to read from the
+ 63 General failure - String manipulation error in the server, failed to read from the
     codec file or there was a failure when communicating with the device.
- 1E (WMT_INVALID_COMMAND) – Missing <reg> value or <reg> is too long
+ 1E (WMT_INVALID_COMMAND) - Missing <reg> value or <reg> is too long
 
 */
 // These represent Hex values as string literals
@@ -100,7 +100,7 @@
 #define ERROR                   ("ER")
 
 // Some defines used in responses, for Shelley
-/* So on Alt-OS need a Info table coded for THAT device in file hw_0_bsp_<device>.c
+/* So on Alt-OS need a Info table coded for THAT device in file bsp_<device>.c
  where we read all this info from, incl if multi-chip device and device identifiers
  */
 #define APP_NAME        ("\"StudioBridge\"")

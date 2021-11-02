@@ -1,10 +1,10 @@
 /**
- * @file hw_0_bsp_dut.h
+ * @file bsp_dut.h
  *
- * @brief Functions and prototypes exported by the BSP module for the system_test_hw_0 platform.
+ * @brief Functions and prototypes exported by the BSP module for the cs40l26 platform.
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2020 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2021 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -20,8 +20,8 @@
  *
  */
 
-#ifndef HW_0_BSP_DUT_H
-#define HW_0_BSP_DUT_H
+#ifndef BSP_DUT_H
+#define BSP_DUT_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -40,17 +40,9 @@ extern "C" {
 
 #define BSP_DUT_TRIGGER_HAPTIC_POWER_ON                     (0xFF)
 
-// data length read from array with padding, should be multiple of 4
-#define BSP_DUT_BUFFER_SIZE                                  24572 
 /***********************************************************************************************************************
  * MACROS
  **********************************************************************************************************************/
-#define BSP_USE_CASE_TG_HP_EN                                   (0x0)
-#define BSP_USE_CASE_TG_HP_DIS                                  (0x1)
-#define BSP_USE_CASE_MP3_441K_INIT                              (0x2)
-#define BSP_USE_CASE_MP3_48K_INIT                               (0x3)
-#define BSP_USE_CASE_MP3_PROCESS                                (0x4)
-#define BSP_USE_CASE_MP3_DONE                                   (0x5)
 
 /***********************************************************************************************************************
  * ENUMS, STRUCTS, UNIONS, TYPEDEFS
@@ -66,7 +58,15 @@ extern "C" {
 uint32_t bsp_dut_initialize(void);
 uint32_t bsp_dut_reset(void);
 uint32_t bsp_dut_boot();
-uint32_t bsp_dut_use_case(uint32_t use_case);
+uint32_t bsp_dut_calibrate(void);
+uint32_t bsp_dut_power_up(void);
+uint32_t bsp_dut_power_down(void);
+uint32_t bsp_dut_hibernate(void);
+uint32_t bsp_dut_wake(void);
+uint32_t bsp_dut_trigger_haptic(uint8_t waveform, bool is_rom);
+uint32_t bsp_dut_has_processed(bool *has_processed);
+uint32_t bsp_dut_enable_haptic_processing(bool enable);
+uint32_t bsp_dut_dynamic_calibrate(uint8_t index);
 uint32_t bsp_dut_process(void);
 
 /**********************************************************************************************************************/
@@ -74,4 +74,4 @@ uint32_t bsp_dut_process(void);
 }
 #endif
 
-#endif // HW_0_BSP_DUT_H
+#endif // BSP_DUT_H

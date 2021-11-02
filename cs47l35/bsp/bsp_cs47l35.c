@@ -1,7 +1,7 @@
 /**
- * @file system_test_hw_0_bsp.c
+ * @file bsp_cs47l35.c
  *
- * @brief Implementation of the BSP for the system_test_hw_0 platform.
+ * @brief Implementation of the BSP for the cs47l35 platform.
  *
  * @copyright
  * Copyright (c) Cirrus Logic 2021 All Rights Reserved, http://www.cirrus.com/
@@ -24,7 +24,7 @@
  **********************************************************************************************************************/
 #include <string.h>
 #include <stdlib.h>
-#include "hw_0_bsp.h"
+#include "platform_bsp.h"
 #include "cs47l35.h"
 #include "cs47l35_ext.h"
 #include "cs47l35_syscfg_regs.h"

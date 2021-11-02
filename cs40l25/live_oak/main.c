@@ -1,7 +1,7 @@
 /**
  * @file main.c
  *
- * @brief The main function for CS47L35 System Test Harness
+ * @brief The main function for CS40L25 System Test Harness
  *
  * @copyright
  * Copyright (c) Cirrus Logic 2021 All Rights Reserved, http://www.cirrus.com/
@@ -29,18 +29,10 @@
 /***********************************************************************************************************************
  * LOCAL LITERAL SUBSTITUTIONS
  **********************************************************************************************************************/
-#define APP_STATE_UNINITIALIZED                  (0)
-#define APP_STATE_STANDBY                        (1)
-#define APP_STATE_TG_HP                          (2)
-#define APP_STATE_OPUS_16K_RECORD_INIT           (3)
-#define APP_STATE_OPUS_16K_RECORD                (4)
-#define APP_STATE_OPUS_16K_RECORD_DONE           (5)
 
 /***********************************************************************************************************************
  * LOCAL VARIABLES
  **********************************************************************************************************************/
-static uint16_t app_state = APP_STATE_UNINITIALIZED;
-static bool bsp_pb_pressed = false;
 
 /***********************************************************************************************************************
  * GLOBAL VARIABLES
@@ -54,6 +46,71 @@ void app_bsp_callback(uint32_t status, void *arg)
     if (status == BSP_STATUS_FAIL)
     {
         exit(1);
+    }
+
+    return;
+}
+
+void app_process_initial_switch_state(void)
+{
+    uint8_t temp_state = 0;
+
+    bsp_get_switch_state_changes(&temp_state, NULL);
+
+    bsp_dut_power_down();   // Exit BHM
+    if (temp_state & 0x8)
+    {
+        // Boot calibration firmware
+        bsp_dut_boot(true);
+        bsp_dut_power_up();
+        bsp_dut_calibrate();
+        bsp_set_led(0, BSP_LD2_MODE_BLINK, 5);
+    }
+    else
+    {
+        // Boot run-time firmware
+        bsp_dut_boot(false);
+        bsp_dut_power_up();
+        bsp_set_led(0, BSP_LD2_MODE_ON, 0);
+    }
+
+    return;
+}
+
+void app_process_switches(void)
+{
+    uint8_t temp_state = 0;
+    uint8_t temp_mask = 0;
+
+    bsp_get_switch_state_changes(&temp_state, &temp_mask);
+
+    if (temp_mask & 0x8)
+    {
+        if (temp_state & 0x8)
+        {
+            // Boot calibration firmware
+            bsp_set_led(0, BSP_LD2_MODE_BLINK, 1);
+            bsp_dut_power_down();
+            bsp_dut_boot(true);
+            bsp_dut_power_up();
+            bsp_dut_calibrate();
+            bsp_set_led(0, BSP_LD2_MODE_BLINK, 5);
+        }
+        else
+        {
+            // Boot run-time firmware
+            bsp_set_led(0, BSP_LD2_MODE_BLINK, 1);
+            bsp_dut_power_down();
+            bsp_dut_boot(false);
+            bsp_dut_power_up();
+            bsp_set_led(0, BSP_LD2_MODE_ON, 0);
+        }
+    }
+    else if (temp_mask & 0x7)
+    {
+        bsp_dut_wake();
+        bsp_dut_trigger_haptic((temp_state & 0x7), 0);
+        bsp_dut_hibernate();
     }
 
     return;
@@ -75,64 +132,15 @@ int main(void)
 
     bsp_initialize(app_bsp_callback, NULL);
     bsp_dut_initialize();
-
-    bsp_set_ld2(BSP_LD2_MODE_ON, 0);
-
     bsp_dut_reset();
-    app_state = APP_STATE_STANDBY;
+    bsp_dut_trigger_haptic(BSP_DUT_TRIGGER_HAPTIC_POWER_ON, 0);
+
+    app_process_initial_switch_state();
 
     while (1)
     {
         bsp_dut_process();
-        if (bsp_was_pb_pressed(BSP_PB_ID_USER))
-        {
-            bsp_pb_pressed = true;
-        }
-        switch (app_state)
-        {
-            case APP_STATE_STANDBY:
-                if (bsp_pb_pressed)
-                {
-                    bsp_dut_use_case(BSP_USE_CASE_TG_HP_EN);
-                    app_state++;
-                }
-                break;
-
-            case APP_STATE_TG_HP:
-                if (bsp_pb_pressed)
-                {
-                    bsp_dut_use_case(BSP_USE_CASE_TG_HP_DIS);
-                    app_state++;
-                }
-                break;
-
-            case APP_STATE_OPUS_16K_RECORD_INIT:
-                if (bsp_pb_pressed)
-                {
-                    bsp_dut_use_case(BSP_USE_CASE_OPUS_RECORD_16K_INIT);
-                    app_state++;
-                }
-                break;
-
-            case APP_STATE_OPUS_16K_RECORD:
-                bsp_dut_use_case(BSP_USE_CASE_OPUS_RECORD);
-                if (bsp_read_process_done & bsp_write_process_done)
-                {
-                    app_state++;
-                }
-                break;
-
-            case APP_STATE_OPUS_16K_RECORD_DONE:
-                bsp_dut_use_case(BSP_USE_CASE_OPUS_RECORD_DONE);
-                app_state = APP_STATE_STANDBY;
-                break;
-
-            default:
-                break;
-        }
-
-        bsp_pb_pressed = false;
-
+        app_process_switches();
         bsp_sleep();
     }
 

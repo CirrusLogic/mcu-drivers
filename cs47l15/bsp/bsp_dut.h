@@ -1,10 +1,10 @@
 /**
- * @file otp_unpacker.h
+ * @file bsp_dut.h
  *
- * @brief Functions and prototypes exported by the OTP Unpacker module
+ * @brief Functions and prototypes exported by the BSP module for the cs47l15 platform.
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2020 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2021 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -20,8 +20,8 @@
  *
  */
 
-#ifndef OTP_UNPACKER
-#define OTP_UNPACKER
+#ifndef BSP_DUT_H
+#define BSP_DUT_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -30,26 +30,27 @@ extern "C" {
 /***********************************************************************************************************************
  * INCLUDES
  **********************************************************************************************************************/
-#include <stdint.h>
+#include "bsp_driver_if.h"
 #include <stdbool.h>
-#include "cs35l41.h"
 
 /***********************************************************************************************************************
- * LITERALS, CONSTANTS, MACROS
+ * LITERALS & CONSTANTS
  **********************************************************************************************************************/
-/**
- * @defgroup OTP_UNPACKER_STATUS_
- * @brief Return codes for OTP Unpacker API calls
- *
- * @{
- */
-#define OTP_UNPACKER_STATUS_OK          (0)
-#define OTP_UNPACKER_STATUS_FAIL        (1)
-/** @} */
+#define BSP_DUT_I2C_ADDRESS_8BIT                            (0x80)
 
-#define OTP_UNPACKER_OTP_ADDRESS        (CS35L41_OTP_IF_OTP_MEM0_REG)
+#define BSP_DUT_TRIGGER_HAPTIC_POWER_ON                     (0xFF)
 
-#define OTP_UNPACKER_OTP_SIZE_WORDS     (CS35L41_OTP_SIZE_WORDS)
+// data length read from array with padding, should be multiple of 4
+#define BSP_DUT_BUFFER_SIZE                                  24572
+/***********************************************************************************************************************
+ * MACROS
+ **********************************************************************************************************************/
+#define BSP_USE_CASE_TG_HP_EN                                   (0x0)
+#define BSP_USE_CASE_TG_HP_DIS                                  (0x1)
+#define BSP_USE_CASE_MP3_441K_INIT                              (0x2)
+#define BSP_USE_CASE_MP3_48K_INIT                               (0x3)
+#define BSP_USE_CASE_MP3_PROCESS                                (0x4)
+#define BSP_USE_CASE_MP3_DONE                                   (0x5)
 
 /***********************************************************************************************************************
  * ENUMS, STRUCTS, UNIONS, TYPEDEFS
@@ -58,21 +59,19 @@ extern "C" {
 /***********************************************************************************************************************
  * GLOBAL VARIABLES
  **********************************************************************************************************************/
-extern const cs35l41_otp_map_t cs35l41_otp_maps[2];  // Extern-ed from cs35l41.c
 
 /***********************************************************************************************************************
  * API FUNCTIONS
  **********************************************************************************************************************/
-uint32_t otp_unpacker_initialize(uint8_t otpid, uint8_t *otp_buffer);
-uint32_t otp_unpacker_deinitialize(void);
-uint32_t otp_unpacker_get_reg_list_total(uint8_t *total);
-uint32_t otp_unpacker_get_reg_address(uint32_t *address, uint8_t index);
-uint32_t otp_unpacker_set_reg_value(uint8_t index, uint32_t value);
-uint32_t otp_unpacker_get_unpacked_reg_list(uint32_t **reg_list, uint32_t *reg_list_total_words);
+uint32_t bsp_dut_initialize(void);
+uint32_t bsp_dut_reset(void);
+uint32_t bsp_dut_boot();
+uint32_t bsp_dut_use_case(uint32_t use_case);
+uint32_t bsp_dut_process(void);
 
 /**********************************************************************************************************************/
 #ifdef __cplusplus
 }
 #endif
 
-#endif // OTP_UNPACKER
+#endif // BSP_DUT_H

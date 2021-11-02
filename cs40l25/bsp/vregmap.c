@@ -30,7 +30,7 @@
 
 // Add includes for modules needed for vregmap handlers
 #include "sdk_version.h"
-#include "hw_0_bsp.h"
+#include "platform_bsp.h"
 
 /***********************************************************************************************************************
  * LOCAL LITERAL SUBSTITUTIONS

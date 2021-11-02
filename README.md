@@ -23,7 +23,7 @@ This project uses Open Source components. You can find the source code of their 
 
 ## STM32F4xx_HAL_Driver
 Project Code:
-* https://github.com/CirrusLogic/mcu-drivers/blob/main/common/system_test_hw_0/stm32f4xx_hal_conf.h
+* https://github.com/CirrusLogic/mcu-drivers/blob/main/common/eestm32int/stm32f4xx_hal_conf.h
 * https://github.com/STMicroelectronics/STM32CubeF4/tree/v1.24.1/Drivers/STM32F4xx_HAL_Driver
 
 Copyright (c) 2017 STMicroelectronics. All rights reserved.
@@ -36,11 +36,11 @@ Project Code:
 * https://github.com/STMicroelectronics/STM32CubeF4/blob/v1.24.1/Drivers/CMSIS/Device/ST/STM32F4xx/Source/Templates/system_stm32f4xx.c
 * https://github.com/CirrusLogic/mcu-drivers/blob/main/third_party/st/STM32Cube_FW_F4_V1.24.1/Drivers/CMSIS/Device/ST/STM32F4xx/Source/Templates/gcc/startup_stm32f401xe.s
 * https://github.com/STMicroelectronics/STM32CubeF4/blob/v1.24.1/Drivers/CMSIS/Device/ST/STM32F4xx/Source/Templates/gcc/startup_stm32f401xe.s
-* https://github.com/CirrusLogic/mcu-drivers/blob/main/common/system_test_hw_0/stm32f4xx_it.c
-* https://github.com/CirrusLogic/mcu-drivers/blob/main/common/system_test_hw_0/stm32f4xx_it.h
-* https://github.com/CirrusLogic/mcu-drivers/blob/main/common/system_test_hw_0/syscalls.c
-* https://github.com/CirrusLogic/mcu-drivers/blob/main/common/system_test_hw_0/sysmem.c
-* https://github.com/CirrusLogic/mcu-drivers/blob/main/common/system_test_hw_0/STM32F401RETX_FLASH.ld
+* https://github.com/CirrusLogic/mcu-drivers/blob/main/common/syscalls.c
+* https://github.com/CirrusLogic/mcu-drivers/blob/main/common/sysmem.c
+* https://github.com/CirrusLogic/mcu-drivers/blob/main/common/eestm32int/stm32f4xx_it.c
+* https://github.com/CirrusLogic/mcu-drivers/blob/main/common/eestm32int/stm32f4xx_it.h
+* https://github.com/CirrusLogic/mcu-drivers/blob/main/common/eestm32int/STM32F401RETX_FLASH.ld
 
 Copyright (c) 2017, 2018, 2019 STMicroelectronics
 
@@ -80,6 +80,9 @@ License (Apache-2.0): https://github.com/STMicroelectronics/STM32CubeF4/blob/v1.
 Project Code:
 * https://github.com/CirrusLogic/mcu-drivers/blob/main/cs35l41/freertos/FreeRTOSConfig.h
 * https://github.com/CirrusLogic/mcu-drivers/blob/main/cs40l25/freertos/FreeRTOSConfig.h
+* https://github.com/CirrusLogic/mcu-drivers/blob/main/cs40l26/freertos/FreeRTOSConfig.h
+* https://github.com/CirrusLogic/mcu-drivers/blob/main/cs47l15/freertos/FreeRTOSConfig.h
+* https://github.com/CirrusLogic/mcu-drivers/blob/main/cs47l35/freertos/FreeRTOSConfig.h
 * https://github.com/STMicroelectronics/STM32CubeF4/tree/v1.24.1/Middlewares/Third_Party/FreeRTOS
 
 Copyright (C) 2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.

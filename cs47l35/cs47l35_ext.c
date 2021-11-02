@@ -427,12 +427,9 @@ static uint32_t cs47l35_init_dsp_ringbuf_structure(cs47l35_t *driver,
     dsp_buffer->buffer_size *= 3; //convert to unpadded bytes
     dsp_buffer->avail = dsp_buffer->buffer_size - 3;
     cs47l35_get_dsp_element_value(driver, rb_struct_base_addr, irq_ack, &(dsp_buffer->irq_ack));
-    dsp_buffer->next_write_index = 0;
-    cs47l35_set_dsp_element_value(driver, rb_struct_base_addr, next_write_index, dsp_buffer->next_write_index);
-    dsp_buffer->next_read_index = 0;
-    cs47l35_set_dsp_element_value(driver, rb_struct_base_addr, next_read_index, dsp_buffer->next_read_index);
+    cs47l35_get_dsp_element_value(driver, rb_struct_base_addr, next_write_index, &(dsp_buffer->next_write_index));
+    cs47l35_get_dsp_element_value(driver, rb_struct_base_addr, next_read_index, &(dsp_buffer->next_read_index));
     cs47l35_get_dsp_element_value(driver, rb_struct_base_addr, dsp_error, &(dsp_buffer->error));
-    cs47l35_set_dsp_element_value(driver, rb_struct_base_addr, end_of_stream, 0);
 
     return CS47L35_STATUS_OK;
 }

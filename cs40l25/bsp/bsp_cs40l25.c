@@ -1,10 +1,10 @@
 /**
- * @file system_test_hw_0_bsp.c
+ * @file bsp_cs40l25.c
  *
- * @brief Implementation of the BSP for the system_test_hw_0 platform.
+ * @brief Implementation of the BSP for the cs40l25 platform.
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2019, 2021 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2021 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -23,7 +23,7 @@
  * INCLUDES
  **********************************************************************************************************************/
 #include <string.h>
-#include "hw_0_bsp.h"
+#include "platform_bsp.h"
 #include "cs40l25.h"
 #include "cs40l25_ext.h"
 #include "cs40l25_syscfg_regs.h"
@@ -95,6 +95,7 @@ static cs40l25_haptic_config_t cs40l25_haptic_configs[] =
 #endif
 };
 
+#ifdef CONFIG_USE_BRIDGE
 #ifdef CONFIG_USE_VREGMAP
 static bridge_device_t device_list[] =
 {
@@ -123,6 +124,7 @@ static bridge_device_t device_list[] =
     }
 };
 #endif
+#endif
 
 /***********************************************************************************************************************
  * GLOBAL VARIABLES
@@ -140,7 +142,6 @@ uint32_t bsp_dut_initialize(void)
     uint32_t ret = BSP_STATUS_OK;
     uint32_t haptic_status;
     cs40l25_config_t haptic_config;
-    uint32_t temp_buffer;
 
     memset(&haptic_config, 0, sizeof(cs40l25_config_t));
 
@@ -177,6 +178,8 @@ uint32_t bsp_dut_initialize(void)
         ret = BSP_STATUS_FAIL;
     }
 
+#ifdef CONFIG_LN2
+    uint32_t temp_buffer;
 #ifndef CONFIG_L25B
 #ifndef CONFIG_TEST_OPEN_LOOP
     // Enable 32kHz clock routing to CS40L25
@@ -235,12 +238,15 @@ uint32_t bsp_dut_initialize(void)
     // Channel 5 source set to GF_GPIO7 (PC_5)
     temp_buffer = __builtin_bswap32(0x00BD0017);
     bsp_i2c_write(BSP_LN2_DEV_ID, (uint8_t *)&temp_buffer, 4, NULL, NULL);
-#endif
+#endif // CONFIG_L25B
 
+#ifdef CONFIG_USE_BRIDGE
     bridge_initialize(&device_list[0], (sizeof(device_list)/sizeof(bridge_device_t)));
+#endif
 
     temp_buffer = __builtin_bswap32(0x00310001);
     bsp_i2c_write(BSP_LN2_DEV_ID, (uint8_t *)&temp_buffer, 4, NULL, NULL);
+#endif // CONFIG_LN2
 
     return ret;
 }
@@ -671,7 +677,9 @@ uint32_t bsp_dut_process(void)
         return BSP_STATUS_FAIL;
     }
 
+#ifdef CONFIG_USE_BRIDGE
     bridge_process();
+#endif
 
     return BSP_STATUS_OK;
 }

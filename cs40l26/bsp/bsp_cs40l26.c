@@ -1,7 +1,7 @@
 /**
- * @file hw_0_bsp_cs40l26.c
+ * @file bsp_cs40l26.c
  *
- * @brief Implementation of the BSP for the CS40L26 platform.
+ * @brief Implementation of the BSP for the cs40l26 platform.
  *
  * @copyright
  * Copyright (c) Cirrus Logic 2021 All Rights Reserved, http://www.cirrus.com/
@@ -23,7 +23,7 @@
  * INCLUDES
  **********************************************************************************************************************/
 #include <string.h>
-#include "hw_0_bsp.h"
+#include "platform_bsp.h"
 #include "cs40l26.h"
 #include "cs40l26_ext.h"
 #include "cs40l26_syscfg_regs.h"

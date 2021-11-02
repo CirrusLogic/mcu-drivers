@@ -246,6 +246,7 @@ def get_args(args):
     parser.add_argument('--revision-check', dest='revision_check', action="store_true", help='Request to fail if WMDR FW revision does not match WMFW')
     parser.add_argument('--sym-partition', dest='sym_partition', action="store_true", help='Partition symbol IDs by algorithm so new symbols added to one algorithm don\'t cause subsequent IDs to be shifted')
     parser.add_argument('--no-sym-table', dest='no_sym_table', action="store_true", help='Do not generate list of symbols in fw_img_v1/fw_img_v2 output array but instead generate a C header containing the symbol Ids and addresses.')
+    parser.add_argument('--exclude-dummy', dest='exclude_dummy', action="store_true", help='Do not include symbol IDs ending in _DUMMY in the output symbol table C header. Only used when no --sym-input is specified.')
 
     return parser.parse_args(args[1:])
 
@@ -454,6 +455,7 @@ def main(argv):
     attributes['max_block_size'] = args.block_size_limit
     attributes['sym_partition'] = args.sym_partition
     attributes['no_sym_table'] = args.no_sym_table
+    attributes['exclude_dummy'] = args.exclude_dummy
 
     f = firmware_exporter_factory(attributes)
 

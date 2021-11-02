@@ -1,10 +1,10 @@
 /**
- * @file hw_0_bsp.h
+ * @file platform_bsp.h
  *
- * @brief Functions and prototypes exported by the BSP module for the HW ID0 platform.
+ * @brief Functions and prototypes exported by the Platform BSP module
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2020-2021 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2021 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -20,8 +20,8 @@
  *
  */
 
-#ifndef HW_0_BSP_H
-#define HW_0_BSP_H
+#ifndef PLATFORM_BSP_H
+#define PLATFORM_BSP_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -33,7 +33,7 @@ extern "C" {
 #include "bsp_driver_if.h"
 #include <stdbool.h>
 #include <stddef.h>
-#include "hw_0_bsp_dut.h"
+#include "bsp_dut.h"
 #include <stdio.h>
 
 /***********************************************************************************************************************
@@ -59,7 +59,6 @@ extern "C" {
 #define BSP_GPIO_ID_INTP_LED3           (10)
 #define BSP_GPIO_ID_INTP_LED4           (11)
 #define BSP_GPIO_ID_INTP_LED_ALL        (12)
-
 
 #define BSP_SUPPLY_ID_LN2_DCVDD         (1)
 
@@ -179,10 +178,12 @@ uint32_t bsp_eeprom_program_verify(uint32_t addr,
                                    uint8_t *data_buffer,
                                    uint32_t data_length);
 uint32_t bsp_eeprom_erase(uint8_t command, uint32_t addr);
+uint32_t bsp_set_led(uint32_t index, uint8_t mode, uint32_t blink_100ms);
+void bsp_get_switch_state_changes(uint8_t *state, uint8_t *change_mask);
 
 /**********************************************************************************************************************/
 #ifdef __cplusplus
 }
 #endif
 
-#endif // HW_0_BSP_H
+#endif // PLATFORM_BSP_H

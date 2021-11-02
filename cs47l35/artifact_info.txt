@@ -1,26 +1,26 @@
 Artifact Info:
-Artifact           : CS47L35 Alt-OS Driver: 4.8.0 - d4cb3c60eca4547870d7ab28b7a763a5212f3dd3
+Artifact           : CS47L35 Alt-OS Driver: 4.9.0 - 33ff2cd2cf0bba5a18e663fcc9bdaee335bb2658
 Test Target MCU SDK: STM32Cube_FW_F4: 1.24.1
 Target toolchain   : GNU Arm Embedded Toolchain: arm-none-eabi-gcc (GNU Tools for Arm Embedded Processors 8-2019-q3-update) 8.3.1 20190703 (release) [gcc-8-branch revision 273027]
-Build system       : make: GNU Make 3.82
-OS                 : Linux: 3.10.0-1160.24.1.el7.x86_64
-Shell              : bash: GNU bash, version 4.2.46(2)-release (x86_64-redhat-linux-gnu)
-Host toolchain     : MinGW GCC: gcc (GCC) 4.8.5 20150623 (Red Hat 4.8.5-39)
-Build Job          : marley_alt_os_nightly: 154
-Git SHA            : d4cb3c60eca4547870d7ab28b7a763a5212f3dd3
+Build system       : make: GNU Make 4.2.1
+OS                 : Windows: 10
+Shell              : MSYS2: msys2-runtime 3.0.7-6
+Host toolchain     : MinGW GCC: gcc (Rev1, Built by MSYS2 project) 9.2.0
+Build Job          : marley_alt_os_nightly: 171
+Git SHA            : 33ff2cd2cf0bba5a18e663fcc9bdaee335bb2658
 
 System resources:
 
 Build Configuration 1:
 
 Artifact filename    : libcs47l35.a
-Driver TEXT          : 29884
+Driver TEXT          : 5862
 Driver BSS           : 0
 Driver DATA          : 48
 Driver Max Stack     : 208 (cs47l35_fll_config -> cs47l35_set_fll_refclk -> cs47l35_apply_config_fll -> cs47l35_write_fll -> cs47l35_update_reg -> regmap_update_reg -> regmap_read -> GET_BYTE_FROM_WORD)
 
 Artifact filename    : baremetal.elf
-Driver TEXT          : 5346
+Driver TEXT          : 5328
 Driver BSS           : 136
 Driver DATA          : 48
 
@@ -45,5 +45,4 @@ Compiler flags:
     -ffunction-sections
     -fstack-usage
     -frecord-gcc-switches
-    -g3
 

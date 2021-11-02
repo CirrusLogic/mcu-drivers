@@ -1,10 +1,10 @@
 /**
- * @file hw_0_bsp_dut.h
+ * @file bsp_dut.h
  *
- * @brief Functions and prototypes exported by the BSP module for the system_test_hw_0 platform.
+ * @brief Functions and prototypes exported by the BSP module for the cs35l41 platform.
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2020 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2021 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -20,8 +20,8 @@
  *
  */
 
-#ifndef HW_0_BSP_DUT_H
-#define HW_0_BSP_DUT_H
+#ifndef BSP_DUT_H
+#define BSP_DUT_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -75,4 +75,4 @@ uint32_t bsp_dut_process(void);
 }
 #endif
 
-#endif // HW_0_BSP_DUT_H
+#endif // BSP_DUT_H

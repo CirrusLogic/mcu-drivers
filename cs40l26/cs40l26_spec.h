@@ -58,6 +58,7 @@ extern "C" {
 
 #define CS40L26_T_RLPW_MS           (2)
 #define CS40L26_T_IRS_MS            (1)
+#define CS40L26_1_MS                (1)
 
 /* State */
 

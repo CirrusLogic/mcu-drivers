@@ -3,6 +3,26 @@ Release Notes
 
 =============================================================================
 Summary:
+This is the release of Alt-OS Driver SDK v4.9.0
+Date: 2021/11/02
+
+Architectures/Compilers Used:
+GNU Arm Embedded Toolchain: arm-none-eabi-gcc -mcpu=cortex-m4
+
+New Features/Changes:
+[SQA-2534] firmware_converter: remove duplicate and "DUMMY" symbols from firmware symbol header file
+[SQA-2409] L25 - added 'live_oak' makefile and hardware target
+[SQA-2533] cs47l35: Improve opus ringbuffer init
+[SQA-2409] Added create_ide_projects to create IDE projects
+[SQA-2409] Update build system to support multiple HW platforms
+
+Fixed Bugs:
+[SQA-2462] L26 - Fixed race condition reading DSP state transition.
+[SQA-2462] L26 - Fixed failure calling called power(state) while in the same state returning FAIL.
+
+=============================================================================
+=============================================================================
+Summary:
 This is the release of Alt-OS Driver SDK v4.8.0
 Date: 2021/10/19
 
@@ -10,10 +30,14 @@ Architectures/Compilers Used:
 GNU Arm Embedded Toolchain: arm-none-eabi-gcc -mcpu=cortex-m4
 
 New Features/Changes:
+[SQA-2197] cs47l63: Add errata
+[SQA-2304] cs47l67: Add SPI flash read and write commands
+[SQA-2353] cs47l67: wisce_script_converer: Add support for processing SCS's activity output
 [SQA-2501] wisce_script_converter: should return 0 instead of None
 [SQA-2353] wisce_script_converter: SCS CSV activity output Add unit-test
 [SQA-2353] wisce_script_converter: Add support for SCS's CSV activity output
 [SQA-2473] wisce_script_converter: Fix -s option with c_functions output
+[SQA-2197] cs47l63: Add patches
 [SQA-2498] firmware_converter: Fix erroneous space in FWID when <6
 [SQA-2468] cs47l35: Update silkcoder to 1.1.3
 [SQA-2476] common: bridge: keep getting data from bridge file until newline
@@ -41,6 +65,7 @@ New Features/Changes:
 [SQA-2373] firmware_converter: Add no-sym-table option
 [SQA-2385] firmware_converter: Add --sym-partition option
 [SQA-2417] wisce_script_converter: add standalone comments to c_array
+[SQA-2368] cs47l67: Make mandatory stdout/bridge filenames optional arguments
 [SQA-2354] wisce_script_converter: change c_array size definition
 
 Fixed Bugs:
@@ -56,6 +81,11 @@ Architectures/Compilers Used:
 GNU Arm Embedded Toolchain: arm-none-eabi-gcc -mcpu=cortex-m4
 
 New Features/Changes:
+[SQA-2324] L67: free up some more memory after boot complete
+[SQA-2324] L63, L67: FLL code make more efficient
+[SQA-2383] L35:  Add SC Voice and route mic audio through it to Opus
+[SQA-2365] CS47L63: Add BoardHardwareID tags for bridge xml files
+[SQA-2354] L67, L63 - Ported to regmap
 [SQA-2387] L25 - added comment to cs40l25_power to clarify power_down
 [SQA-2356] Renamed all fw_* folders to fw
 [SQA-2386] L25 - gpio_detect is sampled only at fw init
@@ -82,7 +112,10 @@ New Features/Changes:
 [SQA-1539] Shortened REGMAP_GET_CP_CONFIG to REGMAP_GET_CP
 [SQA-2362] firmware_converter - added option to check WMDR fw revision against WMFW
 [SQA-2320] L25 - ported to regmap, refactored unused code
+[SQA-2350] L67 - Add bridge support
 [SQA-2299] bridge/smcio: Changes to improve performance
+[SQA-2302] L67 - Example code for E2E communication
+[SQA-2322] L67 - test for configuring already active FLL
 
 Fixed Bugs:
 [SQA-2346] firmware_converter - binary output misses image version and has incorrect checksum
@@ -103,6 +136,7 @@ New Features/Changes:
 [SQA-1554] L41 - ported to regmap
 [SQA-2320] L41 driver refactored unused functionality
 [SQA-2061] Added WISCE/StudioBridge target implementation, including virtual register map
+[SQA-2300] CS47L67 - single FreeRTOS project, support for M2 minicard
 [SQA-2315] wisce_script_converter - support for named lookups
 [SQA-2314] wisce_script_converter - support for LOAD commands
 Support for CS40L30 driver removed

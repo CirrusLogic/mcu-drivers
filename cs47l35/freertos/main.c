@@ -24,7 +24,7 @@
  **********************************************************************************************************************/
 #include <stddef.h>
 #include <stdlib.h>
-#include "hw_0_bsp.h"
+#include "platform_bsp.h"
 #include "FreeRTOS.h"
 #include "task.h"
 
