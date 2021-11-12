@@ -3,6 +3,21 @@ Release Notes
 
 =============================================================================
 Summary:
+This is the release of Alt-OS Driver SDK v4.10.0
+Date: 2021/11/12
+
+Architectures/Compilers Used:
+GNU Arm Embedded Toolchain: arm-none-eabi-gcc -mcpu=cortex-m4
+
+New Features/Changes:
+[SQA-2470] Bridge: Add more flexibile naming of bridge systems
+[SQA-2534] firmware_converter: skip 'DUMMY' symbols for export cmd
+
+Fixed Bugs:
+
+=============================================================================
+=============================================================================
+Summary:
 This is the release of Alt-OS Driver SDK v4.9.0
 Date: 2021/11/02
 

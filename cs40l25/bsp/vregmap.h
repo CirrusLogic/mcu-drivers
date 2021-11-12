@@ -36,7 +36,7 @@ extern "C" {
  * LITERALS & CONSTANTS
  **********************************************************************************************************************/
 #define VREGMAP_LENGTH_REGS         (2)
-#define VREGMAP_BRIDGE_DEVICE_ID    "\"VREGS\""
+#define VREGMAP_BRIDGE_DEVICE_ID    "VREGS"
 #define VREGMAP_BRIDGE_DEV_NAME     "VREGS-1"
 
 /***********************************************************************************************************************

@@ -365,7 +365,7 @@ class fw_img_v1_file(firmware_exporter):
                 temp_alg_str = ""
                 for control in self.algorithm_controls[alg_name]:
                     temp_ctl_str = self.terms['part_number_uc'] + "_SYM_" + control[0].upper()
-                    if temp_ctl_str in temp_alg_str:
+                    if " " + temp_ctl_str + " " in temp_alg_str:
                         print("[WARNING] Duplicate symbol id skipped: " + str(temp_ctl_str) + " (" + hex(control_id) + ")")
                     elif self.terms['exclude_dummy'] and temp_ctl_str.endswith("DUMMY"):
                         continue

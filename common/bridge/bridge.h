@@ -57,13 +57,17 @@ extern "C" {
 /***********************************************************************************************************************
  * MACROS
  **********************************************************************************************************************/
+#define MAX_BRIDGE_DEVICE_NAME_LEN  32
 
 /***********************************************************************************************************************
  * ENUMS, STRUCTS, UNIONS, TYPEDEFS
  **********************************************************************************************************************/
 typedef struct
 {
+    // device_id_str should contain the value of register 0 in ASCII form eg "47A63" or "CS47A63"
     const char *device_id_str;
+    // dev_name_str should be a unique string of max length MAX_BRIDGE_DEVICE_NAME_LEN with no spaces. Eg "Shelley_Left,"
+    // WISCE/SCS will use this in their commands to target the correct device
     const char *dev_name_str;
     uint8_t bus_i2c_cs_address;
     regmap_cp_config_t b;
@@ -94,10 +98,10 @@ uint32_t bridge_initialize(bridge_device_t *device_list, uint8_t num_devices);
  * Process any incoming Bridge commands
  *
  * @return
- * - BRIDGE_STATUS_OK           always
+ * - void
  *
  */
-uint32_t bridge_process(void);
+void bridge_process(void);
 
 /**********************************************************************************************************************/
 #ifdef __cplusplus

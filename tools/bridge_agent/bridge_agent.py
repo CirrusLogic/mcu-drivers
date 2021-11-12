@@ -62,8 +62,8 @@ cmds_with_numerical_args = ["R", "Read", "BlockRead", "BR", "W", "Write", "Block
 ERROR_REPLY = "ER"
 DEFAULT_NUM_CHIPS = 1
 
-BRIDGE_STATE_HANDSHAKE_READ_REG0                = 0
-BRIDGE_STATE_HANDSHAKE_WAIT_MCU_REPLY_READ_REG0 = 1
+BRIDGE_STATE_HANDSHAKE_GET_CD                   = 0
+BRIDGE_STATE_HANDSHAKE_WAIT_MCU_REPLY_GET_CD    = 1
 BRIDGE_STATE_HANDSHAKE_INFO                     = 2
 BRIDGE_STATE_HANDSHAKE_WAIT_MCU_REPLY_INFO      = 3
 BRIDGE_STATE_WAIT_CLI_CMD                       = 4
@@ -84,6 +84,35 @@ wisce_device_id = "unknown"
 devices = dict()  # No device details discovered yet
 num_chips = DEFAULT_NUM_CHIPS
 verbose = False
+
+# Translation table to go from <name> string from Detect reply to an integer
+class Name_To_Int_Id(object):
+    def __init__(self):
+        super().__init__()
+        self.name_to_int_id = dict()
+
+    def clear(self):
+        self.name_to_int_id.clear()
+
+    def name_exists(self, name):
+        for k,v in self.name_to_int_id.items():
+            if name == k:
+                return True
+        return False
+
+    def add_new_name(self, name, id):
+        if self.name_exists(name):
+            print("***Warning***\ndevice name {} is duplicate of existing name".format(name))
+            print("Behaviour is not defined")
+        self.name_to_int_id[name] = id
+
+    def get_id(self, name):
+        return self.name_to_int_id[name]
+
+    def print_all(self):
+        print("device name to Id translation (used in MCU cmds): {}".format(self.name_to_int_id))
+
+name_to_int_id = Name_To_Int_Id()
 
 class bridge_excpn(Exception):
     pass
@@ -328,7 +357,7 @@ def client_cmd_handler(crnt_cmd, ser_ch, ch_num, state, verbose):
 
     # add chip target if multi-chip
     if num_chips > 1 and crnt_cmd.device_name is not None:
-        # Expect the client cmd to have a "[name-N]"
+        # Expect the client cmd to have a "[some_string:N]" where N is the sequence number
         # We only send the N to the device in order to identify the targeted chip
         print("DEVICE: " + crnt_cmd.device_name)
         chip_id = devices[crnt_cmd.device_name]["chip_id"]
@@ -377,26 +406,37 @@ def mcu_reply_hndlr_detect(mcu_detect_reply_s):
     '''As well as forming correct reply for the client, extract the device info for ourselves
     to discover what chips are present on the MCU.
     '''
-    global num_chips, devices
+    global num_chips, devices, name_to_int_id
+
+    name_to_int_id.clear()
 
     # store info for ourselves
     num_chips = mcu_detect_reply_s.count(":") + 1
     mcu_reply_str_parts = mcu_detect_reply_s.split(':')
     reply_str = 'Detect '
     for i in range(num_chips):
-        (name_n, bus_name, bus_addr, drvr_ctrl) = tuple(mcu_reply_str_parts[i].split(','))
-        # Check name_n is of the form <name>-N as agent to mcu protocol uses N to identify the chip
-        if '-' not in name_n and len(name_n.split('-')) != 2:
-            raise bridge_excpn("name value in DETECT reply from device incorrect format: {}".format(name_n))
+        (name_n, bus_name, bus_addr, drvr_ctrl, id_str) = tuple(mcu_reply_str_parts[i].split(','))
+        # Update the name_to_int_id translation to get the number to be used in future commands sent to MCU
+        name_to_int_id.add_new_name(name_n, i + 1)
+
         devices[name_n] = dict()
         devices[name_n]["name"] = name_n
-        devices[name_n]["chip_id"] = name_n.split('-')[1]
+        devices[name_n]["chip_id"] = name_to_int_id.get_id(name_n)
         devices[name_n]["name_n"] = name_n
         devices[name_n]["bus"] = bus_name
         devices[name_n]["bus_addr"] = bus_addr
         devices[name_n]["drvr_ctrl"] = drvr_ctrl
+        devices[name_n]["id"] = id_str
 
-        reply_str += '{},{},{},DriverControl:{}="{}" '.format(name_n, devices[name_n]["bus"], devices[name_n]["bus_addr"], devices[name_n]["drvr_ctrl"], devices[name_n]["name"])
+        reply_str += '{},{},{},DriverControl:{}="{}" '.format(
+            name_n,
+            devices[name_n]["bus"],
+            devices[name_n]["bus_addr"],
+            devices[name_n]["drvr_ctrl"],
+            devices[name_n]["id"])
+
+    # Print translation table
+    name_to_int_id.print_all()
 
     # Formulate reply to client
     return (reply_str[:-1] + '\n')
@@ -484,7 +524,7 @@ def wait_for_serial_data(ser_ch, ch_num):
     data_str = ""
     while '\n' not in data_str:
         data_tmp = ''
-        while data_tmp is '':
+        while data_tmp == '':
             data_tmp = ser_ch.read_channel(ch_num)
         data_str = data_str + data_tmp
     return data_str
@@ -495,11 +535,11 @@ def inner_loop(sock, ser_ch, ch_num, state, crnt_cmd, verbose):
     while True:
         try:
             dbg_pr_general(verbose, "Loop state: {}".format(state))
-            if state == BRIDGE_STATE_HANDSHAKE_READ_REG0:
+            if state == BRIDGE_STATE_HANDSHAKE_GET_CD:
                 # Initiate a Current Device "CD" command
                 ser_ch.write_channel(ch_num, "CD\n")
-                state = BRIDGE_STATE_HANDSHAKE_WAIT_MCU_REPLY_READ_REG0
-            elif state == BRIDGE_STATE_HANDSHAKE_WAIT_MCU_REPLY_READ_REG0:
+                state = BRIDGE_STATE_HANDSHAKE_WAIT_MCU_REPLY_GET_CD
+            elif state == BRIDGE_STATE_HANDSHAKE_WAIT_MCU_REPLY_GET_CD:
                 dbg_pr_general(verbose, "Initial read reg 0: Waiting for device reply")
                 reply = wait_for_serial_data(ser_ch, ch_num)
                 dbg_pr_DeviceMsgToAgent(verbose, reply)
@@ -558,7 +598,7 @@ def outer_loop(ser_ch, ch_num, verbose):
         try:
             # Create socket & wait for connection to bridge client
             (bridgecli_sockcon, _) = init_bridge_socket()  # Blocks on socket conn
-            state = BRIDGE_STATE_HANDSHAKE_READ_REG0
+            state = BRIDGE_STATE_HANDSHAKE_GET_CD
             current_cmd = current_command()
 
             with bridgecli_sockcon:

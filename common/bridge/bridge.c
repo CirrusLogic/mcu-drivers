@@ -22,12 +22,14 @@
 /***********************************************************************************************************************
  * INCLUDES
  **********************************************************************************************************************/
-#include "platform_bsp.h"
-#include <string.h>
-#include <stdio.h>
-#include <stdlib.h>
+// Standard include files
+#include <string.h>  // strncmp, strlen, strcat, strcpy
+#include <stdlib.h>  // atoi, strtoul
+#include <stdio.h>   // sscanf
+
+// Local include files
 #include "bridge.h"
-#include <errno.h>
+#include "platform_bsp.h"
 #ifdef CONFIG_USE_VREGMAP
 #include "vregmap.h"
 #endif
@@ -50,13 +52,13 @@
    from the Agent
 */
 #define PROTOCOLVERSION   ("PV")        // "ProtocolVersion"
-#define INFO              ("IN")      // "INFO"
+#define INFO              ("IN")        // "INFO"
 #define READ              ("RE")        // "Read"
 #define WRITE             ("WR")        // "Write"
 #define BLOCKREAD         ("BR")        // "BlockRead"
 #define BLOCKWRITE        ("BW")        // "BlockWrite"
-#define DETECT            ("DT")       // "Detect"
-#define DEVICE            ("DV")       // "Device"
+#define DETECT            ("DT")        // "Detect"
+#define DEVICE            ("DV")        // "Device"
 #define DRIVERCONTROL     ("DC")        // "DriverControl"
 #define SERVICEMESSAGE    ("SM")        // "ServiceMessage"
 #define SERVICEAVAILABLE  ("SA")        // "ServiceAvailable"
@@ -156,10 +158,6 @@ static uint32_t bw_chip_num = 0;
 static uint32_t bw_addr = 0;
 static uint32_t bw_data_collect_indx = 0;
 
-// TODO: try to avoid using below in count_parts_in_cmd() to save memory usage
-// SQA-2311 MCU, Agent: Consider passing num of fields in msg from Agent to MCU to save memory at MCU
-//static char strtok_copy_str[MSG_RX_LEN];
-
 static uint32_t handle_protocol_version(char *cmd);
 static uint32_t handle_info(char *cmd);
 static uint32_t handle_read(char *cmd);
@@ -172,6 +170,8 @@ static uint32_t handle_detect(char *cmd);
 static uint32_t handle_unsupported(char *cmd);
 static uint32_t handle_invalid(char *cmd);
 static uint32_t handle_current_device(char *cmd);
+
+// An array of coded command Ids mapped to their handler functions
 static const bridge_command_handler_map_t command_handler_map[] =
 {
     {.cmd = PROTOCOLVERSION,    .handler = handle_protocol_version},
@@ -183,8 +183,6 @@ static const bridge_command_handler_map_t command_handler_map[] =
     {.cmd = BLOCKWRITE_CONT,    .handler = handle_blockwrite_cont},
     {.cmd = BLOCKWRITE_END,     .handler = handle_blockwrite_end},
     {.cmd = DETECT,             .handler = handle_detect},
-    // Expect there to be only a single device in the Cmd which should be
-    // what we previously replied to the Detect cmd, else reply with error
     {.cmd = DEVICE,             .handler = handle_unsupported},
     {.cmd = DRIVERCONTROL,      .handler = handle_unsupported},
     {.cmd = SERVICEMESSAGE,     .handler = handle_unsupported},
@@ -204,7 +202,7 @@ static const bridge_command_handler_map_t command_handler_map[] =
 // Return number of parts in str (split at ' ')
 static uint8_t count_parts_in_cmd(char *cmd)
 {
-    int num = 1;
+    uint8_t num = 1;
     size_t len;
 
     len = strlen(cmd);
@@ -219,6 +217,10 @@ static uint8_t count_parts_in_cmd(char *cmd)
 
     return num;
 }
+
+/*
+ * Functions that handle each of the bridge commands that we support
+ */
 
 static uint32_t handle_protocol_version(char *cmd)
 {
@@ -235,6 +237,7 @@ static uint32_t handle_info(char *cmd)
     return BRIDGE_STATUS_OK;
 }
 
+// User has executed a single register read command on WISCE/SCS.
 static uint32_t handle_read(char *cmd)
 {
     char cmd_action[3]={0}, cmd_chip_num[3]={0}, cmd_reg[9]={0};
@@ -243,10 +246,10 @@ static uint32_t handle_read(char *cmd)
     uint32_t ret;
     uint32_t reg_val = 0;
 
-    // Rxd msg format from Agent will be:
+    // Received msg format from Agent will be:
     // "RE [N] <HexRegAddr>\n"   N Id's the chip in a multi-chip device
-    // Expect 2 parts if single chip device "RE <regAddr>"
-    // 3 parts for double chip "RE <N> <regAddr>"
+    // Expect 2 parts if single chip device "RE <regAddr>\n"
+    // 3 parts for double chip "RE <N> <regAddr>\n"
     if (num_parts == 2)
     {
         sscanf(cmd, "%s %s", cmd_action, cmd_reg);
@@ -271,6 +274,10 @@ static uint32_t handle_read(char *cmd)
         return BRIDGE_STATUS_FAIL;
     }
 
+    /* All references to functions beginning with regmap_ are calls to the underlying bus between
+     * the MCU and the device over either I2C or SPI, depending on the implementation.
+     * Replace these calls using the bus access API of your implementaion.
+     */
     ret = regmap_read(&(bridge.current_device->b), strtoul(cmd_reg, &end, 10), &reg_val);
     if (ret != REGMAP_STATUS_OK)
     {
@@ -282,6 +289,7 @@ static uint32_t handle_read(char *cmd)
     return BRIDGE_STATUS_OK;
 }
 
+// User has executed a single register write command on WISCE/SCS.
 static uint32_t handle_write(char *cmd)
 {
     char cmd_action[3]={0}, cmd_chip_num[3]={0}, cmd_reg[9]={0}, cmd_val[9]={0};
@@ -314,7 +322,7 @@ static uint32_t handle_write(char *cmd)
         sprintf(cmd, "%s", WMT_INVALID_COMMAND);
         return BRIDGE_STATUS_FAIL;
     }
-    // TODO: For multi-chip write to register on the correct chip (given by cmd_chip_num)
+
     ret = regmap_write(&(bridge.current_device->b), strtoul(cmd_reg, &end, 10), strtoul(cmd_val, &end, 10));
     if (ret != REGMAP_STATUS_OK)
     {
@@ -327,18 +335,17 @@ static uint32_t handle_write(char *cmd)
     return BRIDGE_STATUS_OK;
 }
 
+// User has executed a block-read command on WISCE/SCS.
 static uint32_t handle_blockread(char *cmd)
 {
     char cmd_action[3]={0}, cmd_chip_num[2]={0}, cmd_reg[9]={0};
-    char cmd_len[8]={0};  // holds num bytes to read in a blockread. Potentially could be 0x3831FE8 x 4 = 0xE0C7FA0
+    char cmd_len[8]={0};  // holds num bytes to read in a blockread.
     uint8_t num_parts = count_parts_in_cmd(cmd);
     char *end;
     uint32_t ret;
     uint32_t block_read_length, reg_addr;
 
-    // Client to Agent:  "[<seq>]       BlockRead <start> <length>\n"  Assuming we're not implementing for ADSP cores!!
-    // Eg:               "[Shelley-1:b] BR         0       8\n"
-    // Agent to here:     "BR 0 8\n"  for single chip
+    // Example cmd from Agent: "BR 0 8\n"  for single chip
     // Expect 3 parts if single chip device "BR <start> <len>"
     // 4 parts for double chip              "BR <N> <start> <len>"
     if (num_parts == 3)
@@ -365,9 +372,7 @@ static uint32_t handle_blockread(char *cmd)
         return BRIDGE_STATUS_FAIL;
     }
 
-    // TODO: handle reading correct chip (given by cmd_chip_num)
-
-    // Impose a bytes limit for now of MAX_BLOCK_DATA_BYTES
+    // Impose a bytes limit of MAX_BLOCK_DATA_BYTES
     block_read_length = strtoul(cmd_len, &end, 10);
     reg_addr = strtoul(cmd_reg, &end, 10);
 
@@ -380,13 +385,13 @@ static uint32_t handle_blockread(char *cmd)
     ret = regmap_read_block(&(bridge.current_device->b), reg_addr, block_buffer, block_read_length);
     if(ret != REGMAP_STATUS_OK)
     {
-        // TODO: need better error response according to protocol doc
         sprintf(cmd, "%s", WMT_READ_FAILED);
         return BRIDGE_STATUS_FAIL;
     }
 
-    for(int i = 0; i < block_read_length; ++i)
+    for(uint32_t i = 0; i < block_read_length; ++i)
     {
+        // Convert each byte value into ASCII hex
         sprintf(&cmd[i*2], "%02X", block_buffer[i]);
     }
     cmd[block_read_length*2] = '\0'; // Manually add null terminator
@@ -394,6 +399,10 @@ static uint32_t handle_blockread(char *cmd)
     return BRIDGE_STATUS_OK;
 }
 
+// User has executed a block-write command on WISCE/SCS.
+// The bridge agent breaks block-write commands into a series of messages, each carrying one word
+// to be written to the hardware. Now we reassemble the messages into a single block write to be
+// written to hardware.
 static uint32_t handle_blockwrite_start(char *cmd)
 {
     char cmd_action[3]={0}, cmd_chip_num[2]={0}, cmd_reg[9]={0};
@@ -459,7 +468,7 @@ static uint32_t handle_blockwrite_start(char *cmd)
 
     // Incoming reg addr and BW data will be in hex string form
     // Store to new blockwrite context for collecting chunked data
-    bw_chip_num = strtoul(cmd_chip_num, &end, 10); // TODO: handle writing to correct chip
+    bw_chip_num = strtoul(cmd_chip_num, &end, 10);
     bw_addr = strtoul(cmd_reg, &end, 10);
     bw_data_collect_indx = 0;
     data = strtoul(bw_single_reg_data_in, &end, 10);
@@ -488,14 +497,14 @@ static uint32_t handle_blockwrite_cont(char *cmd)
     */
     if (num_parts != 2)
     {
-       // This is really a bridge/us error, could be better handled b/w us and Agent
+       // Expect 2 parts in command
         sprintf(cmd, "%s", WMT_INVALID_COMMAND);
         return BRIDGE_STATUS_FAIL;
     }
     sscanf(cmd, "%s %s", cmd_action, bw_single_reg_data_in);
     if (bw_data_collect_indx >= BRIDGE_BLOCK_BUFFER_LENGTH_BYTES)
     {
-        // Abort. Could be handled better (write what's collected to device)
+        // Abort
         sprintf(cmd, "%s", WMT_INVALID_COMMAND);
         return BRIDGE_STATUS_FAIL;
     }
@@ -521,12 +530,6 @@ static uint32_t handle_blockwrite_end(char *cmd)
                     or
                     "ER <N>\n"
     */
-    if (num_parts > 2)
-    {
-       // This is really a bridge/us error, could be better handled b/w us and Agent
-        sprintf(cmd, "%s", WMT_INVALID_COMMAND);
-        return BRIDGE_STATUS_FAIL;
-    }
     if (num_parts == 1)
     {
         sscanf(cmd, "%s", cmd_action);
@@ -542,7 +545,6 @@ static uint32_t handle_blockwrite_end(char *cmd)
     ret = regmap_write_block(&(bridge.current_device->b), bw_addr , &block_buffer[0], bw_data_collect_indx);
     if(ret != REGMAP_STATUS_OK)
     {
-        // TODO: need better error response according to protocol doc
         sprintf(cmd, "%s", GENERAL_FAILURE);
         return BRIDGE_STATUS_FAIL;
     }
@@ -554,7 +556,7 @@ static uint32_t handle_blockwrite_end(char *cmd)
 static uint32_t handle_detect(char *cmd)
 {
     const char *bus_name_str;
-    char temp_str[11]; // Max here is the dev_name_str - "CS47L63-1,", plus one for safety
+    char temp_str[MAX_BRIDGE_DEVICE_NAME_LEN+1]; // Holds the dev_name_str eg "Shelley_Left,", plus one for safety
 
     cmd[0] = '\0';  // 0-out the cmd string for reuse
     for (uint8_t i = 0; i < bridge.num_devices; i++)
@@ -585,7 +587,9 @@ static uint32_t handle_detect(char *cmd)
         strcat(cmd, temp_str);
         sprintf(temp_str, "%x,", bridge.device_list[i].bus_i2c_cs_address);
         strcat(cmd, temp_str);
-        sprintf(temp_str, "%s:", DRIVER_CTRL);
+        sprintf(temp_str, "%s,", DRIVER_CTRL);
+        strcat(cmd, temp_str);
+        sprintf(temp_str, "%s:", bridge.device_list[i].device_id_str);
         strcat(cmd, temp_str);
     }
 
@@ -659,15 +663,27 @@ uint32_t bridge_initialize(bridge_device_t *device_list, uint8_t num_devices)
 }
 
 /**
- * Process any incoming Bridge commands
- *
+ * Wait for and process any incoming bridge commands from the transport between
+ * the bridge agent (running on a host) and the MCU where this code is running.
+ * This should be called in a continuous loop eg from the main function of the program.
+ * It gathers characters until a '\n' character is received which signals the end of
+ * a bridge command.
  */
-uint32_t bridge_process(void)
+void bridge_process(void)
 {
-    // If we received a Cmd from Agent
     uint32_t val, i = 0;
 
+    /* Try to read the command sent from the transport between bridge agent and MCU.
+     * In this implementation we are using a multi-packet UART, but other implementions
+     * should replace this code with appropriate calls to their transport API.
+     * Ensure that a complete command is received before attempting to process it,
+     * terminated by a '\n'.
+     */
     do {
+        /* In this implementation, fgetc overrides the std C system call and utilizes
+         * a multi-packet UART. The semantics are the same as the std system call.
+         * The function does not block
+         */
         val = fgetc(bridge_read_file);
         if (val == EOF)
         {
@@ -686,26 +702,15 @@ uint32_t bridge_process(void)
         cmd_resp[i++] = (char) val;
     } while (val != '\n');
 
+    // If we received a complete Cmd from Agent, process it
     if (i)
     {
         uint32_t ret;
         bridge_command_handler_t handler = NULL;
         cmd_resp[i++] = '\0';
 
-        /* We need to handle errors sensibly. Errors with carrying out bridge cmds need to be identified
-        correctly, but maybe in a coarse manner. We always want to send back a response either
-        a valid piece of data or one of several Error Codes
-        The standard response where no data is returned is as follows:
-            "[<seq>] Ok\n"
-        Errors are returned as follows:
-            "[<seq>] Error <errno>\n"
-        where <errno> is a hexadecimal value (with no radix notation) that depends on the type of error that occurred.
-        */
-
-        // Note: all text formulated for Agent here and sent over m-UART needs an added \n
-        // The final fprint() call also needs a \n (this \n gets stripped at the receiving Agent)
-
-        for (i = 0; i < (sizeof(command_handler_map)/sizeof(bridge_command_handler_map_t)); i++)
+        // Find the correct handler for the bridge command
+        for (uint8_t i = 0; i < (sizeof(command_handler_map)/sizeof(bridge_command_handler_map_t)); i++)
         {
             if (strncmp(cmd_resp, command_handler_map[i].cmd, strlen(command_handler_map[i].cmd)) == 0)
             {
@@ -722,18 +727,18 @@ uint32_t bridge_process(void)
 
         if (ret != BRIDGE_STATUS_OK)
         {
-            // TODO: Must decide the appropriate action to take
-            // when error status returned since a read/write operation
-            // may have failed due to an invalid register addr in the WISCE cmd
-            // and not a fatal system error. Continue loop?
-            //exit(1);  Try keeping on going
+            // Handler returned an error so send an error msg back to bridge
             fprintf(bridge_write_file, "%s %s\n", ERROR, cmd_resp);
         }
         else
         {
+            /* Handler returned OK so send the response back to bridge.
+             * Again, the fprintf overrides the C std system call and uses multi-packet UART
+             * to transmit the data to the bridge agent.
+             * For other transport, replace this call with the appropriate calls to
+             * the transport API.
+             */
             fprintf(bridge_write_file, "%s\n", cmd_resp);
         }
     }
-
-    return BRIDGE_STATUS_OK;
 }

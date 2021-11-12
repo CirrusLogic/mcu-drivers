@@ -102,7 +102,7 @@ static bridge_device_t device_list[] =
     {0},    // Placeholder for vregmap entry, initialized in bridge_initialize()
     {
         .bus_i2c_cs_address = 0x80,
-        .device_id_str = "\"CS40L25\"",
+        .device_id_str = "CS40A25",
         .dev_name_str = "CS40A25-2",
         .b.dev_id = BSP_DUT_DEV_ID,
         .b.bus_type = REGMAP_BUS_TYPE_I2C,
@@ -115,7 +115,7 @@ static bridge_device_t device_list[] =
 {
     {
         .bus_i2c_cs_address = 0x80,
-        .device_id_str = "\"CS40L25\"",
+        .device_id_str = "CS40A25",
         .dev_name_str = "CS40A25-1",
         .b.dev_id = BSP_DUT_DEV_ID,
         .b.bus_type = REGMAP_BUS_TYPE_I2C,

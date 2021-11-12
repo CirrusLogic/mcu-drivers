@@ -270,7 +270,7 @@ source_file_template_coeff_boot_block_entry_str = """    {
 # CLASSES
 #==========================================================================
 class header_file:
-    def __init__(self, part_number_str, fw_meta, no_sym_table):
+    def __init__(self, part_number_str, fw_meta, no_sym_table, exclude_dummy):
         self.template_str = header_file_template_str
         if not no_sym_table:
             self.template_str = self.template_str.replace('{fw_blocks_info}', header_file_template_fw_blocks_info)
@@ -290,6 +290,7 @@ class header_file:
         self.terms['fw_id'] = fw_meta['fw_id']
         self.terms['metadata_text'] = ' *\n'
         self.algorithm_controls = dict()
+        self.exclude_dummy = exclude_dummy
         return
 
     def update_block_info(self, fw_block_total, coeff_block_totals):
@@ -326,7 +327,12 @@ class header_file:
 
                 temp_ctl_str = temp_ctl_str + "//Definitions for " + key.upper() + " Controls\n"
                 for control in self.algorithm_controls[key]:
-                    temp_ctl_str = temp_ctl_str + "#define " + control[0].upper() + " 0x" + "{0:{1}X}".format(control[1], 6) + "\n"
+                    if " " + control[0].upper() + " " in temp_ctl_str:
+                        print("[WARNING] Duplicate symbol id skipped: " + control[0].upper() + " (" + hex(control[1]) + ")")
+                    elif self.exclude_dummy and control[0].upper().endswith("DUMMY"):
+                        continue
+                    else:
+                        temp_ctl_str = temp_ctl_str + "#define " + control[0].upper() + " 0x" + "{0:X}".format(control[1]) + "\n"
 
                 temp_ctl_str = temp_ctl_str + "\n\n"
 
@@ -474,7 +480,8 @@ class source_file_exporter(firmware_exporter):
 
     def __init__(self, attributes):
         firmware_exporter.__init__(self, attributes)
-        self.hf = header_file(self.attributes['part_number_str'], self.attributes['fw_meta'], self.attributes['no_sym_table'])
+        self.hf = header_file(self.attributes['part_number_str'], self.attributes['fw_meta'],
+                              self.attributes['no_sym_table'], self.attributes['exclude_dummy'])
         self.cf = source_file(self.attributes['part_number_str'])
         self.gen_only_include_file = False
         if self.attributes['no_sym_table']:
