@@ -1,31 +1,31 @@
 Artifact Info:
-Artifact           : CS47L15 Alt-OS Driver: 4.11.0 - 61ee6c0881e6270b4df6e990d502275c00aad6c9
+Artifact           : CS47L63 Alt-OS Driver: 4.11.0 - 61ee6c0881e6270b4df6e990d502275c00aad6c9
 Test Target MCU SDK: STM32Cube_FW_F4: 1.24.1
 Target toolchain   : GNU Arm Embedded Toolchain: arm-none-eabi-gcc (GNU Tools for Arm Embedded Processors 8-2019-q3-update) 8.3.1 20190703 (release) [gcc-8-branch revision 273027]
 Build system       : make: GNU Make 3.82
 OS                 : Linux: 3.10.0-1160.24.1.el7.x86_64
 Shell              : bash: GNU bash, version 4.2.46(2)-release (x86_64-redhat-linux-gnu)
 Host toolchain     : MinGW GCC: gcc (GCC) 4.8.5 20150623 (Red Hat 4.8.5-39)
-Build Job          : gaines_alt_os_nightly: 372
+Build Job          : shelley_alt_os_nightly: 312
 Git SHA            : 61ee6c0881e6270b4df6e990d502275c00aad6c9
 
 System resources:
 
 Build Configuration 1:
 
-Artifact filename    : libcs47l15.a
-Driver TEXT          : 5736
+Artifact filename    : libcs47l63.a
+Driver TEXT          : 5012
 Driver BSS           : 0
-Driver DATA          : 56
-Driver Max Stack     : 216 (cs47l15_fll_config -> cs47l15_set_fll_refclk -> cs47l15_apply_config_fll -> cs47l15_write_fll -> cs47l15_update_reg -> regmap_update_reg -> regmap_read -> GET_BYTE_FROM_WORD)
+Driver DATA          : 120
+Driver Max Stack     : 448 (cs47l63_reset -> cs47l63_patch -> cs47l63_common_patch -> cs47l63_write_block -> regmap_write_block -> GET_BYTE_FROM_WORD)
 
 Artifact filename    : baremetal.elf
-Driver TEXT          : 5054
-Driver BSS           : 228
-Driver DATA          : 56
+Driver TEXT          : 4394
+Driver BSS           : 244
+Driver DATA          : 120
 
-Artifact filename    : cs47l15_fw_img.o
-Driver TEXT          : 50644
+Artifact filename    : cs47l63_fw_img.o
+Driver TEXT          : 21352
 
 Compiler flags:
     -mcpu=cortex-m4

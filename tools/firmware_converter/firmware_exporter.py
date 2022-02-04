@@ -1,5 +1,5 @@
 #==========================================================================
-# (c) 2020 Cirrus Logic, Inc.
+# (c) 2020, 2022 Cirrus Logic, Inc.
 #--------------------------------------------------------------------------
 # Project : Abstract Base Class for exporters for firmware_converter
 # File    : firmware_exporter.py
@@ -54,6 +54,9 @@ class firmware_exporter(ABC):
 
     @abstractmethod
     def add_coeff_block(self, index, address, data_bytes): pass
+
+    @abstractmethod
+    def add_bin_block(self, index, address, data_bytes): pass
 
     @abstractmethod
     def to_file(self): pass

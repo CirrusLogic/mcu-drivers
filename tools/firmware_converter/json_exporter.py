@@ -1,5 +1,5 @@
 #==========================================================================
-# (c) 2020 Cirrus Logic, Inc.
+# (c) 2020, 2022 Cirrus Logic, Inc.
 #--------------------------------------------------------------------------
 # Project : Exporter for JSON file format
 # File    : json_exporter.py
@@ -24,7 +24,7 @@
 #==========================================================================
 # IMPORTS
 #==========================================================================
-import string
+import os
 from firmware_exporter import firmware_exporter
 import json
 import datetime
@@ -55,7 +55,7 @@ class json_exporter(firmware_exporter):
 
         return
 
-    def update_block_info(self, fw_block_total, coeff_block_totals):
+    def update_block_info(self, fw_block_total, coeff_block_totals, bin_block_totals):
         return
 
     def add_control(self, algorithm_name, algorithm_id, control_name, address):
@@ -78,10 +78,18 @@ class json_exporter(firmware_exporter):
     def add_coeff_block(self, index, address, data_bytes):
         return
 
+    def add_bin_block(self, index, address, data_bytes):
+        return
+
     def to_file(self):
         results_str = 'Exported to files:\n'
 
         json_filename = self.attributes['part_number_str'] + '.json'
+        if self.attributes['output_directory']:
+            if not os.path.exists(self.attributes['output_directory']):
+                os.makedirs(self.attributes['output_directory'])
+            json_filename = os.path.join(self.attributes['output_directory'], json_filename)
+
         try:
             f = open(json_filename, 'w')
             #f.write(json.dumps(self.fw_export))

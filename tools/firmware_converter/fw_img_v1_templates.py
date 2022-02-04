@@ -1,5 +1,5 @@
 #==========================================================================
-# (c) 2020-2021 Cirrus Logic, Inc.
+# (c) 2020-2022 Cirrus Logic, Inc.
 #--------------------------------------------------------------------------
 # Project : Templates for C Source and Header files
 # File    : fw_img_v1_templates.py
@@ -136,6 +136,8 @@ const uint8_t {part_number_lc}_fw_img[] = {
 // Firmware Data
 {fw_data_blocks}
 {coeff_data}
+{bin_data}
+
 // Footer
 {magic_number_2} // IMG_MAGIC_NUMBER_2
 {img_checksum} // IMG_CHECKSUM
@@ -149,6 +151,10 @@ const uint8_t {part_number_lc}_fw_img[] = {
 
 source_file_template_fw_block_str = """{fw_block_size} // FW_BLOCK_SIZE_{block_index}
 {fw_block_addr} // FW_BLOCK_ADDR_{block_index}
+{block_bytes}"""
+
+source_file_template_bin_block_str = """{bin_block_size} // BIN_BLOCK_SIZE_{block_index}
+{bin_block_addr} // BIN_BLOCK_ADDR_{block_index}
 {block_bytes}"""
 
 source_file_template_coeff_strs = {
@@ -230,6 +236,7 @@ class fw_img_v1_file(firmware_exporter):
     def __init__(self, attributes, version):
         firmware_exporter.__init__(self, attributes)
         self.includes_coeff = False
+        self.includes_bin = False
         self.output_str = ''
         self.terms = dict()
         self.terms['part_uc'] = self.attributes['part_number_str'].upper()
@@ -240,6 +247,7 @@ class fw_img_v1_file(firmware_exporter):
         self.terms['metadata_text'] = ' *\n'
         self.fw_data_block_list = []
         self.coeff_data_block_list = []
+        self.bin_data_block_list = []
         self.uint8_per_line = 24
         self.blocks = []
         self.sym_id_input = self.attributes['symbol_id_input']
@@ -299,17 +307,17 @@ class fw_img_v1_file(firmware_exporter):
     def get_word_string(self, val):
         return self.get_bytes_string(val.to_bytes(4, byteorder='little'))
 
-    def update_block_info(self, fw_block_total, coeff_block_totals): pass
+    def update_block_info(self, fw_block_total, coeff_block_totals, bin_block_totals): pass
 
     def add_control(self, algorithm_name, algorithm_id, control_name, address):
-        if (not self.attributes['wmdr_only']):
+        if (not self.attributes['exclude_wmfw']):
             if self.algorithms.get(algorithm_name, None) is None:
                 self.algorithms[algorithm_name] = algorithm_id
                 self.algorithm_controls[algorithm_name] = []
             self.algorithm_controls[algorithm_name].append((control_name, address))
 
     def add_fw_block(self, address, data_bytes):
-        if (not self.attributes['wmdr_only']):
+        if (not self.attributes['exclude_wmfw']):
             # Create entry into data block list
             self.fw_data_block_list.append((len(data_bytes), address, data_bytes))
 
@@ -321,6 +329,14 @@ class fw_img_v1_file(firmware_exporter):
             self.coeff_data_block_list.append([])
 
         self.coeff_data_block_list[index].append((len(data_bytes), address, data_bytes))
+
+    def add_bin_block(self, index, address, data_bytes):
+        self.includes_bin = True
+        # Create entry into data block list
+        if (len(self.bin_data_block_list) < (index + 1)):
+            self.bin_data_block_list.append([])
+
+        self.bin_data_block_list[index].append((len(data_bytes), address, data_bytes))
 
     def add_metadata_text_line(self, line):
         self.terms['metadata_text'] = self.terms['metadata_text'] + ' * ' + line + '\n'
@@ -476,6 +492,8 @@ class fw_img_v1_file(firmware_exporter):
         data_block_count = len(self.fw_data_block_list)
         for i in range(0, len(self.coeff_data_block_list)):
             data_block_count += len(self.coeff_data_block_list[i])
+        for i in range(0, len(self.bin_data_block_list)):
+            data_block_count += len(self.bin_data_block_list[i])
         output_str = output_str.replace('{data_block_count}', self.add_word_to_img(data_block_count))
 
         # Set MAX_BLOCK_SIZE and FW_IMG_VERSION
@@ -548,6 +566,25 @@ class fw_img_v1_file(firmware_exporter):
         else:
             output_str = output_str.replace('{coeff_data}\n', '')
 
+        # Add arbitrary binary data
+        if (self.includes_bin):
+            bin_block_str = ''
+            for i in range(0, len(self.bin_data_block_list)):
+                for j in range(0, len(self.bin_data_block_list[i])):
+                    address = self.bin_data_block_list[i][j][1]
+                    data_bytes = self.bin_data_block_list[i][j][2]
+                    # Create string for block data
+                    temp_str = source_file_template_bin_block_str.replace('{block_index}', str(j))
+                    temp_str = temp_str.replace('{bin_block_size}', self.add_word_to_img(len(data_bytes)))
+                    temp_str = temp_str.replace('{bin_block_addr}', self.add_word_to_img(address))
+                    temp_str = temp_str.replace('{block_bytes}', self.add_bytes_to_img(data_bytes))
+
+                    bin_block_str += temp_str + '\n'
+
+            output_str = output_str.replace('{bin_data}\n', bin_block_str)
+        else:
+            output_str = output_str.replace('{bin_data}\n', '')
+
         # Update IMG_MAGIC_NUMBER_2
         output_str = output_str.replace('{magic_number_2}', self.add_word_to_img(IMG_MAGIC_NUMBER_2))
 
@@ -583,6 +620,10 @@ class fw_img_v1_file(firmware_exporter):
         results_str = 'Exported to files:\n'
 
         temp_filename = self.attributes['part_number_str'] + self.attributes['suffix'] + "_fw_img"
+        if self.attributes['output_directory']:
+            if not os.path.exists(self.attributes['output_directory']):
+                os.makedirs(self.attributes['output_directory'])
+            temp_filename = os.path.join(self.attributes['output_directory'], temp_filename)
 
         # Open or generate the symbol id header
         symbol_id_list = None

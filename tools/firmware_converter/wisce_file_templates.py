@@ -1,5 +1,5 @@
 #==========================================================================
-# (c) 2020 Cirrus Logic, Inc.
+# (c) 2020, 2022 Cirrus Logic, Inc.
 #--------------------------------------------------------------------------
 # Project : Template for WISCE Script files
 # File    : wisce_file_templates.py
@@ -24,7 +24,7 @@
 #==========================================================================
 # IMPORTS
 #==========================================================================
-import string
+import os
 from firmware_exporter import firmware_exporter
 
 #==========================================================================
@@ -90,7 +90,7 @@ class wisce_script_file(firmware_exporter):
 
         return temp_data_str
 
-    def update_block_info(self, fw_block_total, coeff_block_totals): pass
+    def update_block_info(self, fw_block_total, coeff_block_totals, bin_block_totals): pass
     def add_control(self, algorithm_name, algorithm_id, control_name, address): pass
 
     def add_data_block(self, address, data_bytes):
@@ -107,6 +107,9 @@ class wisce_script_file(firmware_exporter):
         return self.add_data_block(address, data_bytes)
 
     def add_coeff_block(self, index, address, data_bytes):
+        return self.add_data_block(address, data_bytes)
+
+    def add_bin_block(self, index, address, data_bytes):
         return self.add_data_block(address, data_bytes)
 
     def add_metadata_text_line(self, line):
@@ -130,6 +133,11 @@ class wisce_script_file(firmware_exporter):
 
     def to_file(self):
         temp_filename = self.attributes['part_number_str'] + self.attributes['suffix'] + "_wisce_script_output.txt"
+        if self.attributes['output_directory']:
+            if not os.path.exists(self.attributes['output_directory']):
+                os.makedirs(self.attributes['output_directory'])
+            temp_filename = os.path.join(self.attributes['output_directory'], temp_filename)
+
         results_str = "Exported to " + temp_filename + "\n"
 
         f = open(temp_filename, 'w')

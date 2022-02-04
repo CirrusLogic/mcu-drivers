@@ -1,5 +1,5 @@
 #==========================================================================
-# (c) 2021 Cirrus Logic, Inc.
+# (c) 2021-2022 Cirrus Logic, Inc.
 #--------------------------------------------------------------------------
 # Project :
 # File    : run_bridge.py
@@ -56,7 +56,7 @@ timeout_counter = 0
 class com_port(smcio.serial_io_interface):
 
     def __init__(self, port, speed, timeout):
-        self.ser = serial.Serial(port, 115200, parity=serial.PARITY_NONE, rtscts=0, timeout=timeout)
+        self.ser = serial.Serial(port, speed, parity=serial.PARITY_NONE, rtscts=0, timeout=timeout)
 
     def write(self, byte_list):
         self.ser.write(byte_list)
@@ -139,6 +139,9 @@ def get_args(args):
     parser.add_argument('-v', '--verbose', dest='verbose', default=False, action='store_true')
     parser.add_argument('-s', '--stdout_filename', dest="stdout_filename", type=str, help='The filename for stdout channel.')
     parser.add_argument('-b', '--bridge_filename', dest='bridge_filename', type=str, help='The filename for bridge channel.')
+    parser.add_argument('-r', '--user_num_reg_in_chunk', dest='user_num_reg_in_chunk', default=100, type=int,
+                        help='The number of registers to chunk in a block-write operation. '
+                        'Must be between 1 and 200. Omitting this option defaults to 100')
 
     return parser.parse_args(args[1:])
 
@@ -168,6 +171,12 @@ def validate_args(args):
             print("Could not autodetect com port")
             return False
 
+    # Check register chunk is legal
+    # NB: 200 is dictated by the current buffer size at the MCU for receiving register write values
+    if not 0 < args.user_num_reg_in_chunk <= 200:
+        print("Invalid chunk-size specified ({})".format(args.user_num_reg_in_chunk))
+        return False
+
     return True
 
 def print_start():
@@ -175,12 +184,15 @@ def print_start():
     print("run_bridge")
     print("")
     print("SDK Version " + print_sdk_version(repo_path + '/sdk_version.h'))
+    print("Process Id: {}".format(os.getpid()))
 
 def print_args(args):
     print("")
     print("stdout_filename: {}".format(args.stdout_filename if args.stdout_filename is not None else "None"))
     print("bridge_filename: {}".format(args.bridge_filename if args.bridge_filename is not None else "None"))
     print("Timeout (s): " + str(args.timeout))
+    if args.verbose:
+        print("Register chunk size for block-writes: {}".format(args.user_num_reg_in_chunk))
     print("")
 
 def print_results(results_string):
@@ -238,7 +250,10 @@ def main(argv):
         f.close()
 
     # Create SMCIO processor and add channels for stdin/stdout, test, and coverage
-    p = smcio.processor(com_port(args.comport, 115200, 0.001), args.packet_view)
+    p = smcio.processor(com_port(args.comport, 115200, args.timeout),
+                        bridge_agent.PAYLOAD_UNPACK_SHORT,
+                        bridge_agent.PAYLOAD_UNPACK_INT,
+                        args.packet_view)
     p.add_channel('0', channel_callback, (args.stdout_filename, '0'))
     p.add_channel('3', channel_callback, (args.bridge_filename, '3'))
 
@@ -248,7 +263,7 @@ def main(argv):
     ''' Do Wisce Agent stuff using new module bridge_agent.py '''
     devices = dict()  # No device details discovered yet
     try:
-        bridge_agent.outer_loop(p, '3', args.verbose)
+        bridge_agent.outer_loop(p, '3', args.verbose, args.user_num_reg_in_chunk)
     except IOError as e:
         print("\nIOError: {}. Exiting\n".format(e))
         raise

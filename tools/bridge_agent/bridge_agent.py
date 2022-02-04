@@ -1,6 +1,6 @@
 #!/usr/bin/python
 #==========================================================================
-# (c) 2021 Cirrus Logic, Inc.
+# (c) 2021-2022 Cirrus Logic, Inc.
 #--------------------------------------------------------------------------
 # Project : StudioBridge Server to translate from TCP/IP to UART
 # File    : bridge_agent.py
@@ -27,6 +27,9 @@ import socket
 import os
 import signal
 
+# Bridge to Alt-OS MCU internal message protocol version
+BRIDGE_MCU_MSG_FORMAT = "0.1"
+
 CLIENT_PORT = 22349
 SOCK_RX_BYTES = 2048
 
@@ -36,7 +39,8 @@ DEVICE_COM_PORT = 'COM8'  # Change according to your COM port to device
 
 sock = None
 
-# Shorthand of Commands sent to MCU
+# Shorthand of Commands sent to MCU. Needed as some commands can be specified
+# by a client in abbreviated form
 cmd_mcu_abbreviated = {
     "ProtocolVersion"   :"PV",
     "Info"              :"IN",
@@ -55,19 +59,52 @@ cmd_mcu_abbreviated = {
     "SM"                :"SM",
     "ServiceAvailable"  :"SA",
     "Shutdown"          :"SD",
+    "IntBridgeMcuMsgVersion":"IV"
+}
+
+cmd_mcu_opcodes = {
+    "CD"                    :0x1,
+    "ProtocolVersion"       :0x2,
+    "PV"                    :0x2,
+    "Info"                  :0x3,
+    "IN"                    :0x3,
+    "Detect"                :0x4,
+    "DT"                    :0x4,
+    "Read"                  :0x5,
+    "R"                     :0x5,
+    "RE"                    :0x5,
+    "Write"                 :0x6,
+    "W"                     :0x6,
+    "WR"                    :0x6,
+    "BlockRead"             :0x7,
+    "BR"                    :0x7,
+    "BlockWriteStart"       :0x8,
+    "BWs"                   :0x8,
+    "BWc"                   :0x9,
+    "BWe"                   :0xa,
+    "DV"                    :0xb,   # Device
+    "DC"                    :0xc,   # DriverControl
+    "SM"                    :0xd,   # ServiceMessage
+    "SA"                    :0xe,   # ServiceAvailable
+    "SD"                    :0xf,   # Shutdown
+    "IntBridgeMcuMsgVersion":0x10
 }
 
 cmds_with_numerical_args = ["R", "Read", "BlockRead", "BR", "W", "Write", "BlockWrite", "BW"]
+
+no_arg_abbrv_cmds = ["CD", "IN", "DT", "DV", "DC", "SM", "SA", "SD"]
 
 ERROR_REPLY = "ER"
 DEFAULT_NUM_CHIPS = 1
 
 BRIDGE_STATE_HANDSHAKE_GET_CD                   = 0
 BRIDGE_STATE_HANDSHAKE_WAIT_MCU_REPLY_GET_CD    = 1
-BRIDGE_STATE_HANDSHAKE_INFO                     = 2
-BRIDGE_STATE_HANDSHAKE_WAIT_MCU_REPLY_INFO      = 3
-BRIDGE_STATE_WAIT_CLI_CMD                       = 4
-BRIDGE_STATE_WAIT_MCU_REPLY                     = 5
+BRIDGE_STATE_MCU_MSG_FORMAT_VERSION             = 2
+BRIDGE_STATE_WAIT_MCU_MSG_FORMAT_VERSION        = 3
+BRIDGE_STATE_HANDSHAKE_INFO                     = 4
+BRIDGE_STATE_HANDSHAKE_WAIT_MCU_REPLY_INFO      = 5
+BRIDGE_STATE_WAIT_CLI_CMD                       = 6
+BRIDGE_STATE_WAIT_MCU_REPLY                     = 7
 # States for executing a block-write operation
 BRIDGE_STATE_BW_START                           = 11
 BRIDGE_STATE_BW_CONTINUE                        = 12
@@ -84,6 +121,18 @@ wisce_device_id = "unknown"
 devices = dict()  # No device details discovered yet
 num_chips = DEFAULT_NUM_CHIPS
 verbose = False
+
+PAYLOAD_BYTE_LENGTH = 2
+# Define how binary data should be sent in payload of smcio packets
+# All integral values in the payload are sent in little-endian format to the MCU as
+# the Alt-OS development board uses tools that are compiled as little-endian
+PAYLOAD_BINARY_ENDIANNESS = 'little'
+# These are used by smcio.py. Uncomment according to how PAYLOAD_BINARY_ENDIANNESS has been defined
+#PAYLOAD_UNPACK_SHORT = ">H"   # Big endian unsigned short
+#PAYLOAD_UNPACK_INT   = ">I"   # Big endian unsigned int
+PAYLOAD_UNPACK_SHORT = "<H"   # Little endian unsigned short
+PAYLOAD_UNPACK_INT   = "<I"   # Little endian unsigned int
+
 
 # Translation table to go from <name> string from Detect reply to an integer
 class Name_To_Int_Id(object):
@@ -121,6 +170,9 @@ class bridge_sock_excpn(Exception):
     pass
 
 class blockwrite_chunk_excpn(Exception):
+    pass
+
+class missing_chip_id_excpn(Exception):
     pass
 
 def init_bridge_socket(host='127.0.0.1', port=CLIENT_PORT):
@@ -203,6 +255,9 @@ def dbg_pr_AgentMsgToClient(verbose, msg):
         print("Agent reply: {} -> Client".format(msg))
         check_msg(msg)
 
+def payload_length_bytes(payload_len):
+    return payload_len.to_bytes(PAYLOAD_BYTE_LENGTH, PAYLOAD_BINARY_ENDIANNESS)
+
 #==========================================================================
 # Current Command object
 #=========================================================================
@@ -282,11 +337,10 @@ def hexstr_to_decstr(hexstr):
 #==========================================================================
 # Send block-write cmd data to device in chunks
 #=========================================================================
-
-def send_bw_data_to_mcu(crnt_cmd, chip_id, ser_ch, ch_num, state, verbose):
+def send_bw_data_to_mcu_binary(crnt_cmd, chip_id, ser_ch, ch_num, state, verbose, user_num_reg_in_chunk):
     if crnt_cmd.arg1 is None or crnt_cmd.arg2 is None:
         raise blockwrite_chunk_excpn("BlockWrite cmd has no addr and/or data")
-    # TODO we should remove BW from cmds_with_numerical_args then can still use arg2
+
     cmd_str = crnt_cmd.get_all_str()
     data_str = cmd_str.split()[-1]
     if len(data_str) % 8 != 0:
@@ -298,16 +352,39 @@ def send_bw_data_to_mcu(crnt_cmd, chip_id, ser_ch, ch_num, state, verbose):
         while state != BRIDGE_STATE_BW_DONE:
             if state == BRIDGE_STATE_BW_START:
                 dbg_pr_general(verbose, "Agent state BWs: write cmd to device")
-                # Send MCU BW start msg: "BWs <regAddr> <regData>\n"
-                parcel_str_hex = data_str[data_indx:8]
-                parcel_str_dec = hexstr_to_decstr(parcel_str_hex)
-                if chip_id is None:
-                    dev_cmd_str = "{} {} {}\n".format(BWs, crnt_cmd.arg1, parcel_str_dec)
+                # Send MCU BW start msg
+                # Calculate amount of registers to send based on what's left
+                # and the max chunk size
+                num_regs_left_to_send = int((len(data_str) - data_indx) / 8)
+                if num_regs_left_to_send < user_num_reg_in_chunk:
+                    reg_chunk_to_send = num_regs_left_to_send
                 else:
-                    dev_cmd_str = "{} {} {} {}\n".format(BWs, chip_id, crnt_cmd.arg1, parcel_str_dec)
-                dbg_pr_AgentMsgToDevice(verbose, dev_cmd_str)
-                ser_ch.write_channel(ch_num, dev_cmd_str)
-                data_indx += 8
+                    reg_chunk_to_send = user_num_reg_in_chunk
+
+                datachunk_str_hex = data_str[data_indx:8*reg_chunk_to_send]
+                datachunk_int = int(datachunk_str_hex, 16)
+                if chip_id is None:
+                    ## ToDO Is this an error now? We expect a chip is for all cmds?
+                    raise missing_chip_id_excpn("BW start chip Id is None")
+
+                bin_payload = bytearray()
+                chunk_bytes = reg_chunk_to_send * 4  # Assumes 4 bytes per register
+                payload_len = 8 + chunk_bytes
+                bin_payload += payload_len.to_bytes(PAYLOAD_BYTE_LENGTH, PAYLOAD_BINARY_ENDIANNESS)
+                # Add OpCode
+                bin_payload.append(cmd_mcu_opcodes["BWs"])
+                # BW has ChipId field
+                bin_payload.append(chip_id)   ## TODO: Can remove chip_id passed in param? Use crnt_cmd
+                # Add 4-byte address to write
+                write_addr_int = int(crnt_cmd.arg1)
+                bin_payload += write_addr_int.to_bytes(4, PAYLOAD_BINARY_ENDIANNESS)
+                # Add write value
+                # NB: The MCU regmap block-write fn needs an array of byte data in big endian. The MCU
+                # uses memcpy to grab the bytes so the data will end up keeping the big endian format
+                bin_payload += datachunk_int.to_bytes(chunk_bytes, 'big')
+                dbg_pr_AgentMsgToDevice(verbose, datachunk_str_hex)
+                ser_ch.write_channel_bytes(ch_num, bin_payload)
+                data_indx += 8 * reg_chunk_to_send
                 if data_indx < len(data_str):
                     state = BRIDGE_STATE_BW_CONTINUE
                 else:
@@ -318,12 +395,28 @@ def send_bw_data_to_mcu(crnt_cmd, chip_id, ser_ch, ch_num, state, verbose):
                 # Check for MCU BWc or Error reply
                 if len(mcu_reply_str) and BWc in mcu_reply_str[:len(BWc)]:
                     # Send next parcel of data
-                    parcel_str_hex = data_str[data_indx:data_indx+8]
-                    parcel_str_dec = hexstr_to_decstr(parcel_str_hex)
-                    dev_cmd_str = "{} {}\n".format(BWc, parcel_str_dec)
-                    dbg_pr_AgentMsgToDevice(verbose, dev_cmd_str)
-                    ser_ch.write_channel(ch_num, dev_cmd_str)
-                    data_indx += 8
+                    # Calculate amount of registers to send based on what's left
+                    # and the max chunk size
+                    num_regs_left_to_send = int((len(data_str)-data_indx)/8)
+                    if num_regs_left_to_send < user_num_reg_in_chunk:
+                        reg_chunk_to_send = num_regs_left_to_send
+                    else:
+                        reg_chunk_to_send = user_num_reg_in_chunk
+                    datachunk_str_hex = data_str[data_indx:data_indx+(8*reg_chunk_to_send)]
+                    datachunk_int = int(datachunk_str_hex, 16)
+                    chunk_bytes = reg_chunk_to_send * 4  # Assumes 4 bytes per register
+                    payload_len = 3 + chunk_bytes
+                    bin_payload = bytearray()
+                    bin_payload += payload_len.to_bytes(PAYLOAD_BYTE_LENGTH, PAYLOAD_BINARY_ENDIANNESS)
+                    # Add OpCode
+                    bin_payload.append(cmd_mcu_opcodes["BWc"])
+                    # Add write value
+                    # NB: The MCU regmap block-write fn needs an array of byte data in big endian. The MCU
+                    # uses memcpy to grab the bytes so the data will end up keeping the big endian format
+                    bin_payload += datachunk_int.to_bytes(chunk_bytes, 'big')
+                    dbg_pr_AgentMsgToDevice(verbose, datachunk_str_hex)
+                    ser_ch.write_channel_bytes(ch_num, bin_payload)
+                    data_indx += 8 * reg_chunk_to_send
                     if data_indx < len(data_str):
                         state = BRIDGE_STATE_BW_CONTINUE
                     else:
@@ -337,7 +430,12 @@ def send_bw_data_to_mcu(crnt_cmd, chip_id, ser_ch, ch_num, state, verbose):
                 # Check for MCU BWc or Error reply
                 if len(mcu_reply_str) and BWc in mcu_reply_str[:len(BWc)]:
                     dbg_pr_general(verbose, "Agent state BWe, write BWe to MCU")
-                    ser_ch.write_channel(ch_num, "{}\n".format(BWe))
+                    payload_len = 3
+                    bin_payload = bytearray()
+                    bin_payload += payload_len.to_bytes(PAYLOAD_BYTE_LENGTH, PAYLOAD_BINARY_ENDIANNESS)
+                    # Add OpCode
+                    bin_payload.append(cmd_mcu_opcodes["BWe"])
+                    ser_ch.write_channel_bytes(ch_num, bin_payload)
                 else:
                     # Ignoring error code sent by device for now
                     raise blockwrite_chunk_excpn("BWc: Device replied with some error")
@@ -350,40 +448,114 @@ def send_bw_data_to_mcu(crnt_cmd, chip_id, ser_ch, ch_num, state, verbose):
 #==========================================================================
 # Command Handler Function
 #=========================================================================
-def client_cmd_handler(crnt_cmd, ser_ch, ch_num, state, verbose):
-    chip_id = None
+
+# Creates binary fields according to cmd type and writes to serial channel
+def client_cmd_handler_binary(crnt_cmd, ser_ch, ch_num, state, verbose, user_num_reg_in_chunk):
+    # Switch on cmd type
     abbr_action_str = cmd_mcu_abbreviated[crnt_cmd.get_action_str()]
-    abbr_dev_cmd_str = abbr_action_str
-
-    # add chip target if multi-chip
-    if num_chips > 1 and crnt_cmd.device_name is not None:
-        # Expect the client cmd to have a "[some_string:N]" where N is the sequence number
-        # We only send the N to the device in order to identify the targeted chip
-        print("DEVICE: " + crnt_cmd.device_name)
-        chip_id = devices[crnt_cmd.device_name]["chip_id"]
-        abbr_dev_cmd_str += " {}".format(chip_id)
-
-    # add args
-    if crnt_cmd.arg1 is not None:
-        abbr_dev_cmd_str += " {}".format(crnt_cmd.arg1)
-    if crnt_cmd.arg2 is not None:
-        abbr_dev_cmd_str += " {}".format(crnt_cmd.arg2)
-    abbr_dev_cmd_str += "\n"
-    dbg_pr_AgentMsgToDevice(verbose, abbr_dev_cmd_str)
-
-    # If blockwrite cmd, need to veer off into a mini state machine of chunking.
-    # crnt_cmd.arg2 will be a string of at least 8 long up to 1600
-    # Incoming BW str will contain long data list Eg:
-    # "BW c10 E1000000E1000000E1000001E1000001E1000001"
     if abbr_action_str == "BW":
         try:
-            send_bw_data_to_mcu(crnt_cmd, chip_id, ser_ch, ch_num, state, verbose)
-        except blockwrite_chunk_excpn as bwe:
+            send_bw_data_to_mcu_binary(crnt_cmd, devices[crnt_cmd.device_name]["chip_id"],
+                                       ser_ch, ch_num, state, verbose, user_num_reg_in_chunk)
+        except (blockwrite_chunk_excpn, missing_chip_id_excpn) as bwe:
             print(bwe)
             raise
+    elif abbr_action_str in no_arg_abbrv_cmds:
+        bin_payload = bytearray()
+        payload_len = 3
+        # Add payload-length field (2 bytes)
+        bin_payload += payload_length_bytes(payload_len)
+        # Add OpCode
+        bin_payload.append(cmd_mcu_opcodes[abbr_action_str])
+        # Write binary payload to serial channel
+        ser_ch.write_channel_bytes(ch_num, bin_payload)
+    elif abbr_action_str == "PV":
+        bin_payload = bytearray()
+        payload_len = 5
+        # Add payload-length field (2 bytes)
+        bin_payload += payload_length_bytes(payload_len)
+        # Add OpCode
+        bin_payload.append(cmd_mcu_opcodes[abbr_action_str])
+        # Add version from cmd's first arg. This will be eg "106"
+        pv_int = int(crnt_cmd.arg1)
+        bin_payload += pv_int.to_bytes(2, PAYLOAD_BINARY_ENDIANNESS)
+        # Write binary payload to serial channel
+        ser_ch.write_channel_bytes(ch_num, bin_payload)
+    elif abbr_action_str == "RE":
+        bin_payload = bytearray()
+        payload_len = 8
+        # Add payload-length field (2 bytes)
+        bin_payload += payload_length_bytes(payload_len)
+        # Add OpCode
+        bin_payload.append(cmd_mcu_opcodes[abbr_action_str])
+        # RE has ChipId field
+        bin_payload.append(devices[crnt_cmd.device_name]["chip_id"])
+        # Add 4-byte address to read
+        read_addr_int = int(crnt_cmd.arg1)
+        bin_payload += read_addr_int.to_bytes(4, PAYLOAD_BINARY_ENDIANNESS)
+        # Write binary payload to serial channel
+        ser_ch.write_channel_bytes(ch_num, bin_payload)
+    elif abbr_action_str == "WR":
+        bin_payload = bytearray()
+        payload_len = 12
+        # Add payload-length field (2 bytes)
+        bin_payload += payload_length_bytes(payload_len)
+        # Add OpCode
+        bin_payload.append(cmd_mcu_opcodes[abbr_action_str])
+        # WR has ChipId field
+        bin_payload.append(devices[crnt_cmd.device_name]["chip_id"])
+        # Add 4-byte address to write
+        write_addr_int = int(crnt_cmd.arg1)
+        bin_payload += write_addr_int.to_bytes(4, PAYLOAD_BINARY_ENDIANNESS)
+        # Add write value
+        write_val = int(crnt_cmd.arg2)
+        bin_payload += write_val.to_bytes(4, PAYLOAD_BINARY_ENDIANNESS)
+        # Write binary payload to serial channel
+        ser_ch.write_channel_bytes(ch_num, bin_payload)
+    elif abbr_action_str == "BR":
+        bin_payload = bytearray()
+        payload_len = 10
+        # Add payload-length field (2 bytes)
+        bin_payload += payload_length_bytes(payload_len)
+        # Add OpCode
+        bin_payload.append(cmd_mcu_opcodes[abbr_action_str])
+        # BR has ChipId field
+        bin_payload.append(devices[crnt_cmd.device_name]["chip_id"])
+        # Add 4-byte address to read
+        read_addr_int = int(crnt_cmd.arg1)
+        bin_payload += read_addr_int.to_bytes(4, PAYLOAD_BINARY_ENDIANNESS)
+        # Add number of bytes to read (2 bytes)
+        read_len = int(crnt_cmd.arg2)
+        bin_payload += read_len.to_bytes(2, PAYLOAD_BINARY_ENDIANNESS)
+        # Write binary payload to serial channel
+        ser_ch.write_channel_bytes(ch_num, bin_payload)
     else:
-        # Write abbreviated cmd str to serial channel
-        ser_ch.write_channel(ch_num, abbr_dev_cmd_str)
+        raise Exception("Unknown abbr_action_str: {}".format(abbr_action_str))
+
+
+def new_send_internal_CD_binary(ser_ch, ch_num):
+    bin_payload = bytearray()
+    payload_len = 3
+    bin_payload += payload_len.to_bytes(PAYLOAD_BYTE_LENGTH, PAYLOAD_BINARY_ENDIANNESS)
+    # Add OpCode
+    bin_payload.append(cmd_mcu_opcodes["CD"])
+    ser_ch.write_channel_bytes(ch_num, bin_payload)
+
+def send_internal_bridge_mcu_protocol_version(ser_ch, ch_num):
+    bin_payload = bytearray()
+    payload_len = 3
+    bin_payload += payload_len.to_bytes(PAYLOAD_BYTE_LENGTH, PAYLOAD_BINARY_ENDIANNESS)
+    # Add OpCode
+    bin_payload.append(cmd_mcu_opcodes["IntBridgeMcuMsgVersion"])
+    ser_ch.write_channel_bytes(ch_num, bin_payload)
+
+def send_internal_IN_binary(ser_ch, ch_num):
+    bin_payload = bytearray()
+    payload_len = 3
+    bin_payload += payload_len.to_bytes(PAYLOAD_BYTE_LENGTH, PAYLOAD_BINARY_ENDIANNESS)
+    # Add OpCode
+    bin_payload.append(cmd_mcu_opcodes["IN"])
+    ser_ch.write_channel_bytes(ch_num, bin_payload)
 
 #==========================================================================
 # MCU Reply handler Utility functions
@@ -530,14 +702,14 @@ def wait_for_serial_data(ser_ch, ch_num):
     return data_str
 
 
-def inner_loop(sock, ser_ch, ch_num, state, crnt_cmd, verbose):
+def inner_loop(sock, ser_ch, ch_num, state, crnt_cmd, verbose, user_num_reg_in_chunk):
     global wisce_device_id
     while True:
         try:
             dbg_pr_general(verbose, "Loop state: {}".format(state))
             if state == BRIDGE_STATE_HANDSHAKE_GET_CD:
                 # Initiate a Current Device "CD" command
-                ser_ch.write_channel(ch_num, "CD\n")
+                new_send_internal_CD_binary(ser_ch, ch_num)
                 state = BRIDGE_STATE_HANDSHAKE_WAIT_MCU_REPLY_GET_CD
             elif state == BRIDGE_STATE_HANDSHAKE_WAIT_MCU_REPLY_GET_CD:
                 dbg_pr_general(verbose, "Initial read reg 0: Waiting for device reply")
@@ -545,11 +717,27 @@ def inner_loop(sock, ser_ch, ch_num, state, crnt_cmd, verbose):
                 dbg_pr_DeviceMsgToAgent(verbose, reply)
                 wisce_device_id = reply[:-1]
                 print("wisce_device_id is {}".format(wisce_device_id))
+                state = BRIDGE_STATE_MCU_MSG_FORMAT_VERSION
+            elif state == BRIDGE_STATE_MCU_MSG_FORMAT_VERSION:
+                send_internal_bridge_mcu_protocol_version(ser_ch, ch_num)
+                state = BRIDGE_STATE_WAIT_MCU_MSG_FORMAT_VERSION
+            elif state == BRIDGE_STATE_WAIT_MCU_MSG_FORMAT_VERSION:
+                dbg_pr_general(verbose, "Internal Bridge to MCU Msg Format: Waiting for device reply")
+                reply = wait_for_serial_data(ser_ch, ch_num)
+                dbg_pr_DeviceMsgToAgent(verbose, reply)
+                bridge_mcu_msg_format = reply[:-1]
+                if bridge_mcu_msg_format != BRIDGE_MCU_MSG_FORMAT:
+                    print("\n*WARNING* Bridge and MCU internal message formats are different")
+                    print("Bridge message version: {}. MCU reports message version: {}".format(
+                        BRIDGE_MCU_MSG_FORMAT, bridge_mcu_msg_format))
+                    print("Some commands may not work as expected")
+                else:
+                    print("Bridge and MCU msg format versions match: {}".format(bridge_mcu_msg_format))
                 state = BRIDGE_STATE_HANDSHAKE_INFO
             elif state == BRIDGE_STATE_HANDSHAKE_INFO:
                 # Create abbr Info cmd
                 # Send MCU INFO abbr cmd
-                ser_ch.write_channel(ch_num, "IN\n")
+                send_internal_IN_binary(ser_ch, ch_num)
                 state = BRIDGE_STATE_HANDSHAKE_WAIT_MCU_REPLY_INFO
             elif state == BRIDGE_STATE_HANDSHAKE_WAIT_MCU_REPLY_INFO:
                 dbg_pr_general(verbose, "INFO cmd handshake: Waiting for device reply")
@@ -570,7 +758,7 @@ def inner_loop(sock, ser_ch, ch_num, state, crnt_cmd, verbose):
                     raise bridge_sock_excpn("No command received. Remote end may have terminated connection")
                 crnt_cmd.new_cmd(cli_cmd_b)
                 dbg_pr_ClientMsg(verbose, crnt_cmd.get_all_str())
-                client_cmd_handler(crnt_cmd, ser_ch, ch_num, state, verbose)
+                client_cmd_handler_binary(crnt_cmd, ser_ch, ch_num, state, verbose, user_num_reg_in_chunk)
                 state = BRIDGE_STATE_WAIT_MCU_REPLY
             elif state == BRIDGE_STATE_WAIT_MCU_REPLY:
                 dbg_pr_general(verbose, "Waiting for reply from device")
@@ -593,7 +781,7 @@ def inner_loop(sock, ser_ch, ch_num, state, crnt_cmd, verbose):
         ## TODO: send_bw_data_to_mcu() can raise exception!
         ## TODO: Should catch general Exception here, send ER msg to client & continue loop
 
-def outer_loop(ser_ch, ch_num, verbose):
+def outer_loop(ser_ch, ch_num, verbose, user_num_reg_in_chunk):
     while True:
         try:
             # Create socket & wait for connection to bridge client
@@ -602,7 +790,7 @@ def outer_loop(ser_ch, ch_num, verbose):
             current_cmd = current_command()
 
             with bridgecli_sockcon:
-                inner_loop(bridgecli_sockcon, ser_ch, ch_num, state, current_cmd, verbose)
+                inner_loop(bridgecli_sockcon, ser_ch, ch_num, state, current_cmd, verbose, user_num_reg_in_chunk)
 
         except (TypeError, UnicodeError) as err:
             # Sometimes a client will send rubbish data down the socket

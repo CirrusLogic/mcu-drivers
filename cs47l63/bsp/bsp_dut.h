@@ -1,10 +1,10 @@
 /**
- * @file sdk_version.h
+ * @file bsp_dut.h
  *
- * @brief Alt-OS SDK version literals
+ * @brief Functions and prototypes exported by the BSP module for the cs47l63 platform.
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2022 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2021 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -20,8 +20,8 @@
  *
  */
 
-#ifndef SDK_VERSION_H
-#define SDK_VERSION_H
+#ifndef BSP_DUT_H
+#define BSP_DUT_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -30,35 +30,24 @@ extern "C" {
 /***********************************************************************************************************************
  * INCLUDES
  **********************************************************************************************************************/
+#include <stdbool.h>
 
 /***********************************************************************************************************************
  * LITERALS & CONSTANTS
  **********************************************************************************************************************/
-
-/**
- * @defgroup SDK_VERSION_
- * @brief Defines for the release version of the SDK
- *
- * @details
- * Versions for the SDK are defined as:
- * - Major - The interface of the firmware or module has changed in a way that breaks backwards compatibility. This
- * means that the module will not work as before if the old interface is used.
- * - Minor - The interface of the firmware or module has changed, but not in a way that breaks backwards compatibility.
- * This means that the module will work as before if the old interface is used.
- * - Update - The function has changed without changing the interface, for instance for a bug fix.
- *
- * @{
- */
-#define SDK_VERSION_MAJOR       (4) ///< Release Major version
-#define SDK_VERSION_MINOR       (11) ///< Release Minor version
-#define SDK_VERSION_UPDATE      (0) ///< Release Update version
-#define SDK_GIT_SHA             ("61ee6c0881e6270b4df6e990d502275c00aad6c9") ///< Release Git SHA
-/** @} */
-
+#define BSP_DUT_I2C_ADDRESS_8BIT                            (0x80)
 
 /***********************************************************************************************************************
  * MACROS
  **********************************************************************************************************************/
+#define BSP_USE_CASE_TG_HP_EN                                   (0x0)
+#define BSP_USE_CASE_TG_HP_DIS                                  (0x1)
+#define BSP_USE_CASE_DSP_PRELOAD_PT_EN                          (0x2)
+#define BSP_USE_CASE_DSP_PRELOAD_PT_DIS                         (0x3)
+#define BSP_USE_CASE_TG_DSP_HP_EN                               (0x4)
+#define BSP_USE_CASE_TG_DSP_HP_DIS                              (0x5)
+#define BSP_USE_CASE_MIC_DSP_HP_EN                              (0x6)
+#define BSP_USE_CASE_MIC_DSP_HP_DIS                             (0x7)
 
 /***********************************************************************************************************************
  * ENUMS, STRUCTS, UNIONS, TYPEDEFS
@@ -71,10 +60,15 @@ extern "C" {
 /***********************************************************************************************************************
  * API FUNCTIONS
  **********************************************************************************************************************/
+uint32_t bsp_dut_initialize(void);
+uint32_t bsp_dut_reset(void);
+uint32_t bsp_dut_boot(void);
+uint32_t bsp_dut_use_case(uint32_t use_case);
+uint32_t bsp_dut_process(void);
 
 /**********************************************************************************************************************/
 #ifdef __cplusplus
 }
 #endif
 
-#endif // SDK_VERSION_H
+#endif // BSP_DUT_H

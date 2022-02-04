@@ -1,5 +1,5 @@
 #==========================================================================
-# (c) 2019-2021 Cirrus Logic, Inc.
+# (c) 2019-2022 Cirrus Logic, Inc.
 #--------------------------------------------------------------------------
 # Project : Convert from WMFW/WMDR ("BIN") Files to C Header/Source
 # File    : firmware_converter.py
@@ -32,6 +32,7 @@ from sdk_version import print_sdk_version
 import argparse
 from wmfw_parser import wmfw_parser, get_memory_region_from_type
 from wmdr_parser import wmdr_parser
+from binary_parser import bin_parser
 from firmware_exporter_factory import firmware_exporter_factory
 
 #==========================================================================
@@ -50,62 +51,64 @@ supported_mem_maps = {
     'halo_type_0': {
         'parts': ['cs35l41', 'cs40l25', 'cs40l30', 'cs48l32', 'cs47l63', 'cs47l66', 'cs47l67', 'cs40l26'],
         'xm': {
-            'u24': 0x2800000,
-            'p32': 0x2000000,
-            'u32': 0x2400000,
+            'u24': (0x2800000, 0x2bfffff),
+            'p32': (0x2000000, 0x23fffff),
+            'u32': (0x2400000, 0x27fffff),
         },
         'ym': {
-            'u24': 0x3400000,
-            'p32': 0x2C00000,
-            'u32': 0x3000000,
+
+            'u24': (0x3400000, 0x37fffff),
+            'p32': (0x2c00000, 0x2ffffff),
+            'u32': (0x3000000, 0x33fffff),
         },
         'pm': {
-            'pm32': 0x3800000,
+            'pm32': (0x3800000, 0xfffffff),
         }
     },
+
     'adsp_dsp_1': {
         'parts': ['cs47l15', 'cs47l35_dsp1'],
         'xm': {
-            'u24': 0xa0000,
+            'u24': (0xa0000, 0xbffff),
         },
         'ym': {
-            'u24': 0xc0000,
+            'u24': (0xc0000, 0xdffff),
         },
         'zm': {
-            'u24': 0xe0000,
+            'u24': (0xe0000, 0xfffff),
         },
         'pm': {
-            'pm32': 0x80000,
+            'pm32': (0x80000, 0x9ffff),
         }
     },
     'adsp_dsp_2': {
         'parts': ['cs47l35_dsp2'],
         'xm': {
-            'u24': 0x120000,
+            'u24': (0x120000, 0x13ffff),
         },
         'ym': {
-            'u24': 0x140000,
+            'u24': (0x140000, 0x15ffff),
         },
         'zm': {
-            'u24': 0x160000,
+            'u24': (0x160000, 0xffffff),
         },
         'pm': {
-            'pm32': 0x100000,
+            'pm32': (0x100000, 0x11ffff),
         },
     },
     'adsp_dsp_3': {
         'parts': ['cs47l35_dsp3'],
         'xm': {
-            'u24': 0x1a0000,
+            'u24': (0x1a0000, 0x1bffff),
         },
         'ym': {
-            'u24': 0x1c0000,
+            'u24': (0x1c0000, 0x1dffff),
         },
         'zm': {
-            'u24': 0x1e0000,
+            'u24': (0x1e0000, 0xffffff),
         },
         'pm': {
-            'pm32': 0x180000,
+            'pm32': (0x180000, 0x19ffff),
         }
     }
 }
@@ -138,13 +141,21 @@ class address_resolver:
                 elif (mem_type == 'pm32'):
                     addresses_per_word = 3
 
-            address = self.mem_map[mem_region][mem_type] + offset * addresses_per_word
+            address = self.mem_map[mem_region][mem_type][0] + offset * addresses_per_word
 
             # Packed addresses must be on 4-byte boundaries
             if (self.core == 'halo_type_0' and mem_type == 'p32'):
                 address = address & ~0x3
 
         return address
+
+    def unresolve(self, address):
+        for mem_region in self.mem_map:
+            if mem_region != 'parts':
+                for mem_type in self.mem_map[mem_region]:
+                    if address >= self.mem_map[mem_region][mem_type][0] and address < self.mem_map[mem_region][mem_type][1]:
+                        return (mem_type, self.mem_map[mem_region][mem_type][0])
+        error_exit("Target address outside of memory range")
 
     def bytes_per_addr(self):
         if (self.core == 'halo_type_0'):
@@ -164,20 +175,21 @@ class block_list:
         new_blocks = []
         for block in self.blocks:
             temp_len = len(block[1])
-            if (temp_len < self.size_limit):
+            if (temp_len <= self.size_limit):
                 new_blocks.append((block[0], block[1]))
             else:
                 temp_block = []
                 temp_start_offset = block[0]
-                for data_byte in block[1]:
-                    temp_block.append(data_byte)
-                    if (len(temp_block) >= self.size_limit):
-                        new_blocks.append((temp_start_offset, temp_block))
-                        temp_start_offset = temp_start_offset + (len(temp_block) // self.ar.bytes_per_addr())
-                        temp_block = []
+                idx = 0
+                while (idx < temp_len):
+                    next_idx = min(self.size_limit, temp_len - idx) + idx
+                    temp_block.extend(block[1][idx:next_idx])
+                    idx = next_idx
+                    new_blocks.append((temp_start_offset, temp_block))
+                    temp_start_offset = temp_start_offset + (len(temp_block) // self.ar.bytes_per_addr())
+                    temp_block = []
                 if (len(temp_block) > 0):
                     new_blocks.append((temp_start_offset, temp_block))
-
         self.blocks = new_blocks
 
         return
@@ -215,6 +227,15 @@ class coeff_block_list(block_list):
 
         return
 
+class bin_block_list(block_list):
+    def __init__(self, data_blocks, size_limit, address_resolver):
+        block_list.__init__(self, size_limit, address_resolver)
+
+        for block in data_blocks:
+            new_address = block.fields['address']
+            self.blocks.append((new_address, block.data))
+        return
+
 
 #==========================================================================
 # HELPER FUNCTIONS
@@ -231,22 +252,26 @@ def get_args(args):
     parser.add_argument(dest='part_number', type=str, choices=supported_part_numbers,
                         help='The part number that the wmfw is targeted at.')
     parser.add_argument(dest='wmfw', type=str,help='The wmfw (or \'firmware\') file to be parsed.')
-    parser.add_argument('--wmdr', dest='wmdrs', type=str, nargs='*', help='The wmdr (or \'bin\') file(s) to be '\
-                        'parsed.')
+    parser.add_argument('--wmdr', dest='wmdrs', type=str, nargs='*', help='The wmdr file(s) to be parsed.')
+    parser.add_argument('--binary-input', dest='bins', type=str, nargs='*', help='The bin file(s) to be parsed and their addresses. Format: "<hex addr>,<bin filename>", individual files separated by whitespace')
     parser.add_argument('-s', '--suffix', type=str, default='',
                         dest='suffix', help='Add a suffix to filenames, variables and defines.')
     parser.add_argument('-i', '--i2c-address', type=str, default='0x80', dest='i2c_address', help='Specify I2C address for WISCE script output.')
     parser.add_argument('-b', '--block-size-limit', type=int, default='4140', dest='block_size_limit', help='Specify maximum byte size of block per control port transaction.  Can be no larger than 4140.')
     parser.add_argument('--sym-input', dest='symbol_id_input', type=str, default=None, help='The location of the symbol table C header(s).  If not specified, a header is generated with all controls.')
     parser.add_argument('--sym-output', dest='symbol_id_output', type=str, default=None, help='The location of the output symbol table C header.  Only used when no --sym-input is specified.')
-    parser.add_argument('--binary', dest='binary_output', action="store_true", help='Request binary fw_img output format.')
-    parser.add_argument('--wmdr-only', dest='wmdr_only', action="store_true", help='Request to ONLY store WMDR files in fw_img.')
+    parser.add_argument('--binary', dest='binary_output', action="store_true", help='Request binary fw_img output format. WARNING: --binary is going to be depracated soon, please use --binary-output.')
+    parser.add_argument('--binary-output', dest='binary_output', action="store_true", help='Request binary fw_img output format.')
+    parser.add_argument('--wmdr-only', dest='exclude_wmfw', action="store_true", help='(To be depracated, please use --exclude-wmfw) Request to ONLY store WMDR files in fw_img.')
+    parser.add_argument('--exclude-wmfw', dest='exclude_wmfw', action="store_true", help='Request to ONLY store WMDR/bin files in fw_img.')
     parser.add_argument('--generic-sym', dest='generic_sym', action="store_true", help='Use generic algorithm name for \'FIRMWARE_*\' algorithm controls')
     parser.add_argument('--fw-img-version', type=lambda x: int(x,0), default='0', dest='fw_img_version', help='Release version for the fw_img that ties together a WMFW fw revision with releases of BIN files. Accepts type int of any base.')
     parser.add_argument('--revision-check', dest='revision_check', action="store_true", help='Request to fail if WMDR FW revision does not match WMFW')
     parser.add_argument('--sym-partition', dest='sym_partition', action="store_true", help='Partition symbol IDs by algorithm so new symbols added to one algorithm don\'t cause subsequent IDs to be shifted')
     parser.add_argument('--no-sym-table', dest='no_sym_table', action="store_true", help='Do not generate list of symbols in fw_img_v1/fw_img_v2 output array but instead generate a C header containing the symbol Ids and addresses.')
     parser.add_argument('--exclude-dummy', dest='exclude_dummy', action="store_true", help='Do not include symbol IDs ending in _DUMMY in the output symbol table C header. Only used when no --sym-input is specified.')
+    parser.add_argument('--skip-command-print', dest='skip_command_print', action="store_true", default=False, help='Skip printing command')
+    parser.add_argument('--output-directory', dest='output_directory', default=None, help="Output directory of files. By default uses current work dir")
 
     return parser.parse_args(args[1:])
 
@@ -294,6 +319,9 @@ def print_args(args):
     if (args.wmdrs is not None):
         for wmdr in args.wmdrs:
             print("WMDR Path: " + wmdr)
+    if (args.bins is not None):
+        for bin in args.bins:
+            print("Binary addr/path: " + bin.split(',')[0] + '/' + bin.split(',')[1])
 
     if (args.suffix):
         print("Suffix: " + args.suffix)
@@ -339,6 +367,9 @@ def main(argv):
 
     args = get_args(argv)
 
+    # Create address resolver
+    res = address_resolver(args.part_number)
+
     # validate arguments
     print_args(args)
     if (not (validate_args(args))):
@@ -348,6 +379,10 @@ def main(argv):
         process_wmdr = True
     else:
         process_wmdr = False
+    if (args.bins is not None):
+        process_bins = True
+    else:
+        process_bins = False
 
     # Parse WMFW and WMDR files
     wmfw = wmfw_parser(args.wmfw)
@@ -359,6 +394,18 @@ def main(argv):
             wmdr = wmdr_parser(wmdr_filename)
             wmdr.parse()
             wmdrs.append(wmdr)
+    bins = []
+    if (process_bins):
+        for bin in args.bins:
+            if bin.lower().startswith('0x'):
+                bin = {'addr': int(bin.split(',')[0], 16), 'path': bin.split(',')[1]}
+            else:
+                bin = {'addr': int(bin.split(',')[0], 10), 'path': bin.split(',')[1]}
+            bin_parsed = bin_parser(bin, res.unresolve(bin['addr']))
+            bin_parsed.parse()
+            bins.append(bin_parsed)
+
+
 
     suffix = ""
     if (args.suffix):
@@ -423,9 +470,6 @@ def main(argv):
                 error_str += 'WMDR \'' + w[0] + '\' FW Revision: ' + w[1] + '\n'
             error_exit(error_str)
 
-    # Create address resolver
-    res = address_resolver(args.part_number)
-
     # Create firmware data blocks - size according to 'block_size_limit'
     fw_data_block_list = fw_block_list(wmfw.get_data_blocks(), args.block_size_limit, res)
     fw_data_block_list.rehash_blocks()
@@ -440,6 +484,15 @@ def main(argv):
                                                      wmfw.fw_id_block)
             coeff_data_block_list.rehash_blocks()
             coeff_data_block_lists.append(coeff_data_block_list)
+    # Create bin data blocks - size according to 'block_size_limit'
+    bin_data_block_lists = []
+    if (process_bins):
+        for bin_parsed in bins:
+            bin_data_block_list = bin_block_list(bin_parsed.data_blocks,
+                                                 args.block_size_limit,
+                                                 res)
+            bin_data_block_list.rehash_blocks()
+            bin_data_block_lists.append(bin_data_block_list)
 
     # Create firmware exporter factory
     attributes = dict()
@@ -450,12 +503,13 @@ def main(argv):
     attributes['symbol_id_input'] = args.symbol_id_input
     attributes['i2c_address'] = args.i2c_address
     attributes['binary_output'] = args.binary_output
-    attributes['wmdr_only'] = args.wmdr_only
+    attributes['exclude_wmfw'] = args.exclude_wmfw
     attributes['symbol_id_output'] = args.symbol_id_output
     attributes['max_block_size'] = args.block_size_limit
     attributes['sym_partition'] = args.sym_partition
     attributes['no_sym_table'] = args.no_sym_table
     attributes['exclude_dummy'] = args.exclude_dummy
+    attributes['output_directory'] = args.output_directory
 
     f = firmware_exporter_factory(attributes)
 
@@ -476,13 +530,15 @@ def main(argv):
         f.add_firmware_exporter('json')
 
     # Update block info based on any WMDR present
-    if (not process_wmdr):
-        f.update_block_info(len(fw_data_block_list.blocks), None)
-    else:
-        coeff_data_block_list_lengths = []
+    coeff_data_block_list_lengths = []
+    bin_data_block_list_lengths = []
+    if process_wmdr:
         for coeff_data_block_list in coeff_data_block_lists:
             coeff_data_block_list_lengths.append(len(coeff_data_block_list.blocks))
-        f.update_block_info(len(fw_data_block_list.blocks), coeff_data_block_list_lengths)
+    if process_bins:
+        for bin_data_block_list in bin_data_block_lists:
+            bin_data_block_list_lengths.append(len(bin_data_block_list.blocks))
+    f.update_block_info(len(fw_data_block_list.blocks), coeff_data_block_list_lengths, bin_data_block_list_lengths)
 
     # Add controls
     # For each algorithm information data block
@@ -519,15 +575,20 @@ def main(argv):
     temp_line = ''
     for arg in argv:
         temp_line = temp_line + ' ' + arg
-    metadata_text_lines.append('Command: ' + temp_line)
+    if not args.skip_command_print:
+        metadata_text_lines.append('Command: ' + temp_line)
+
     for wmdr in wmdrs:
         if (len(wmdr.informational_text_blocks) > 0):
-            metadata_text_lines.append('BIN Filename: ' + wmdr.filename)
+            metadata_text_lines.append('WMDR Filename: ' + wmdr.filename)
             metadata_text_lines.append('    Informational Text:')
             for block in wmdr.informational_text_blocks:
                 for line in block.text.splitlines():
                     metadata_text_lines.append('    ' + line)
             metadata_text_lines.append('')
+    for bin in bins:
+        metadata_text_lines.append('Binary Filename: ' + bin.filename)
+        metadata_text_lines.append('Binary Addres: ' + hex(bin.address))
 
     for line in metadata_text_lines:
         f.add_metadata_text_line(line)
@@ -554,6 +615,18 @@ def main(argv):
 
             coeff_block_list_count = coeff_block_list_count + 1
 
+    # Add BIN Blocks
+    if (process_bins):
+        bin_block_list_count = 0
+        for bin_data_block_list in bin_data_block_lists:
+            for block in bin_data_block_list.blocks:
+                block_bytes = []
+                for byte_str in block[1]:
+                    block_bytes.append(int.from_bytes(byte_str, 'little', signed=False))
+
+                f.add_bin_block(bin_block_list_count, block[0], block_bytes)
+            bin_block_list_count += 1
+
     results_str = ''
     if (args.command == 'print'):
         results_str = '\n'
@@ -565,6 +638,12 @@ def main(argv):
                 results_str = results_str + 'WMDR File: ' + args.wmdrs[wmdr_count] + '\n'
                 results_str = results_str + str(wmdr)
                 wmdr_count = wmdr_count + 1
+        if (process_bins):
+            bin_count = 0
+            for bin in bins:
+                results_str = results_str + 'BIN File: ' + bin['path'] + '\n'
+                # results_str = results_str + str(wmdr)
+                bin_count = bin_count + 1
     else:
         results_str = f.to_file()
 

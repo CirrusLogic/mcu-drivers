@@ -3,6 +3,26 @@ Release Notes
 
 =============================================================================
 Summary:
+This is the release of Alt-OS Driver SDK v4.11.0
+Date: 2022/02/04
+
+Architectures/Compilers Used:
+GNU Arm Embedded Toolchain: arm-none-eabi-gcc -mcpu=cortex-m4
+
+New Features/Changes:
+Added cs47l63 driver
+firmware_converter:  added support for loading arbitrary binary blobs
+bridge:  Move smcio.py and bridge.c to use binary instead of ASCII
+bridge:  added message protocol version between MCU and agent
+bridge:  variable BlockWrite chunk size
+bridge:  Improve smcio packet encapsulation and bridge format
+
+Fixed Bugs:
+bridge:  fixed timeout & speed args when creating serial com port
+
+=============================================================================
+=============================================================================
+Summary:
 This is the release of Alt-OS Driver SDK v4.10.0
 Date: 2021/11/12
 

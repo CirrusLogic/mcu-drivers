@@ -1,0 +1,38 @@
+<?xml version="1.0"?>
+<!--============================================================================
+== @file cs47l63_altos_bridge.xml
+==
+== @brief System description for SoundClear Studio bridge example for CS47L63
+==
+== @copyright
+== Copyright (c) Cirrus Logic 2021 All Rights Reserved, http://www.cirrus.com/
+==
+== Licensed under the Apache License, Version 2.0 (the License); you may
+== not use this file except in compliance with the License.
+== You may obtain a copy of the License at
+==
+== www.apache.org/licenses/LICENSE-2.0
+==
+== Unless required by applicable law or agreed to in writing, software
+== distributed under the License is distributed on an AS IS BASIS, WITHOUT
+== WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+== See the License for the specific language governing permissions and
+== limitations under the License.
+==
+=============================================================================
+-->
+<SCSSystem>
+  <BoardHardwareID>47630100</BoardHardwareID>
+  <Name>cs47l63_altos_bridge</Name>
+  <ReadableName>cs47l63_altos_bridge</ReadableName>
+  <Devices>
+    <Device>
+      <Type>CS47L63</Type>
+      <Name>CS47A63-1</Name>
+      <DeviceRevision/>
+      <DefinitionPath>../../devices/cs47l63/cs47l63.xml</DefinitionPath>
+      <ControlInterface>SPI</ControlInterface>
+      <DeviceAddress>1</DeviceAddress>
+    </Device>
+  </Devices>
+</SCSSystem>

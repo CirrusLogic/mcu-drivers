@@ -1,10 +1,10 @@
 /**
- * @file sdk_version.h
+ * @file cs47l63_ext.h
  *
- * @brief Alt-OS SDK version literals
+ * @brief Functions and prototypes exported by the CS47L63 Driver Extended API module
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2022 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2021 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -20,8 +20,8 @@
  *
  */
 
-#ifndef SDK_VERSION_H
-#define SDK_VERSION_H
+#ifndef CS47L63_EXT_H
+#define CS47L63_EXT_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -30,31 +30,11 @@ extern "C" {
 /***********************************************************************************************************************
  * INCLUDES
  **********************************************************************************************************************/
+#include "cs47l63.h"
 
 /***********************************************************************************************************************
  * LITERALS & CONSTANTS
  **********************************************************************************************************************/
-
-/**
- * @defgroup SDK_VERSION_
- * @brief Defines for the release version of the SDK
- *
- * @details
- * Versions for the SDK are defined as:
- * - Major - The interface of the firmware or module has changed in a way that breaks backwards compatibility. This
- * means that the module will not work as before if the old interface is used.
- * - Minor - The interface of the firmware or module has changed, but not in a way that breaks backwards compatibility.
- * This means that the module will work as before if the old interface is used.
- * - Update - The function has changed without changing the interface, for instance for a bug fix.
- *
- * @{
- */
-#define SDK_VERSION_MAJOR       (4) ///< Release Major version
-#define SDK_VERSION_MINOR       (11) ///< Release Minor version
-#define SDK_VERSION_UPDATE      (0) ///< Release Update version
-#define SDK_GIT_SHA             ("61ee6c0881e6270b4df6e990d502275c00aad6c9") ///< Release Git SHA
-/** @} */
-
 
 /***********************************************************************************************************************
  * MACROS
@@ -77,4 +57,4 @@ extern "C" {
 }
 #endif
 
-#endif // SDK_VERSION_H
+#endif // CS47L63_EXT_H

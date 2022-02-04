@@ -1,5 +1,5 @@
 #==========================================================================
-# (c) 2021 Cirrus Logic, Inc.
+# (c) 2021-2022 Cirrus Logic, Inc.
 #--------------------------------------------------------------------------
 # Project : Serial-Multichannel IO Library
 # File    : smcio.py
@@ -27,6 +27,9 @@
 import abc
 import queue
 import threading
+from struct import unpack
+import sys
+sys.path.insert(1, '../bridge_agent')
 
 #==========================================================================
 # VERSION
@@ -35,6 +38,8 @@ import threading
 #==========================================================================
 # CONSTANTS/GLOBALS
 #==========================================================================
+PAYLOAD_UNPACK_SHORT = None
+PAYLOAD_UNPACK_INT = None
 
 #==========================================================================
 # CLASSES
@@ -57,6 +62,20 @@ class packet:
         for c in packet_str:
             a.payload.append(ord(c))
         a.length = len(a.payload)
+        # calculate checksum
+        a.checksum = 0xAB
+        return a
+
+    @classmethod
+    def fromTypeBytes(cls, packet_type, packet_count, packet_bytes):
+        a = cls()
+        a.type = packet_type
+        a.count = packet_count
+        a.payload = packet_bytes
+        # The payload must already be in new binary format
+        # This module should not know details of the payload format
+        a.length = len(a.payload)
+
         # calculate checksum
         a.checksum = 0xAB
         return a
@@ -110,6 +129,15 @@ class packet:
         temp_str += 'Payload: '
         for i in self.payload:
             temp_str += chr(i)
+
+        # Print the payload if binary as byte strings
+        if type(self.payload) == bytearray and len(self.payload) >= 2:
+            temp_str += '\nbinary: '
+            # Assumes bridge agent packed this in big-endian ie ">". Unpack into u-short ("H")
+            length = unpack(PAYLOAD_UNPACK_SHORT, self.payload[:2])[0]
+            for i in range(length):
+                temp_str += "0x{:02x},".format(self.payload[i])
+
         temp_str += '\n'
 
         return temp_str
@@ -224,8 +252,13 @@ class channel:
         self.tx_packet_count = 0
         return
 
-    def write(self, packet_string):
+    def write(self, packet_string):  ## To Deprecate once all Cmds are made binary format
         self.send_packet(packet.fromTypeString(ord(self.id[0]), self.tx_packet_count, packet_string))
+        self.tx_packet_count += 1
+        return
+
+    def write_bytes(self, packet_bytes):
+        self.send_packet(packet.fromTypeBytes(ord(self.id[0]), self.tx_packet_count, packet_bytes))
         self.tx_packet_count += 1
         return
 
@@ -241,7 +274,15 @@ class channel:
 
 class processor:
 
-    def __init__(self, serial_io: serial_io_interface, verbose = False):
+    def __init__(self, serial_io: serial_io_interface,
+                 payload_unpack_short="<H",
+                 payload_unpack_int="<I",
+                 verbose=False):
+
+        global PAYLOAD_UNPACK_SHORT, PAYLOAD_UNPACK_INT
+        PAYLOAD_UNPACK_SHORT = payload_unpack_short
+        PAYLOAD_UNPACK_INT = payload_unpack_int
+
         self.io = serial_io
         self.channels = dict()
         self.tx_q = queue.Queue()
@@ -307,7 +348,14 @@ class processor:
         return self.channels[id].read()
 
     def write_channel(self, id, packet_string):
+        assert type(packet_string) == str
         self.channels[id].write(packet_string)
+        return
+
+    def write_channel_bytes(self, id, packet_bytes):
+        # Takes in arbitrary bytes. This module does not know any details about the bytes
+        assert type(packet_bytes) == bytearray
+        self.channels[id].write_bytes(packet_bytes)
         return
 
     def start(self):

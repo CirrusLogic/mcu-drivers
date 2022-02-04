@@ -1,5 +1,5 @@
 #==========================================================================
-# (c) 2020-2021 Cirrus Logic, Inc.
+# (c) 2020-2022 Cirrus Logic, Inc.
 #--------------------------------------------------------------------------
 # Project : Templates for C Source and Header files
 # File    : c_h_file_templates.py
@@ -24,7 +24,7 @@
 #==========================================================================
 # IMPORTS
 #==========================================================================
-import string
+import os
 from firmware_exporter import firmware_exporter
 import time
 
@@ -76,6 +76,8 @@ header_file_template_str = """/**
 
 {include_coeff_0}
 
+{include_bin_0}
+
 /**
  * @defgroup {part_number_uc}_ALGORITHMS
  * @brief Defines indicating presence of HALO Core Algorithms
@@ -111,6 +113,8 @@ header_file_template_fw_blocks_info = """/**
 
 {include_coeff_1}
 
+{include_bin_1}
+
 /***********************************************************************************************************************
  * MACROS
  **********************************************************************************************************************/
@@ -142,6 +146,8 @@ extern const halo_boot_block_t {part_number_lc}_fw_blocks[];
 
 {include_coeff_2}
 
+{include_bin_2}
+
 /***********************************************************************************************************************
  * API FUNCTIONS
  **********************************************************************************************************************/
@@ -162,6 +168,24 @@ header_file_template_coeff_strs = {
  * Coefficient {coeff_index} memory block metadata
  */
 extern const halo_boot_block_t {part_number_lc}_coeff_blocks_{coeff_index}[];
+"""
+}
+
+header_file_template_bin_strs = {
+    'include_bin_0': """/**
+ * Binary payload is included
+ */
+#define {part_number_uc}_LOAD_BINARY
+""",
+    'include_bin_1': """/**
+ * Total blocks of {part_number_uc} Binary {bin_index} data
+ */
+#define {part_number_lc}_total_bin_blocks_{bin_index} ({total_bin_blocks})
+""",
+    'include_bin_2': """/**
+ * Binary {bin_index} memory block metadata
+ */
+extern const halo_boot_block_t {part_number_lc}_bin_blocks_{bin_index}[];
 """
 }
 
@@ -215,6 +239,8 @@ const halo_boot_block_t {part_number_lc}_fw_blocks[] = {
 
 {include_coeff_0}
 
+{include_bin_0}
+
 /***********************************************************************************************************************
  * LOCAL FUNCTIONS
  **********************************************************************************************************************/
@@ -266,6 +292,37 @@ source_file_template_coeff_boot_block_entry_str = """    {
         .bytes = {part_number_lc}_coeff_{coeff_index}_block_{block_index}
     },"""
 
+source_file_template_bin_strs = {
+    'include_bin_0': """/**
+ * @defgroup {part_number_uc}_BIN_{bin_index}_MEMORY_BLOCKS
+ * @brief Binary {bin_index} memory blocks
+ * @details
+ * Trailing zero bytes may be appended to fill output words
+ *
+ * @{
+ */
+{bin_block_arrays}/** @} */
+
+/**
+ * Binary {bin_index} memory block metadata
+ */
+const halo_boot_block_t {part_number_lc}_bin_{bin_index}_blocks[] = {
+{bin_boot_block_entries}
+};
+"""
+}
+
+source_file_template_bin_block_str = """const uint8_t {part_number_lc}_bin_{bin_index}_block_{block_index}[] = {
+{block_bytes}
+};
+"""
+
+source_file_template_bin_boot_block_entry_str = """    {
+        .address = {block_address},
+        .block_size = {block_size},
+        .bytes = {part_number_lc}_bin_{bin_index}_block_{block_index}
+    },"""
+
 #==========================================================================
 # CLASSES
 #==========================================================================
@@ -277,28 +334,37 @@ class header_file:
         else:
             self.template_str = self.template_str.replace('{fw_blocks_info}', '')
         self.includes_coeff = False
+        self.includes_bin = False
         self.output_str = ''
         self.terms = dict()
         self.terms['part_number_lc'] = part_number_str.lower()
         self.terms['part_number_uc'] = part_number_str.upper()
         self.terms['total_fw_blocks'] = ''
         self.terms['total_coeff_blocks'] = []
+        self.terms['total_bin_blocks'] = []
         self.terms['algorithm_defines'] = ''
         self.terms['control_defines'] = ''
         self.terms['include_coeff_0'] = ''
         self.terms['include_coeff_1'] = ''
+        self.terms['include_bin_0'] = ''
+        self.terms['include_bin_1'] = ''
         self.terms['fw_id'] = fw_meta['fw_id']
         self.terms['metadata_text'] = ' *\n'
         self.algorithm_controls = dict()
         self.exclude_dummy = exclude_dummy
         return
 
-    def update_block_info(self, fw_block_total, coeff_block_totals):
+    def update_block_info(self, fw_block_total, coeff_block_totals, bin_block_totals):
         self.terms['total_fw_blocks'] = str(fw_block_total)
         if (coeff_block_totals != None):
             self.includes_coeff = True
             for coeff_block_total in coeff_block_totals:
                 self.terms['total_coeff_blocks'].append(str(coeff_block_total))
+
+        if (bin_block_totals != None):
+            self.includes_bin = True
+            for bin_block_total in bin_block_totals:
+                self.terms['total_bin_blocks'].append(str(bin_block_total))
 
         return
 
@@ -369,6 +435,31 @@ class header_file:
             output_str = output_str.replace('{include_coeff_1}\n', '')
             output_str = output_str.replace('{include_coeff_2}\n', '')
 
+        if (self.includes_bin):
+            output_str = output_str.replace('{include_bin_0}\n', header_file_template_bin_strs['include_bin_0'])
+            bin_index = 0
+            include_bin_1_str = ''
+            include_bin_2_str = ''
+            for total in self.terms['total_bin_blocks']:
+                include_bin_1_str = include_bin_1_str + header_file_template_bin_strs['include_bin_1']
+                include_bin_1_str = include_bin_1_str.replace("{bin_index}", str(bin_index))
+                include_bin_1_str = include_bin_1_str.replace('{total_bin_blocks}', total)
+                include_bin_1_str = include_bin_1_str + '\n'
+
+                include_bin_2_str = include_bin_2_str + header_file_template_bin_strs['include_bin_2']
+                include_bin_2_str = include_bin_2_str.replace("{bin_index}", str(bin_index))
+                include_bin_2_str = include_bin_2_str + '\n'
+
+                bin_index = bin_index + 1
+
+            output_str = output_str.replace('{include_bin_1}\n', include_bin_1_str)
+            output_str = output_str.replace('{include_bin_2}\n', include_bin_2_str)
+
+        else:
+            output_str = output_str.replace('{include_bin_0}\n', '')
+            output_str = output_str.replace('{include_bin_1}\n', '')
+            output_str = output_str.replace('{include_bin_2}\n', '')
+
         output_str = output_str.replace('{total_fw_blocks}', self.terms['total_fw_blocks'])
         output_str = output_str.replace('{part_number_lc}', self.terms['part_number_lc'])
         output_str = output_str.replace('{part_number_uc}', self.terms['part_number_uc'])
@@ -382,6 +473,7 @@ class source_file:
     def __init__(self, part_number_str):
         self.template_str = source_file_template_str
         self.includes_coeff = False
+        self.includes_bin = False
         self.output_str = ''
         self.terms = dict()
         self.terms['part_number_lc'] = part_number_str.lower()
@@ -390,9 +482,12 @@ class source_file:
         self.terms['fw_boot_block_entries'] = ''
         self.total_fw_blocks = 0
         self.total_coeff_blocks = []
+        self.total_bin_blocks = []
         self.terms['include_coeff_0'] = ''
         self.terms['coeff_block_arrays'] = []
         self.terms['coeff_boot_block_entries'] = []
+        self.terms['bin_block_arrays'] = []
+        self.terms['bin_boot_block_entries'] = []
         self.uint8_per_line = 24
         return
 
@@ -454,6 +549,35 @@ class source_file:
         self.total_coeff_blocks[index] = self.total_coeff_blocks[index] + 1
         return
 
+    def add_bin_block(self, index, address, data_bytes):
+        self.includes_bin = True
+
+        # Create list elements if they do not exist
+        if (len(self.terms['bin_block_arrays']) < (index + 1)):
+            self.terms['bin_block_arrays'].append('')
+        if (len(self.terms['bin_boot_block_entries']) < (index + 1)):
+            self.terms['bin_boot_block_entries'].append('')
+        if (len(self.total_bin_blocks) < (index + 1)):
+            self.total_bin_blocks.append(0)
+
+        # Create string for block data
+        temp_str = source_file_template_bin_block_str.replace('{block_index}', str(self.total_bin_blocks[index]))
+        temp_str = temp_str.replace('{block_bytes}', self.create_block_string(data_bytes))
+        temp_str = temp_str.replace('{bin_index}', str(index))
+
+        self.terms['bin_block_arrays'][index] = self.terms['bin_block_arrays'][index] + temp_str + '\n'
+
+        # Create string for boot block entry
+        temp_str = source_file_template_bin_boot_block_entry_str.replace('{block_index}', str(self.total_bin_blocks[index]))
+        temp_str = temp_str.replace('{block_address}', "0x" + "{0:0{1}X}".format(address, 8))
+        temp_str = temp_str.replace('{block_size}', str(len(data_bytes)))
+        temp_str = temp_str.replace('{bin_index}', str(index))
+
+        self.terms['bin_boot_block_entries'][index] = self.terms['bin_boot_block_entries'][index] + temp_str + '\n'
+
+        self.total_bin_blocks[index] = self.total_bin_blocks[index] + 1
+        return
+
     def __str__(self):
         output_str = self.template_str
         output_str = output_str.replace('{fw_block_arrays}', self.terms['fw_block_arrays'])
@@ -469,6 +593,17 @@ class source_file:
             output_str = output_str.replace('{include_coeff_0}\n', temp_str)
         else:
             output_str = output_str.replace('{include_coeff_0}\n', '')
+
+        if (self.includes_bin):
+            temp_str = ''
+            for i in range(0, len(self.terms['bin_block_arrays'])):
+                temp_str = temp_str + source_file_template_bin_strs['include_bin_0'].replace('{bin_index}', str(i))
+                temp_str = temp_str.replace('{bin_block_arrays}', self.terms['bin_block_arrays'][i])
+                temp_str = temp_str.replace('{bin_boot_block_entries}', self.terms['bin_boot_block_entries'][i])
+                temp_str = temp_str + '\n'
+            output_str = output_str.replace('{include_bin_0}\n', temp_str)
+        else:
+            output_str = output_str.replace('{include_bin_0}\n', '')
 
         output_str = output_str.replace('{part_number_lc}', self.terms['part_number_lc'])
         output_str = output_str.replace('{part_number_uc}', self.terms['part_number_uc'])
@@ -489,8 +624,8 @@ class source_file_exporter(firmware_exporter):
 
         return
 
-    def update_block_info(self, fw_block_total, coeff_block_totals):
-        return self.hf.update_block_info(fw_block_total, coeff_block_totals)
+    def update_block_info(self, fw_block_total, coeff_block_totals, bin_block_totals):
+        return self.hf.update_block_info(fw_block_total, coeff_block_totals, bin_block_totals)
 
     def add_control(self, algorithm_name, algorithm_id, control_name, address):
         return self.hf.add_control(algorithm_name, control_name, address)
@@ -504,11 +639,19 @@ class source_file_exporter(firmware_exporter):
     def add_coeff_block(self, index, address, data_bytes):
         return self.cf.add_coeff_block(index, address, data_bytes)
 
+    def add_bin_block(self, index, address, data_bytes):
+        return self.cf.add_bin_block(index, address, data_bytes)
+
     def to_file(self):
         results_str = 'Exported to files:\n'
 
         # Write output to filesystem
         temp_filename = self.attributes['part_number_str'] + self.attributes['suffix'] + "_firmware.h"
+        if self.attributes['output_directory']:
+            if not os.path.exists(self.attributes['output_directory']):
+                os.makedirs(self.attributes['output_directory'])
+            temp_filename = os.path.join(self.attributes['output_directory'], temp_filename)
+
         f = open(temp_filename, 'w')
         f.write(str(self.hf))
         f.close()
@@ -516,6 +659,11 @@ class source_file_exporter(firmware_exporter):
 
         if not self.gen_only_include_file:
             temp_filename = self.attributes['part_number_str'] + self.attributes['suffix'] + "_firmware.c"
+            if self.attributes['output_directory']:
+                if not os.path.exists(self.attributes['output_directory']):
+                    os.makedirs(self.attributes['output_directory'])
+                temp_filename = os.path.join(self.attributes['output_directory'], temp_filename)
+
             f = open(temp_filename, 'w')
             f.write(str(self.cf))
             f.close()
