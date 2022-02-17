@@ -587,7 +587,7 @@ static uint32_t cs47l63_power_mem_ena(cs47l63_t *driver, cs47l63_dsp_t *dsp_info
         ram_bank_ptr++;
     }
 
-    return ret;
+    return CS47L63_STATUS_OK;
 }
 
 /**
@@ -624,7 +624,7 @@ static uint32_t cs47l63_power_mem_dis(cs47l63_t *driver, cs47l63_dsp_t *dsp_info
         ram_bank_ptr++;
     }
 
-    return ret;
+    return CS47L63_STATUS_OK;
 }
 
 /**
