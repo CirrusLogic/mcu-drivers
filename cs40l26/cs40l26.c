@@ -4,7 +4,7 @@
  * @brief The CS40L26 Driver module
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2021 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2021-2022 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -86,6 +86,14 @@ static const uint32_t cs40l26_irq_eint_1_to_event_flag_map[] =
     IRQ1_IRQ1_EINT_1_WKSRC_STATUS6_EINT1_BITMASK, CS40L26_EVENT_FLAG_WKSRC_CP
 };
 
+static const uint32_t cs40l26_a1_errata[] =
+{
+    CS40L26_PLL_REFCLK_DETECT_0, 0x00000000,
+    CS40L26_TEST_KEY_CTRL, 0x00000055,
+    CS40L26_TEST_KEY_CTRL, 0x000000AA,
+    0x0000391C, 0x014DC080
+};
+
 /***********************************************************************************************************************
  * LOCAL FUNCTIONS
  **********************************************************************************************************************/
@@ -140,7 +148,16 @@ static uint32_t cs40l26_dsp_state_get(cs40l26_t *driver, uint8_t *state)
     uint32_t ret = CS40L26_STATUS_OK;
     regmap_cp_config_t *cp = REGMAP_GET_CP(driver);
 
-    ret = regmap_read(cp, CS40L26_A1_PM_CUR_STATE_STATIC_REG, &dsp_state);
+    if (driver->fw_info == NULL)
+    {
+        ret = regmap_read(cp, CS40L26_A1_PM_CUR_STATE_STATIC_REG, &dsp_state);
+    }
+    else
+    {
+        ret = regmap_read_fw_control(cp,
+                                     driver->fw_info,
+                                     CS40L26_SYM_PM_PM_CUR_STATE, &dsp_state);
+    }
 
     if (ret)
     {
@@ -562,31 +579,66 @@ uint32_t cs40l26_reset(cs40l26_t *driver)
  */
 uint32_t cs40l26_boot(cs40l26_t *driver, fw_img_info_t *fw_info)
 {
+    uint8_t dsp_state;
     uint32_t ret;
     regmap_cp_config_t *cp = REGMAP_GET_CP(driver);
 
     driver->fw_info = fw_info;
     if (driver->fw_info == NULL)
     {
+        if (driver->config.cal_data.is_valid_f0)
+        {
+            ret = regmap_write(cp, CS40L26_F0_ESTIMATION_REDC_REG,
+                               driver->config.cal_data.redc);
+            if (ret)
+            {
+                return ret;
+            }
+            ret = regmap_write(cp, CS40L26_DSP_VIRTUAL1_MBOX_1,
+                               CS40L26_DSP_MBOX_F0_EST);
+            if (ret)
+            {
+                return ret;
+            }
+        }
         return CS40L26_STATUS_OK;
     }
 
-    if (driver->config.cal_data.is_valid_f0)
+    ret = regmap_update_reg(cp, CS40L26_PWRMGT_CTL, CS40L26_MEM_RDY_MASK, 1 << CS40L26_MEM_RDY_SHIFT);
+    if (ret)
     {
-        ret = regmap_write(cp, CS40L26_F0_ESTIMATION_REDC_REG,
-                           driver->config.cal_data.redc);
-        if (ret)
-        {
-            return ret;
-        }
-        ret = regmap_write(cp, CS40L26_DSP_VIRTUAL1_MBOX_1,
-                           CS40L26_DSP_MBOX_F0_EST);
-        if (ret)
-        {
-            return ret;
-        }
+        return ret;
+    }
+    ret = regmap_write(cp, CS40L26_CALL_RAM_INIT, 1);
+    if (ret)
+    {
+        return ret;
+    }
+    ret = regmap_write_array(cp, (uint32_t *) cs40l26_a1_errata, sizeof(cs40l26_a1_errata)/sizeof(uint32_t));
+    if (ret)
+    {
+        return ret;
     }
 
+    ret = regmap_write(cp, CS40L26_DSP1_CCM_CORE_CONTROL, CS40L26_DSP_CCM_CORE_RESET);
+    if (ret)
+    {
+        return ret;
+    }
+    ret = cs40l26_pm_state_transition(driver, CS40L26_PM_STATE_PREVENT_HIBERNATE);
+    if (ret)
+    {
+        return ret;
+    }
+    ret = cs40l26_dsp_state_get(driver, &dsp_state);
+    if (ret)
+    {
+        return ret;
+    }
+    if (dsp_state != CS40L26_DSP_HALO_STATE_RUN)
+    {
+        return CS40L26_STATUS_FAIL;
+    }
     return CS40L26_STATUS_OK;
 }
 
@@ -727,6 +779,5 @@ uint32_t cs40l26_trigger(cs40l26_t *driver, uint32_t index, bool is_rom)
     {
         return ret;
     }
-
     return ret;
 }

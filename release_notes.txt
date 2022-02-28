@@ -3,6 +3,22 @@ Release Notes
 
 =============================================================================
 Summary:
+This is the release of Alt-OS Driver SDK v4.12.0
+Date: 2022/02/28
+
+Architectures/Compilers Used:
+GNU Arm Embedded Toolchain: arm-none-eabi-gcc -mcpu=cortex-m4
+
+New Features/Changes:
+[SQA-2402] cs40l26:  added support for the Holdout hardware platform
+[SQA-2496] cs40l26:  added initial support for Run-Time Haptics (RTH)
+[SQA-2620] Added driver for cs35l42 to support dsp-bypass
+
+Fixed Bugs:
+
+=============================================================================
+=============================================================================
+Summary:
 This is the release of Alt-OS Driver SDK v4.11.0
 Date: 2022/02/04
 

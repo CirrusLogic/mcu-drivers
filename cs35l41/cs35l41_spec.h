@@ -4,7 +4,7 @@
  * @brief Constants and Types from CS35L41 datasheet DS1215F2
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2019, 2020 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2019-2020, 2022 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -761,8 +761,11 @@ typedef union
 #define CS35L41_INTP_AMP_CTRL_AMP_VOL_PCM_BITWIDTH                          (0xB)           ///< @see Section 7.12.1
 #define CS35L41_INTP_AMP_CTRL_AMP_VOL_PCM_BITMASK                           (0x3FF8)        ///< @see Section 7.12.1
 
-#define CS35L41_AMP_VOLUME_MUTE                                             (0x400)         ///< @see Section 7.12.1
-#define CS35L41_AMP_VOLUME_0DB                                              (0)             ///< @see Section 7.12.1
+#define CS35L42_AMP_VOL_PCM_MUTE                                            (0x400)         ///< @see Section 7.12.1
+#define CS35L42_AMP_VOL_PCM_0DB                                             (0)             ///< @see Section 7.12.1
+#define CS35L42_AMP_VOL_PCM_MAX_DB                                          (12)            ///< @see Section 7.12.1
+#define CS35L42_AMP_VOL_PCM_MIN_DB                                          (-102)          ///< @see Section 7.12.1
+
 
 /**
  * Register definition for CS35L41_INTP_AMP_CTRL_REG

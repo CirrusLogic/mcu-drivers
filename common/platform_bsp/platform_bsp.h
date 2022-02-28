@@ -4,7 +4,7 @@
  * @brief Functions and prototypes exported by the Platform BSP module
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2021 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2021-2022 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -59,6 +59,7 @@ extern "C" {
 #define BSP_GPIO_ID_INTP_LED3           (10)
 #define BSP_GPIO_ID_INTP_LED4           (11)
 #define BSP_GPIO_ID_INTP_LED_ALL        (12)
+#define BSP_GPIO_ID_INTP_LED5           (13)
 
 #define BSP_SUPPLY_ID_LN2_DCVDD         (1)
 

@@ -4,7 +4,7 @@
  * @brief Implementation of the BSP for the cs40l26 platform.
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2021 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2021-2022 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -301,14 +301,31 @@ uint32_t bsp_dut_trigger_haptic(uint8_t waveform, bool is_rom)
 
     ret = cs40l26_trigger(&cs40l26_driver, waveform, is_rom);
 
-    if (ret == CS40L26_STATUS_OK)
+    return ret;
+}
+
+uint32_t bsp_dut_trigger_rth_pwle(bool is_simple, rth_pwle_section_t **pwle_data, uint8_t num_sections, uint8_t repeat)
+{
+    uint32_t ret = BSP_STATUS_OK;
+    if (is_simple)
     {
-        return ret;
+        ret = cs40l26_trigger_pwle(&cs40l26_driver, pwle_data);
     }
     else
     {
-        return BSP_STATUS_FAIL;
+        ret = cs40l26_trigger_pwle_advanced(&cs40l26_driver, pwle_data, repeat, num_sections);
     }
+
+    return ret;
+}
+
+uint32_t bsp_dut_trigger_rth_pcm(uint8_t *pcm_data, uint32_t num_sections, uint16_t buffer, uint16_t f0, uint16_t redc)
+{
+    uint32_t ret = BSP_STATUS_OK;
+
+    ret = cs40l26_trigger_pcm(&cs40l26_driver, pcm_data, num_sections, buffer, f0, redc);
+
+    return ret;
 }
 
 uint32_t bsp_dut_dynamic_calibrate(uint8_t index)

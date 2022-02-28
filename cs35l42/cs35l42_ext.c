@@ -1,7 +1,7 @@
 /**
- * @file sdk_version.h
+ * @file cs35l42_ext.c
  *
- * @brief Alt-OS SDK version literals
+ * @brief The CS35L42 Driver Extended API module
  *
  * @copyright
  * Copyright (c) Cirrus Logic 2022 All Rights Reserved, http://www.cirrus.com/
@@ -19,49 +19,18 @@
  * limitations under the License.
  *
  */
-
-#ifndef SDK_VERSION_H
-#define SDK_VERSION_H
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /***********************************************************************************************************************
  * INCLUDES
  **********************************************************************************************************************/
+#include <stddef.h>
+#include "cs35l42_ext.h"
 
 /***********************************************************************************************************************
- * LITERALS & CONSTANTS
- **********************************************************************************************************************/
-
-/**
- * @defgroup SDK_VERSION_
- * @brief Defines for the release version of the SDK
- *
- * @details
- * Versions for the SDK are defined as:
- * - Major - The interface of the firmware or module has changed in a way that breaks backwards compatibility. This
- * means that the module will not work as before if the old interface is used.
- * - Minor - The interface of the firmware or module has changed, but not in a way that breaks backwards compatibility.
- * This means that the module will work as before if the old interface is used.
- * - Update - The function has changed without changing the interface, for instance for a bug fix.
- *
- * @{
- */
-#define SDK_VERSION_MAJOR       (4) ///< Release Major version
-#define SDK_VERSION_MINOR       (12) ///< Release Minor version
-#define SDK_VERSION_UPDATE      (0) ///< Release Update version
-#define SDK_GIT_SHA             ("6a4c700b6cd817aaede6bc3a863067fb8b252a3a") ///< Release Git SHA
-/** @} */
-
-
-/***********************************************************************************************************************
- * MACROS
+ * LOCAL LITERAL SUBSTITUTIONS, TYPEDEFS
  **********************************************************************************************************************/
 
 /***********************************************************************************************************************
- * ENUMS, STRUCTS, UNIONS, TYPEDEFS
+ * LOCAL VARIABLES
  **********************************************************************************************************************/
 
 /***********************************************************************************************************************
@@ -69,12 +38,29 @@ extern "C" {
  **********************************************************************************************************************/
 
 /***********************************************************************************************************************
+ * LOCAL FUNCTIONS
+ **********************************************************************************************************************/
+
+/***********************************************************************************************************************
  * API FUNCTIONS
  **********************************************************************************************************************/
 
-/**********************************************************************************************************************/
-#ifdef __cplusplus
-}
-#endif
+/**
+ * Set HW Digital Gain
+ *
+ */
+uint32_t cs35l42_set_dig_gain(cs35l42_t *driver, uint32_t *gain)
+{
+    uint32_t ret;
+    regmap_cp_config_t *cp = REGMAP_GET_CP(driver);
 
-#endif // SDK_VERSION_H
+    *gain <<= CS35L42_AMP_VOL_PCM_SHIFT;
+    *gain &= CS35L42_AMP_VOL_PCM_MASK;
+
+    ret = regmap_update_reg(cp,
+                            CS35L42_AMP_CTRL,
+                            CS35L42_AMP_VOL_PCM_MASK,
+                            *gain);
+
+    return ret;
+}

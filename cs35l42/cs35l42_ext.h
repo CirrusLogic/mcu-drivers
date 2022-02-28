@@ -1,7 +1,7 @@
 /**
- * @file sdk_version.h
+ * @file cs35l42_ext.h
  *
- * @brief Alt-OS SDK version literals
+ * @brief Functions and prototypes exported by the CS35L42 Driver Extended API module
  *
  * @copyright
  * Copyright (c) Cirrus Logic 2022 All Rights Reserved, http://www.cirrus.com/
@@ -20,8 +20,8 @@
  *
  */
 
-#ifndef SDK_VERSION_H
-#define SDK_VERSION_H
+#ifndef CS35L42_EXT_H
+#define CS35L42_EXT_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -30,34 +30,10 @@ extern "C" {
 /***********************************************************************************************************************
  * INCLUDES
  **********************************************************************************************************************/
+#include "cs35l42.h"
 
 /***********************************************************************************************************************
- * LITERALS & CONSTANTS
- **********************************************************************************************************************/
-
-/**
- * @defgroup SDK_VERSION_
- * @brief Defines for the release version of the SDK
- *
- * @details
- * Versions for the SDK are defined as:
- * - Major - The interface of the firmware or module has changed in a way that breaks backwards compatibility. This
- * means that the module will not work as before if the old interface is used.
- * - Minor - The interface of the firmware or module has changed, but not in a way that breaks backwards compatibility.
- * This means that the module will work as before if the old interface is used.
- * - Update - The function has changed without changing the interface, for instance for a bug fix.
- *
- * @{
- */
-#define SDK_VERSION_MAJOR       (4) ///< Release Major version
-#define SDK_VERSION_MINOR       (12) ///< Release Minor version
-#define SDK_VERSION_UPDATE      (0) ///< Release Update version
-#define SDK_GIT_SHA             ("6a4c700b6cd817aaede6bc3a863067fb8b252a3a") ///< Release Git SHA
-/** @} */
-
-
-/***********************************************************************************************************************
- * MACROS
+ * LITERALS, CONSTANTS, MACROS
  **********************************************************************************************************************/
 
 /***********************************************************************************************************************
@@ -72,9 +48,27 @@ extern "C" {
  * API FUNCTIONS
  **********************************************************************************************************************/
 
+/**
+ * Set HW Digital Gain
+ *
+ * This will set the digital gain value.  The 'gain' parameter will have range checking applied to it, but the only
+ * correction will be masking to the size of the gain bitfield (11 bits).
+ *
+ * @param [in] driver               Pointer to the driver state
+ * @param [in,out] gain             Pointer to integer gain value
+ *
+ * @return
+ * - CS35L42_STATUS_FAIL if:
+ *      - Control port activity fails
+ *      - Gain is outside range
+ * - CS35L42_STATUS_OK          otherwise
+ *
+ */
+uint32_t cs35l42_set_dig_gain(cs35l42_t *driver, uint32_t *gain);
+
 /**********************************************************************************************************************/
 #ifdef __cplusplus
 }
 #endif
 
-#endif // SDK_VERSION_H
+#endif // CS35L42_EXT_H

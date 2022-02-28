@@ -23,6 +23,7 @@
 # Assign variables
 ifeq ($(PLATFORM), eestm32int)
 else ifeq ($(PLATFORM), live_oak)
+else ifeq ($(PLATFORM), holdout)
 else
     $(error Invalid PLATFORM configuration given!)
 endif
@@ -38,6 +39,8 @@ ifeq ($(PLATFORM), eestm32int)
     LDFLAGS += -T"$(REPO_PATH)/common/platform_bsp/eestm32int/STM32F401RETX_FLASH.ld"
 else ifeq ($(PLATFORM), live_oak)
     LDFLAGS += -T"$(REPO_PATH)/common/platform_bsp/live_oak/STM32F401CDYX_FLASH.ld"
+else ifeq ($(PLATFORM), holdout)
+    LDFLAGS += -T"$(REPO_PATH)/common/platform_bsp/holdout/STM32F401CDYX_FLASH.ld"
 endif
 
 # Assign sources

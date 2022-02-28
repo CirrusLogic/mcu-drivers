@@ -1,0 +1,13 @@
+* -----         ------         -------------------- ------- --------- ------------------------------
+*  REG           DATA                 ACCESS        READ OR  DEVICE
+* INDEX          VALUE                 TYPE          WRITE   ADDRESS  COMMENT (for information only)
+* -----         ------         -------------------- ------- --------- ------------------------------
+0x00002C04     0x00000430     SMbus_32inx_32dat     Write     0x80     *REFCLK input enabled, BCLK = 3.072MHz
+0x00002C0C     0x00000003     SMbus_32inx_32dat     Write     0x80     *Device PCM (global) sample rate = 48 kHz
+0x00004808     0x20200200     SMbus_32inx_32dat     Write     0x80     *ASP format = I2S Mode, 32-bit wide slots
+0x00004800     0x0003000F     SMbus_32inx_32dat     Write     0x80     *ASP_RX1 enabled (PCM input data), TX2 enabled IMON, TX1 VMON
+* Route RX1 to DACPCM
+0x4C00 0x0008 SMbus_32inx_32dat     Write  0x80      * DACPCM1_INPUT(4C00H):    0008  DACPCM1_SRC=ASPRX1
+* DOUT to Hi-Z when unused
+0x480C 0x0003   SMbus_32inx_32dat     Write  0x80      * dataif_ASP_CONTROL3(480CH): 0003  ASP_DOUT_HIZ_DLY=No additional delay in de-asserting TX data pin (DOUT) enable during unused timeslots, ASP_DOUT_HIZ_CTRL=Hi-Z during unused timeslots and while all transmit channels disabled
+0x00002018     0x00003721     SMbus_32inx_32dat     Write     0x80     *BLOCK_ENABLES

@@ -5,7 +5,7 @@
  * @brief Master table of known firmware symbols for the CS40L26 Driver module
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2021 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2021-2022 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -19,8 +19,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * firmware_converter.py version: 3.2.1
- * Command:  firmware_converter.py fw_img_v2 cs40l26 ../../cs40l26/fw_8_12_2/CS40L26_Rev7.2.1.wmfw
+ * firmware_converter.py SDK version: 4.8.0 - internal
+ * Command:  ../../tools/firmware_converter/firmware_converter.py fw_img_v2 cs40l26 CS40L26_Rev7.2.15.wmfw --generic-sym --wmdr FW_ROM_wavetable.bin
  *
  *
  */
@@ -42,6 +42,20 @@ extern "C" {
  *
  * @{
  */
+#define CS40L26_ALGORITHM_FIRMWARE_CS40L26
+#define CS40L26_ALGORITHM_A2H
+#define CS40L26_ALGORITHM_DYNAMIC_F0
+#define CS40L26_ALGORITHM_BUZZGEN
+#define CS40L26_ALGORITHM_EVENT_HANDLER
+#define CS40L26_ALGORITHM_VIBEGEN
+#define CS40L26_ALGORITHM_SVC
+#define CS40L26_ALGORITHM_GPIO
+#define CS40L26_ALGORITHM_MDSYNC
+#define CS40L26_ALGORITHM_PM
+#define CS40L26_ALGORITHM_MAILBOX
+#define CS40L26_ALGORITHM_FW_RAM_EXT
+#define CS40L26_ALGORITHM_HAPTICS_LOGGER
+#define CS40L26_ALGORITHM_EVENT_LOGGER
 /** @} */
 
 /**
@@ -50,6 +64,16 @@ extern "C" {
  *
  * @{
  */
+// FIRMWARE_CS40L26
+#define CS40L26_SYM_FIRMWARE_CS40L26_HALO_STATE                     (0x2)
+#define CS40L26_SYM_FIRMWARE_CS40L26_HALO_HEARTBEAT                 (0x3)
+#define CS40L26_SYM_FIRMWARE_CS40L26_CALL_RAM_INIT                  (0x12)
+// DYNAMIC_F0
+#define CS40L26_SYM_DYNAMIC_F0_DYNAMIC_F0_ENABLED                   (0x5e)
+#define CS40L26_SYM_DYNAMIC_F0_DYN_F0_TABLE                         (0x62)
+// PM
+#define CS40L26_SYM_PM_PM_TIMER_TIMEOUT_TICKS                       (0x276)
+#define CS40L26_SYM_PM_PM_CUR_STATE                                 (0x277)
 /** @} */
 
 /**********************************************************************************************************************/

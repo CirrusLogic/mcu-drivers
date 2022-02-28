@@ -4,7 +4,7 @@
  * @brief Implementation of the BSP for the cs35l41 platform.
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2021 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2021-2022 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -45,7 +45,7 @@
  **********************************************************************************************************************/
 static cs35l41_t cs35l41_driver;
 static fw_img_info_t fw_img_info;
-static uint32_t bsp_dut_dig_gain = CS35L41_AMP_VOLUME_0DB;
+static uint32_t bsp_dut_dig_gain = CS35L42_AMP_VOL_PCM_0DB;
 
 static cs35l41_bsp_config_t bsp_config =
 {
@@ -393,7 +393,7 @@ uint32_t bsp_dut_set_dig_gain(float gain_db)
     int16_t gain_int;
 
     // Convert dB to digital value - check range
-    if ((gain_db < -102) || (gain_db > 12))
+    if ((gain_db < CS35L42_AMP_VOL_PCM_MIN_DB) || (gain_db > CS35L42_AMP_VOL_PCM_MAX_DB))
     {
         return BSP_STATUS_FAIL;
     }
@@ -421,7 +421,7 @@ uint32_t bsp_dut_mute(bool is_mute)
 
     if (is_mute)
     {
-        temp_gain = CS35L41_AMP_VOLUME_MUTE;
+        temp_gain = CS35L42_AMP_VOL_PCM_MUTE;
     }
     else
     {

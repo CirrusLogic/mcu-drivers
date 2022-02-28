@@ -1,6 +1,6 @@
 ##############################################################################
 #
-# Makefile for CS40L26 Alt-OS driver
+# Makefile for CS35L42 Alt-OS driver
 #
 ##############################################################################
 # Licensed under the Apache License, Version 2.0 (the License); you may
@@ -28,26 +28,21 @@ REPO_PATH = $(abspath ../)
 include $(REPO_PATH)/common/common.mk
 
 # Assign paths and variables
-PART_NUM = cs40l26
+PART_NUM = cs35l42
 $(eval $(call assign_paths))
-PLATFORM_TARGETS = system_test baremetal freertos holdout
+PLATFORM_TARGETS = system_test freertos
 VALID_TARGETS = unit_test $(PLATFORM_TARGETS)
 $(eval $(call eval_targets))
 $(eval $(call eval_optimization_level))
 
 # Include platform_bsp.mk
 ifdef IS_NOT_UNIT_TEST
-    ifeq ($(MAKECMDGOALS), holdout)
-        PLATFORM=holdout
-    else
-        PLATFORM=eestm32int
-    endif
+    PLATFORM=eestm32int
     include $(REPO_PATH)/common/platform_bsp/platform_bsp.mk
 endif
 
 # Assign firmware and configuration script variables
-HALO_FIRMWARE_FILE = CS40L26_Rev7.2.24.wmfw
-HALO_FIRMWARE_WMDR = --wmdr sample_wt.bin
+#HALO_FIRMWARE_FILE =
 WISCE_SCRIPT = $(CONFIG_PATH)/wisce_init.txt
 
 # Assign toolchain and toolchain flags
@@ -62,34 +57,28 @@ ifdef IS_NOT_UNIT_TEST
 endif
 
 # Assign sources and includes for driver library
-DRIVER_SRCS = $(DRIVER_PATH)/cs40l26.c
-DRIVER_SRCS += $(CONFIG_PATH)/cs40l26_syscfg_regs.c
+DRIVER_SRCS = $(DRIVER_PATH)/cs35l42.c
+DRIVER_SRCS += $(CONFIG_PATH)/cs35l42_syscfg_regs.c
 DRIVER_SRCS += $(COMMON_PATH)/fw_img.c
 DRIVER_SRCS += $(COMMON_PATH)/regmap.c
-DRIVER_SRCS += $(DRIVER_PATH)/cs40l26_ext.c
-INCLUDES += -I$(HALO_FIRMWARE_PATH)
+DRIVER_SRCS += $(DRIVER_PATH)/cs35l42_ext.c
 
 # Assign sources and includes for target project build
 $(eval $(call assign_sources_includes))
 C_SRCS += $(APP_PATH)/main.c
 ifeq ($(MAKECMDGOALS), unit_test)
-    C_SRCS += $(APP_PATH)/test_cs40l26.c
+    C_SRCS += $(APP_PATH)/test_cs35l42.c
     C_SRCS += $(APP_PATH)/mock_bsp.c
 
     ADD_OBJ_RULES = add_unit_test_obj_rules
 else ifdef IS_NOT_UNIT_TEST
-    C_SRCS += $(DRIVER_PATH)/bsp/bsp_cs40l26.c
-    C_SRCS += $(HALO_FIRMWARE_PATH)/cs40l26_fw_img.c
+    C_SRCS += $(DRIVER_PATH)/bsp/bsp_cs35l42.c
 
     ifeq ($(MAKECMDGOALS), system_test)
-        C_SRCS += $(APP_PATH)/test_cs40l26.c
+        C_SRCS += $(APP_PATH)/test_cs35l42.c
     endif
-		ifneq ($(PLATFORM), holdout)
-    	C_SRCS += $(COMMON_PATH)/bridge/bridge.c
-    endif
+
     INCLUDES += -I$(DRIVER_PATH)/bsp
-    INCLUDES += -I$(HALO_FIRMWARE_PATH)
-    INCLUDES += -I$(COMMON_PATH)/bridge
 
     ADD_OBJ_RULES = add_platform_obj_rules
 endif
@@ -98,12 +87,12 @@ endif
 $(eval $(call assign_objs))
 $(eval $(call assign_build_paths))
 
-# Assign paths to include/exclude for Bullseye builds
+# Assign bullseye vars (if a bullseye build)
 $(eval $(call add_bullseye_vars))
-BULLSEYE_INCLUDE_PATHS = $(REPO_PATH)/cs40l26/
-BULLSEYE_EXCLUDE_PATHS = $(REPO_PATH)/cs40l26/bsp/
-BULLSEYE_EXCLUDE_PATHS += $(REPO_PATH)/cs40l26/unit_test/
-BULLSEYE_EXCLUDE_PATHS += $(REPO_PATH)/cs40l26/system_test/
+BULLSEYE_INCLUDE_PATHS += $(REPO_PATH)/cs35l42/
+BULLSEYE_EXCLUDE_PATHS += $(REPO_PATH)/cs35l42/bsp/
+BULLSEYE_EXCLUDE_PATHS += $(REPO_PATH)/cs35l42/unit_test/
+BULLSEYE_EXCLUDE_PATHS += $(REPO_PATH)/cs35l42/system_test/
 
 # Print out make variables
 $(if $(filter-out clean, $(MAKECMDGOALS)), $(eval $(call print_vars, MAKE_PRE_SESSION_GLOBALS, $(MAKE_PRE_SESSION_GLOBALS))))
@@ -122,18 +111,18 @@ $(eval $(call add_build_dir_rules, $(BUILD_DIR), $(BUILD_PATHS)))
 $(eval $(call add_bullseye_rules, $(BULLSEYE_INCLUDE_PATHS), $(BULLSEYE_EXCLUDE_PATHS)))
 
 # Code generation rules
-$(eval $(call add_wisce_script_rule,cs40l26))
+$(eval $(call add_wisce_script_rule,cs35l42))
 
 .NOTPARALLEL: firmware_converter
 firmware_converter:
 	@echo -------------------------------------------------------------------------------
-	@echo GENERATING cs40l26_fw_img
-	cd $(HALO_FIRMWARE_PATH) && python3 ../../tools/firmware_converter/firmware_converter.py fw_img_v2 cs40l26 $(HALO_FIRMWARE_FILE) --sym-input ../config/cs40l26_sym.h --generic-sym $(HALO_FIRMWARE_WMDR)
+	@echo GENERATING cs35l42_fw_img
+	#cd $(HALO_FIRMWARE_PATH) && python3 ../../tools/firmware_converter/firmware_converter.py fw_img_v2 cs35l42 $(HALO_FIRMWARE_FILE) --sym-input $(CONFIG_PATH)/cs35l42_sym.h
 
 # Compilation rules
 $(eval $(call $(ADD_OBJ_RULES), $(OBJS)))
-$(eval $(call add_driver_obj_rules, $(DRIVER_OBJS)))
-$(eval $(call add_asm_obj_rules, $(ASM_OBJS)))
+$(eval $(call add_driver_obj_rules))
+$(eval $(call add_asm_obj_rules))
 $(eval $(call add_driver_library_rule))
 
 # Final target rules
@@ -144,11 +133,9 @@ print_targets:
 	@echo ERROR:  No valid target specified.
 	@echo
 	@echo Valid targets:
-	@echo       baremetal
 	@echo       freertos
 	@echo       system_test
 	@echo       unit_test
-	@echo       holdout
 	@echo
 	@echo Valid command line variables:
 	@echo		BULLSEYE=0	\(will disable Bullseye coverage\)

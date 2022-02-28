@@ -4,7 +4,7 @@
  * @brief Constants and Types from CS40L26 datasheet
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2021 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2021-2022 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -34,8 +34,13 @@ extern "C" {
 
 #define CS40L26_DEVID           (0x0)
 #define CS40L26_REVID           (0x4)
+#define CS40L26_TEST_KEY_CTRL        (0x40)
 
 #define CS40L26_PLL_REFCLK_DETECT_0       (0x2C28)
+
+#define CS40L26_PWRMGT_CTL                (0x2900)
+
+#define CS40L26_CALL_RAM_INIT             (0x2800FF8)
 
 #define CS40L26_DSP_VIRTUAL1_MBOX_1       (0x13020)
 
@@ -67,6 +72,8 @@ extern "C" {
 #define CS40L26_STATE_STANDBY       (2)
 #define CS40L26_STATE_ACTIVE      (3)
 #define CS40L26_STATE_WAKE        (4)
+
+#define CS40L26_PWLE_ENTRY_START   (0)
 
 /* DSP State */
 
@@ -117,6 +124,23 @@ extern "C" {
 #define CS40L26_CMD_INDEX_ROM_WAVE    (0x01800000)
 #define CS40L26_CMD_INDEX_RAM_WAVE    (0x01000000)
 
+/* OWT/RTH */
+#define CS40L26_OWT_SLOT0_TYPE     (0x02804F44)
+#define CS40L26_OWT_SLOT0_OFFSET   (CS40L26_OWT_SLOT0_TYPE + 0x4)
+#define CS40L26_OWT_SLOT0_LENGTH   (CS40L26_OWT_SLOT0_TYPE + 0x8)
+#define CS40L26_OWT_SLOT0_DATA     (CS40L26_OWT_SLOT0_TYPE + 0xC)
+#define CS40L26_OWT_SLOT1_TYPE     (0x02805150)
+#define CS40L26_OWT_SLOT1_OFFSET   (CS40L26_OWT_SLOT1_TYPE + 0x4)
+#define CS40L26_OWT_SLOT1_LENGTH   (CS40L26_OWT_SLOT1_TYPE + 0x8)
+#define CS40L26_OWT_SLOT1_DATA     (CS40L26_OWT_SLOT1_TYPE + 0xC)
+#define CS40L26_VIBEGEN_OWT_XM     (0x028041dc)
+#define CS40L26_OWT_PUSH           (0x03000008)
+#define CS40L26_TRIGGER_RTH        (0x01400000)
+#define CS40L26_MAX_PWLE_SECTIONS  (126)
+#define CS40L26_SLOT0_MAX_PWLE_SECTIONS  (61)
+#define CS40l26_SLOT1_MAX_PWLE_SECTIONS  (65)
+
+
 /* Dynamic F0 */
 
 #define CS40L26_DYNAMIC_F0_ENABLED              (0x2800F48)
@@ -135,6 +159,9 @@ extern "C" {
 #define IRQ1_IRQ1_EINT_1_WKSRC_STATUS5_EINT1_BITMASK    (1 << 13)
 #define IRQ1_IRQ1_EINT_1_WKSRC_STATUS6_EINT1_BITMASK    (1 << 14)
 #define IRQ1_IRQ1_MASK_1_REG            (0x00010110)
+
+#define CS40L26_MEM_RDY_MASK             (1)
+#define CS40L26_MEM_RDY_SHIFT      (1)
 
   /** @} */
 
