@@ -411,49 +411,6 @@ def main(argv):
     if (args.suffix):
         suffix = "_" + args.suffix
 
-    # If part is cs40l26, make halo_firmware_id_block for ROM
-    if (args.part_number == 'cs40l26'):
-        wmfw.fw_id_block.fields['core_id'] = 0x40000
-        wmfw.fw_id_block.fields['format_version'] = 0x30000
-        wmfw.fw_id_block.fields['vendor_id'] = 0x2
-        wmfw.fw_id_block.fields['firmware_id'] = 0x0
-        wmfw.fw_id_block.fields['firmware_revision'] = 0x60001
-        wmfw.fw_id_block.fields['sys_config_mem_offsets']['xm_base'] = 0x3ea
-        wmfw.fw_id_block.fields['sys_config_mem_offsets']['xm_size'] = 0x16
-        wmfw.fw_id_block.fields['sys_config_mem_offsets']['ym_base'] = 0x57f
-        wmfw.fw_id_block.fields['sys_config_mem_offsets']['ym_size'] = 0x1
-        wmfw.fw_id_block.fields['number_of_algorithms'] = 0x1c
-        wmfw.fw_id_block.fields['algorithm_info'] = [
-            {'algorithm_id': 258567, 'algorithm_version': 65539, 'algorithm_offsets': {'xm_base': 1884, 'xm_size': 238, 'ym_base': 4, 'ym_size': 238}},{'algorithm_id': 196797, 'algorithm_version': 131074, 'algorithm_offsets': {'xm_base': 2122, 'xm_size': 4013, 'ym_base': 1970, 'ym_size': 1}},
-            {'algorithm_id': 258560, 'algorithm_version': 65536, 'algorithm_offsets': {'xm_base': 7150, 'xm_size': 20, 'ym_base': 0, 'ym_size': 0}},
-            {'algorithm_id': 258561, 'algorithm_version': 65536, 'algorithm_offsets': {'xm_base': 7241, 'xm_size': 15, 'ym_base': 0, 'ym_size': 0}},
-            {'algorithm_id': 258562, 'algorithm_version': 65536, 'algorithm_offsets': {'xm_base': 7170, 'xm_size': 20, 'ym_base': 0, 'ym_size': 0}},
-            {'algorithm_id': 258563, 'algorithm_version': 65536, 'algorithm_offsets': {'xm_base': 7423, 'xm_size': 5, 'ym_base': 0, 'ym_size': 0}},
-            {'algorithm_id': 258572, 'algorithm_version': 65536, 'algorithm_offsets': {'xm_base': 6460, 'xm_size': 6, 'ym_base': 0, 'ym_size': 0}},
-            {'algorithm_id': 258566, 'algorithm_version': 65536, 'algorithm_offsets': {'xm_base': 212, 'xm_size': 210, 'ym_base': 0, 'ym_size': 0}},
-            {'algorithm_id': 258587, 'algorithm_version': 65537, 'algorithm_offsets': {'xm_base': 978, 'xm_size': 24, 'ym_base': 0, 'ym_size': 0}},
-            {'algorithm_id': 258578, 'algorithm_version': 196608, 'algorithm_offsets': {'xm_base': 1036, 'xm_size': 30, 'ym_base': 0, 'ym_size': 0}},
-            {'algorithm_id': 258575, 'algorithm_version': 65536, 'algorithm_offsets': {'xm_base': 776, 'xm_size': 12, 'ym_base': 0, 'ym_size': 0}},
-            {'algorithm_id': 258577, 'algorithm_version': 65536, 'algorithm_offsets': {'xm_base': 2566, 'xm_size': 250, 'ym_base': 0, 'ym_size': 0}},
-            {'algorithm_id': 196880, 'algorithm_version': 262146, 'algorithm_offsets': {'xm_base': 7034, 'xm_size': 60, 'ym_base': 1024, 'ym_size': 18}},
-            {'algorithm_id': 258576, 'algorithm_version': 327681, 'algorithm_offsets': {'xm_base': 2922, 'xm_size': 1410, 'ym_base': 0, 'ym_size': 0}},
-            {'algorithm_id': 258579, 'algorithm_version': 65792, 'algorithm_offsets': {'xm_base': 5327, 'xm_size': 53, 'ym_base': 0, 'ym_size': 0}},
-            {'algorithm_id': 258580, 'algorithm_version': 65536, 'algorithm_offsets': {'xm_base': 5594, 'xm_size': 164, 'ym_base': 0, 'ym_size': 0}},
-            {'algorithm_id': 258574, 'algorithm_version': 65792, 'algorithm_offsets': {'xm_base': 5759, 'xm_size': 47, 'ym_base': 0, 'ym_size': 0}},
-            {'algorithm_id': 258581, 'algorithm_version': 66048, 'algorithm_offsets': {'xm_base': 5806, 'xm_size': 148, 'ym_base': 0, 'ym_size': 0}},
-            {'algorithm_id': 258582, 'algorithm_version': 65536, 'algorithm_offsets': {'xm_base': 6033, 'xm_size': 47, 'ym_base': 0, 'ym_size': 0}},
-            {'algorithm_id': 258583, 'algorithm_version': 65536, 'algorithm_offsets': {'xm_base': 6133, 'xm_size': 46, 'ym_base': 0, 'ym_size': 0}},
-            {'algorithm_id': 258584, 'algorithm_version': 65536, 'algorithm_offsets': {'xm_base': 6256, 'xm_size': 41, 'ym_base': 0, 'ym_size': 0}},
-            {'algorithm_id': 258585, 'algorithm_version': 65793, 'algorithm_offsets': {'xm_base': 6302, 'xm_size': 128, 'ym_base': 0, 'ym_size': 1}},
-            {'algorithm_id': 258586, 'algorithm_version': 65536, 'algorithm_offsets': {'xm_base': 6442, 'xm_size': 256, 'ym_base': 0, 'ym_size': 0}},
-            {'algorithm_id': 204815, 'algorithm_version': 65536, 'algorithm_offsets': {'xm_base': 6758, 'xm_size': 161, 'ym_base': 0, 'ym_size': 0}},
-            {'algorithm_id': 258588, 'algorithm_version': 65792, 'algorithm_offsets': {'xm_base': 6919, 'xm_size': 49, 'ym_base': 0, 'ym_size': 0}},
-            {'algorithm_id': 196770, 'algorithm_version': 851968, 'algorithm_offsets': {'xm_base': 6968, 'xm_size': 52, 'ym_base': 0, 'ym_size': 0}},
-            {'algorithm_id': 258589, 'algorithm_version': 65536, 'algorithm_offsets': {'xm_base': 7077, 'xm_size': 22, 'ym_base': 0, 'ym_size': 0}},
-            {'algorithm_id': 258591, 'algorithm_version': 65536, 'algorithm_offsets': {'xm_base': 7099, 'xm_size': 17, 'ym_base': 0, 'ym_size': 0}}
-        ]
-        wmfw.fw_id_block.fields['list_terminator'] = 0xbedead
-
     # If requested, check WMDR-WMFW compatibility
     if ((args.revision_check) and (process_wmdr)):
         incompatible_wmdrs = []

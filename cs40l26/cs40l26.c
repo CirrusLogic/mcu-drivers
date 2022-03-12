@@ -604,6 +604,11 @@ uint32_t cs40l26_boot(cs40l26_t *driver, fw_img_info_t *fw_info)
         return CS40L26_STATUS_OK;
     }
 
+    if (fw_info->header.fw_version < CS40L26_MIN_FW_VERSION)
+    {
+        return CS40L26_STATUS_FAIL;
+    }
+
     ret = regmap_update_reg(cp, CS40L26_PWRMGT_CTL, CS40L26_MEM_RDY_MASK, 1 << CS40L26_MEM_RDY_SHIFT);
     if (ret)
     {

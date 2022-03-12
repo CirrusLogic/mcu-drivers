@@ -4,7 +4,7 @@
  * @brief Implementation of the BSP for the cs47l35 platform.
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2021 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2021-2022 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -31,6 +31,7 @@
 #include "cs47l35_dsp2_fw_img.h"
 #include "cs47l35_dsp3_fw_img.h"
 #include "opus_test_01_16.h"
+#include "bridge.h"
 
 /***********************************************************************************************************************
  * LOCAL LITERAL SUBSTITUTIONS
@@ -73,6 +74,19 @@ static cs47l35_bsp_config_t bsp_config =
     .cp_config.dev_id = BSP_DUT_DEV_ID,
     .cp_config.bus_type = REGMAP_BUS_TYPE_SPI_3000,
     .cp_config.spi_pad_len = 2,
+};
+
+static bridge_device_t device_list[] =
+{
+    {
+        .bus_i2c_cs_address = 0,
+        .device_id_str = "6360",
+        .dev_name_str = "CS47L35-1",
+        .b.dev_id = BSP_DUT_DEV_ID,
+        .b.bus_type = REGMAP_BUS_TYPE_SPI,
+        .b.receive_max = BRIDGE_BLOCK_BUFFER_LENGTH_BYTES,
+        .b.spi_pad_len = 4
+     },
 };
 
 /***********************************************************************************************************************
@@ -130,6 +144,8 @@ uint32_t bsp_dut_initialize(void)
     bsp_i2c_write(BSP_LN2_DEV_ID, (uint8_t *)&temp_buffer, 4, NULL, NULL);
 
     bsp_set_timer(2000, NULL, NULL);
+
+    bridge_initialize(&device_list[0], (sizeof(device_list)/sizeof(bridge_device_t)));
 
     return ret;
 }
@@ -651,6 +667,8 @@ uint32_t bsp_dut_process(void)
     {
         return BSP_STATUS_FAIL;
     }
+
+    bridge_process();
 
     return BSP_STATUS_OK;
 }

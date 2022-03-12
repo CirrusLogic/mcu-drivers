@@ -35,6 +35,7 @@
 #include "cs35l41_cal_fw_img.h"
 #include "test_tone_tables.h"
 #include "cs35l41_fs_switch_syscfg.h"
+#include "bridge.h"
 
 /***********************************************************************************************************************
  * LOCAL LITERAL SUBSTITUTIONS
@@ -65,6 +66,25 @@ static cs35l41_bsp_config_t bsp_config =
     .cp_config.spi_pad_len = 2,
     .notification_cb = &bsp_notification_callback,
     .notification_cb_arg = NULL
+};
+
+// Below values work for the Left Amp on SPI2 of the Cirrus development card
+static bridge_device_t device_list[] =
+{
+    {
+        .bus_i2c_cs_address = 1,
+        .device_id_str = "35A40",
+        .dev_name_str = "CS35L41-Left",
+#ifdef USE_CS35L41_SPI
+        .b.dev_id = BSP_DUT_DEV_ID_SPI2,
+        .b.bus_type = REGMAP_BUS_TYPE_SPI,
+#else
+        .b.dev_id = BSP_DUT_DEV_ID,
+        .b.bus_type = REGMAP_BUS_TYPE_I2C,
+#endif
+        .b.receive_max = BRIDGE_BLOCK_BUFFER_LENGTH_BYTES,
+        .b.spi_pad_len = 2
+     },
 };
 
 /***********************************************************************************************************************
@@ -237,6 +257,8 @@ uint32_t bsp_dut_initialize(void)
         temp_buffer = __builtin_bswap32(0x0240100D);
         bsp_i2c_write(BSP_LN2_DEV_ID, (uint8_t *)&temp_buffer, 4, NULL, NULL);
     }
+
+    bridge_initialize(&device_list[0], (sizeof(device_list)/sizeof(bridge_device_t)));
 
     return ret;
 }
@@ -536,6 +558,8 @@ uint32_t bsp_dut_change_fs(uint32_t fs_hz)
 
 uint32_t bsp_dut_process(void)
 {
+    bridge_process();
+
     if (CS35L41_STATUS_OK == cs35l41_process(&cs35l41_driver))
     {
         return BSP_STATUS_FAIL;

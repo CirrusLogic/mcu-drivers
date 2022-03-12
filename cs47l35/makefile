@@ -82,6 +82,9 @@ else ifdef IS_NOT_UNIT_TEST
         C_SRCS += $(APP_PATH)/test_cs47l35.c
     endif
 
+    C_SRCS += $(COMMON_PATH)/bridge/bridge.c
+    INCLUDES += -I$(COMMON_PATH)/bridge
+
     INCLUDES += -I$(DRIVER_PATH)/bsp
     INCLUDES += -I$(HALO_FIRMWARE_PATH)
 

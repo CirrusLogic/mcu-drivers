@@ -3,6 +3,24 @@ Release Notes
 
 =============================================================================
 Summary:
+This is the release of Alt-OS Driver SDK v4.13.0
+Date: 2022/03/12
+
+Architectures/Compilers Used:
+GNU Arm Embedded Toolchain: arm-none-eabi-gcc -mcpu=cortex-m4
+
+New Features/Changes:
+[SQA-2615] cs47l35:  Add bridge support
+[SQA-2627] cs35l41:  Add bridge support
+[SQA-2629] bridge:  Added integration documentation
+[SQA-2648] cs40l26:  Changed the current RTH structure to support chirp and half-cycle
+[SQA-2648] cs40l26:  Updated to the example waveforms and LED status for holdout example
+
+Fixed Bugs:
+
+=============================================================================
+=============================================================================
+Summary:
 This is the release of Alt-OS Driver SDK v4.12.0
 Date: 2022/02/28
 

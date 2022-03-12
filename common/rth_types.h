@@ -35,9 +35,11 @@ extern "C" {
    **********************************************************************************************************************/
 typedef struct
 {
-    uint16_t time;
+    uint16_t duration;
     uint16_t level;
     uint16_t freq;
+    bool chirp;
+    bool half_cycles;
 } rth_pwle_section_t;
 
 #ifdef __cplusplus

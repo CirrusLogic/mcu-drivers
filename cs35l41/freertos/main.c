@@ -4,7 +4,7 @@
  * @brief The main function for CS35L41 System Test Harness
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2019, 2021 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2019, 2021-2022 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -27,6 +27,7 @@
 #include "platform_bsp.h"
 #include "FreeRTOS.h"
 #include "task.h"
+#include "bridge.h"
 
 /***********************************************************************************************************************
  * LOCAL LITERAL SUBSTITUTIONS
@@ -49,6 +50,7 @@
 static uint8_t app_audio_state = APP_STATE_CAL_PDN;
 static TaskHandle_t AmpControlTaskHandle = NULL;
 static TaskHandle_t AmpEventTaskHandle = NULL;
+static TaskHandle_t BridgeTaskHandle = NULL;
 
 /***********************************************************************************************************************
  * GLOBAL VARIABLES
@@ -258,6 +260,16 @@ static void AmpEventThread(void *argument)
     }
 }
 
+static void BridgeThread(void *argument)
+{
+    const TickType_t pollingTime = pdMS_TO_TICKS(5);
+    while(true)
+    {
+        bridge_process();
+        vTaskDelay(pollingTime);
+    }
+}
+
 /***********************************************************************************************************************
  * API FUNCTIONS
  **********************************************************************************************************************/
@@ -272,12 +284,20 @@ int main(void)
                 (void *) NULL,
                 tskIDLE_PRIORITY,
                 &AmpControlTaskHandle);
+
     xTaskCreate(AmpEventThread,
                 "AmpEventTask",
                 configMINIMAL_STACK_SIZE,
                 (void *) NULL,
                 tskIDLE_PRIORITY,
                 &AmpEventTaskHandle);
+
+    xTaskCreate(BridgeThread,
+                "BridgeTask",
+                configMINIMAL_STACK_SIZE,
+                (void *) NULL,
+                tskIDLE_PRIORITY,
+                &BridgeTaskHandle);
 
     app_init();
 

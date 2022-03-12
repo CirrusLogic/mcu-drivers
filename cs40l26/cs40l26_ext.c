@@ -166,13 +166,13 @@ uint32_t cs40l26_trigger_pwle(cs40l26_t *driver, rth_pwle_section_t **s)
     ret = regmap_write(cp, CS40L26_OWT_SLOT0_TYPE, 12);
 
     pwle_default.word3.pwls_ls4 = 2;
-    pwle_default.word3.time = s[0]->time;
+    pwle_default.word3.time = s[0]->duration;
     pwle_default.word4.level_ls8 = s[0]->level & 0xFF;
     pwle_default.word3.level_ms4 = (s[0]->level & 0xF00) >> 8;
     pwle_default.word4.freq = s[0]->freq;
     pwle_default.word6.level_ls8 = s[0]->level & 0xFF;
     pwle_default.word5.level_ms4 = (s[0]->level & 0xF00) >> 8;
-    pwle_default.word5.time = s[1]->time;
+    pwle_default.word5.time = s[1]->duration;
     pwle_default.word6.freq = s[1]->freq;
 
     for (i = 0; i < 6; i++)
@@ -204,14 +204,18 @@ uint32_t cs40l26_trigger_pwle_advanced(cs40l26_t *driver, rth_pwle_section_t **s
     pwle_default.word2.repeat = repeat;
     pwle_default.word2.pwls_ms4 = (num_sections & 0xF0) >> 4;
     pwle_default.word3.pwls_ls4 = (num_sections & 0xF);
-    pwle_default.word3.time = s[0]->time;
+    pwle_default.word3.time = s[0]->duration;
     pwle_default.word4.level_ls8 = s[0]->level & 0xFF;
     pwle_default.word3.level_ms4 = (s[0]->level & 0xF00) >> 8;
     pwle_default.word4.freq = s[0]->freq;
+    pwle_default.word4.amp_reg = (s[0]->half_cycles ? 1 : 0);
+    pwle_default.word4.chirp = (s[0]->chirp ? 1 : 0);
     pwle_default.word6.level_ls8 = s[1]->level & 0xFF;
     pwle_default.word5.level_ms4 = (s[1]->level & 0xF00) >> 8;
-    pwle_default.word5.time = s[1]->time;
+    pwle_default.word5.time = s[1]->duration;
     pwle_default.word6.freq = s[1]->freq;
+    pwle_default.word6.amp_reg = (s[1]->half_cycles ? 1 : 0);
+    pwle_default.word6.chirp = (s[1]->chirp ? 1 : 0);
 
     for (i = 0; i < 6; i++)
     {
@@ -224,10 +228,12 @@ uint32_t cs40l26_trigger_pwle_advanced(cs40l26_t *driver, rth_pwle_section_t **s
     }
     for (i = 2; i < num_sections; i++)
     {
-        pwle_short_default.word1.time = s[i]->time;
+        pwle_short_default.word1.time = s[i]->duration;
         pwle_short_default.word1.level_ms8 = (s[i]->level & 0xFF0) >> 4;
         pwle_short_default.word2.level_ls4 = s[i]->level & 0x00F;
         pwle_short_default.word2.freq = s[i]->freq;
+        pwle_short_default.word2.amp_reg = (s[i]->half_cycles ? 1 : 0);
+        pwle_short_default.word2.chirp = (s[i]->chirp ? 1 : 0);
 
         ret = regmap_write(cp, addr, pwle_short_default.words[0] >> 4);
         if (ret)

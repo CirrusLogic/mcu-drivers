@@ -35,102 +35,122 @@
  * LOCAL VARIABLES
  **********************************************************************************************************************/
 
+/**
+ * Trapezoidal PWLE click waveform - Half cycle
+ * Ramp up - Sine Chirp, 50Hz to 100Hz, 0FS to 0.7FS in 0.75ms
+ * Base - Sine, 100Hz, 0.7FS, 4.00ms
+ * Ramp down - Sine Chirp, 100Hz to 50Hz, 0.7FS to 0FS in 0.75ms
+ *
+ */
 static rth_pwle_section_t pwle_trapezoid_hc_section0 =
 {
-    .time = 0,
+    .duration = 0,
     .level = 0,
-    .freq = 8
+    .freq = 8,
+    .chirp = false,
+    .half_cycles = false
 };
 
 static rth_pwle_section_t pwle_trapezoid_hc_section1 =
 {
-    .time = 0,
-    .level = 0,
-    .freq = 8
+    .duration = 3,
+    .level = 1434,
+    .freq = 400,
+    .chirp = true,
+    .half_cycles = false
 };
 
 static rth_pwle_section_t pwle_trapezoid_hc_section2 =
 {
-    .time = 8,
-    .level = 1458,
-    .freq = 8
+    .duration = 16,
+    .level = 1434,
+    .freq = 400,
+    .chirp = false,
+    .half_cycles = false
 };
 
 static rth_pwle_section_t pwle_trapezoid_hc_section3 =
 {
-    .time = 12,
-    .level = 1458,
-    .freq = 400
-};
-
-static rth_pwle_section_t pwle_trapezoid_hc_section4 =
-{
-    .time = 8,
+    .duration = 3,
     .level = 0,
-    .freq = 8
+    .freq = 8,
+    .chirp = true,
+    .half_cycles = false
 };
 
+/**
+ * Trapezoidal PWLE click waveform - Full cycle
+ * Ramp up - Sine Chirp, 50Hz to 330Hz, 0FS to 0.5FS in 0.50ms
+ * Base - Sine, 330Hz, 0.5FS, 2.50ms
+ * Ramp down - Sine Chirp, 330Hz to 50Hz, 0.5FS to 0FS in 0.50ms
+ *
+ */
 static rth_pwle_section_t pwle_trapezoid_section0 =
 {
-    .time = 0,
+    .duration = 0,
     .level = 0,
-    .freq = 0x0C8
+    .freq = 8,
+    .chirp = false,
+    .half_cycles = false
 };
 
 static rth_pwle_section_t pwle_trapezoid_section1 =
 {
-    .time = 0,
-    .level = 0,
-    .freq = 0x0C8
+    .duration = 2,
+    .level = 1042,
+    .freq = 2240,
+    .chirp = true,
+    .half_cycles = false
 };
 
 static rth_pwle_section_t pwle_trapezoid_section2 =
 {
-    .time = 0x3,
-    .level = 0x59A,
-    .freq = 0x528
+    .duration = 10,
+    .level = 1042,
+    .freq = 2240,
+    .chirp = false,
+    .half_cycles = false
 };
 
 static rth_pwle_section_t pwle_trapezoid_section3 =
 {
-    .time = 0x9,
-    .level = 0x59A,
-    .freq = 0x528
+    .duration = 2,
+    .level = 0,
+    .freq = 8,
+    .chirp = true,
+    .half_cycles = false
 };
 
-static rth_pwle_section_t pwle_trapezoid_section4 =
-{
-    .time = 0x2,
-    .level = 0x0,
-    .freq = 0x0C8
-};
-
+/**
+ * Long PWLE buzz waveform
+ * Sine, 125ms, 180Hz, 0.2FS to 0.45FS, 168 half cycles, 265Hz, 0.45FS to 0.65FS
+ *
+ */
 static rth_pwle_section_t pwle_long_265hz_section0 =
 {
-    .time = 0,
-    .level = 0x1A0,
-    .freq = 0x410
+    .duration = 0,
+    .level = 410,
+    .freq = 1040,
+    .chirp = false,
+    .half_cycles = false
 };
 
 static rth_pwle_section_t pwle_long_265hz_section1 =
 {
-    .time = 0,
-    .level = 0x1A0,
-    .freq = 0x410
+    .duration = 500,
+    .level = 922,
+    .freq = 1040,
+    .chirp = false,
+    .half_cycles = false
 };
 
 static rth_pwle_section_t pwle_long_265hz_section2 =
 {
-    .time = 0x1F4,
-    .level = 0x3A9,
-    .freq = 0x410
-};
-
-static rth_pwle_section_t pwle_long_265hz_section3 =
-{
-    .time = 0x4F8,
-    .level = 0x54A,
-    .freq = 0x6B8
+      .duration = 168,
+    .level = 1331,
+    .freq = 1720,
+    .chirp = false,
+    .half_cycles = true
 };
 
 static uint8_t pcm_data_fs_400hz[21] =
@@ -417,7 +437,39 @@ void app_set_sel_leds(uint8_t state)
     bsp_set_led(3, BSP_LD2_MODE_OFF, 0);
     bsp_set_led(4, BSP_LD2_MODE_OFF, 0);
 
-    bsp_set_led((state + 2), BSP_LD2_MODE_ON, 0);
+    switch (state)
+    {
+    case 0:
+        break;
+    case 1:
+        bsp_set_led(2, BSP_LD2_MODE_ON, 0);
+        break;
+    case 2:
+        bsp_set_led(3, BSP_LD2_MODE_ON, 0);
+        break;
+    case 3:
+        bsp_set_led(2, BSP_LD2_MODE_ON, 0);
+        bsp_set_led(3, BSP_LD2_MODE_ON, 0);
+        break;
+    case 4:
+        bsp_set_led(4, BSP_LD2_MODE_ON, 0);
+        break;
+    case 5:
+        bsp_set_led(4, BSP_LD2_MODE_ON, 0);
+        bsp_set_led(2, BSP_LD2_MODE_ON, 0);
+        break;
+    case 6:
+        bsp_set_led(4, BSP_LD2_MODE_ON, 0);
+        bsp_set_led(3, BSP_LD2_MODE_ON, 0);
+        break;
+    case 7:
+        bsp_set_led(4, BSP_LD2_MODE_ON, 0);
+        bsp_set_led(3, BSP_LD2_MODE_ON, 0);
+        bsp_set_led(2, BSP_LD2_MODE_ON, 0);
+        break;
+    default:
+        break;
+    };
     return;
 }
 
@@ -425,6 +477,7 @@ void app_init(void)
 {
     bsp_initialize(app_bsp_callback, NULL);
     app_set_sel_leds(app_state);
+    bsp_set_led(1, BSP_LD2_MODE_OFF, 0);
     bsp_dut_initialize();
     bsp_dut_reset();
     bsp_dut_trigger_haptic(BSP_DUT_TRIGGER_HAPTIC_POWER_ON, 0);
@@ -440,52 +493,77 @@ void app_process_pb(void)
     if (bsp_was_pb_pressed(0))
     {
 
-          rth_pwle_section_t *pwle_trapezoid_hc[5];
-          rth_pwle_section_t *pwle_trapezoid[5];
-          rth_pwle_section_t *pwle_long[4];
+          rth_pwle_section_t *pwle_trapezoid_hc[4];
+          rth_pwle_section_t *pwle_trapezoid[4];
+          rth_pwle_section_t *pwle_long[3];
         switch (app_state)
         {
         case 0:
+          /**
+           * Trapezoidal PWLE click waveform - Full cycle
+           * Ramp up - Sine Chirp, 50Hz to 330Hz, 0FS to 0.5FS in 0.50ms
+           * Base - Sine, 330Hz, 0.5FS, 2.50ms
+           * Ramp down - Sine Chirp, 330Hz to 50Hz, 0.5FS to 0FS in 0.50ms
+           *
+           */
             pwle_trapezoid[0] = &pwle_trapezoid_section0;
             pwle_trapezoid[1] = &pwle_trapezoid_section1;
             pwle_trapezoid[2] = &pwle_trapezoid_section2;
             pwle_trapezoid[3] = &pwle_trapezoid_section3;
-            pwle_trapezoid[4] = &pwle_trapezoid_section4;
             bsp_dut_trigger_rth_pwle(false, pwle_trapezoid, 4, 0);
-            bsp_set_led(1, (app_state/3), 0);
             break;
         case 1:
+          /**
+           * Trapezoidal PWLE click waveform - Half cycle
+           * Ramp up - Sine Chirp, 50Hz to 100Hz, 0FS to 0.7FS in 0.75ms
+           * Base - Sine, 100Hz, 0.7FS, 4.00ms
+           * Ramp down - Sine Chirp, 100Hz to 50Hz, 0.7FS to 0FS in 0.75ms
+           *
+           */
             pwle_trapezoid_hc[0] = &pwle_trapezoid_hc_section0;
             pwle_trapezoid_hc[1] = &pwle_trapezoid_hc_section1;
             pwle_trapezoid_hc[2] = &pwle_trapezoid_hc_section2;
             pwle_trapezoid_hc[3] = &pwle_trapezoid_hc_section3;
-            pwle_trapezoid_hc[4] = &pwle_trapezoid_hc_section4;
             bsp_dut_trigger_rth_pwle(false, pwle_trapezoid_hc, 4, 0);
-            bsp_set_led(1, (app_state/3), 0);
             break;
         case 2:
+          /**
+           * Long PWLE buzz waveform
+           * Sine, 125ms, 180Hz, 0.2FS to 0.45FS, 168 half cycles, 265Hz, 0.45FS to 0.65FS
+           *
+           */
             pwle_long[0] = &pwle_long_265hz_section0;
             pwle_long[1] = &pwle_long_265hz_section1;
             pwle_long[2] = &pwle_long_265hz_section2;
-            pwle_long[3] = &pwle_long_265hz_section3;
             bsp_dut_trigger_rth_pwle(false, pwle_long, 3, 0);
-            bsp_set_led(1, (app_state/3), 0);
             break;
         case 3:
+          /**
+           * Short PCM click waveform
+           * Sine, 1cycle, 400Hz, 1FS
+           *
+           */
             bsp_dut_trigger_rth_pcm(pcm_data_fs_400hz, 21, 21, 0, 0);
-            bsp_set_led(1, (app_state/3), 0);
             break;
         case 4:
-            bsp_dut_trigger_rth_pcm(pcm_data_fs_400hz, 21, 21, 2800, 219);
-            bsp_set_led(1, (app_state/3), 0);
+          /**
+           * Short PCM click waveform with click compensation
+           * Sine, 1cycle, 200Hz, 0.5FS
+           *
+           */
+            bsp_dut_trigger_rth_pcm(pcm_data_fs_400hz, 21, 21, 2160, 634);
             break;
         case 5:
+          /**
+           * Long PCM buzz waveform
+           * Sine, 3cycles, 220Hz, 0.75FS, 1.5cycles, 100Hz, 0.25FS
+           *
+           */
             bsp_dut_trigger_rth_pcm(pcm_data_220hz_long, 231, 114, 0, 0);
-            bsp_set_led(1, (app_state/3), 0);
             break;
         }
 
-        app_set_sel_leds(app_state%3);
+        app_set_sel_leds((app_state+1)%7);
         app_state++;
         app_state %= 6;
     }

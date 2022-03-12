@@ -83,6 +83,7 @@ else ifdef IS_NOT_UNIT_TEST
     C_SRCS += $(HALO_FIRMWARE_PATH)/cs35l41_cal_fw_img.c
     C_SRCS += $(HALO_FIRMWARE_PATH)/cs35l41_tune_48_fw_img.c
     C_SRCS += $(HALO_FIRMWARE_PATH)/cs35l41_tune_44p1_fw_img.c
+    C_SRCS += $(COMMON_PATH)/bridge/bridge.c
 
     ifeq ($(MAKECMDGOALS), system_test)
         C_SRCS += $(APP_PATH)/test_cs35l41.c
@@ -90,6 +91,7 @@ else ifdef IS_NOT_UNIT_TEST
 
     INCLUDES += -I$(DRIVER_PATH)/bsp
     INCLUDES += -I$(HALO_FIRMWARE_PATH)
+    INCLUDES += -I$(COMMON_PATH)/bridge
 
     ADD_OBJ_RULES = add_platform_obj_rules
 endif

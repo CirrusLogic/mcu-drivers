@@ -46,8 +46,8 @@ ifdef IS_NOT_UNIT_TEST
 endif
 
 # Assign firmware and configuration script variables
-HALO_FIRMWARE_FILE = CS40L26_Rev7.2.24.wmfw
-HALO_FIRMWARE_WMDR = --wmdr sample_wt.bin
+HALO_FIRMWARE_FILE = cs40l26.wmfw
+HALO_FIRMWARE_WMDR = --wmdr cs40l26_wt.bin
 WISCE_SCRIPT = $(CONFIG_PATH)/wisce_init.txt
 
 # Assign toolchain and toolchain flags

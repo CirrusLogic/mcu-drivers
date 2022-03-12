@@ -1,31 +1,31 @@
 Artifact Info:
-Artifact           : CS40L26 Alt-OS Driver: 4.12.0 - 6a4c700b6cd817aaede6bc3a863067fb8b252a3a
+Artifact           : CS40L26 Alt-OS Driver: 4.13.0 - 37d3c891027d1623dd29627674f9af46723df883
 Test Target MCU SDK: STM32Cube_FW_F4: 1.24.1
 Target toolchain   : GNU Arm Embedded Toolchain: arm-none-eabi-gcc (GNU Tools for Arm Embedded Processors 8-2019-q3-update) 8.3.1 20190703 (release) [gcc-8-branch revision 273027]
 Build system       : make: GNU Make 3.82
-OS                 : Linux: 3.10.0-1160.24.1.el7.x86_64
+OS                 : Linux: 3.10.0-1160.59.1.el7.x86_64
 Shell              : bash: GNU bash, version 4.2.46(2)-release (x86_64-redhat-linux-gnu)
 Host toolchain     : MinGW GCC: gcc (GCC) 4.8.5 20150623 (Red Hat 4.8.5-39)
-Build Job          : peart_h_alt_os_nightly: 199
-Git SHA            : 6a4c700b6cd817aaede6bc3a863067fb8b252a3a
+Build Job          : peart_h_alt_os_nightly: 211
+Git SHA            : 37d3c891027d1623dd29627674f9af46723df883
 
 System resources:
 
 Build Configuration 1:
 
 Artifact filename    : libcs40l26.a
-Driver TEXT          : 4156
+Driver TEXT          : 4216
 Driver BSS           : 8
 Driver DATA          : 48
 Driver Max Stack     : 144 (cs40l26_boot -> regmap_write_array -> regmap_update_reg -> regmap_read -> GET_BYTE_FROM_WORD)
 
 Artifact filename    : baremetal.elf
-Driver TEXT          : 2780
+Driver TEXT          : 2796
 Driver BSS           : 176
 Driver DATA          : 24
 
 Artifact filename    : cs40l26_fw_img.o
-Driver TEXT          : 23536
+Driver TEXT          : 23448
 
 Compiler flags:
     -mcpu=cortex-m4

@@ -4,7 +4,7 @@
  * @brief Functions and prototypes exported by the CS40L26 Driver module
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2021 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2021-2022 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -119,6 +119,11 @@ extern "C" {
 #define CS40L26_EVENT_FLAG_WKSRC_CP                     (1 << 1)
 #define CS40L26_EVENT_FLAG_WKSRC_GPIO                   (1 << 0)
 /** @} */
+
+/**
+ *  Minimum firmware version that will be accepted by the boot function
+ */
+#define CS40L26_MIN_FW_VERSION     (0x7021B)
 
 /***********************************************************************************************************************
  * MACROS
