@@ -34,6 +34,8 @@
 #define APP_STATE_PLAY         (0)
 #define APP_STATE_PLAY_GAIN    (1)
 #define APP_STATE_STOP         (2)
+#define APP_STATE_HIBERNATE    (3)
+#define APP_STATE_WAKE         (4)
 
 #define AMP_CONTROL_FLAG_PB_PRESSED         (1 << 0)
 #define APP_FLAG_BSP_NOTIFICATION           (1 << 1)
@@ -120,9 +122,11 @@ static void AmpControlThread(void *argument)
             case APP_STATE_PLAY:
                 if (flags & AMP_CONTROL_FLAG_PB_PRESSED)
                 {
+                    bsp_audio_stop();
                     bsp_audio_set_fs(BSP_AUDIO_FS_48000_HZ);
                     bsp_audio_play(BSP_PLAY_STEREO_1KHZ_20DBFS);
                     bsp_dut_reset();
+                    bsp_dut_boot(false);
                     bsp_dut_power_up();
                     app_audio_state++;
                 }
@@ -135,6 +139,7 @@ static void AmpControlThread(void *argument)
                     bsp_audio_set_fs(BSP_AUDIO_FS_48000_HZ);
                     bsp_audio_play(BSP_PLAY_STEREO_1KHZ_20DBFS);
                     bsp_dut_reset();
+                    bsp_dut_boot(false);
                     bsp_dut_set_dig_gain(-6);
                     bsp_dut_power_up();
                     app_audio_state++;
@@ -144,8 +149,23 @@ static void AmpControlThread(void *argument)
             case APP_STATE_STOP:
                 if (flags & AMP_CONTROL_FLAG_PB_PRESSED)
                 {
-                    bsp_audio_stop();
                     bsp_dut_power_down();
+                    app_audio_state++;
+                }
+                break;
+
+            case APP_STATE_HIBERNATE:
+                if (flags & AMP_CONTROL_FLAG_PB_PRESSED)
+                {
+                    bsp_dut_hibernate();
+                    app_audio_state++;
+                }
+                break;
+
+            case APP_STATE_WAKE:
+                if (flags & AMP_CONTROL_FLAG_PB_PRESSED)
+                {
+                    bsp_dut_wake();
                     app_audio_state = APP_STATE_PLAY;
                 }
                 break;

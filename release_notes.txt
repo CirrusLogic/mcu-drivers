@@ -3,6 +3,26 @@ Release Notes
 
 =============================================================================
 Summary:
+This is the release of Alt-OS Driver SDK v4.14.0
+Date: 2022/04/11
+
+Architectures/Compilers Used:
+GNU Arm Embedded Toolchain: arm-none-eabi-gcc -mcpu=cortex-m4
+
+New Features/Changes:
+L41 freertos: Increase size of Stack and Heap
+[SQA-2625] L41 - fixed INTb triggering IRQ callback
+[SQA-2676] L41 - handle calibration ReDC out of range
+[SQA-2625] cs35l42: Implement event_handler
+[SQA-2624] cs35l42: Implement power() part 2
+[SQA-2623] cs35l42: Implement boot()
+[SQA-2653] Initialise ret variable in mem_ena and mem_dis functions
+
+Fixed Bugs:
+
+=============================================================================
+=============================================================================
+Summary:
 This is the release of Alt-OS Driver SDK v4.13.0
 Date: 2022/03/12
 

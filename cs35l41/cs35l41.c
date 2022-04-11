@@ -4,7 +4,7 @@
  * @brief The CS35L41 Driver module
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2019-2021 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2019-2022 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -100,7 +100,9 @@
  * @see CS35L41_CAL_STATUS
  *
  */
-#define CS35L41_CAL_STATUS_CALIB_SUCCESS        (0x1)
+#define CS35L41_CAL_STATUS_CALIB_SUCCESS            (0x1)
+#define CS35L41_CAL_STATUS_CALIB_WAITING_FOR_DATA   (0x2)
+#define CS35L41_CAL_STATUS_CALIB_OUT_OF_RANGE       (0x3)
 
 /**
  * Register address for the HALO FW Revision control
@@ -2065,7 +2067,7 @@ uint32_t cs35l41_power(cs35l41_t *driver, uint32_t power_state)
             {
                 fp = &cs35l41_power_down;
 
-                if (driver->state == CS35L41_STATE_STANDBY)
+                if (driver->state == CS35L41_STATE_POWER_UP)
                 {
                     next_state = CS35L41_STATE_STANDBY;
                 }
@@ -2143,7 +2145,8 @@ uint32_t cs35l41_calibrate(cs35l41_t *driver, uint32_t ambient_temp_deg_c)
         return CS35L41_STATUS_FAIL;
     }
 
-    if (temp_reg_val != CS35L41_CAL_STATUS_CALIB_SUCCESS)
+    // Fail if not calibration was not finished
+    if (temp_reg_val == CS35L41_CAL_STATUS_CALIB_WAITING_FOR_DATA)
     {
         return CS35L41_STATUS_FAIL;
     }
@@ -2155,14 +2158,10 @@ uint32_t cs35l41_calibrate(cs35l41_t *driver, uint32_t ambient_temp_deg_c)
         return CS35L41_STATUS_FAIL;
     }
 
-    // Verify the Calibration Checksum
+    // Verify the Calibration Checksum - only valid if CAL_STATUS is SUCCESS
     if (temp_reg_val == (driver->config.cal_data.r + CS35L41_CAL_STATUS_CALIB_SUCCESS))
     {
         driver->config.cal_data.is_valid = true;
-    }
-    else
-    {
-        return CS35L41_STATUS_FAIL;
     }
 
     return CS35L41_STATUS_OK;

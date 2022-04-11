@@ -4,7 +4,7 @@
  * @brief Implementation of the BSP for the HW ID0 platform.
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2021 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2021-2022 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -427,6 +427,7 @@ static bsp_uart_state_t uart_rx_state =
 
 #ifdef USE_CMSIS_OS
 static SemaphoreHandle_t mutex_spi;
+static SemaphoreHandle_t mutex_i2c;
 #endif
 /***********************************************************************************************************************
  * GLOBAL VARIABLES
@@ -1228,7 +1229,7 @@ void HAL_MspInit(void)
     HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
     // Configure GPIO pins : PB2 (SW1), PB8 (SW3), PB9 (SW4), PB10 (SW2)
-    GPIO_InitStruct.Pin = GPIO_PIN_2|GPIO_PIN_10|GPIO_PIN_8|GPIO_PIN_9;
+    GPIO_InitStruct.Pin = GPIO_PIN_2|GPIO_PIN_8|GPIO_PIN_9;
     GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
@@ -1249,7 +1250,7 @@ void HAL_MspInit(void)
     HAL_EXTI_SetConfigLine(&exti_pb3_handle, &exti_config);
     HAL_EXTI_RegisterCallback(&exti_pb3_handle, HAL_EXTI_COMMON_CB_ID, &bsp_exti_pb3_cb);
 
-    exti_config.Line = EXTI_LINE_10;
+    exti_config.Line = EXTI_LINE_11;
     HAL_EXTI_SetConfigLine(&exti_pb4_handle, &exti_config);
     HAL_EXTI_RegisterCallback(&exti_pb4_handle, HAL_EXTI_COMMON_CB_ID, &bsp_exti_pb4_cb);
 
@@ -2284,6 +2285,11 @@ uint32_t bsp_initialize(bsp_app_callback_t cb, void *cb_arg)
     {
         return BSP_STATUS_FAIL; /* There was insufficient heap memory available for the mutex to be created. */
     }
+    mutex_i2c = xSemaphoreCreateMutex();
+    if( mutex_i2c == NULL )
+    {
+        return BSP_STATUS_FAIL; /* There was insufficient heap memory available for the mutex to be created. */
+    }
 #endif
     /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
     HAL_Init();
@@ -2952,6 +2958,9 @@ uint32_t bsp_i2c_read_repeated_start(uint32_t bsp_dev_id,
                                      bsp_callback_t cb,
                                      void *cb_arg)
 {
+#ifdef USE_CMSIS_OS
+    xSemaphoreTake(mutex_i2c, portMAX_DELAY);
+#endif
     switch (bsp_dev_id)
     {
         case BSP_DUT_DEV_ID:
@@ -3028,7 +3037,9 @@ uint32_t bsp_i2c_read_repeated_start(uint32_t bsp_dev_id,
         default:
             break;
     }
-
+#ifdef USE_CMSIS_OS
+    xSemaphoreGive(mutex_i2c);
+#endif
     if (bsp_i2c_transaction_error)
     {
         return BSP_STATUS_FAIL;
@@ -3046,7 +3057,9 @@ uint32_t bsp_i2c_write(uint32_t bsp_dev_id,
                        void *cb_arg)
 {
     uint32_t ret = BSP_STATUS_OK;
-
+#ifdef USE_CMSIS_OS
+    xSemaphoreTake(mutex_i2c, portMAX_DELAY);
+#endif
     switch (bsp_dev_id)
     {
         case BSP_DUT_DEV_ID:
@@ -3125,7 +3138,9 @@ uint32_t bsp_i2c_write(uint32_t bsp_dev_id,
         default:
             break;
     }
-
+#ifdef USE_CMSIS_OS
+    xSemaphoreGive(mutex_i2c);
+#endif
     return ret;
 }
 
@@ -3137,6 +3152,9 @@ uint32_t bsp_i2c_db_write(uint32_t bsp_dev_id,
                           bsp_callback_t cb,
                           void *cb_arg)
 {
+#ifdef USE_CMSIS_OS
+    xSemaphoreTake(mutex_i2c, portMAX_DELAY);
+#endif
     switch (bsp_dev_id)
     {
         case BSP_DUT_DEV_ID:
@@ -3161,7 +3179,9 @@ uint32_t bsp_i2c_db_write(uint32_t bsp_dev_id,
         default:
             break;
     }
-
+#ifdef USE_CMSIS_OS
+    xSemaphoreGive(mutex_i2c);
+#endif
     return BSP_STATUS_OK;
 }
 

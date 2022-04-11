@@ -4,7 +4,7 @@
  * @brief The CS47L35 Driver module
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2021 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2021-2022 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -547,7 +547,7 @@ static uint32_t cs47l35_power_down(cs47l35_t *driver, cs47l35_dsp_t *dsp_info)
  */
 static uint32_t cs47l35_power_mem_ena(cs47l35_t *driver, cs47l35_dsp_t *dsp_info)
 {
-    uint32_t val, i, ret;
+    uint32_t val, i, ret = CS47L35_STATUS_OK;
 
     if (dsp_info->state != disabled)
     {
@@ -601,7 +601,7 @@ static uint32_t cs47l35_power_mem_ena(cs47l35_t *driver, cs47l35_dsp_t *dsp_info
  */
 static uint32_t cs47l35_power_mem_dis(cs47l35_t *driver, cs47l35_dsp_t *dsp_info)
 {
-    uint32_t ret;
+    uint32_t ret = CS47L35_STATUS_OK;
 
     if (dsp_info->state != mem_enabled)
     {

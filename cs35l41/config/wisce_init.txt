@@ -77,5 +77,5 @@
   0x4804 0x0021 SMbus_32inx_32dat     Write  0x80      * DATAIF_ASP_CONTROL1(4804H): 0021  ASP_BCLK_FREQ=3.072 MHz
   0x3808 0x0018 SMbus_32inx_32dat     Write  0x80      * BOOST_BST_IPK_CTL(3808H): 0018  BST_IPK=2A
   0x6804 0x0110 SMbus_32inx_32dat     Write  0x80      * PWRMGMT_WKFET_AMP_CONFIG(6804H): 0110  WKFET_AMP_THLD=0V, WKFET_AMP_DLY=100 ms, WKFET_AMP_FRC_EN=WKFET_AMP_FORCE functionality disabled, WKFET_AMP_FRC=Amplifier power FETs are not manually put into weak-FET mode
-  0x242C 0x10000 SMbus_32inx_32dat     Write  0x80      * PAD_INTF_GPIO_PAD_CONTROL(242CH): 10000  GP2_CTRL=High Impedance input, GP1_CTRL=Pin acts as a GPIO, direction controlled by the GP1_DIR register.
+  0x242C 0x00010000 SMbus_32inx_32dat     RModW  0x80 0x00010000     * PAD_INTF_GPIO_PAD_CONTROL(242CH): 10000  GP2_CTRL=High Impedance input, GP1_CTRL=Pin acts as a GPIO, direction controlled by the GP1_DIR register.
   0x11008 0x81002001 SMbus_32inx_32dat     Write  0x80      * GPIO_GPIO1_CTRL1(11008H): 81002001  GP1_DIR=Input, GP1_DBTIME=93.75 micro-s, GP1_LVL=Low, GP1_DB=Enabled, GP1_POL=Non-inverted (Active High)

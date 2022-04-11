@@ -1,28 +1,28 @@
 Artifact Info:
-Artifact           : CS35L41 Alt-OS Driver: 4.13.0 - 37d3c891027d1623dd29627674f9af46723df883
+Artifact           : CS35L41 Alt-OS Driver: 4.14.0 - 6bc8ce0a465eb6326490ca3b7eaf1180514573cf
 Test Target MCU SDK: STM32Cube_FW_F4: 1.24.1
 Target toolchain   : GNU Arm Embedded Toolchain: arm-none-eabi-gcc (GNU Tools for Arm Embedded Processors 8-2019-q3-update) 8.3.1 20190703 (release) [gcc-8-branch revision 273027]
 Build system       : make: GNU Make 3.82
 OS                 : Linux: 3.10.0-1160.59.1.el7.x86_64
 Shell              : bash: GNU bash, version 4.2.46(2)-release (x86_64-redhat-linux-gnu)
 Host toolchain     : MinGW GCC: gcc (GCC) 4.8.5 20150623 (Red Hat 4.8.5-39)
-Build Job          : prince_alt_os_nightly: 1051
-Git SHA            : 37d3c891027d1623dd29627674f9af46723df883
+Build Job          : prince_alt_os_nightly: 1082
+Git SHA            : 6bc8ce0a465eb6326490ca3b7eaf1180514573cf
 
 System resources:
 
 Build Configuration 1:
 
 Artifact filename    : libcs35l41.a
-Driver TEXT          : 7128
+Driver TEXT          : 7132
 Driver BSS           : 0
-Driver DATA          : 184
+Driver DATA          : 192
 Driver Max Stack     : 192 (cs35l41_power -> cs35l41_wake -> cs35l41_restore -> cs35l41_write_post_boot_config -> regmap_write_array -> regmap_update_reg -> regmap_read -> uint32_t)
 
 Artifact filename    : baremetal.elf
-Driver TEXT          : 6482
+Driver TEXT          : 6486
 Driver BSS           : 248
-Driver DATA          : 184
+Driver DATA          : 192
 
 Artifact filename    : cs35l41_cal_fw_img.o
 Driver TEXT          : 888

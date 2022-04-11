@@ -249,6 +249,18 @@ extern "C" {
 #define CS35L42_GLOBAL_EN_WIDTH                           1           /* GLOBAL_EN - [0] */
 
 /************************************************/
+/* Power Control 2                              */
+/************************************************/
+#define CS35L42_AMP_EN                                    0x00000001  /* AMP_EN - [0] */
+#define CS35L42_AMP_EN_MASK                               0x00000001  /* AMP_EN - [0] */
+#define CS35L42_AMP_EN_SHIFT                              0           /* AMP_EN - [0] */
+#define CS35L42_AMP_EN_WIDTH                              1           /* AMP_EN - [0] */
+#define CS35L42_BST_EN                                    0x00000030  /* BST_EN - [5:4] */
+#define CS35L42_BST_EN_MASK                               0x00000030  /* BST_EN - [5:4] */
+#define CS35L42_BST_EN_SHIFT                              4           /* BST_EN - [5:4] */
+#define CS35L42_BST_EN_WIDTH                              2           /* BST_EN - [5:4] */
+
+/************************************************/
 /* Digital I/O Pad Control                      */
 /************************************************/
 #define CS35L42_BIAS_PTE_MODE_CONTROL                     0x0002404
@@ -283,6 +295,80 @@ extern "C" {
 #define CS35L42_PWRMGT_STS                                0x000290C
 #define CS35L42_PWRMGT_RST                                0x0002910
 #define CS35L42_TEST_CTL                                  0x0002914
+
+/************************************************/
+/* Hibernation I2C Wake Control                 */
+/************************************************/
+#define CS35L42_UPDT_WKI2C_MASK                           0x00000001  /* UPDT_WKI2C - [0] */
+#define CS35L42_UPDT_WKI2C_SHIFT                          0           /* UPDT_WKI2C - [0] */
+#define CS35L42_UPDT_WKI2C_WIDTH                          1           /* UPDT_WKI2C - [0] */
+
+/************************************************/
+/* Hibernation Status                           */
+/************************************************/
+#define CS35L42_WKSRC_STS                                 0x000003F0  /* WKSRC_STS - [9:4] */
+#define CS35L42_WKSRC_STS_MASK                            0x000003F0  /* WKSRC_STS - [9:4] */
+#define CS35L42_WKSRC_STS_SHIFT                           4           /* WKSRC_STS - [9:4] */
+#define CS35L42_WKSRC_STS_WIDTH                           6           /* WKSRC_STS - [9:4] */
+#define CS35L42_HV_OUT_OF_SYNC_STS                        0x00000004  /* HV_OUT_OF_SYNC_STS - [2] */
+#define CS35L42_HV_OUT_OF_SYNC_STS_MASK                   0x00000004  /* HV_OUT_OF_SYNC_STS - [2] */
+#define CS35L42_HV_OUT_OF_SYNC_STS_SHIFT                  2           /* HV_OUT_OF_SYNC_STS - [2] */
+#define CS35L42_HV_OUT_OF_SYNC_STS_WIDTH                  1           /* HV_OUT_OF_SYNC_STS - [2] */
+#define CS35L42_WR_PEND_STS                               0x00000002  /* WR_PEND_STS - [1] */
+#define CS35L42_WR_PEND_STS_MASK                          0x00000002  /* WR_PEND_STS - [1] */
+#define CS35L42_WR_PEND_STS_SHIFT                         1           /* WR_PEND_STS - [1] */
+#define CS35L42_WR_PEND_STS_WIDTH                         1           /* WR_PEND_STS - [1] */
+#define CS35L42_MEM_RDY_STS                               0x00000001  /* MEM_RDY_STS - [0] */
+#define CS35L42_MEM_RDY_STS_MASK                          0x00000001  /* MEM_RDY_STS - [0] */
+#define CS35L42_MEM_RDY_STS_SHIFT                         0           /* MEM_RDY_STS - [0] */
+#define CS35L42_MEM_RDY_STS_WIDTH                         1           /* MEM_RDY_STS - [0] */
+
+/************************************************/
+/* Hibernation Reset                            */
+/************************************************/
+#define CS35L42_HV_CNT_RST_MASK                           0x00000001  /* HV_CNT_RST - [0] */
+#define CS35L42_HV_CNT_RST_SHIFT                          0           /* HV_CNT_RST - [0] */
+#define CS35L42_HV_CNT_RST_WIDTH                          1           /* HV_CNT_RST - [0] */
+
+/************************************************/
+/* Hibernation Control                          */
+/************************************************/
+#define CS35L42_MEM_RDY                                   0x00000002  /* MEM_RDY - [1] */
+#define CS35L42_MEM_RDY_MASK                              0x00000002  /* MEM_RDY - [1] */
+#define CS35L42_MEM_RDY_SHIFT                             1           /* MEM_RDY - [1] */
+#define CS35L42_MEM_RDY_WIDTH                             1           /* MEM_RDY - [1] */
+
+/************************************************/
+/* Hibernation Wake Control                     */
+/************************************************/
+#define CS35L42_UPDT_WKCTL                                0x00008000  /* UPDT_WKCTL - [15] */
+#define CS35L42_UPDT_WKCTL_MASK                           0x00008000  /* UPDT_WKCTL - [15] */
+#define CS35L42_UPDT_WKCTL_SHIFT                          15          /* UPDT_WKCTL - [15] */
+#define CS35L42_UPDT_WKCTL_WIDTH                          1           /* UPDT_WKCTL - [15] */
+#define CS35L42_WKSRC_EN_5                                0x00000400  /* WKSRC_EN_5 - [10] */
+#define CS35L42_WKSRC_EN_5_MASK                           0x00000400  /* WKSRC_EN_5 - [10] */
+#define CS35L42_WKSRC_EN_5_SHIFT                          10          /* WKSRC_EN_5 - [10] */
+#define CS35L42_WKSRC_EN_5_WIDTH                          1           /* WKSRC_EN_5 - [10] */
+#define CS35L42_WKSRC_EN_4                                0x00000200  /* WKSRC_EN_4 - [9] */
+#define CS35L42_WKSRC_EN_4_MASK                           0x00000200  /* WKSRC_EN_4 - [9] */
+#define CS35L42_WKSRC_EN_4_SHIFT                          9           /* WKSRC_EN_4 - [9] */
+#define CS35L42_WKSRC_EN_4_WIDTH                          1           /* WKSRC_EN_4 - [9] */
+#define CS35L42_WKSRC_EN_3                                0x00000100  /* WKSRC_EN_3 - [8] */
+#define CS35L42_WKSRC_EN_3_MASK                           0x00000100  /* WKSRC_EN_3 - [8] */
+#define CS35L42_WKSRC_EN_3_SHIFT                          8           /* WKSRC_EN_3 - [8] */
+#define CS35L42_WKSRC_EN_3_WIDTH                          1           /* WKSRC_EN_3 - [8] */
+#define CS35L42_WKSRC_EN_2                                0x00000080  /* WKSRC_EN_2 - [7] */
+#define CS35L42_WKSRC_EN_2_MASK                           0x00000080  /* WKSRC_EN_2 - [7] */
+#define CS35L42_WKSRC_EN_2_SHIFT                          7           /* WKSRC_EN_2 - [7] */
+#define CS35L42_WKSRC_EN_2_WIDTH                          1           /* WKSRC_EN_2 - [7] */
+#define CS35L42_WKSRC_EN_1                                0x00000040  /* WKSRC_EN_1 - [6] */
+#define CS35L42_WKSRC_EN_1_MASK                           0x00000040  /* WKSRC_EN_1 - [6] */
+#define CS35L42_WKSRC_EN_1_SHIFT                          6           /* WKSRC_EN_1 - [6] */
+#define CS35L42_WKSRC_EN_1_WIDTH                          1           /* WKSRC_EN_1 - [6] */
+#define CS35L42_WKSRC_EN_0                                0x00000020  /* WKSRC_EN_0 - [5] */
+#define CS35L42_WKSRC_EN_0_MASK                           0x00000020  /* WKSRC_EN_0 - [5] */
+#define CS35L42_WKSRC_EN_0_SHIFT                          5           /* WKSRC_EN_0 - [5] */
+#define CS35L42_WKSRC_EN_0_WIDTH                          1           /* WKSRC_EN_0 - [5] */
 
 /************************************************/
 /* Device Clocking and Sample Rate Control      */
@@ -850,6 +936,50 @@ extern "C" {
 /************************************************/
 /* IRQ1_IRQ1_EINT_1                             */
 /************************************************/
+#define CS35L42_DSP_VIRTUAL2_MBOX_WR_EINT1                0x80000000  /* DSP_VIRTUAL2_MBOX_WR_EINT1 - [31] */
+#define CS35L42_DSP_VIRTUAL2_MBOX_WR_EINT1_MASK           0x80000000  /* DSP_VIRTUAL2_MBOX_WR_EINT1 - [31] */
+#define CS35L42_DSP_VIRTUAL2_MBOX_WR_EINT1_SHIFT          31          /* DSP_VIRTUAL2_MBOX_WR_EINT1 - [31] */
+#define CS35L42_DSP_VIRTUAL2_MBOX_WR_EINT1_WIDTH          1           /* DSP_VIRTUAL2_MBOX_WR_EINT1 - [31] */
+#define CS35L42_DSP_VIRTUAL1_MBOX_WR_EINT1                0x40000000  /* DSP_VIRTUAL1_MBOX_WR_EINT1 - [30] */
+#define CS35L42_DSP_VIRTUAL1_MBOX_WR_EINT1_MASK           0x40000000  /* DSP_VIRTUAL1_MBOX_WR_EINT1 - [30] */
+#define CS35L42_DSP_VIRTUAL1_MBOX_WR_EINT1_SHIFT          30          /* DSP_VIRTUAL1_MBOX_WR_EINT1 - [30] */
+#define CS35L42_DSP_VIRTUAL1_MBOX_WR_EINT1_WIDTH          1           /* DSP_VIRTUAL1_MBOX_WR_EINT1 - [30] */
+#define CS35L42_AMP_ERR_EINT1                             0x08000000  /* AMP_ERR_EINT1 - [27] */
+#define CS35L42_AMP_ERR_EINT1_MASK                        0x08000000  /* AMP_ERR_EINT1 - [27] */
+#define CS35L42_AMP_ERR_EINT1_SHIFT                       27          /* AMP_ERR_EINT1 - [27] */
+#define CS35L42_AMP_ERR_EINT1_WIDTH                       1           /* AMP_ERR_EINT1 - [27] */
+#define CS35L42_TEMP_ERR_EINT1                            0x04000000  /* TEMP_ERR_EINT1 - [26] */
+#define CS35L42_TEMP_ERR_EINT1_MASK                       0x04000000  /* TEMP_ERR_EINT1 - [26] */
+#define CS35L42_TEMP_ERR_EINT1_SHIFT                      26          /* TEMP_ERR_EINT1 - [26] */
+#define CS35L42_TEMP_ERR_EINT1_WIDTH                      1           /* TEMP_ERR_EINT1 - [26] */
+#define CS35L42_TEMP_WARN_FALL_EINT1                      0x02000000  /* TEMP_WARN_FALL_EINT1 - [25] */
+#define CS35L42_TEMP_WARN_FALL_EINT1_MASK                 0x02000000  /* TEMP_WARN_FALL_EINT1 - [25] */
+#define CS35L42_TEMP_WARN_FALL_EINT1_SHIFT                25          /* TEMP_WARN_FALL_EINT1 - [25] */
+#define CS35L42_TEMP_WARN_FALL_EINT1_WIDTH                1           /* TEMP_WARN_FALL_EINT1 - [25] */
+#define CS35L42_TEMP_WARN_RISE_EINT1                      0x01000000  /* TEMP_WARN_RISE_EINT1 - [24] */
+#define CS35L42_TEMP_WARN_RISE_EINT1_MASK                 0x01000000  /* TEMP_WARN_RISE_EINT1 - [24] */
+#define CS35L42_TEMP_WARN_RISE_EINT1_SHIFT                24          /* TEMP_WARN_RISE_EINT1 - [24] */
+#define CS35L42_TEMP_WARN_RISE_EINT1_WIDTH                1           /* TEMP_WARN_RISE_EINT1 - [24] */
+#define CS35L42_BST_SHORT_ERR_EINT1                       0x00400000  /* BST_SHORT_ERR_EINT1 - [22] */
+#define CS35L42_BST_SHORT_ERR_EINT1_MASK                  0x00400000  /* BST_SHORT_ERR_EINT1 - [22] */
+#define CS35L42_BST_SHORT_ERR_EINT1_SHIFT                 22          /* BST_SHORT_ERR_EINT1 - [22] */
+#define CS35L42_BST_SHORT_ERR_EINT1_WIDTH                 1           /* BST_SHORT_ERR_EINT1 - [22] */
+#define CS35L42_BST_DCM_UVP_ERR_EINT1                     0x00200000  /* BST_DCM_UVP_ERR_EINT1 - [21] */
+#define CS35L42_BST_DCM_UVP_ERR_EINT1_MASK                0x00200000  /* BST_DCM_UVP_ERR_EINT1 - [21] */
+#define CS35L42_BST_DCM_UVP_ERR_EINT1_SHIFT               21          /* BST_DCM_UVP_ERR_EINT1 - [21] */
+#define CS35L42_BST_DCM_UVP_ERR_EINT1_WIDTH               1           /* BST_DCM_UVP_ERR_EINT1 - [21] */
+#define CS35L42_BST_OVP_ERR_EINT1                         0x00100000  /* BST_OVP_ERR_EINT1 - [20] */
+#define CS35L42_BST_OVP_ERR_EINT1_MASK                    0x00100000  /* BST_OVP_ERR_EINT1 - [20] */
+#define CS35L42_BST_OVP_ERR_EINT1_SHIFT                   20          /* BST_OVP_ERR_EINT1 - [20] */
+#define CS35L42_BST_OVP_ERR_EINT1_WIDTH                   1           /* BST_OVP_ERR_EINT1 - [20] */
+#define CS35L42_BST_OVP_FLAG_FALL_EINT1                   0x00080000  /* BST_OVP_FLAG_FALL_EINT1 - [19] */
+#define CS35L42_BST_OVP_FLAG_FALL_EINT1_MASK              0x00080000  /* BST_OVP_FLAG_FALL_EINT1 - [19] */
+#define CS35L42_BST_OVP_FLAG_FALL_EINT1_SHIFT             19          /* BST_OVP_FLAG_FALL_EINT1 - [19] */
+#define CS35L42_BST_OVP_FLAG_FALL_EINT1_WIDTH             1           /* BST_OVP_FLAG_FALL_EINT1 - [19] */
+#define CS35L42_BST_OVP_FLAG_RISE_EINT1                   0x00040000  /* BST_OVP_FLAG_RISE_EINT1 - [18] */
+#define CS35L42_BST_OVP_FLAG_RISE_EINT1_MASK              0x00040000  /* BST_OVP_FLAG_RISE_EINT1 - [18] */
+#define CS35L42_BST_OVP_FLAG_RISE_EINT1_SHIFT             18          /* BST_OVP_FLAG_RISE_EINT1 - [18] */
+#define CS35L42_BST_OVP_FLAG_RISE_EINT1_WIDTH             1           /* BST_OVP_FLAG_RISE_EINT1 - [18] */
 #define CS35L42_MSM_PUP_DONE_EINT1                        0x00020000  /* MSM_PUP_DONE_EINT1 - [17] */
 #define CS35L42_MSM_PUP_DONE_EINT1_MASK                   0x00020000  /* MSM_PUP_DONE_EINT1 - [17] */
 #define CS35L42_MSM_PUP_DONE_EINT1_SHIFT                  17          /* MSM_PUP_DONE_EINT1 - [17] */
@@ -858,7 +988,14 @@ extern "C" {
 #define CS35L42_MSM_PDN_DONE_EINT1_MASK                   0x00010000  /* MSM_PDN_DONE_EINT1 - [16] */
 #define CS35L42_MSM_PDN_DONE_EINT1_SHIFT                  16          /* MSM_PDN_DONE_EINT1 - [16] */
 #define CS35L42_MSM_PDN_DONE_EINT1_WIDTH                  1           /* MSM_PDN_DONE_EINT1 - [16] */
-
+#define CS35L42_WKSRC_STATUS6_EINT1                       0x00004000  /* WKSRC_STATUS6_EINT1 - [14] */
+#define CS35L42_WKSRC_STATUS6_EINT1_MASK                  0x00004000  /* WKSRC_STATUS6_EINT1 - [14] */
+#define CS35L42_WKSRC_STATUS6_EINT1_SHIFT                 14          /* WKSRC_STATUS6_EINT1 - [14] */
+#define CS35L42_WKSRC_STATUS6_EINT1_WIDTH                 1           /* WKSRC_STATUS6_EINT1 - [14] */
+#define CS35L42_WKSRC_STATUS_ANY_EINT1                    0x00000100  /* WKSRC_STATUS_ANY_EINT1 - [8] */
+#define CS35L42_WKSRC_STATUS_ANY_EINT1_MASK               0x00000100  /* WKSRC_STATUS_ANY_EINT1 - [8] */
+#define CS35L42_WKSRC_STATUS_ANY_EINT1_SHIFT              8           /* WKSRC_STATUS_ANY_EINT1 - [8] */
+#define CS35L42_WKSRC_STATUS_ANY_EINT1_WIDTH              1           /* WKSRC_STATUS_ANY_EINT1 - [8] */
 
 /************************************************/
 /* IRQ1_IRQ1_MASK_1                             */
@@ -1372,6 +1509,23 @@ extern "C" {
 #define CS35L42_DSP1_ACCEL_LINEAR_IN                      0x2BCD010
 #define CS35L42_DSP1_ACCEL_DB_OUT                         0x2BCD018
 #define CS35L42_DSP1_ACCEL_RAND_NUM                       0x2BCD020
+
+/************************************************/
+/* XM_UNPACKED24_DSP1_CCM_CORE_CONTROL          */
+/************************************************/
+#define CS35L42_DSP1_CCM_CORE_RESET                       0x00000200  /* DSP1_CCM_CORE_RESET - [9] */
+#define CS35L42_DSP1_CCM_CORE_RESET_MASK                  0x00000200  /* DSP1_CCM_CORE_RESET - [9] */
+#define CS35L42_DSP1_CCM_CORE_RESET_SHIFT                 9           /* DSP1_CCM_CORE_RESET - [9] */
+#define CS35L42_DSP1_CCM_CORE_RESET_WIDTH                 1           /* DSP1_CCM_CORE_RESET - [9] */
+#define CS35L42_DSP1_CCM_PM_REMAP                         0x00000080  /* DSP1_CCM_PM_REMAP - [7] */
+#define CS35L42_DSP1_CCM_PM_REMAP_MASK                    0x00000080  /* DSP1_CCM_PM_REMAP - [7] */
+#define CS35L42_DSP1_CCM_PM_REMAP_SHIFT                   7           /* DSP1_CCM_PM_REMAP - [7] */
+#define CS35L42_DSP1_CCM_PM_REMAP_WIDTH                   1           /* DSP1_CCM_PM_REMAP - [7] */
+#define CS35L42_DSP1_CCM_CORE_EN                          0x00000001  /* DSP1_CCM_CORE_EN - [0] */
+#define CS35L42_DSP1_CCM_CORE_EN_MASK                     0x00000001  /* DSP1_CCM_CORE_EN - [0] */
+#define CS35L42_DSP1_CCM_CORE_EN_SHIFT                    0           /* DSP1_CCM_CORE_EN - [0] */
+#define CS35L42_DSP1_CCM_CORE_EN_WIDTH                    1           /* DSP1_CCM_CORE_EN - [0] */
+
 
 /************************************************/
 /* DSP1 Y Memory Range Packed                   */

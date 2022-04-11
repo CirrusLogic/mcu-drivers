@@ -4,7 +4,7 @@
  * @brief The CS47L63 Driver module
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2021 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2021-2022 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -570,7 +570,7 @@ static uint32_t cs47l63_power_down(cs47l63_t *driver, cs47l63_dsp_t *dsp_info)
  */
 static uint32_t cs47l63_power_mem_ena(cs47l63_t *driver, cs47l63_dsp_t *dsp_info)
 {
-    uint32_t ret;
+    uint32_t ret = CS47L63_STATUS_OK;
     const cs47l63_dsp_ram_bank_t *ram_bank_ptr = dsp_info->ram_banks;
 
     for (uint32_t index = 0; index < dsp_info->n_ram_banks; ++index)
@@ -607,7 +607,7 @@ static uint32_t cs47l63_power_mem_ena(cs47l63_t *driver, cs47l63_dsp_t *dsp_info
  */
 static uint32_t cs47l63_power_mem_dis(cs47l63_t *driver, cs47l63_dsp_t *dsp_info)
 {
-    uint32_t ret;
+    uint32_t ret = CS47L63_STATUS_OK;
     const cs47l63_dsp_ram_bank_t *ram_bank_ptr = dsp_info->ram_banks;
 
     for (uint32_t index = 0; index < dsp_info->n_ram_banks; ++index)

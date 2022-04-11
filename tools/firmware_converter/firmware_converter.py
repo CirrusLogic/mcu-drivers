@@ -43,13 +43,13 @@ from firmware_exporter_factory import firmware_exporter_factory
 # CONSTANTS/GLOBALS
 #==========================================================================
 
-supported_part_numbers = ['cs35l41', 'cs40l25', 'cs40l30', 'cs48l32', 'cs47l63', 'cs47l66', 'cs47l67', 'cs47l15', 'cs47l35_dsp1', 'cs47l35_dsp2', 'cs47l35_dsp3', 'cs40l26']
+supported_part_numbers = ['cs35l41', 'cs35l42', 'cs40l25', 'cs40l30', 'cs48l32', 'cs47l63', 'cs47l66', 'cs47l67', 'cs47l15', 'cs47l35_dsp1', 'cs47l35_dsp2', 'cs47l35_dsp3', 'cs40l26']
 
 supported_commands = ['print', 'export', 'wisce', 'fw_img_v1', 'fw_img_v2', 'json']
 
 supported_mem_maps = {
     'halo_type_0': {
-        'parts': ['cs35l41', 'cs40l25', 'cs40l30', 'cs48l32', 'cs47l63', 'cs47l66', 'cs47l67', 'cs40l26'],
+        'parts': ['cs35l41', 'cs35l42', 'cs40l25', 'cs40l30', 'cs48l32', 'cs47l63', 'cs47l66', 'cs47l67', 'cs40l26'],
         'xm': {
             'u24': (0x2800000, 0x2bfffff),
             'p32': (0x2000000, 0x23fffff),

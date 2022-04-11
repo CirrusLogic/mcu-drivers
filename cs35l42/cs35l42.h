@@ -109,12 +109,48 @@ extern "C" {
  *
  * @{
  */
- #define CS35L42_EVENT_FLAG_STATE_ERROR                  (0)
+#define CS35L42_EVENT_FLAG_STATE_ERROR                  (0)
+#define CS35L42_EVENT_FLAG_AMP_ERR                      (1)
+#define CS35L42_EVENT_FLAG_TEMP_ERR                     (2)
+#define CS35L42_EVENT_FLAG_BST_SHORT_ERR                (3)
+#define CS35L42_EVENT_FLAG_BST_DCM_UVP_ERR              (4)
+#define CS35L42_EVENT_FLAG_BST_OVP_ERR                  (5)
+#define CS35L42_EVENT_FLAG_DSP_VIRTUAL2_MBOX_WR         (6)
+#define CS35L42_EVENT_FLAG_WKSRC_STATUS6                (7)
+#define CS35L42_EVENT_FLAG_WKSRC_STATUS_ANY             (8)
+
 /** @} */
 
-#define CS35L42_DSP_STATUS_WORDS_TOTAL                  (9)     ///< Total registers to read for Get DSP Status control
+#define CS35L42_DSP_STATUS_WORDS_TOTAL                   (9)     ///< Total registers to read for Get DSP Status control
 
-#define CS35L42_CONTROL_PORT_MAX_PAYLOAD_BYTES          (4140)  ///< Maximum bytes CS35L42 can transfer
+#define CS35L42_CONTROL_PORT_MAX_PAYLOAD_BYTES           (4140)  ///< Maximum bytes CS35L42 can transfer
+
+/**
+ * @defgroup CS35L42_POWER_SEQ
+ * @brief Values associated with power-on write sequencer
+ *
+ * @see cs35l42_wseq_*
+ *
+ * @{
+ */
+#define CS35L42_POWER_SEQ_LENGTH                         42
+#define CS35L42_POWER_SEQ_MAX_WORDS                      129
+#define CS35L42_POWER_SEQ_OP_WRITE_REG_FULL              0x00
+#define CS35L42_POWER_SEQ_OP_WRITE_REG_FULL_WORDS        3
+#define CS35L42_POWER_SEQ_OP_WRITE_FIELD                 0x01
+#define CS35L42_POWER_SEQ_OP_WRITE_FIELD_WORDS           4
+#define CS35L42_POWER_SEQ_OP_WRITE_REG_ADDR8             0x02
+#define CS35L42_POWER_SEQ_OP_WRITE_REG_ADDR8_WORDS       2
+#define CS35L42_POWER_SEQ_OP_WRITE_REG_INCR              0x03
+#define CS35L42_POWER_SEQ_OP_WRITE_REG_INCR_WORDS        2
+#define CS35L42_POWER_SEQ_OP_WRITE_REG_L16               0x04
+#define CS35L42_POWER_SEQ_OP_WRITE_REG_L16_WORDS         2
+#define CS35L42_POWER_SEQ_OP_WRITE_REG_H16               0x05
+#define CS35L42_POWER_SEQ_OP_WRITE_REG_H16_WORDS         2
+#define CS35L42_POWER_SEQ_OP_DELAY                       0xFE
+#define CS35L42_POWER_SEQ_OP_DELAY_WORDS                 1
+#define CS35L42_POWER_SEQ_OP_END                         0xFF
+#define CS35L42_POWER_SEQ_OP_END_WORDS                   1
 
 /***********************************************************************************************************************
  * MACROS
@@ -142,6 +178,38 @@ extern "C" {
 typedef void (*cs35l42_notification_callback_t)(uint32_t event_flags, void *arg);
 
 /**
+ * State of HALO FW Calibration
+ *
+ * To convert from encoded impedance 'r' to Ohms, the following formula can be used:
+ * - rdc_ohms = ( 'r' / 213 ) * 5.8571434021
+ */
+typedef struct
+{
+    bool is_valid;  ///< (True) Calibration state is valid
+    uint32_t r;     ///< Encoded Load Impedance determined by Calibration procedure.
+} cs35l42_calibration_t;
+
+/**
+ * Entries used to write address value pairs to POWERONSEQUENCE.
+ *
+ * Write sequencer currently supports 4 V2 commands:
+ *
+ * WRITE_REG_FULL
+ * WRITE_REG_ADDR8
+ * WRITE_REG_L16
+ * WRITE_REG_H16
+ *
+ */
+typedef struct
+{
+    uint32_t operation;
+    uint32_t size;
+    uint32_t offset;
+    uint32_t address;
+    uint32_t value;
+} cs35l42_wseq_entry_t;
+
+/**
  * Configuration parameters required for calls to BSP-Driver Interface
  */
 typedef struct
@@ -163,6 +231,7 @@ typedef struct
     cs35l42_bsp_config_t bsp_config;    ///< BSP Configuration
     const uint32_t *syscfg_regs;    ///< Pointer to array of configuration register/value pairs
     uint32_t syscfg_regs_total;         ///< Total pairs in syscfg_regs[]
+    cs35l42_calibration_t cal_data;     ///< Calibration data from previous calibration sequence
 } cs35l42_config_t;
 
 /**
@@ -180,10 +249,15 @@ typedef struct
     // Driver configuration fields - see cs35l42_config_t
     cs35l42_config_t config;
 
+    cs35l42_wseq_entry_t wseq_table[CS35L42_POWER_SEQ_LENGTH];
+    uint32_t wseq_num_entries;
+    bool wseq_written;
+
     // Extra state material used by reset and boot
     uint32_t devid;                     ///< CS35L42 DEVID of current device
     uint32_t revid;                     ///< CS35L42 REVID of current device
     fw_img_info_t *fw_info;             ///< Current HALO FW/Coefficient boot configuration
+    bool is_cal_boot;                   ///< Flag to indicate current HALO FW boot is for Calibration
 
     uint32_t event_flags;               ///< Flags set by Event Handler that are passed to noticiation callback
     uint8_t otp_contents[CS35L42_OTP_SIZE_BYTES];   ///< Cache storage for OTP contents
@@ -310,72 +384,6 @@ uint32_t cs35l42_boot(cs35l42_t *driver, fw_img_info_t *fw_info);
  *
  */
 uint32_t cs35l42_power(cs35l42_t *driver, uint32_t power_state);
-
-/*
- * Reads the contents of a single register/memory address
- *
- * @param [in] driver           Pointer to the driver state
- * @param [in] addr             Address of the register to be read
- * @param [out] val             Pointer to where the read register value will be stored
- *
- * @return
- * - CS35L42_STATUS_FAIL if:
- *      - Control port activity fails
- * - otherwise, returns CS35L42_STATUS_OK
- *
- */
-uint32_t cs35l42_read_reg(cs35l42_t *driver, uint32_t addr, uint32_t *val);
-
-/*
- * Writes the contents of a single register/memory address
- *
- * @param [in] driver           Pointer to the driver state
- * @param [in] addr             Address of the register to be written
- * @param [in] val              Value to be written to the register
- *
- * @return
- * - CS35L42_STATUS_FAIL if:
- *      - Control port activity fails
- * - otherwise, returns CS35L42_STATUS_OK
- *
- */
-uint32_t cs35l42_write_reg(cs35l42_t *driver, uint32_t addr, uint32_t val);
-
-/*
- * Reads, updates and writes (if there's a change) the contents of a single register/memory address
- *
- * @param [in] driver           Pointer to the driver state
- * @param [in] addr             Address of the register to be written
- * @param [in] mask             Mask of the bits within the register to update
- * @param [in] val              Value to be written to the register (only bits matching the mask will be written)
- *
- * @return
- * - CS35L42_STATUS_FAIL if:
- *      - Control port activity fails
- * - otherwise, returns CS35L42_STATUS_OK
- *
- */
-uint32_t cs35l42_update_reg(cs35l42_t *driver, uint32_t addr, uint32_t mask, uint32_t val);
-
-/*
- * Write block of data to the CS35L42 register file
- *
- * This call is used to load the HALO FW/COEFF files to HALO RAM.
- *
- * @param [in] driver           Pointer to the driver state
- * @param [in] addr             Starting address of loading destination
- * @param [in] data             Pointer to array of bytes to be written
- * @param [in] size             Size of array of bytes to be written
- *
- * @return
- * - CS35L42_STATUS_FAIL if:
- *      - Any pointers are NULL
- *      - size is not multiple of 4
- *      - Control port activity fails
- * - otherwise, returns CS35L42_STATUS_OK
- *
- */
-uint32_t cs35l42_write_block(cs35l42_t *driver, uint32_t addr, uint8_t *data, uint32_t size);
 
 /**********************************************************************************************************************/
 #ifdef __cplusplus

@@ -4,7 +4,7 @@
  * @brief The CS47L15 Driver module
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2020-2021 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2020-2022 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -576,7 +576,7 @@ static uint32_t cs47l15_power_down(cs47l15_t *driver, cs47l15_dsp_t *dsp_info)
  */
 static uint32_t cs47l15_power_mem_ena(cs47l15_t *driver, cs47l15_dsp_t *dsp_info)
 {
-    uint32_t val, i, ret;
+    uint32_t val, i, ret = CS47L15_STATUS_OK;
 
     ret = cs47l15_update_reg(driver, CS47L15_DSP_CLOCK_1, CS47L15_DSP_CLK_ENA_MASK, CS47L15_DSP_CLK_ENA);
     if (ret == CS47L15_STATUS_FAIL)

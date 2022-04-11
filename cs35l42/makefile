@@ -42,7 +42,9 @@ ifdef IS_NOT_UNIT_TEST
 endif
 
 # Assign firmware and configuration script variables
-#HALO_FIRMWARE_FILE =
+HALO_FIRMWARE_FILE = CS35L42_L43_Rev7.13.1.wmfw
+HALO_CAL_FIRMWARE_FILE = CS35L42_L43_Rev7.13.1.wmfw
+HALO_CAL_FIRMWARE_WMDR = Playback7.13.1_ProtectLite.bin
 WISCE_SCRIPT = $(CONFIG_PATH)/wisce_init.txt
 
 # Assign toolchain and toolchain flags
@@ -73,12 +75,16 @@ ifeq ($(MAKECMDGOALS), unit_test)
     ADD_OBJ_RULES = add_unit_test_obj_rules
 else ifdef IS_NOT_UNIT_TEST
     C_SRCS += $(DRIVER_PATH)/bsp/bsp_cs35l42.c
+    C_SRCS += $(HALO_FIRMWARE_PATH)/cs35l42_fw_img.c
+    C_SRCS += $(HALO_FIRMWARE_PATH)/cs35l42_tune_fw_img.c
+    C_SRCS += $(HALO_FIRMWARE_PATH)/cs35l42_cal_fw_img.c
 
     ifeq ($(MAKECMDGOALS), system_test)
         C_SRCS += $(APP_PATH)/test_cs35l42.c
     endif
 
     INCLUDES += -I$(DRIVER_PATH)/bsp
+    INCLUDES += -I$(HALO_FIRMWARE_PATH)
 
     ADD_OBJ_RULES = add_platform_obj_rules
 endif
@@ -117,7 +123,9 @@ $(eval $(call add_wisce_script_rule,cs35l42))
 firmware_converter:
 	@echo -------------------------------------------------------------------------------
 	@echo GENERATING cs35l42_fw_img
-	#cd $(HALO_FIRMWARE_PATH) && python3 ../../tools/firmware_converter/firmware_converter.py fw_img_v2 cs35l42 $(HALO_FIRMWARE_FILE) --sym-input $(CONFIG_PATH)/cs35l42_sym.h
+	cd $(HALO_FIRMWARE_PATH) && python3 ../../tools/firmware_converter/firmware_converter.py fw_img_v2 cs35l42 $(HALO_FIRMWARE_FILE) --sym-input $(CONFIG_PATH)/cs35l42_sym.h
+	cd $(HALO_FIRMWARE_PATH) && python3 ../../tools/firmware_converter/firmware_converter.py fw_img_v2 cs35l42 $(HALO_CAL_FIRMWARE_FILE) --suffix cal --sym-input $(CONFIG_PATH)/cs35l42_sym.h --exclude-wmfw --wmdr $(HALO_CAL_FIRMWARE_WMDR)
+	cd $(HALO_FIRMWARE_PATH) && python3 ../../tools/firmware_converter/firmware_converter.py fw_img_v2 cs35l42 $(HALO_FIRMWARE_FILE) --suffix tune --sym-input $(CONFIG_PATH)/cs35l42_sym.h --exclude-wmfw --wmdr $(HALO_CAL_FIRMWARE_WMDR)
 
 # Compilation rules
 $(eval $(call $(ADD_OBJ_RULES), $(OBJS)))

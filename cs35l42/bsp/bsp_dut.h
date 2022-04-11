@@ -59,7 +59,9 @@ uint32_t bsp_dut_boot(bool cal_boot);
 uint32_t bsp_dut_power_up(void);
 uint32_t bsp_dut_power_down(void);
 uint32_t bsp_dut_hibernate(void);
+uint32_t bsp_dut_wake(void);
 uint32_t bsp_dut_set_dig_gain(float gain_db);
+uint32_t bsp_dut_mute(bool is_mute);
 uint32_t bsp_dut_process(void);
 
 /**********************************************************************************************************************/

@@ -19,8 +19,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * firmware_converter.py version: 3.0.0
- * Command:  ..\..\tools\firmware_converter\firmware_converter.py --command fw_img_v1 --part cs35l42 --sym-input ..\cs35l42_sym.h --sym-output ..\cs35l42_sym.h --wmfw halo_cspl_RAM_revB2_29.33.0.wmfw
+ * firmware_converter.py SDK version: 4.12.0 - internal
+ * Command:  ../../tools/firmware_converter/firmware_converter.py fw_img_v2 cs35l42 CS35L42_L43_Rev7.13.1.wmfw
  *
  *
  */
@@ -42,6 +42,8 @@ extern "C" {
  *
  * @{
  */
+#define CS35L42_ALGORITHM_FIRMWARE_PLAYBACK
+#define CS35L42_ALGORITHM_PM
 /** @} */
 
 /**
@@ -50,6 +52,13 @@ extern "C" {
  *
  * @{
  */
+// FIRMWARE_PLAYBACK
+#define CS35L42_SYM_FIRMWARE_PLAYBACK_HALO_HEARTBEAT                           (0x1)
+// PM
+#define CS35L42_SYM_PM_PM_TIMER_TIMEOUT_TICKS                                  (0x2)
+#define CS35L42_SYM_PM_PM_CUR_STATE                                            (0x3)
+#define CS35L42_SYM_PM_POWER_ON_SEQUENCE                                       (0x4)
+
 /** @} */
 
 /**********************************************************************************************************************/
