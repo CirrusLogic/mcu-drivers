@@ -4,7 +4,7 @@
  * @brief Functions and prototypes exported by the CS35L41 Driver module
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2019-2021 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2019-2022 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -205,16 +205,44 @@ typedef struct
 } cs35l41_bsp_config_t;
 
 /**
+ * Bitfield assignments to configure hibernation wake sources
+ */
+typedef union
+{
+    uint32_t word;
+
+    struct
+    {
+        uint32_t gpio1      : 1;    ///< Configure GPIO1 wake source
+        uint32_t gpio2      : 1;    ///< Configure GPIO2 wake source
+        uint32_t gpio4      : 1;    ///< Configure GPIO4 wake source
+        uint32_t i2c        : 1;    ///< Configure I2C wake source
+        uint32_t reserved   : 28;
+    };
+
+} cs35l41_wakesrc_bits_t;
+
+/**
+ * Hibernation wake source control configuration
+ */
+typedef struct
+{
+    cs35l41_wakesrc_bits_t enable;              ///< Wake source enables
+    cs35l41_wakesrc_bits_t is_falling_edge;     ///< Wake source polarity (set for falling edge polarity)
+} cs35l41_wakesrc_ctrl_t;
+
+/**
  * Driver configuration data structure
  *
  * @see cs35l41_configure
  */
 typedef struct
 {
-    cs35l41_bsp_config_t bsp_config;    ///< BSP Configuration
-    const uint32_t *syscfg_regs;    ///< Pointer to array of configuration register/value pairs
-    uint32_t syscfg_regs_total;         ///< Total pairs in syscfg_regs[]
-    cs35l41_calibration_t cal_data;     ///< Calibration data from previous calibration sequence
+    cs35l41_bsp_config_t bsp_config;        ///< BSP Configuration
+    const uint32_t *syscfg_regs;            ///< Pointer to array of configuration register/value pairs
+    uint32_t syscfg_regs_total;             ///< Total pairs in syscfg_regs[]
+    cs35l41_calibration_t cal_data;         ///< Calibration data from previous calibration sequence
+    cs35l41_wakesrc_ctrl_t wakesrc_ctrl;    ///< Hibernation Wake Source Control
 } cs35l41_config_t;
 
 /**

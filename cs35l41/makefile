@@ -42,8 +42,8 @@ ifdef IS_NOT_UNIT_TEST
 endif
 
 # Assign firmware and configuration script variables
-HALO_FIRMWARE_FILE = halo_cspl_RAM_revB2_29.45.0.wmfw
-HALO_CAL_FIRMWARE_FILE = halo_cspl_RAM_revB2_29.45.0.wmfw
+HALO_FIRMWARE_FILE = halo_cspl_RAM_revB2_29.75.0.wmfw
+HALO_CAL_FIRMWARE_FILE = halo_cspl_RAM_revB2_29.75.0.wmfw
 HALO_CAL_FIRMWARE_WMDR = Protect_Lite_cal_6.43.0_7.0ohm_delta1ohm_L41_revB2.bin
 WISCE_SCRIPT = $(CONFIG_PATH)/wisce_init.txt
 
@@ -51,7 +51,6 @@ WISCE_SCRIPT = $(CONFIG_PATH)/wisce_init.txt
 $(eval $(call assign_toolchain))
 $(eval $(call assign_toolchain_flags))
 ifdef IS_NOT_UNIT_TEST
-    CFLAGS += -DUSE_CS35L41_SPI
     CFLAGS += -DCONFIG_USE_MULTICHANNEL_UART
 
     ifeq ($(SEMIHOSTING), 1)
@@ -132,7 +131,7 @@ firmware_converter:
 	@echo GENERATING cs35l41_fw_img
 	cd $(HALO_FIRMWARE_PATH) && python3 ../../tools/firmware_converter/firmware_converter.py fw_img_v2 cs35l41 $(HALO_FIRMWARE_FILE) --sym-input $(CONFIG_PATH)/cs35l41_sym.h
 	cd $(HALO_FIRMWARE_PATH) && python3 ../../tools/firmware_converter/firmware_converter.py fw_img_v2 cs35l41 $(HALO_CAL_FIRMWARE_FILE) --suffix cal --sym-input $(CONFIG_PATH)/cs35l41_sym.h --wmdr-only --wmdr $(HALO_CAL_FIRMWARE_WMDR)
-	cd $(HALO_FIRMWARE_PATH) && python3 ../../tools/firmware_converter/firmware_converter.py fw_img_v2 cs35l41 halo_cspl_RAM_revB2_29.45.0.wmfw --sym-input $(CONFIG_PATH)/cs35l41_sym.h --wmdr-only --suffix tune --wmdr Protect_Lite_full_6.43.0_7.0ohm_delta1ohm_L41_revB2.bin
+	cd $(HALO_FIRMWARE_PATH) && python3 ../../tools/firmware_converter/firmware_converter.py fw_img_v2 cs35l41 $(HALO_FIRMWARE_FILE) --sym-input $(CONFIG_PATH)/cs35l41_sym.h --wmdr-only --suffix tune --wmdr Protect_Lite_full_6.43.0_7.0ohm_delta1ohm_L41_revB2.bin
 
 # Compilation rules
 $(eval $(call $(ADD_OBJ_RULES), $(OBJS)))

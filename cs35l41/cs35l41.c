@@ -1383,8 +1383,6 @@ static uint32_t cs35l41_hibernate(cs35l41_t *driver)
             IRQ1_IRQ1_MASK_1_REG, 0xFFFFFFFF,
             IRQ2_IRQ2_EINT_2_REG, (1 << 20),
             IRQ1_IRQ1_EINT_2_REG, (1 << 21),
-            PWRMGT_WAKESRC_CTL, 0x0088,
-            PWRMGT_WAKESRC_CTL, 0x0188,
             DSP_VIRTUAL1_MBOX_DSP_VIRTUAL1_MBOX_1_REG, CS35L41_DSP_MBOX_CMD_HIBERNATE
     };
     regmap_cp_config_t *cp = REGMAP_GET_CP(driver);
@@ -1595,6 +1593,25 @@ static uint32_t cs35l41_write_post_boot_config(cs35l41_t *driver)
         return ret;
     }
 
+    // Update HIBERNATE_WAKE_* FW Controls
+    ret = regmap_write_fw_control(cp,
+                                  driver->fw_info,
+                                  CS35L41_SYM_FIRMWARE_HALO_CSPL_HIBERNATE_WAKE_SOURCE,
+                                  driver->config.wakesrc_ctrl.enable.word);
+    if (ret)
+    {
+        return ret;
+    }
+
+    ret = regmap_write_fw_control(cp,
+                                  driver->fw_info,
+                                  CS35L41_SYM_FIRMWARE_HALO_CSPL_HIBERNATE_WAKE_POLARITY,
+                                  driver->config.wakesrc_ctrl.is_falling_edge.word);
+    if (ret)
+    {
+        return ret;
+    }
+
     return CS35L41_STATUS_OK;
 }
 
@@ -1656,22 +1673,26 @@ static uint32_t cs35l41_restore(cs35l41_t *driver)
  */
 static uint32_t cs35l41_wake(cs35l41_t *driver)
 {
-    uint32_t timeout = 10, ret;
-    uint32_t status = CS35L41_DSP_MBOX_STATUS_HIBERNATE;
+    uint32_t ret;
     int8_t retries = 5;
     uint32_t mbox_cmd_drv_shift = 1 << 20;
     uint32_t mbox_cmd_fw_shift = 1 << 21;
     regmap_cp_config_t *cp = REGMAP_GET_CP(driver);
 
-    do {
-        do {
+    do // Loop to retry re-hibernating if wake communication fails
+    {
+        uint32_t status = CS35L41_DSP_MBOX_STATUS_HIBERNATE;
+        uint8_t timeout = 10;
+
+        do // Loop to retry control port transactions if I2C NAK'd while hibernating or if DSP not Paused
+        {
             ret = regmap_write(cp,
                                DSP_VIRTUAL1_MBOX_DSP_VIRTUAL1_MBOX_1_REG,
                                CS35L41_DSP_MBOX_CMD_OUT_OF_HIBERNATE);
 
             bsp_driver_if_g->set_timer(4, NULL, NULL);
 
-            if (ret != CS35L41_STATUS_FAIL)
+            if (ret == CS35L41_STATUS_OK)
             {
                 ret = regmap_read(cp, DSP_MBOX_DSP_MBOX_2_REG,  &status);
                 if (ret)
@@ -1682,7 +1703,13 @@ static uint32_t cs35l41_wake(cs35l41_t *driver)
 
         } while (status != CS35L41_DSP_MBOX_STATUS_PAUSED && --timeout > 0);
 
-        if (timeout != 0)
+        // If all transactions were NAK'd
+        if (ret)
+        {
+            return ret;
+        }
+        // Otherwise if succeeded
+        else if (status == CS35L41_DSP_MBOX_STATUS_PAUSED)
         {
             break;
         }
@@ -1717,9 +1744,6 @@ static uint32_t cs35l41_wake(cs35l41_t *driver)
         {
             return ret;
         }
-
-        timeout = 10;
-
     } while (--retries > 0);
 
     ret = regmap_write(cp, IRQ2_IRQ2_EINT_2_REG, mbox_cmd_drv_shift);
@@ -1727,6 +1751,7 @@ static uint32_t cs35l41_wake(cs35l41_t *driver)
     {
         return ret;
     }
+
     ret = regmap_write(cp, IRQ1_IRQ1_EINT_2_REG, mbox_cmd_fw_shift);
     if (ret)
     {
@@ -1735,14 +1760,16 @@ static uint32_t cs35l41_wake(cs35l41_t *driver)
 
     retries = 5;
 
-    do {
+    do
+    {
         ret = cs35l41_restore(driver);
         if (ret)
         {
             return ret;
         }
         bsp_driver_if_g->set_timer(4, NULL, NULL);
-    } while (ret != 0 && --retries > 0);
+    }
+    while (--retries > 0);
 
     if (retries < 0)
     {

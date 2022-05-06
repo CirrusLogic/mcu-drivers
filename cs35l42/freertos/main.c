@@ -31,11 +31,12 @@
 /***********************************************************************************************************************
  * LOCAL LITERAL SUBSTITUTIONS
  **********************************************************************************************************************/
-#define APP_STATE_PLAY         (0)
-#define APP_STATE_PLAY_GAIN    (1)
-#define APP_STATE_STOP         (2)
-#define APP_STATE_HIBERNATE    (3)
-#define APP_STATE_WAKE         (4)
+#define APP_STATE_CAL          (1)
+#define APP_STATE_PLAY         (2)
+#define APP_STATE_PLAY_GAIN    (3)
+#define APP_STATE_STOP         (4)
+#define APP_STATE_HIBERNATE    (5)
+#define APP_STATE_WAKE         (6)
 
 #define AMP_CONTROL_FLAG_PB_PRESSED         (1 << 0)
 #define APP_FLAG_BSP_NOTIFICATION           (1 << 1)
@@ -43,7 +44,7 @@
 /***********************************************************************************************************************
  * LOCAL VARIABLES
  **********************************************************************************************************************/
-static uint8_t app_audio_state = APP_STATE_PLAY;
+static uint8_t app_audio_state = APP_STATE_CAL;
 static TaskHandle_t AmpControlTaskHandle = NULL;
 static TaskHandle_t AmpEventTaskHandle = NULL;
 
@@ -119,6 +120,21 @@ static void AmpControlThread(void *argument)
 
         switch (app_audio_state)
         {
+            case APP_STATE_CAL:
+                if (flags & AMP_CONTROL_FLAG_PB_PRESSED)
+                {
+                    bsp_audio_stop();
+                    bsp_audio_set_fs(BSP_AUDIO_FS_48000_HZ);
+                    bsp_audio_play_record(BSP_PLAY_SILENCE);
+                    bsp_dut_reset();
+                    bsp_dut_boot();
+                    bsp_dut_power_up();
+                    bsp_dut_calibrate();
+                    bsp_dut_power_down();
+                    app_audio_state++;
+                }
+                break;
+
             case APP_STATE_PLAY:
                 if (flags & AMP_CONTROL_FLAG_PB_PRESSED)
                 {
@@ -126,7 +142,7 @@ static void AmpControlThread(void *argument)
                     bsp_audio_set_fs(BSP_AUDIO_FS_48000_HZ);
                     bsp_audio_play(BSP_PLAY_STEREO_1KHZ_20DBFS);
                     bsp_dut_reset();
-                    bsp_dut_boot(false);
+                    bsp_dut_boot();
                     bsp_dut_power_up();
                     app_audio_state++;
                 }
@@ -139,7 +155,7 @@ static void AmpControlThread(void *argument)
                     bsp_audio_set_fs(BSP_AUDIO_FS_48000_HZ);
                     bsp_audio_play(BSP_PLAY_STEREO_1KHZ_20DBFS);
                     bsp_dut_reset();
-                    bsp_dut_boot(false);
+                    bsp_dut_boot();
                     bsp_dut_set_dig_gain(-6);
                     bsp_dut_power_up();
                     app_audio_state++;
@@ -166,7 +182,7 @@ static void AmpControlThread(void *argument)
                 if (flags & AMP_CONTROL_FLAG_PB_PRESSED)
                 {
                     bsp_dut_wake();
-                    app_audio_state = APP_STATE_PLAY;
+                    app_audio_state = APP_STATE_CAL;
                 }
                 break;
 

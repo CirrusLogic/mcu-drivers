@@ -4,7 +4,7 @@
  * @brief Functions and prototypes exported by the BSP module for the cs35l41 platform.
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2021 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2021-2022 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -69,6 +69,7 @@ uint32_t bsp_dut_get_id(uint8_t *id);
 uint32_t bsp_dut_set_dig_gain(float db);
 uint32_t bsp_dut_change_fs(uint32_t fs_hz);
 uint32_t bsp_dut_process(void);
+uint32_t bsp_dut_get_driver_handle(void **driver);
 
 /**********************************************************************************************************************/
 #ifdef __cplusplus

@@ -224,6 +224,8 @@ uint32_t bsp_dut_initialize(void)
 
         amp_config.cal_data.is_valid = false;
 
+        amp_config.wakesrc_ctrl.enable.i2c = 1;
+
         ret = cs35l41_configure(&cs35l41_driver, &amp_config);
     }
 
@@ -562,10 +564,22 @@ uint32_t bsp_dut_process(void)
 
     if (CS35L41_STATUS_OK == cs35l41_process(&cs35l41_driver))
     {
-        return BSP_STATUS_FAIL;
+        return BSP_STATUS_OK;
     }
     else
     {
-        return BSP_STATUS_OK;
+        return BSP_STATUS_FAIL;
     }
+}
+
+uint32_t bsp_dut_get_driver_handle(void **driver)
+{
+    if (driver == NULL)
+    {
+        return BSP_STATUS_FAIL;
+    }
+
+    *driver = (void **) &cs35l41_driver;
+
+    return BSP_STATUS_OK;
 }

@@ -152,6 +152,15 @@ extern "C" {
 #define CS35L42_POWER_SEQ_OP_END                         0xFF
 #define CS35L42_POWER_SEQ_OP_END_WORDS                   1
 
+/**
+ * Value of CS35L42_CAL_IGNORE_EXPECTED_REDC allows to skip setting expected ReDC value
+ *
+ * @see cs35l42_calibrate
+ *
+ */
+#define CS35L42_CAL_IGNORE_EXPECTED_REDC             (0xFFFFFFFF)
+
+
 /***********************************************************************************************************************
  * MACROS
  **********************************************************************************************************************/
@@ -257,7 +266,6 @@ typedef struct
     uint32_t devid;                     ///< CS35L42 DEVID of current device
     uint32_t revid;                     ///< CS35L42 REVID of current device
     fw_img_info_t *fw_info;             ///< Current HALO FW/Coefficient boot configuration
-    bool is_cal_boot;                   ///< Flag to indicate current HALO FW boot is for Calibration
 
     uint32_t event_flags;               ///< Flags set by Event Handler that are passed to noticiation callback
     uint8_t otp_contents[CS35L42_OTP_SIZE_BYTES];   ///< Cache storage for OTP contents
@@ -384,6 +392,40 @@ uint32_t cs35l42_boot(cs35l42_t *driver, fw_img_info_t *fw_info);
  *
  */
 uint32_t cs35l42_power(cs35l42_t *driver, uint32_t power_state);
+
+/**
+ * Calibrate the HALO DSP Protection Algorithm
+ *
+ * This performs the calibration procedure required for Protect Lite Algorithm to obtain the currently measured
+ * speaker load impedance.  This calibration information (cs35l41_calibration_t) will be saved in the driver state
+ * and applied during subsequent power-ups of the part.  This calibration information will be available to the driver
+ * until the driver is re-initialized.
+ *
+ * The expected ReDC value must be passed in raw value; the formula to convert between raw and ohm values is:
+ * rdc_ohms = (rdc_raw / 2^13) * (12.3/2.1). Specifying expected ReDC value as CS35L42_CAL_IGNORE_EXPECTED_REDC
+ * will skip this setting.
+ *
+ * @attention The Calibration sequence can only be successfully performed under the following conditions:
+ * - while the driver is in POWER_UP state
+ * - after HALO DSP FW and Calibration BIN has been loaded
+ * - while the ASP is clocked with valid I2S clocks
+ * - while the ASP is being sourced with Silence
+ *
+ * @param [in] driver               Pointer to the driver state
+ * @param [in] ambient_temp_deg_c   Current Ambient Temperature in degrees Celsius
+ * @param [in] expected_redc        Expected speaker DC impedance in raw value
+ *
+ * @return
+ * - CS35L42_STATUS_FAIL if:
+ *      - Control port activity fails
+ *      - Required FW Control symbols are not found in the symbol table
+ *      - Calibration process encounters an error - FW failure, invalid checksum, timeout
+ * - CS35L42_STATUS_OK          otherwise
+ *
+ * @see cs35l42_calibration_t
+ *
+ */
+uint32_t cs35l42_calibrate(cs35l42_t *driver, uint32_t ambient_temp_deg_c, uint32_t expected_redc);
 
 /**********************************************************************************************************************/
 #ifdef __cplusplus

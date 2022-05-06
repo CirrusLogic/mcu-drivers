@@ -44,6 +44,7 @@ extern "C" {
  */
 #define CS35L42_ALGORITHM_FIRMWARE_PLAYBACK
 #define CS35L42_ALGORITHM_PM
+#define CS35L42_ALGORITHM_PROTECT_LITE
 /** @} */
 
 /**
@@ -53,12 +54,23 @@ extern "C" {
  * @{
  */
 // FIRMWARE_PLAYBACK
-#define CS35L42_SYM_FIRMWARE_PLAYBACK_HALO_HEARTBEAT                           (0x1)
+#define CS35L42_SYM_FIRMWARE_PLAYBACK_HALO_HEARTBEAT                                                 (0x01)
 // PM
-#define CS35L42_SYM_PM_PM_TIMER_TIMEOUT_TICKS                                  (0x2)
-#define CS35L42_SYM_PM_PM_CUR_STATE                                            (0x3)
-#define CS35L42_SYM_PM_POWER_ON_SEQUENCE                                       (0x4)
-
+#define CS35L42_SYM_PM_PM_TIMER_TIMEOUT_TICKS                                                        (0x02)
+#define CS35L42_SYM_PM_PM_CUR_STATE                                                                  (0x03)
+#define CS35L42_SYM_PM_POWER_ON_SEQUENCE                                                             (0x04)
+// PROTECT_LITE
+#define CS35L42_SYM_PROTECT_LITE_PROTECT_LITE_CTRL_PROTECT_LITE_ENABLE                               (0x05)
+#define CS35L42_SYM_PROTECT_LITE_PROTECT_LITE_CTRL_CALIBRATION_ENABLE                                (0x06)
+#define CS35L42_SYM_PROTECT_LITE_CALIB_DIAG_VAR_ARRAY_CAL_AMBIENT_TEMPERATURE                        (0x07)
+#define CS35L42_SYM_PROTECT_LITE_PROTECT_PILOT_TONE_PEART_CMPST_0_SINEGENERATORSENSE_0_THRESHOLD     (0x08)
+#define CS35L42_SYM_PROTECT_LITE_R_CALIB_0_R_REF                                                     (0x09)
+#define CS35L42_SYM_PROTECT_LITE_R_CALIB_0_FIRST_RUN                                                 (0x0a)
+#define CS35L42_SYM_PROTECT_LITE_RE_CALIB_SELECTOR_CMPST_0_RECALIBSELECTOR_0_SEL_RE_CAL              (0x0b)
+#define CS35L42_SYM_PROTECT_LITE_VAR_ARRAY_IMPEDANCE_MEASURE_STATUS                                  (0x0c)
+#define CS35L42_SYM_PROTECT_LITE_VAR_ARRAY_MEASURED_IMPEDANCE_CALIBRATION                            (0x0d)
+#define CS35L42_SYM_PROTECT_LITE_VAR_ARRAY_INITIAL_CALI_IMPEDANCE                                    (0x0e)
+#define CS35L42_SYM_PROTECT_LITE_VAR_ARRAY_CHECK_SUM_CALIBRATION                                     (0x0f)
 /** @} */
 
 /**********************************************************************************************************************/

@@ -5,7 +5,7 @@
  * @brief Master table of known firmware symbols for the CS35L41 Driver module
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2020 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2020, 2022 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -53,17 +53,19 @@ extern "C" {
  * @{
  */
 // FIRMWARE_HALO_CSPL
-#define CS35L41_SYM_FIRMWARE_HALO_CSPL_HALO_STATE       (0x1)
-#define CS35L41_SYM_FIRMWARE_HALO_CSPL_HALO_HEARTBEAT   (0x2)
+#define CS35L41_SYM_FIRMWARE_HALO_CSPL_HALO_STATE               (0x1)
+#define CS35L41_SYM_FIRMWARE_HALO_CSPL_HALO_HEARTBEAT           (0x2)
+#define CS35L41_SYM_FIRMWARE_HALO_CSPL_HIBERNATE_WAKE_SOURCE    (0x3)
+#define CS35L41_SYM_FIRMWARE_HALO_CSPL_HIBERNATE_WAKE_POLARITY  (0x4)
 // CSPL
-#define CS35L41_SYM_CSPL_CSPL_STATE                     (0x3)
-#define CS35L41_SYM_CSPL_CSPL_TEMPERATURE               (0x4)
-#define CS35L41_SYM_CSPL_CAL_R                          (0x5)
-#define CS35L41_SYM_CSPL_CAL_AMBIENT                    (0x6)
-#define CS35L41_SYM_CSPL_CAL_STATUS                     (0x7)
-#define CS35L41_SYM_CSPL_CAL_CHECKSUM                   (0x8)
-#define CS35L41_SYM_CSPL_CAL_R_SELECTED                 (0x9)
-#define CS35L41_SYM_CSPL_CAL_SET_STATUS                 (0xa)
+#define CS35L41_SYM_CSPL_CSPL_STATE                             (0x5)
+#define CS35L41_SYM_CSPL_CSPL_TEMPERATURE                       (0x6)
+#define CS35L41_SYM_CSPL_CAL_R                                  (0x7)
+#define CS35L41_SYM_CSPL_CAL_AMBIENT                            (0x8)
+#define CS35L41_SYM_CSPL_CAL_STATUS                             (0x9)
+#define CS35L41_SYM_CSPL_CAL_CHECKSUM                           (0xA)
+#define CS35L41_SYM_CSPL_CAL_R_SELECTED                         (0xB)
+#define CS35L41_SYM_CSPL_CAL_SET_STATUS                         (0xC)
 
 /** @} */
 

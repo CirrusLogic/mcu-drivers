@@ -3,6 +3,21 @@ Release Notes
 
 =============================================================================
 Summary:
+This is the release of Alt-OS Driver SDK v4.15.0
+Date: 2022/05/06
+
+Architectures/Compilers Used:
+GNU Arm Embedded Toolchain: arm-none-eabi-gcc -mcpu=cortex-m4
+
+New Features/Changes:
+[SQA-2673] L41 - Added configurable wake source
+[SQA-2626] cs35l42: Implement calibrate()
+
+Fixed Bugs:
+
+=============================================================================
+=============================================================================
+Summary:
 This is the release of Alt-OS Driver SDK v4.14.0
 Date: 2022/04/11
 

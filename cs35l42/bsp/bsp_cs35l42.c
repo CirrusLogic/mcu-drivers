@@ -31,7 +31,7 @@
 #include "test_tone_tables.h"
 #include "cs35l42_fw_img.h"
 #include "cs35l42_cal_fw_img.h"
-#include "cs35l42_tune_fw_img.h"
+#include "cs35l42_sym.h"
 
 /***********************************************************************************************************************
  * LOCAL LITERAL SUBSTITUTIONS
@@ -233,24 +233,14 @@ uint32_t bsp_dut_reset(void)
 }
 
 
-uint32_t bsp_dut_boot(bool cal_boot)
+uint32_t bsp_dut_boot()
 {
     uint32_t ret;
     const uint8_t *fw_img;
     const uint8_t *tune_img;
 
     fw_img = cs35l42_fw_img;
-
-    if (!cal_boot)
-    {
-        tune_img = cs35l42_tune_fw_img;
-    }
-    else
-    {
-        tune_img = cs35l42_cal_fw_img;
-    }
-
-    cs35l42_driver.is_cal_boot = cal_boot;
+    tune_img = cs35l42_cal_fw_img;
 
     // Inform the driver that any current firmware is no longer available by passing a NULL
     // fw_info pointer to cs35l42_boot
@@ -408,14 +398,55 @@ uint32_t bsp_dut_mute(bool is_mute)
     }
 }
 
+uint32_t bsp_dut_calibrate(void)
+{
+    // ReDC 11468 raw =~ 8.2 ohms. rdc_ohms = (rdc_raw / 2^13) * (12.3/2.1)
+    if (CS35L42_STATUS_OK == cs35l42_calibrate(&cs35l42_driver, 21, 11468))
+    {
+        return BSP_STATUS_OK;
+    }
+    else
+    {
+        return BSP_STATUS_FAIL;
+    }
+}
+
 uint32_t bsp_dut_process(void)
 {
     if (CS35L42_STATUS_OK == cs35l42_process(&cs35l42_driver))
     {
-        return BSP_STATUS_FAIL;
+        return BSP_STATUS_OK;
     }
     else
     {
+        return BSP_STATUS_FAIL;
+    }
+}
+
+uint32_t bsp_dut_ping(void)
+{
+    uint32_t ret;
+    ret = regmap_write(&(cs35l42_driver.config.bsp_config.cp_config),
+                         CS35L42_DSP_VIRTUAL1_MBOX_1,
+                         0x0A000000);
+    if (REGMAP_STATUS_OK == ret)
+    {
         return BSP_STATUS_OK;
     }
+    else
+    {
+        return BSP_STATUS_FAIL;
+    }
+}
+
+uint32_t bsp_dut_get_driver_handle(void **driver)
+{
+    if (driver == NULL)
+    {
+        return BSP_STATUS_FAIL;
+    }
+
+    *driver = (void **) &cs35l42_driver;
+
+    return BSP_STATUS_OK;
 }

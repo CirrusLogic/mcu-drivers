@@ -70,6 +70,17 @@
 /** @} */
 
 /**
+ * Value of CS35L42_CAL_STATUS that indicates Calibration success
+ *
+ * @see CS35L42_CAL_STATUS
+ *
+ */
+#define CS35L42_CAL_STATUS_CALIB_ERROR              (0x0)
+#define CS35L42_CAL_STATUS_CALIB_SUCCESS            (0x1)
+#define CS35L42_CAL_STATUS_CALIB_WAITING_FOR_DATA   (0x2)
+#define CS35L42_CAL_STATUS_CALIB_OUT_OF_RANGE       (0x3)
+
+/**
  * IRQ1 Status Bits for Speaker Safe Mode
  *
  * If any of the bits in the mask below are set in IRQ1_EINT_1, the amplifier will have entered Speaker Safe Mode.
@@ -482,7 +493,7 @@ static uint32_t cs35l42_wseq_table_update(cs35l42_t *driver, uint32_t address, u
                     if (read)
                     {
                         uint32_t prev_address;
-                        uint32_t full_address;
+                        uint32_t full_address = address;
                         if (operation == CS35L42_POWER_SEQ_OP_WRITE_REG_ADDR8)
                         {
                             // Search back for full address, to fetch upper 3 bytes of address
@@ -495,10 +506,6 @@ static uint32_t cs35l42_wseq_table_update(cs35l42_t *driver, uint32_t address, u
                                     break;
                                 }
                             }
-                        }
-                        else
-                        {
-                            full_address = address;
                         }
                         regmap_read(cp, full_address, &value);
                     }
@@ -519,7 +526,7 @@ static uint32_t cs35l42_wseq_table_update(cs35l42_t *driver, uint32_t address, u
             if (read)
             {
                 uint32_t prev_address;
-                uint32_t full_address;
+                uint32_t full_address = address;
                 if (operation == CS35L42_POWER_SEQ_OP_WRITE_REG_ADDR8)
                 {
                     // Search back for full address, to fetch upper 3 bytes of address
@@ -532,10 +539,6 @@ static uint32_t cs35l42_wseq_table_update(cs35l42_t *driver, uint32_t address, u
                             break;
                         }
                     }
-                }
-                else
-                {
-                    full_address = address;
                 }
                 regmap_read(cp, full_address, &value);
             }
@@ -644,7 +647,7 @@ static uint32_t cs35l42_wseq_read_from_dsp(cs35l42_t *driver)
                     return CS35L42_STATUS_FAIL;
                 }
             }
-            cs35l42_wseq_table_update(driver, address, value, operation, false);
+            cs35l42_wseq_table_update(driver, address, value, operation, true);
         }
     }
 
@@ -728,11 +731,48 @@ static uint32_t cs35l42_power_up(cs35l42_t *driver)
         return CS35L42_STATUS_OK;
     }
 
+    // If calibration data is valid
+    if (driver->config.cal_data.is_valid)
+    {
+        ret = regmap_write_fw_control(cp,
+                                      driver->fw_info,
+                                      CS35L42_SYM_PROTECT_LITE_RE_CALIB_SELECTOR_CMPST_0_RECALIBSELECTOR_0_SEL_RE_CAL,
+                                      driver->config.cal_data.r);
+        if (ret)
+        {
+            return ret;
+        }
+        ret = regmap_write(cp, CS35L42_DSP_VIRTUAL1_MBOX_1, CS35L42_DSP_MBOX_CMD_AUDIO_REINIT);
+        if (ret)
+        {
+            return ret;
+        }
+    }
+
     // Start playback
     ret = regmap_write(cp, CS35L42_DSP_VIRTUAL1_MBOX_1, CS35L42_DSP_MBOX_CMD_AUDIO_PLAY);
     if (ret)
     {
         return ret;
+    }
+
+    if (driver->config.cal_data.is_valid)
+    {
+        bsp_driver_if_g->set_timer(50, NULL, NULL); // allow CAL_R value to be acted upon once the audio is in PLAY mode
+        // Verify calibration
+        ret = regmap_read_fw_control(cp,
+                                     driver->fw_info,
+                                     CS35L42_SYM_PROTECT_LITE_VAR_ARRAY_INITIAL_CALI_IMPEDANCE,
+                                     &temp_reg_val);
+        if (ret)
+        {
+            return ret;
+        }
+
+        if (temp_reg_val != driver->config.cal_data.r)
+        {
+            return CS35L42_STATUS_FAIL;
+        }
     }
 
     // Check for correct state
@@ -955,7 +995,11 @@ static uint32_t cs35l42_hibernate(cs35l42_t *driver)
     regmap_cp_config_t *cp = REGMAP_GET_CP(driver);
 
     // Parse init contents of the POWER_ON_SEQUENCE
-    cs35l42_wseq_read_from_dsp(driver);
+    ret = cs35l42_wseq_read_from_dsp(driver);
+    if (ret)
+    {
+        return ret;
+    }
 
     // Add driver-controlled registers to the sequence
     for (uint32_t i = 0; i < (sizeof(cs35l42_hibernate_update_regs)/sizeof(uint32_t)); i++)
@@ -964,12 +1008,20 @@ static uint32_t cs35l42_hibernate(cs35l42_t *driver)
         {
             break;
         }
-        cs35l42_wseq_table_update(driver, cs35l42_hibernate_update_regs[i], 0, CS35L42_POWER_SEQ_OP_WRITE_REG_FULL, true);
+        ret = cs35l42_wseq_table_update(driver, cs35l42_hibernate_update_regs[i], 0, CS35L42_POWER_SEQ_OP_WRITE_REG_FULL, true);
+        if (ret)
+        {
+            return ret;
+        }
     }
 
     if(!driver->wseq_written)
     {
         ret = cs35l42_wseq_write_to_dsp(driver);
+        if (ret)
+        {
+            return ret;
+        }
     }
 
     ret = regmap_write_array(cp, (uint32_t *) cs35l42_hibernate_patch, (sizeof(cs35l42_hibernate_patch)/sizeof(uint32_t)));
@@ -1070,7 +1122,14 @@ uint32_t cs35l42_process(cs35l42_t *driver)
         }
     }
 
-    return CS35L42_STATUS_OK;
+    if (driver->state == CS35L42_STATE_ERROR)
+    {
+        return CS35L42_STATUS_FAIL;
+    }
+    else
+    {
+        return CS35L42_STATUS_OK;
+    }
 }
 
 /**
@@ -1271,8 +1330,152 @@ uint32_t cs35l42_power(cs35l42_t *driver, uint32_t power_state)
  * Calibrate the HALO DSP Protection Algorithm
  *
  */
-uint32_t cs35l42_calibrate(cs35l42_t *driver, uint32_t ambient_temp_deg_c)
+uint32_t cs35l42_calibrate(cs35l42_t *driver, uint32_t ambient_temp_deg_c, uint32_t expected_redc)
 {
+    uint32_t temp_reg_val;
+    uint32_t orig_threshold;
+    uint32_t iter_timeout = 0;
+    uint32_t ret;
+    regmap_cp_config_t *cp = REGMAP_GET_CP(driver);
+
+    ret = regmap_write(cp, CS35L42_DSP_VIRTUAL1_MBOX_1, CS35L42_DSP_MBOX_CMD_AUDIO_PAUSE);
+    if (ret)
+    {
+        return ret;
+    }
+
+    if (expected_redc != CS35L42_CAL_IGNORE_EXPECTED_REDC) // Can ignore setting reference redc if value is CS35L42_CAL_IGNORE_EXPECTED_REDC
+    {
+        // Set expected ReDC value
+        ret = regmap_write_fw_control(cp,
+                                      driver->fw_info,
+                                      CS35L42_SYM_PROTECT_LITE_R_CALIB_0_R_REF,
+                                      expected_redc);
+        if (ret)
+        {
+            return ret;
+        }
+    }
+
+    ret = regmap_write_fw_control(cp, driver->fw_info, CS35L42_SYM_PROTECT_LITE_PROTECT_LITE_CTRL_PROTECT_LITE_ENABLE, 0);
+    if (ret)
+    {
+        return ret;
+    }
+
+    // Set the Ambient Temp (deg C)
+    ret = regmap_write_fw_control(cp, driver->fw_info, CS35L42_SYM_PROTECT_LITE_CALIB_DIAG_VAR_ARRAY_CAL_AMBIENT_TEMPERATURE, ambient_temp_deg_c);
+    if (ret)
+    {
+        return ret;
+    }
+
+    // Apply mixer settings
+    ret = regmap_read_fw_control(cp, driver->fw_info, CS35L42_SYM_PROTECT_LITE_PROTECT_PILOT_TONE_PEART_CMPST_0_SINEGENERATORSENSE_0_THRESHOLD, &orig_threshold);
+    if (ret)
+    {
+        return ret;
+    }
+    ret = regmap_write_fw_control(cp, driver->fw_info, CS35L42_SYM_PROTECT_LITE_PROTECT_PILOT_TONE_PEART_CMPST_0_SINEGENERATORSENSE_0_THRESHOLD, 0);
+    if (ret)
+    {
+        return ret;
+    }
+    ret = regmap_write_fw_control(cp, driver->fw_info, CS35L42_SYM_PROTECT_LITE_R_CALIB_0_FIRST_RUN, 1);
+    if (ret)
+    {
+        return ret;
+    }
+    ret = regmap_write_fw_control(cp, driver->fw_info, CS35L42_SYM_PROTECT_LITE_PROTECT_LITE_CTRL_CALIBRATION_ENABLE, 1);
+    if (ret)
+    {
+        return ret;
+    }
+
+    ret = regmap_write_fw_control(cp, driver->fw_info, CS35L42_SYM_PROTECT_LITE_PROTECT_LITE_CTRL_PROTECT_LITE_ENABLE, 1);
+    if (ret)
+    {
+        return ret;
+    }
+
+    ret = regmap_write(cp, CS35L42_DSP_VIRTUAL1_MBOX_1, CS35L42_DSP_MBOX_CMD_AUDIO_REINIT);
+    if (ret)
+    {
+        return ret;
+    }
+    ret = regmap_write(cp, CS35L42_DSP_VIRTUAL1_MBOX_1, CS35L42_DSP_MBOX_CMD_AUDIO_PLAY);
+    if (ret)
+    {
+        return ret;
+    }
+
+    // Wait for calibration sequence to finish
+    do
+    {
+        bsp_driver_if_g->set_timer(100, NULL, NULL);
+
+        ret = regmap_read_fw_control(cp, driver->fw_info, CS35L42_SYM_PROTECT_LITE_VAR_ARRAY_IMPEDANCE_MEASURE_STATUS, &temp_reg_val);
+        if (ret)
+        {
+            return ret;
+        }
+        iter_timeout++;
+        if ((iter_timeout > 30) || (temp_reg_val == CS35L42_CAL_STATUS_CALIB_ERROR))
+        {
+            return CS35L42_STATUS_FAIL;
+        }
+    } while (temp_reg_val == CS35L42_CAL_STATUS_CALIB_WAITING_FOR_DATA);
+
+    ret = regmap_write_fw_control(cp, driver->fw_info, CS35L42_SYM_PROTECT_LITE_PROTECT_LITE_CTRL_PROTECT_LITE_ENABLE, 0);
+    if (ret)
+    {
+        return ret;
+    }
+
+    ret = regmap_write_fw_control(cp, driver->fw_info, CS35L42_SYM_PROTECT_LITE_PROTECT_LITE_CTRL_CALIBRATION_ENABLE, 0);
+    if (ret)
+    {
+        return ret;
+    }
+    ret = regmap_write_fw_control(cp, driver->fw_info, CS35L42_SYM_PROTECT_LITE_PROTECT_PILOT_TONE_PEART_CMPST_0_SINEGENERATORSENSE_0_THRESHOLD, orig_threshold);
+    if (ret)
+    {
+        return ret;
+    }
+    // Apply most recent calibration
+    ret = regmap_write_fw_control(cp, driver->fw_info, CS35L42_SYM_PROTECT_LITE_RE_CALIB_SELECTOR_CMPST_0_RECALIBSELECTOR_0_SEL_RE_CAL, 0xFFFFFF);
+    if (ret)
+    {
+        return ret;
+    }
+
+    ret = regmap_write_fw_control(cp, driver->fw_info, CS35L42_SYM_PROTECT_LITE_PROTECT_LITE_CTRL_PROTECT_LITE_ENABLE, 1);
+    if (ret)
+    {
+        return ret;
+    }
+
+    // Read the Calibration Load Impedance "R"
+    ret = regmap_read_fw_control(cp, driver->fw_info, CS35L42_SYM_PROTECT_LITE_VAR_ARRAY_MEASURED_IMPEDANCE_CALIBRATION, &temp_reg_val);
+    if (ret)
+    {
+        return ret;
+    }
+    driver->config.cal_data.r = temp_reg_val;
+
+    // Read the Calibration Checksum
+    ret = regmap_read_fw_control(cp, driver->fw_info, CS35L42_SYM_PROTECT_LITE_VAR_ARRAY_CHECK_SUM_CALIBRATION, &temp_reg_val);
+    if (ret)
+    {
+        return ret;
+    }
+
+    // Verify the Calibration Checksum
+    if (temp_reg_val == (driver->config.cal_data.r + CS35L42_CAL_STATUS_CALIB_SUCCESS))
+    {
+        driver->config.cal_data.is_valid = true;
+    }
+
     return CS35L42_STATUS_OK;
 }
 
