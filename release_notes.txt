@@ -3,6 +3,23 @@ Release Notes
 
 =============================================================================
 Summary:
+This is the release of Alt-OS Driver SDK v4.16.0
+Date: 2022/06/24
+
+Architectures/Compilers Used:
+GNU Arm Embedded Toolchain: arm-none-eabi-gcc -mcpu=cortex-m4
+
+[SQA-2384] firmware_converter: Add wmfw v1 support
+[SQA-2700] firmware_converter: fix algorithm_description text collection
+[SQA-2568] common: add switch to enable/disable multichannel UART
+[SQA-2462] cs40l26: Added the allow/prevent hibernate function
+[SQA-2695] CS40L25: Bridge not being compiled
+
+Fixed Bugs:
+
+=============================================================================
+=============================================================================
+Summary:
 This is the release of Alt-OS Driver SDK v4.15.0
 Date: 2022/05/06
 

@@ -93,6 +93,7 @@ extern "C" {
 #define CS40L26_DSP_STATE_MASK        (0xFF)
 
 /* ROM Controls A1 */
+#define CS40L26_REVID_A1                      (0xA1)
 #define CS40L26_A1_PM_CUR_STATE_STATIC_REG    (0x02800370)
 #define CS40L26_A1_PM_TIMEOUT_TICKS_STATIC_REG    (0x02800350)
 #define CS40L26_A1_DSP_HALO_STATE_REG       (0x02800fa8)
@@ -139,6 +140,10 @@ extern "C" {
 #define CS40L26_MAX_PWLE_SECTIONS  (126)
 #define CS40L26_SLOT0_MAX_PWLE_SECTIONS  (61)
 #define CS40l26_SLOT1_MAX_PWLE_SECTIONS  (65)
+
+#define CS40L26_DSP1RX1_INPUT         (0x00004C40)
+#define CS40L26_DATA_SRC_ASPRX1     0x08
+#define CS40L26_DATA_SRC_ASPRX2     0x09
 
 
 /* Dynamic F0 */

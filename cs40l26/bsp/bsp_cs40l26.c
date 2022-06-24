@@ -252,7 +252,7 @@ uint32_t bsp_dut_hibernate(void)
 {
     uint32_t ret;
 
-    ret = cs40l26_power(&cs40l26_driver, CS40L26_POWER_HIBERNATE);
+    ret = cs40l26_power(&cs40l26_driver, CS40L26_POWER_STATE_ALLOW_HIBERNATE);
 
     if (ret == CS40L26_STATUS_OK)
     {
@@ -268,7 +268,7 @@ uint32_t bsp_dut_wake(void)
 {
     uint32_t ret;
 
-    ret = cs40l26_power(&cs40l26_driver, CS40L26_POWER_WAKE);
+    ret = cs40l26_power(&cs40l26_driver, CS40L26_POWER_STATE_PREVENT_HIBERNATE);
 
     if (ret == CS40L26_STATUS_OK)
     {

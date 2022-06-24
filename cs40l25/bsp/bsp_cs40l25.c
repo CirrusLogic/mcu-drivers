@@ -4,7 +4,7 @@
  * @brief Implementation of the BSP for the cs40l25 platform.
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2021 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2021-2022 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -29,7 +29,9 @@
 #include "cs40l25_syscfg_regs.h"
 #include "cs40l25_fw_img.h"
 #include "cs40l25_cal_fw_img.h"
+#ifdef CONFIG_USE_BRIDGE
 #include "bridge.h"
+#endif
 
 /***********************************************************************************************************************
  * LOCAL LITERAL SUBSTITUTIONS

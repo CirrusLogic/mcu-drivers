@@ -51,7 +51,12 @@ WISCE_SCRIPT = $(CONFIG_PATH)/wisce_init.txt
 $(eval $(call assign_toolchain))
 $(eval $(call assign_toolchain_flags))
 ifdef IS_NOT_UNIT_TEST
-    CFLAGS += -DCONFIG_USE_MULTICHANNEL_UART
+    ifndef CONFIG_USE_MULTICHANNEL_UART
+        CONFIG_USE_MULTICHANNEL_UART = 1
+    endif
+    ifeq ($(CONFIG_USE_MULTICHANNEL_UART), 1)
+        CFLAGS += -DCONFIG_USE_MULTICHANNEL_UART
+    endif
 
     ifeq ($(SEMIHOSTING), 1)
         CFLAGS += -DSEMIHOSTING
@@ -155,6 +160,12 @@ print_targets:
 	@echo Valid command line variables:
 	@echo		BULLSEYE=0	\(will disable Bullseye coverage\)
 	@echo		BULLSEYE=1	\(will enable Bullseye coverage\)
+	@echo
+	@echo       CONFIG_USE_EEPROM=0 \(will disable bridge eeprom access\)
+	@echo       CONFIG_USE_EEPROM=1 \(will enable bridge eeprom access. Only works for eestm32int platform\)
+	@echo
+	@echo       CONFIG_USE_MULTICHANNEL_UART=0 \(disable multichannel UART comms needed by smcio.py\)
+	@echo       CONFIG_USE_MULTICHANNEL_UART=1 \(\(default\) enable multichannel UART comms needed by smcio.py\)
 	@echo
 	@echo       OPTIMIZATION_LEVEL=0    \(configure for -O0 optimization level\)
 	@echo       OPTIMIZATION_LEVEL=1    \(configure for -O1 optimization level\)

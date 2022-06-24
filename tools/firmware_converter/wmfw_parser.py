@@ -1,5 +1,5 @@
 #==========================================================================
-# (c) 2019, 2021 Cirrus Logic, Inc.
+# (c) 2019, 2021-2022 Cirrus Logic, Inc.
 #--------------------------------------------------------------------------
 # Project : Parser for WMFW files
 # File    : wmfw_parser.py
@@ -95,6 +95,8 @@ algorithm_information_data_block = 0xF2
 user_defined_name_text_block_type = 0xFE
 metadata_block_type = 0xFC
 absolute_addressing_data_block_type = 0xF0
+
+adsp2_v1_max_name_length = 256 # bytes
 
 #==========================================================================
 # CLASSES
@@ -275,7 +277,7 @@ class wmfw_informational_text_data_block(wmfw_block):
 
 class wmfw_algorithm_information_data_block(wmfw_block):
 
-    def __init__(self, file):
+    def __init__(self, file, file_format_version):
         wmfw_block.__init__(self, file)
         self.fields['algorithm_id'] = 0
         self.fields['name_length'] = 0
@@ -284,6 +286,7 @@ class wmfw_algorithm_information_data_block(wmfw_block):
         self.fields['algorithm_description'] = ''
         self.fields['coefficient_count'] = 0
         self.fields['coefficient_descriptors'] = []
+        self.file_format_version = file_format_version
 
         return
 
@@ -294,35 +297,64 @@ class wmfw_algorithm_information_data_block(wmfw_block):
         self.fields['algorithm_id'] = self.get_next_int(self.bytestream, 4)
 
         # Get name length
-        self.fields['name_length'] = self.get_next_int(self.bytestream, 1)
+        if self.file_format_version == 1:
+            self.fields['name_length'] = adsp2_v1_max_name_length
+        else:
+            self.fields['name_length'] = self.get_next_int(self.bytestream, 1)
 
         # Get Algorithm Name
-        for i in range(0, self.fields['name_length']):
-            self.fields['algorithm_name'] = self.fields['algorithm_name'] + chr(self.get_next_int(self.bytestream, 1))
-        # Padding bytes is 4 - ((length byte + name_length bytes) modulo 4)
-        padding_bytes_total = get_padding_bytes(self.fields['name_length'] + 1)
-        for i in range(0, padding_bytes_total):
-            self.get_next_int(self.bytestream, 1)
+        for name_cnt in range(0, self.fields['name_length']):
+            ch = chr(self.get_next_int(self.bytestream, 1))
+            if self.file_format_version == 1 and ch == chr(0x0):
+                break
+            self.fields['algorithm_name'] = self.fields['algorithm_name'] + ch
 
-        # Get description length
-        self.fields['description_length'] = self.get_next_int(self.bytestream, 2)
-        if (self.fields['description_length'] == 0):
-            self.get_next_int(self.bytestream, 2)
-        else:
-            # Get Algorithm Description
-            for i in range(0, self.fields['description_length']):
-                self.fields['algorithm_name'] = self.fields['algorithm_description'] + chr(self.get_next_int(self.bytestream, 1))
-            # Padding bytes is 4 - ((description length bytes + name_length bytes) modulo 4)
-            padding_bytes_total = get_padding_bytes(self.fields['description_length'] + 2)
+        # For v1 update name_length field and advance the file position
+        if self.file_format_version == 1:
+            self.fields['name_length'] = name_cnt
+            for i in range(0, adsp2_v1_max_name_length-name_cnt-1):  # Just do self.get_next_int(self.bytestream, adsp2_v1_max_name_length-i) ?
+                self.get_next_int(self.bytestream, 1)
+
+        if self.file_format_version != 1:
+            # Padding bytes is 4 - ((length byte + name_length bytes) modulo 4)
+            padding_bytes_total = get_padding_bytes(self.fields['name_length'] + 1)
             for i in range(0, padding_bytes_total):
                 self.get_next_int(self.bytestream, 1)
+
+        # Get description length
+        if self.file_format_version == 1:
+            self.fields['description_length'] = adsp2_v1_max_name_length
+        else:
+            self.fields['description_length'] = self.get_next_int(self.bytestream, 2)
+            if (self.fields['description_length'] == 0):
+                self.get_next_int(self.bytestream, 2)
+
+        if self.fields['description_length']:
+            # Get Algorithm Description
+            for descpn_cnt in range(0, self.fields['description_length']):
+                ch = chr(self.get_next_int(self.bytestream, 1))
+                if self.file_format_version == 1 and ch == chr(0x0):
+                    break
+                self.fields['algorithm_description'] = self.fields['algorithm_description'] + ch
+
+            # For v1 update name_length field and advance the file position
+            if self.file_format_version == 1:
+                self.fields['description_length'] = descpn_cnt
+                for i in range(0, adsp2_v1_max_name_length-descpn_cnt-1):  # Just do self.get_next_int(self.bytestream, adsp2_v1_max_name_length-i) ?
+                    self.get_next_int(self.bytestream, 1)
+
+            if self.file_format_version != 1:
+                # Padding bytes is 4 - ((description length bytes + name_length bytes) modulo 4)
+                padding_bytes_total = get_padding_bytes(self.fields['description_length'] + 2)
+                for i in range(0, padding_bytes_total):
+                    self.get_next_int(self.bytestream, 1)
 
         # Get coefficient count
         self.fields['coefficient_count'] = self.get_next_int(self.bytestream, 4)
 
         # Get coefficient blocks
         for i in range(0, self.fields['coefficient_count']):
-            self.fields['coefficient_descriptors'].append(wmfw_coefficient_descriptor_data_block(self.bytestream))
+            self.fields['coefficient_descriptors'].append(wmfw_coefficient_descriptor_data_block(self.bytestream, self.file_format_version))
             self.fields['coefficient_descriptors'][-1].parse(self.bytestream)
 
         return
@@ -331,7 +363,7 @@ class wmfw_algorithm_information_data_block(wmfw_block):
         return component_to_string(self, 'Algorithm Information Data Block')
 
 class wmfw_coefficient_descriptor_data_block(wmfw_block):
-    def __init__(self, file):
+    def __init__(self, file, file_format_version):
         wmfw_block.__init__(self, file)
 
         self.fields['start_offset'] = 0
@@ -345,6 +377,7 @@ class wmfw_coefficient_descriptor_data_block(wmfw_block):
         self.fields['coefficient_flags'] = 0
         self.fields['control_length'] = 0
         self.fields['coefficient_info_block'] = []
+        self.file_format_version = file_format_version
 
         return
 
@@ -355,45 +388,74 @@ class wmfw_coefficient_descriptor_data_block(wmfw_block):
         self.fields['start_offset'] = bytes_from_word(self.block_header, 0, 2)
 
         # Get name length
-        self.fields['name_length'] = self.get_next_int(self.bytestream, 1)
+        if self.file_format_version == 1:
+            self.fields['name_length'] = adsp2_v1_max_name_length
+        else:
+            self.fields['name_length'] = self.get_next_int(self.bytestream, 1)
 
         # Get coefficient name
-        for i in range(0, self.fields['name_length']):
-            self.fields['coefficient_name'] = self.fields['coefficient_name'] + chr(self.get_next_int(self.bytestream, 1))
-        # Padding bytes is 4 - ((length byte + name_length bytes) modulo 4)
-        padding_bytes_total = get_padding_bytes(self.fields['name_length'] + 1)
-        for i in range(0, padding_bytes_total):
-            self.get_next_int(self.bytestream, 1)
+        for coeff_cnt in range(0, self.fields['name_length']):
+            ch = chr(self.get_next_int(self.bytestream, 1))
+            if self.file_format_version == 1 and ch == chr(0x0):
+                break
+            self.fields['coefficient_name'] = self.fields['coefficient_name'] + ch
 
-        # Get full name length
-        self.fields['full_name_length'] = self.get_next_int(self.bytestream, 1)
+        # For v1 update name_length field and advance the file position
+        if self.file_format_version == 1:
+            self.fields['name_length'] = coeff_cnt
+            for i in range(0, adsp2_v1_max_name_length-coeff_cnt-1):  # Just do self.get_next_int(self.bytestream, adsp2_v1_max_name_length-i) ?
+                self.get_next_int(self.bytestream, 1)
 
-        if (self.fields['full_name_length'] == 0):
-            # Skip next 3 bytes
-            self.get_next_int(self.bytestream, 3)
-        else:
-            # Get full name
-            for i in range(0, self.fields['full_name_length']):
-                self.fields['full_coefficient_name'] = self.fields['full_coefficient_name'] + chr(self.get_next_int(self.bytestream, 1))
-            # Padding bytes is 4 - ((length bytes + name_length bytes) modulo 4)
-            padding_bytes_total = get_padding_bytes(self.fields['full_name_length'] + 1)
+        if self.file_format_version != 1:
+            # Padding bytes is 4 - ((length byte + name_length bytes) modulo 4)
+            padding_bytes_total = get_padding_bytes(self.fields['name_length'] + 1)
             for i in range(0, padding_bytes_total):
                 self.get_next_int(self.bytestream, 1)
 
-        # Get description length
-        self.fields['description_length'] = self.get_next_int(self.bytestream, 2)
+        if self.file_format_version != 1:   # v1 has no full name field
+            # Get full name length
+            self.fields['full_name_length'] = self.get_next_int(self.bytestream, 1)
 
-        if (self.fields['description_length'] == 0):
-            # Skip next 2 bytes
-            self.get_next_int(self.bytestream, 2)
+            if (self.fields['full_name_length'] == 0):
+                # Skip next 3 bytes
+                self.get_next_int(self.bytestream, 3)
+            else:
+                # Get full name
+                for i in range(0, self.fields['full_name_length']):
+                    self.fields['full_coefficient_name'] = self.fields['full_coefficient_name'] + chr(self.get_next_int(self.bytestream, 1))
+                # Padding bytes is 4 - ((length bytes + name_length bytes) modulo 4)
+                padding_bytes_total = get_padding_bytes(self.fields['full_name_length'] + 1)
+                for i in range(0, padding_bytes_total):
+                    self.get_next_int(self.bytestream, 1)
+
+        # Get coeff description length
+        if self.file_format_version == 1:
+            self.fields['description_length'] = adsp2_v1_max_name_length
         else:
-            # Get full name
-            for i in range(0, self.fields['description_length']):
-                self.fields['coefficient_description'] = self.fields['coefficient_description'] + chr(self.get_next_int(self.bytestream, 1))
-            # Padding bytes is 4 - ((length bytes + name_length bytes) modulo 4)
-            padding_bytes_total = get_padding_bytes(self.fields['description_length'] + 2)
-            for i in range(0, padding_bytes_total):
-                self.get_next_int(self.bytestream, 1)
+            self.fields['description_length'] = self.get_next_int(self.bytestream, 2)
+            if (self.fields['description_length'] == 0):
+                # Skip next 2 bytes
+                self.get_next_int(self.bytestream, 2)
+
+        if self.fields['description_length']:
+            # Get coeff description
+            for descpn_cnt in range(0, self.fields['description_length']):
+                ch = chr(self.get_next_int(self.bytestream, 1))
+                if self.file_format_version == 1 and ch == chr(0x0):
+                    break
+                self.fields['coefficient_description'] = self.fields['coefficient_description'] + ch
+
+            # For v1 update name_length field and advance the file position
+            if self.file_format_version == 1:
+                self.fields['description_length'] = descpn_cnt
+                for i in range(0, adsp2_v1_max_name_length-descpn_cnt-1):  # Just do self.get_next_int(self.bytestream, adsp2_v1_max_name_length-i) ?
+                    self.get_next_int(self.bytestream, 1)
+
+            if self.file_format_version != 1:
+                # Padding bytes is 4 - ((length bytes + name_length bytes) modulo 4)
+                padding_bytes_total = get_padding_bytes(self.fields['description_length'] + 2)
+                for i in range(0, padding_bytes_total):
+                    self.get_next_int(self.bytestream, 1)
 
         # Get coefficient type and flags
         self.fields['coefficient_type'] = self.get_next_int(self.bytestream, 2)
@@ -591,25 +653,25 @@ class wmfw_parser:
         self.header = wmfw_header(f)
         self.header.parse(f)
 
-        if self.header.fields['file_format_version'] == 2:
+        if self.header.fields['file_format_version'] in [1, 2]: # If ADSP2 v1 or v2
             self.block_types = adsp_memory_region_block_types
-        else:
+        else:  # Else Halo
             self.block_types = halo_memory_region_block_types
 
         # Get blocks
         while (not f.tell() == os.fstat(f.fileno()).st_size):
             temp_block_type = file_int_peek(f, 4)
             temp_block_type = bytes_from_word(temp_block_type, 3, 1)
-            self.blocks.append(self.block_factory(f, temp_block_type))
+            self.blocks.append(self.block_factory(f, temp_block_type, self.header.fields['file_format_version']))
             self.blocks[-1].parse(f)
 
         # Get Firmware ID Block for beginning XM - assume it's in first data block
         first_data_block_bytes = self.blocks[1].data
         first_data_block_memory_type = self.blocks[1].memory_type
         temp_bytestream = io.BytesIO(b''.join(first_data_block_bytes))
-        if self.header.fields['file_format_version'] == 2:
+        if self.header.fields['file_format_version'] in [1, 2]: # If ADSP2 v1 or v2== 2
             self.fw_id_block = adsp_firmware_id_block(temp_bytestream, first_data_block_memory_type)
-        else:
+        else:  # Else Halo
             self.fw_id_block = halo_firmware_id_block(temp_bytestream, first_data_block_memory_type)
         self.fw_id_block.parse(temp_bytestream)
 
@@ -620,13 +682,13 @@ class wmfw_parser:
 
         return
 
-    def block_factory(self, file, block_type):
+    def block_factory(self, file, block_type, file_format_version):
         if (block_type in self.block_types):
             return wmfw_memory_region_data_block(file)
         elif (block_type == informational_text_block_type):
             return wmfw_informational_text_data_block(file)
         elif (block_type == algorithm_information_data_block):
-            return wmfw_algorithm_information_data_block(file)
+            return wmfw_algorithm_information_data_block(file, file_format_version)
         else:
             return wmfw_block(file)
 

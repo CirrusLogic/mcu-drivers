@@ -49,7 +49,12 @@ WISCE_SCRIPT = $(CONFIG_PATH)/wisce_init.txt
 $(eval $(call assign_toolchain))
 $(eval $(call assign_toolchain_flags))
 ifdef IS_NOT_UNIT_TEST
-    CFLAGS += -DCONFIG_USE_MULTICHANNEL_UART
+    ifndef CONFIG_USE_MULTICHANNEL_UART
+        CONFIG_USE_MULTICHANNEL_UART = 1
+    endif
+    ifeq ($(CONFIG_USE_MULTICHANNEL_UART), 1)
+        CFLAGS += -DCONFIG_USE_MULTICHANNEL_UART
+    endif
 
     ifeq ($(CONFIG_USE_VREGMAP), 1)
         CFLAGS += -DCONFIG_USE_VREGMAP
@@ -168,6 +173,9 @@ print_targets:
 	@echo
 	@echo       CONFIG_ADC_STANDARD_MODE=0 \(do not program the device for Standard Mode ADC Support\)
 	@echo       CONFIG_ADC_STANDARD_MODE=1 \(program the device for Standard Mode ADC Support\)
+	@echo
+	@echo       CONFIG_USE_MULTICHANNEL_UART=0 \(disable multichannel UART comms needed by smcio.py\)
+	@echo       CONFIG_USE_MULTICHANNEL_UART=1 \(\(default\) enable multichannel UART comms needed by smcio.py\)
 	@echo
 	@echo       OPTIMIZATION_LEVEL=0    \(configure for -O0 optimization level\)
 	@echo       OPTIMIZATION_LEVEL=1    \(configure for -O1 optimization level\)

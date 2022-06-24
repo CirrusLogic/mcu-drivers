@@ -86,14 +86,38 @@ endif
 $(eval $(call assign_toolchain))
 $(eval $(call assign_toolchain_flags))
 ifdef IS_NOT_UNIT_TEST
-    CFLAGS += -DCONFIG_USE_MULTICHANNEL_UART
+    ifndef CONFIG_USE_MULTICHANNEL_UART
+        CONFIG_USE_MULTICHANNEL_UART = 1
+    endif
+    ifeq ($(CONFIG_USE_MULTICHANNEL_UART), 1)
+        CFLAGS += -DCONFIG_USE_MULTICHANNEL_UART
+    endif
 
     ifeq ($(PLATFORM), eestm32int)
         CFLAGS += -DCONFIG_LN2
     endif
 
+    ifneq ($(PLATFORM), live_oak)
+        CFLAGS += -DCONFIG_USE_BRIDGE
+        C_SRCS += $(COMMON_PATH)/bridge/bridge.c
+        INCLUDES += -I$(COMMON_PATH)/bridge
+	endif
+
     ifeq ($(CONFIG_L25B), 1)
         CFLAGS += -DCONFIG_L25B
+        ifeq ($(CONFIG_USE_VREGMAP), 1)
+            CFLAGS += -DCONFIG_USE_VREGMAP
+            CFLAGS += -DSYS_ID=40250201
+        else
+            CFLAGS += -DSYS_ID=40250200
+        endif
+    else
+        ifeq ($(CONFIG_USE_VREGMAP), 1)
+            CFLAGS += -DCONFIG_USE_VREGMAP
+            CFLAGS += -DSYS_ID=40250101
+        else
+            CFLAGS += -DSYS_ID=40250100
+        endif
     endif
 
     ifeq ($(CONFIG_EXT_BOOST), 1)
@@ -106,10 +130,6 @@ ifdef IS_NOT_UNIT_TEST
 
     ifeq ($(CONFIG_OPEN_LOOP), 1)
         CFLAGS += -DCONFIG_OPEN_LOOP
-    endif
-
-    ifeq ($(CONFIG_USE_VREGMAP), 1)
-        CFLAGS += -DCONFIG_USE_VREGMAP
     endif
 
     ifeq ($(SEMIHOSTING), 1)
@@ -145,17 +165,12 @@ else ifdef IS_NOT_UNIT_TEST
     ifeq ($(MAKECMDGOALS), system_test)
         C_SRCS += $(APP_PATH)/test_cs40l25.c
     endif
-    ifneq ($(PLATFORM), live_oak)
-    	C_SRCS += $(COMMON_PATH)/bridge/bridge.c
-	endif
-
     ifeq ($(CONFIG_USE_VREGMAP), 1)
         C_SRCS += $(DRIVER_PATH)/bsp/vregmap.c
     endif
 
     INCLUDES += -I$(DRIVER_PATH)/bsp
     INCLUDES += -I$(HALO_FIRMWARE_PATH)
-    INCLUDES += -I$(COMMON_PATH)/bridge
 
     ADD_OBJ_RULES = add_platform_obj_rules
 endif
@@ -235,6 +250,12 @@ print_targets:
 	@echo
 	@echo       CONFIG_USE_VREGMAP=0 \(will disable bridge vregmap\)
 	@echo       CONFIG_USE_VREGMAP=1 \(will enable bridge vregmap\)
+	@echo
+	@echo       CONFIG_USE_EEPROM=0 \(will disable bridge eeprom access\)
+	@echo       CONFIG_USE_EEPROM=1 \(will enable bridge eeprom access. Only works for eestm32int platform\)
+	@echo
+	@echo       CONFIG_USE_MULTICHANNEL_UART=0 \(disable multichannel UART comms needed by smcio.py\)
+	@echo       CONFIG_USE_MULTICHANNEL_UART=1 \(\(default\) enable multichannel UART comms needed by smcio.py\)
 	@echo
 	@echo       OPTIMIZATION_LEVEL=0    \(configure for -O0 optimization level\)
 	@echo       OPTIMIZATION_LEVEL=1    \(configure for -O1 optimization level\)

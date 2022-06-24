@@ -74,6 +74,7 @@ extern "C" {
 // PM
 #define CS40L26_SYM_PM_PM_TIMER_TIMEOUT_TICKS                       (0x276)
 #define CS40L26_SYM_PM_PM_CUR_STATE                                 (0x277)
+#define CS40L26_SYM_PM_POWER_ON_SEQUENCE                            (0x231)
 /** @} */
 
 /**********************************************************************************************************************/

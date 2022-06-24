@@ -4,7 +4,7 @@
  * @brief The main function for CS40L25 System Test Harness
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2019, 2021 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2019, 2021-2022 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -27,6 +27,7 @@
 #include "platform_bsp.h"
 #include "FreeRTOS.h"
 #include "task.h"
+#include "bridge.h"
 
 /***********************************************************************************************************************
  * LOCAL LITERAL SUBSTITUTIONS
@@ -49,6 +50,7 @@
 static uint8_t app_state = APP_STATE_BUZZ;
 static TaskHandle_t HapticControlTaskHandle = NULL;
 static TaskHandle_t HapticEventTaskHandle = NULL;
+static TaskHandle_t BridgeTaskHandle = NULL;
 
 /***********************************************************************************************************************
  * GLOBAL VARIABLES
@@ -239,6 +241,16 @@ static void HapticEventThread(void *argument)
     }
 }
 
+static void BridgeThread(void *argument)
+{
+    const TickType_t pollingTime = pdMS_TO_TICKS(5);
+    while(true)
+    {
+        bridge_process();
+        vTaskDelay(pollingTime);
+    }
+}
+
 /***********************************************************************************************************************
  * API FUNCTIONS
  **********************************************************************************************************************/
@@ -260,6 +272,13 @@ int main(void)
                 (void *) NULL,
                 (tskIDLE_PRIORITY + 1),
                 &HapticEventTaskHandle);
+
+    xTaskCreate(BridgeThread,
+                "BridgeTask",
+                configMINIMAL_STACK_SIZE,
+                (void *) NULL,
+                tskIDLE_PRIORITY,
+                &BridgeTaskHandle);
 
     app_init();
 

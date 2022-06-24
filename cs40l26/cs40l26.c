@@ -94,6 +94,18 @@ static const uint32_t cs40l26_a1_errata[] =
     0x0000391C, 0x014DC080
 };
 
+static const uint32_t cs40l26_hibernate_patch[] =
+{
+    CS40L26_DSP1RX1_INPUT, CS40L26_DATA_SRC_ASPRX1,
+    CS40L26_DSP1RX1_INPUT, CS40L26_DATA_SRC_ASPRX2,
+    IRQ1_IRQ1_MASK_1_REG, 0xFFFFFFFF
+};
+
+static const uint32_t cs40l26_wseq_patch[] =
+{
+    CS40L26_DSP1RX1_INPUT
+};
+
 /***********************************************************************************************************************
  * LOCAL FUNCTIONS
  **********************************************************************************************************************/
@@ -341,80 +353,328 @@ static uint32_t cs40l26_event_handler(cs40l26_t *driver)
     return CS40L26_STATUS_OK;
 }
 
-/**
- * Wakes device from hibernate
- *
- * @param [in] driver           Pointer to the driver state
- *
- * @return
- * - CS40L26_STATUS_FAI         Control port activity fails
- * - CS40L26_STATUS_OK          otherwise
- *
- */
-static uint32_t cs40l26_wake(cs40l26_t *driver)
+static uint32_t cs40l26_wseq_write_to_dsp(cs40l26_t *driver)
 {
-    uint32_t ret = CS40L26_STATUS_FAIL;
-    uint8_t dsp_state = CS40L26_STATE_HIBERNATE;
+    uint32_t ret;
+    uint32_t final_offset;
+    uint32_t words[3];
+    uint32_t base_reg = fw_img_find_symbol(driver->fw_info, CS40L26_SYM_PM_POWER_ON_SEQUENCE);
     regmap_cp_config_t *cp = REGMAP_GET_CP(driver);
 
-    for (uint8_t i = 0; i < CS40L26_WAKE_ATTEMPTS; i++)
-    {
-        ret = regmap_write(cp, CS40L26_DSP_VIRTUAL1_MBOX_1, CS40L26_DSP_MBOX_CMD_WAKEUP);
-        if (!ret)
-        {
-            break;
-        }
-    }
-
-    if (ret)
-    {
-        return ret;
-    }
-
-    ret = cs40l26_pm_state_transition(driver, CS40L26_PM_STATE_PREVENT_HIBERNATE);
-    if (ret)
-    {
-        return ret;
-    }
-
-    ret = cs40l26_dsp_state_get(driver, &dsp_state);
-
-    if (dsp_state != CS40L26_STATE_STANDBY &&
-        dsp_state != CS40L26_STATE_ACTIVE)
+    if (!base_reg)
     {
         return CS40L26_STATUS_FAIL;
+    }
+
+    for (uint32_t i = 0; i < driver->wseq_num_entries; i++)
+    {
+        switch (driver->wseq_table[i].operation)
+        {
+            case CS40L26_POWER_SEQ_OP_WRITE_REG_FULL:
+                words[0] = (driver->wseq_table[i].address & 0xFFFF0000) >> 16;
+                words[1] = ((driver->wseq_table[i].address & 0xFFFF) << 8) |
+                           ((driver->wseq_table[i].value & 0xFF000000) >> 24);
+                words[2] = (driver->wseq_table[i].value & 0xFFFFFF);
+
+                break;
+            case CS40L26_POWER_SEQ_OP_WRITE_REG_ADDR8:
+                words[0] = (CS40L26_POWER_SEQ_OP_WRITE_REG_ADDR8 << 16) |
+                           ((driver->wseq_table[i].address & 0xFF) << 8) |
+                           ((driver->wseq_table[i].value & 0xFF000000) >> 24);
+                words[1] = (driver->wseq_table[i].value & 0xFFFFFF);
+                break;
+            case CS40L26_POWER_SEQ_OP_WRITE_REG_L16:
+                words[0] = (CS40L26_POWER_SEQ_OP_WRITE_REG_L16 << 16) |
+                           ((driver->wseq_table[i].address & 0xFFFF00) >> 8);
+                words[1] = ((driver->wseq_table[i].address & 0xFF) << 16) |
+                            (driver->wseq_table[i].value & 0xFFFF);
+                break;
+            case CS40L26_POWER_SEQ_OP_WRITE_REG_H16:
+                words[0] = (CS40L26_POWER_SEQ_OP_WRITE_REG_H16 << 16) |
+                           ((driver->wseq_table[i].address & 0xFFFF00) >> 8);
+                words[1] = ((driver->wseq_table[i].address & 0xFF) << 16) |
+                            (driver->wseq_table[i].value & 0xFFFF);
+                break;
+            default:
+                break;
+        }
+        for (uint32_t j = 0; j < driver->wseq_table[i].size; j++)
+        {
+            ret = regmap_write(cp, base_reg + (4 * (driver->wseq_table[i].offset + j)), words[j]);
+            if (ret)
+            {
+                return ret;
+            }
+        }
+    }
+    final_offset = driver->wseq_table[driver->wseq_num_entries].offset + driver->wseq_table[driver->wseq_num_entries].size;
+    regmap_write(cp, base_reg + (4 * final_offset), CS40L26_POWER_SEQ_OP_END << 24);
+    if (ret)
+    {
+        return ret;
+    }
+
+    driver->wseq_written = true;
+
+    return CS40L26_STATUS_OK;
+}
+
+/**
+ * Update an existing entry in the wseq_table or add new entry to the table
+ * if not already present
+ */
+static uint32_t cs40l26_wseq_table_update(cs40l26_t *driver, uint32_t address, uint32_t value, uint32_t operation, bool read)
+{
+    uint32_t ret = CS40L26_STATUS_OK;
+    cs40l26_wseq_entry_t *table = driver->wseq_table;
+    regmap_cp_config_t *cp = REGMAP_GET_CP(driver);
+
+    if (address < 0xFFFFFFFF)
+    {
+        uint32_t num_entries = driver->wseq_num_entries;
+        bool found = false;
+
+        for (uint32_t i = 0; i < num_entries; i++)
+        {
+            if (table[i].operation == operation)
+            {
+                //If the address is in the table already,
+                //And the value has been updated:
+                //Update the value in the table to match the new value and write the new value to the dsp
+                if (table[i].address == address)
+                {
+                    if (read)
+                    {
+                        uint32_t prev_address;
+                        uint32_t full_address;
+                        if (operation == CS40L26_POWER_SEQ_OP_WRITE_REG_ADDR8)
+                        {
+                            // Search back for full address, to fetch upper 3 bytes of address
+                            for (int j = i; j >= 0; j--)
+                            {
+                                if (table[j].operation != CS40L26_POWER_SEQ_OP_WRITE_REG_ADDR8)
+                                {
+                                    prev_address = table[j].address;
+                                    full_address = (prev_address & 0xFFFFFF00) | table[i].address;
+                                    break;
+                                }
+                            }
+                        }
+                        else
+                        {
+                            full_address = address;
+                        }
+                        regmap_read(cp, full_address, &value);
+                    }
+                    if (table[i].value != value)
+                    {
+                        table[i].address = address;
+                        table[i].value = value;
+                    }
+                    found = true;
+                }
+            }
+        }
+        //If the address isn't in the table alrady,
+        //Attempt to append it to the table. Only fail if some registers have already been written to the dsp.
+        //Otherwise, writing to dsp is delayed until next write.
+        if (!found)
+        {
+            if (read)
+            {
+                uint32_t prev_address;
+                uint32_t full_address;
+                if (operation == CS40L26_POWER_SEQ_OP_WRITE_REG_ADDR8)
+                {
+                    // Search back for full address, to fetch upper 3 bytes of address
+                    for (int j = num_entries; j >= 0; j--)
+                    {
+                        if (table[j].operation != CS40L26_POWER_SEQ_OP_WRITE_REG_ADDR8)
+                        {
+                            prev_address = table[j].address;
+                            full_address = (prev_address & 0xFFFFFF00) | table[num_entries].address;
+                            break;
+                        }
+                    }
+                }
+                else
+                {
+                    full_address = address;
+                }
+                regmap_read(cp, full_address, &value);
+            }
+
+            if (num_entries < CS40L26_POWER_SEQ_LENGTH)
+            {
+                table[num_entries].address = address;
+                table[num_entries].value = value;
+                switch (operation)
+                {
+                    case CS40L26_POWER_SEQ_OP_WRITE_REG_FULL:
+                        table[num_entries].operation = CS40L26_POWER_SEQ_OP_WRITE_REG_FULL;
+                        table[num_entries].size = CS40L26_POWER_SEQ_OP_WRITE_REG_FULL_WORDS;
+                        break;
+                    case CS40L26_POWER_SEQ_OP_WRITE_REG_ADDR8:
+                        table[num_entries].operation = CS40L26_POWER_SEQ_OP_WRITE_REG_ADDR8;
+                        table[num_entries].size = CS40L26_POWER_SEQ_OP_WRITE_REG_ADDR8_WORDS;
+                        break;
+                    case CS40L26_POWER_SEQ_OP_WRITE_REG_L16:
+                        table[num_entries].operation = CS40L26_POWER_SEQ_OP_WRITE_REG_L16;
+                        table[num_entries].size = CS40L26_POWER_SEQ_OP_WRITE_REG_L16_WORDS;
+                        break;
+                    case CS40L26_POWER_SEQ_OP_WRITE_REG_H16:
+                        table[num_entries].operation = CS40L26_POWER_SEQ_OP_WRITE_REG_H16;
+                        table[num_entries].size = CS40L26_POWER_SEQ_OP_WRITE_REG_H16_WORDS;
+                        break;
+                    default:
+                        break;
+                }
+                if (num_entries > 0)
+                {
+                    table[num_entries].offset = table[num_entries - 1].offset + table[num_entries - 1].size;
+                }
+                else
+                {
+                    table[num_entries].offset = 0;
+                }
+
+                driver->wseq_num_entries += 1;
+            }
+            else
+            {
+                ret = CS40L26_STATUS_FAIL;
+            }
+        }
     }
 
     return ret;
 }
 
-/**
- * Puts device into hibernate
- *
- * @param [in] driver           Pointer to the driver state
- *
- * @return
- * - CS40L26_STATUS_FAIL        Control port activity fails
- * - CS40L26_STATUS_OK          otherwise
- *
- */
-static uint32_t cs40l26_hibernate(cs40l26_t *driver)
+static uint32_t cs40l26_wseq_read_from_dsp(cs40l26_t *driver)
+{
+    uint32_t temp_entry[3];
+    uint32_t address;
+    uint32_t value;
+    uint32_t operation;
+    uint32_t base_reg = fw_img_find_symbol(driver->fw_info, CS40L26_SYM_PM_POWER_ON_SEQUENCE);
+    regmap_cp_config_t *cp = REGMAP_GET_CP(driver);
+
+    if (!base_reg)
+    {
+        return CS40L26_STATUS_FAIL;
+    }
+
+    for (uint32_t i = 0; i < CS40L26_POWER_SEQ_MAX_WORDS; i++)
+    {
+        regmap_read(cp, base_reg + (4 * i), &(temp_entry[0]));
+
+        operation = ((temp_entry[0] & 0xFF0000) >> 16);
+        if (operation == CS40L26_POWER_SEQ_OP_END)
+        {
+            break;
+        }
+        else
+        {
+            switch (operation)
+            {
+                case CS40L26_POWER_SEQ_OP_WRITE_REG_FULL:
+                {
+                    regmap_read(cp, base_reg + (4 * ++i), &(temp_entry[1]));
+                    regmap_read(cp, base_reg + (4 * ++i), &(temp_entry[2]));
+                    address = ((temp_entry[0] & 0xFFFF) << 16) |
+                           ((temp_entry[1] & 0xFFFF00) >> 8);
+                    value = ((temp_entry[1] & 0xFF) << 24) |
+                             (temp_entry[2] & 0xFFFFFF);
+                    break;
+                }
+                case CS40L26_POWER_SEQ_OP_WRITE_REG_ADDR8:
+                {
+                    regmap_read(cp, base_reg + (4 * ++i), &(temp_entry[1]));
+                    address = (temp_entry[0] & 0xFF00) >> 8;
+                    value = ((temp_entry[0] & 0xFF) << 24) |
+                             (temp_entry[1] & 0xFFFFFF);
+                    break;
+                }
+                case CS40L26_POWER_SEQ_OP_WRITE_REG_L16:
+                {
+                    regmap_read(cp, base_reg + (4 * ++i), &(temp_entry[1]));
+                    address = ((temp_entry[0] & 0xFFFF) << 8) |
+                           ((temp_entry[1] & 0xFF0000) >> 16);
+                    value = (temp_entry[1] & 0xFFFF);
+                    break;
+                }
+                default:
+                {
+                    return CS40L26_STATUS_FAIL;
+                }
+            }
+            cs40l26_wseq_table_update(driver, address, value, operation, false);
+        }
+    }
+
+    return CS40L26_STATUS_OK;
+}
+
+static uint32_t cs40l26_allow_hibernate(cs40l26_t *driver)
 {
     uint32_t ret = CS40L26_STATUS_FAIL;
     regmap_cp_config_t *cp = REGMAP_GET_CP(driver);
 
+    ret = regmap_write_fw_control(cp, driver->fw_info, CS40L26_SYM_PM_PM_TIMER_TIMEOUT_TICKS, 0);
+    if (ret)
+    {
+        return ret;
+    }
+
+    ret = regmap_write_array(cp,(uint32_t *) cs40l26_hibernate_patch, 3);
+    if (ret)
+    {
+        return ret;
+    }
+    ret = cs40l26_wseq_read_from_dsp(driver);
+    if (ret)
+    {
+        return ret;
+    }
+    for(int i = 0; i < (sizeof(cs40l26_wseq_patch)/sizeof(uint32_t)); i++)
+    {
+        ret = cs40l26_wseq_table_update(driver, cs40l26_wseq_patch[i], 0,
+                                        CS40L26_POWER_SEQ_OP_WRITE_REG_FULL, true);
+        if (ret)
+        {
+            return ret;
+        }
+    }
+    ret = cs40l26_wseq_write_to_dsp(driver);
+    if (ret)
+    {
+        return ret;
+    }
+    ret = regmap_write(cp, IRQ1_IRQ1_MASK_1_REG, 0xFFFFFFFF);
+    if (ret)
+    {
+        return ret;
+    }
     ret = cs40l26_pm_state_transition(driver, CS40L26_PM_STATE_ALLOW_HIBERNATE);
     if (ret)
     {
         return ret;
     }
 
-    ret = regmap_write(cp, CS40L26_DSP_VIRTUAL1_MBOX_1, CS40L26_DSP_MBOX_CMD_HIBER);
-    if (ret)
-    {
-        return ret;
-    }
+    return ret;
+}
 
+static uint32_t cs40l26_prevent_hibernate(cs40l26_t *driver)
+{
+    uint32_t ret = CS40L26_STATUS_FAIL;
+    for(int i = 0; i < CS40L26_WAKE_ATTEMPTS; i++)
+    {
+        ret = cs40l26_pm_state_transition(driver, CS40L26_PM_STATE_PREVENT_HIBERNATE);
+        if (!ret)
+        {
+            return ret;
+        }
+    }
     return ret;
 }
 
@@ -619,10 +879,13 @@ uint32_t cs40l26_boot(cs40l26_t *driver, fw_img_info_t *fw_info)
     {
         return ret;
     }
-    ret = regmap_write_array(cp, (uint32_t *) cs40l26_a1_errata, sizeof(cs40l26_a1_errata)/sizeof(uint32_t));
-    if (ret)
+    if(driver->revid == CS40L26_REVID_A1)
     {
-        return ret;
+        ret = regmap_write_array(cp, (uint32_t *) cs40l26_a1_errata, sizeof(cs40l26_a1_errata)/sizeof(uint32_t));
+        if (ret)
+        {
+            return ret;
+        }
     }
 
     ret = regmap_write(cp, CS40L26_DSP1_CCM_CORE_CONTROL, CS40L26_DSP_CCM_CORE_RESET);
@@ -659,30 +922,28 @@ uint32_t cs40l26_power(cs40l26_t *driver, uint32_t power_state)
 
     switch (power_state)
     {
-        case CS40L26_POWER_HIBERNATE:
-            if (driver->power_state == CS40L26_POWER_STATE_WAKE)
+        case CS40L26_POWER_STATE_ALLOW_HIBERNATE:
+            if (power_state != driver->power_state)
             {
-                ret = cs40l26_hibernate(driver);
+                ret = cs40l26_allow_hibernate(driver);
                 if (ret)
                 {
                     return ret;
                 }
-                new_state = CS40L26_POWER_STATE_HIBERNATE;
+                new_state = CS40L26_POWER_STATE_ALLOW_HIBERNATE;
             }
             break;
-        case CS40L26_POWER_WAKE:
-            if (driver->power_state == CS40L26_POWER_STATE_HIBERNATE)
+        case CS40L26_POWER_STATE_PREVENT_HIBERNATE:
+            if (power_state != driver->power_state)
             {
-                ret = cs40l26_wake(driver);
+                ret = cs40l26_prevent_hibernate(driver);
                 if (ret)
                 {
                     return ret;
                 }
-                new_state = CS40L26_POWER_STATE_WAKE;
+                new_state = CS40L26_POWER_STATE_PREVENT_HIBERNATE;
             }
             break;
-        case CS40L26_POWER_DOWN:
-        case CS40L26_POWER_UP:
         default:
             ret = CS40L26_STATUS_FAIL;
             break;

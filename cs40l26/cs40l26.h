@@ -75,9 +75,8 @@ extern "C" {
  *
  * @{
  */
-#define CS40L26_POWER_STATE_WAKE                    (0)
-#define CS40L26_POWER_STATE_HIBERNATE               (1)
-#define CS40L26_POWER_STATE_SHUTDOWN                (2)
+#define CS40L26_POWER_STATE_PREVENT_HIBERNATE           (0)
+#define CS40L26_POWER_STATE_ALLOW_HIBERNATE             (1)
  /** @} */
 
 /**
@@ -93,20 +92,6 @@ extern "C" {
 /** @} */
 
 /**
- * @defgroup CS40L26_POWER_
- * @brief Power states passed on to power() API argument power_state
- *
- * @see cs40l26_power
- *
- * @{
- */
-#define CS40L26_POWER_UP                                (0)
-#define CS40L26_POWER_DOWN                              (1)
-#define CS40L26_POWER_HIBERNATE                         (2)
-#define CS40L26_POWER_WAKE                              (3)
-/** @} */
-
-/**
  * @defgroup CS40L26_EVENT_FLAG_
  * @brief Flags passed to Notification Callback to notify BSP of specific driver events
  *
@@ -119,6 +104,33 @@ extern "C" {
 #define CS40L26_EVENT_FLAG_WKSRC_CP                     (1 << 1)
 #define CS40L26_EVENT_FLAG_WKSRC_GPIO                   (1 << 0)
 /** @} */
+
+/**
+ * @defgroup CS40L26_POWER_SEQ
+ * @brief Values associated with power-on write sequencer
+ *
+ * @see cs40l26_wseq_*
+ *
+ * @{
+ */
+#define CS40L26_POWER_SEQ_LENGTH                         42
+#define CS40L26_POWER_SEQ_MAX_WORDS                      129
+#define CS40L26_POWER_SEQ_OP_WRITE_REG_FULL              0x00
+#define CS40L26_POWER_SEQ_OP_WRITE_REG_FULL_WORDS        3
+#define CS40L26_POWER_SEQ_OP_WRITE_FIELD                 0x01
+#define CS40L26_POWER_SEQ_OP_WRITE_FIELD_WORDS           4
+#define CS40L26_POWER_SEQ_OP_WRITE_REG_ADDR8             0x02
+#define CS40L26_POWER_SEQ_OP_WRITE_REG_ADDR8_WORDS       2
+#define CS40L26_POWER_SEQ_OP_WRITE_REG_INCR              0x03
+#define CS40L26_POWER_SEQ_OP_WRITE_REG_INCR_WORDS        2
+#define CS40L26_POWER_SEQ_OP_WRITE_REG_L16               0x04
+#define CS40L26_POWER_SEQ_OP_WRITE_REG_L16_WORDS         2
+#define CS40L26_POWER_SEQ_OP_WRITE_REG_H16               0x05
+#define CS40L26_POWER_SEQ_OP_WRITE_REG_H16_WORDS         2
+#define CS40L26_POWER_SEQ_OP_DELAY                       0xFE
+#define CS40L26_POWER_SEQ_OP_DELAY_WORDS                 1
+#define CS40L26_POWER_SEQ_OP_END                         0xFF
+#define CS40L26_POWER_SEQ_OP_END_WORDS                   1
 
 /**
  *  Minimum firmware version that will be accepted by the boot function
@@ -169,6 +181,26 @@ typedef struct
     uint32_t redc;      ///< Encoded DC resistance (ReDC) determined by Calibration procedure.
 } cs40l26_calibration_t;
 
+  /**
+   * Entries used to write address value pairs to POWERONSEQUENCE.
+   *
+   * Write sequencer currently supports 4 V2 commands:
+   *
+   * WRITE_REG_FULL
+   * WRITE_REG_ADDR8
+   * WRITE_REG_L16
+   * WRITE_REG_H16
+   *
+   */
+  typedef struct
+  {
+    uint32_t operation;
+    uint32_t size;
+    uint32_t offset;
+    uint32_t address;
+    uint32_t value;
+  } cs40l26_wseq_entry_t;
+
 /**
  * Configuration parameters required for calls to BSP-Driver Interface
  */
@@ -205,6 +237,9 @@ typedef struct
     uint32_t fw_state;          ///< Firmware driver state - @see CS40L26_FW_STATE_
     uint32_t power_state;       ///< Power driver state - @see CS40L26_POWER_STATE_
     uint32_t mode;              ///< General driver mode - @see CS40L26_MODE_
+    cs40l26_wseq_entry_t wseq_table[CS40L26_POWER_SEQ_LENGTH];
+    uint32_t wseq_num_entries;
+    bool wseq_written;
     uint32_t devid;             ///< CS40L26 DEVID of current device
     uint32_t revid;             ///< CS40L26 REVID of current device
     cs40l26_config_t config;    ///< Driver configuration fields - see cs40l26_config_t
