@@ -4,7 +4,7 @@
  * @brief The main function for CS40L25 System Test Harness
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2021 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2021-2022 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -77,7 +77,11 @@ int main(void)
 
     bsp_set_ld2(BSP_LD2_MODE_ON, 0);
 
-    bsp_dut_trigger_haptic(3, true);
+    bsp_dut_trigger_haptic(0, BUZZ_BANK);
+    bsp_set_timer(100, NULL, NULL);
+    bsp_dut_trigger_haptic(3, ROM_BANK);
+
+    bsp_dut_hibernate();
 
     while (1)
     {
@@ -93,9 +97,15 @@ int main(void)
             case APP_STATE_BUZZ:
                 if (bsp_pb_pressed)
                 {
-                    bsp_dut_wake();
-                    bsp_dut_boot(true);
-                    bsp_dut_trigger_haptic(3, false);
+                    bsp_dut_reset();
+                    bsp_dut_boot(false);
+                    bsp_dut_buzzgen_set(0x100, 0x32, 200, 1);
+                    bsp_dut_trigger_haptic(1, BUZZ_BANK);
+                    bsp_set_timer(1000, NULL, NULL);
+                    bsp_dut_buzzgen_set(0x100, 0x32, 20, 2);
+                    bsp_dut_trigger_haptic(2, BUZZ_BANK);
+                    bsp_set_timer(300, NULL, NULL);
+                    bsp_dut_trigger_haptic(3, RAM_BANK);
                     bsp_dut_hibernate();
                     app_state++;
                 }
@@ -104,7 +114,8 @@ int main(void)
             case APP_STATE_CALIBRATE:
                 if (bsp_pb_pressed)
                 {
-                    bsp_dut_wake();
+                    bsp_dut_reset();
+                    bsp_dut_boot(true);
                     bsp_dut_calibrate();
                     bsp_dut_hibernate();
                     app_state++;

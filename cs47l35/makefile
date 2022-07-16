@@ -42,7 +42,8 @@ ifdef IS_NOT_UNIT_TEST
 endif
 
 # Assign firmware and configuration script variables
-HALO_FIRMWARE_FILE = gaines_mp3_decoder_000001.wmfw
+HALO_DSP2_FIRMWARE_FILE = cs47l35_silkcoder_dsp2_010103.wmfw
+HALO_DSP3_FIRMWARE_FILE = SC_Voice_Marley_FB_SMSP_dsp3.wmfw
 WISCE_SCRIPT = $(CONFIG_PATH)/wisce_init.txt
 
 # Assign toolchain and toolchain flags
@@ -130,9 +131,19 @@ $(eval $(call add_wisce_script_rule,cs47l35))
 firmware_converter:
 	@echo -------------------------------------------------------------------------------
 	@echo GENERATING cs47l35_dsp2_fw_img
-	cd $(HALO_FIRMWARE_PATH) && python3 ../../tools/firmware_converter/firmware_converter.py fw_img_v2 cs47l35_dsp2 cs47l35_silkcoder_dsp2_010103.wmfw --sym-input $(CONFIG_PATH)/cs47l35_sym.h --generic-sym
+ifeq ($(call WMFW_CHECK,$(HALO_FIRMWARE_PATH)/$(HALO_DSP2_FIRMWARE_FILE)),)
+	@echo Running firmware_converter for $(HALO_DSP2_FIRMWARE_FILE)
+	cd $(HALO_FIRMWARE_PATH) && python3 ../../tools/firmware_converter/firmware_converter.py fw_img_v2 cs47l35_dsp2 $(HALO_DSP2_FIRMWARE_FILE) --sym-input $(CONFIG_PATH)/cs47l35_sym.h --generic-sym
+else
+	@echo Not running firmware_converter for $(HALO_DSP2_FIRMWARE_FILE) \(missing file\)
+endif
 	@echo GENERATING cs47l35_dsp3_fw_img
-	cd $(HALO_FIRMWARE_PATH) && python3 ../../tools/firmware_converter/firmware_converter.py fw_img_v2 cs47l35_dsp3 SC_Voice_Marley_FB_SMSP_dsp3.wmfw --sym-input $(CONFIG_PATH)/cs47l35_sym_dsp3.h --generic-sym
+ifeq ($(call WMFW_CHECK,$(HALO_FIRMWARE_PATH)/$(HALO_DSP3_FIRMWARE_FILE)),)
+	@echo Running firmware_converter for $(HALO_DSP3_FIRMWARE_FILE)
+	cd $(HALO_FIRMWARE_PATH) && python3 ../../tools/firmware_converter/firmware_converter.py fw_img_v2 cs47l35_dsp3 $(HALO_DSP3_FIRMWARE_FILE) --sym-input $(CONFIG_PATH)/cs47l35_sym_dsp3.h --generic-sym
+else
+	@echo Not running firmware_converter for $(HALO_DSP3_FIRMWARE_FILE) \(missing file\)
+endif
 
 
 # Compilation rules

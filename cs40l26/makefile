@@ -47,7 +47,8 @@ endif
 
 # Assign firmware and configuration script variables
 HALO_FIRMWARE_FILE = cs40l26.wmfw
-HALO_FIRMWARE_WMDR = --wmdr cs40l26_wt.bin
+HALO_CAL_FIRMWARE_FILE = cs40l26_cal.wmfw
+HALO_FIRMWARE_WMDR = cs40l26_wt.bin
 WISCE_SCRIPT = $(CONFIG_PATH)/wisce_init.txt
 
 # Assign toolchain and toolchain flags
@@ -72,6 +73,7 @@ DRIVER_SRCS += $(CONFIG_PATH)/cs40l26_syscfg_regs.c
 DRIVER_SRCS += $(COMMON_PATH)/fw_img.c
 DRIVER_SRCS += $(COMMON_PATH)/regmap.c
 DRIVER_SRCS += $(DRIVER_PATH)/cs40l26_ext.c
+DRIVER_SRCS += $(DRIVER_PATH)/waveforms.c
 INCLUDES += -I$(HALO_FIRMWARE_PATH)
 
 # Assign sources and includes for target project build
@@ -85,6 +87,7 @@ ifeq ($(MAKECMDGOALS), unit_test)
 else ifdef IS_NOT_UNIT_TEST
     C_SRCS += $(DRIVER_PATH)/bsp/bsp_cs40l26.c
     C_SRCS += $(HALO_FIRMWARE_PATH)/cs40l26_fw_img.c
+    C_SRCS += $(HALO_FIRMWARE_PATH)/cs40l26_cal_fw_img.c
 
     ifeq ($(MAKECMDGOALS), system_test)
         C_SRCS += $(APP_PATH)/test_cs40l26.c
@@ -133,7 +136,26 @@ $(eval $(call add_wisce_script_rule,cs40l26))
 firmware_converter:
 	@echo -------------------------------------------------------------------------------
 	@echo GENERATING cs40l26_fw_img
-	cd $(HALO_FIRMWARE_PATH) && python3 ../../tools/firmware_converter/firmware_converter.py fw_img_v2 cs40l26 $(HALO_FIRMWARE_FILE) --sym-input ../config/cs40l26_sym.h --generic-sym $(HALO_FIRMWARE_WMDR)
+ifeq ($(call WMFW_CHECK,$(HALO_FIRMWARE_PATH)/$(HALO_FIRMWARE_FILE)),)
+ifeq ($(call WMFW_CHECK,$(HALO_FIRMWARE_PATH)/$(HALO_FIRMWARE_WMDR)),)
+	@echo Running firmware_converter for $(HALO_FIRMWARE_FILE) and $(HALO_FIRMWARE_WMDR)
+	cd $(HALO_FIRMWARE_PATH) && python3 ../../tools/firmware_converter/firmware_converter.py fw_img_v2 cs40l26 $(HALO_FIRMWARE_FILE) --sym-input $(CONFIG_PATH)/cs40l26_sym.h --generic-sym --wmdr $(HALO_FIRMWARE_WMDR)
+else
+	@echo Not running firmware_converter for $(HALO_FIRMWARE_WMDR) \(missing file\)
+endif
+else
+	@echo Not running firmware_converter for $(HALO_FIRMWARE_FILE) \(missing file\)
+endif
+ifeq ($(call WMFW_CHECK,$(HALO_FIRMWARE_PATH)/$(HALO_CAL_FIRMWARE_FILE)),)
+	@echo Running firmware_converter for $(HALO_CAL_FIRMWARE_FILE)
+	cd $(HALO_FIRMWARE_PATH) && python3 ../../tools/firmware_converter/firmware_converter.py fw_img_v2 cs40l26 $(HALO_CAL_FIRMWARE_FILE) --sym-input $(CONFIG_PATH)/cs40l26_cal_sym.h --generic-sym --suffix cal
+else
+	@echo Not running firmware_converter for $(HALO_CAL_FIRMWARE_FILE) \(missing file\)
+endif
+
+	@echo -------------------------------------------------------------------------------
+	@echo GENERATING waveforms
+	cd $(DRIVER_PATH) && python3 ../tools/hwt_to_waveform/hwt_to_waveform_converter.py waveforms.hwt
 
 # Compilation rules
 $(eval $(call $(ADD_OBJ_RULES), $(OBJS)))

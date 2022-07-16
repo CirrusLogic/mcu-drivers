@@ -5,7 +5,7 @@
  * @brief Master table of known firmware symbols for the CS40L26 Driver module
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2021-2022 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2022 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -42,20 +42,20 @@ extern "C" {
  *
  * @{
  */
-#define CS40L26_ALGORITHM_FIRMWARE_CS40L26
-#define CS40L26_ALGORITHM_A2H
-#define CS40L26_ALGORITHM_DYNAMIC_F0
-#define CS40L26_ALGORITHM_BUZZGEN
-#define CS40L26_ALGORITHM_EVENT_HANDLER
-#define CS40L26_ALGORITHM_VIBEGEN
-#define CS40L26_ALGORITHM_SVC
-#define CS40L26_ALGORITHM_GPIO
-#define CS40L26_ALGORITHM_MDSYNC
-#define CS40L26_ALGORITHM_PM
-#define CS40L26_ALGORITHM_MAILBOX
-#define CS40L26_ALGORITHM_FW_RAM_EXT
-#define CS40L26_ALGORITHM_HAPTICS_LOGGER
-#define CS40L26_ALGORITHM_EVENT_LOGGER
+#define CS40L26_CAL_ALGORITHM_FIRMWARE_CS40L26
+#define CS40L26_CAL_ALGORITHM_A2H
+#define CS40L26_CAL_ALGORITHM_DYNAMIC_F0
+#define CS40L26_CAL_ALGORITHM_BUZZGEN
+#define CS40L26_CAL_ALGORITHM_EVENT_HANDLER
+#define CS40L26_CAL_ALGORITHM_VIBEGEN
+#define CS40L26_CAL_ALGORITHM_SVC
+#define CS40L26_CAL_ALGORITHM_GPIO
+#define CS40L26_CAL_ALGORITHM_MDSYNC
+#define CS40L26_CAL_ALGORITHM_PM
+#define CS40L26_CAL_ALGORITHM_MAILBOX
+#define CS40L26_CAL_ALGORITHM_FW_RAM_EXT
+#define CS40L26_CAL_ALGORITHM_HAPTICS_LOGGER
+#define CS40L26_CAL_ALGORITHM_EVENT_LOGGER
 /** @} */
 
 /**
@@ -65,17 +65,16 @@ extern "C" {
  * @{
  */
 // FIRMWARE_CS40L26
-#define CS40L26_SYM_FIRMWARE_HALO_STATE                             (0x2)
-#define CS40L26_SYM_FIRMWARE_HALO_HEARTBEAT                         (0x3)
-// BUZZGEN
-#define CS40L26_SYM_BUZZGEN_BUZZ_EFFECTS1_BUZZ_FREQ                 (0x1d)
+#define CS40L26_CAL_SYM_FIRMWARE_CS40L26_HALO_STATE                     (0x2)
+#define CS40L26_CAL_SYM_FIRMWARE_CS40L26_HALO_HEARTBEAT                 (0x3)
+#define CS40L26_CAL_SYM_FIRMWARE_CS40L26_CALL_RAM_INIT                  (0x12)
 // DYNAMIC_F0
-#define CS40L26_SYM_DYNAMIC_F0_DYNAMIC_F0_ENABLED                   (0x5e)
-#define CS40L26_SYM_DYNAMIC_F0_DYN_F0_TABLE                         (0x62)
+#define CS40L26_CAL_SYM_DYNAMIC_F0_DYNAMIC_F0_ENABLED                   (0x5e)
+#define CS40L26_CAL_SYM_DYNAMIC_F0_DYN_F0_TABLE                         (0x62)
 // PM
-#define CS40L26_SYM_PM_PM_TIMER_TIMEOUT_TICKS                       (0x276)
-#define CS40L26_SYM_PM_PM_CUR_STATE                                 (0x277)
-#define CS40L26_SYM_PM_POWER_ON_SEQUENCE                            (0x231)
+#define CS40L26_CAL_SYM_PM_PM_TIMER_TIMEOUT_TICKS                       (0x276)
+#define CS40L26_CAL_SYM_PM_PM_CUR_STATE                                 (0x277)
+#define CS40L26_CAL_SYM_PM_POWER_ON_SEQUENCE                            (0x231)
 /** @} */
 
 /**********************************************************************************************************************/

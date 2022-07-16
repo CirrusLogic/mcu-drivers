@@ -134,9 +134,34 @@ $(eval $(call add_wisce_script_rule,cs35l41))
 firmware_converter:
 	@echo -------------------------------------------------------------------------------
 	@echo GENERATING cs35l41_fw_img
+ifeq ($(call WMFW_CHECK,$(HALO_FIRMWARE_PATH)/$(HALO_FIRMWARE_FILE)),)
+	@echo Running firmware_converter for $(HALO_FIRMWARE_FILE)
 	cd $(HALO_FIRMWARE_PATH) && python3 ../../tools/firmware_converter/firmware_converter.py fw_img_v2 cs35l41 $(HALO_FIRMWARE_FILE) --sym-input $(CONFIG_PATH)/cs35l41_sym.h
+else
+	@echo Not running firmware_converter for $(HALO_FIRMWARE_FILE) \(missing file\)
+endif
+
+ifeq ($(call WMFW_CHECK,$(HALO_FIRMWARE_PATH)/$(HALO_CAL_FIRMWARE_FILE)),)
+ifeq ($(call WMFW_CHECK,$(HALO_FIRMWARE_PATH)/$(HALO_CAL_FIRMWARE_WMDR)),)
+	@echo Running firmware_converter for $(HALO_CAL_FIRMWARE_FILE) and $(HALO_CAL_FIRMWARE_WMDR)
 	cd $(HALO_FIRMWARE_PATH) && python3 ../../tools/firmware_converter/firmware_converter.py fw_img_v2 cs35l41 $(HALO_CAL_FIRMWARE_FILE) --suffix cal --sym-input $(CONFIG_PATH)/cs35l41_sym.h --wmdr-only --wmdr $(HALO_CAL_FIRMWARE_WMDR)
+else
+	@echo Not running firmware_converter for $(HALO_CAL_FIRMWARE_WMDR) \(missing file\)
+endif
+else
+	@echo Not running firmware_converter for $(HALO_CAL_FIRMWARE_FILE) \(missing file\)
+endif
+
+ifeq ($(call WMFW_CHECK,$(HALO_FIRMWARE_PATH)/$(HALO_FIRMWARE_FILE)),)
+ifeq ($(call WMFW_CHECK,$(HALO_FIRMWARE_PATH)/Protect_Lite_full_6.43.0_7.0ohm_delta1ohm_L41_revB2.bin),)
+	@echo Running firmware_converter for $(HALO_FIRMWARE_FILE) and Protect_Lite_full_6.43.0_7.0ohm_delta1ohm_L41_revB2.bin
 	cd $(HALO_FIRMWARE_PATH) && python3 ../../tools/firmware_converter/firmware_converter.py fw_img_v2 cs35l41 $(HALO_FIRMWARE_FILE) --sym-input $(CONFIG_PATH)/cs35l41_sym.h --wmdr-only --suffix tune --wmdr Protect_Lite_full_6.43.0_7.0ohm_delta1ohm_L41_revB2.bin
+else
+	@echo Not running firmware_converter for Protect_Lite_full_6.43.0_7.0ohm_delta1ohm_L41_revB2.bin \(missing file\)
+endif
+else
+	@echo Not running firmware_converter for $(HALO_FIRMWARE_FILE) \(missing file\)
+endif
 
 # Compilation rules
 $(eval $(call $(ADD_OBJ_RULES), $(OBJS)))

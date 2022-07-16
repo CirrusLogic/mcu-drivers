@@ -30,7 +30,7 @@ repo_path = os.path.dirname(os.path.abspath(__file__)) + '/../..'
 sys.path.insert(1, (repo_path + '/tools/sdk_version'))
 from sdk_version import print_sdk_version
 import argparse
-from wmfw_parser import wmfw_parser, get_memory_region_from_type
+from wmfw_parser import wmfw_parser, get_memory_region_from_type, wmfw_rom
 from wmdr_parser import wmdr_parser
 from binary_parser import bin_parser
 from firmware_exporter_factory import firmware_exporter_factory
@@ -43,13 +43,41 @@ from firmware_exporter_factory import firmware_exporter_factory
 # CONSTANTS/GLOBALS
 #==========================================================================
 
-supported_part_numbers = ['cs35l41', 'cs35l42', 'cs40l25', 'cs40l30', 'cs48l32', 'cs47l63', 'cs47l66', 'cs47l67', 'cs47l15', 'cs47l35_dsp1', 'cs47l35_dsp2', 'cs47l35_dsp3', 'cs40l26']
+supported_part_numbers = ['cs35l41',
+                          'cs35l42',
+                          'cs40l25',
+                          'cs40l30',
+                          'cs48l32',
+                          'cs47l63',
+                          'cs47l66',
+                          'cs47l67',
+                          'cs47l15',
+                          'cs47l35_dsp1',
+                          'cs47l35_dsp2',
+                          'cs47l35_dsp3',
+                          'cs40l26',
+                          'cs35l56',
+                          'cs40l50',
+                          'cs47l24_dsp2',
+                          'cs47l24_dsp3']
 
 supported_commands = ['print', 'export', 'wisce', 'fw_img_v1', 'fw_img_v2', 'json']
 
 supported_mem_maps = {
     'halo_type_0': {
-        'parts': ['cs35l41', 'cs35l42', 'cs40l25', 'cs40l30', 'cs48l32', 'cs47l63', 'cs47l66', 'cs47l67', 'cs40l26'],
+        'parts': [
+            'cs35l41',
+            'cs35l42',
+            'cs40l25',
+            'cs40l30',
+            'cs48l32',
+            'cs47l63',
+            'cs47l66',
+            'cs47l67',
+            'cs40l26',
+            'cs35l56',
+            'cs40l50'
+        ],
         'xm': {
             'u24': (0x2800000, 0x2bfffff),
             'p32': (0x2000000, 0x23fffff),
@@ -109,6 +137,36 @@ supported_mem_maps = {
         },
         'pm': {
             'pm32': (0x180000, 0x19ffff),
+        }
+    },
+    'adsp_dsp_2_16bit': {
+        'parts': ['cs47l24_dsp2'],
+        'xm': {
+            'u24': (0x290000, 0x2a7fff),
+        },
+        'ym': {
+            'u24': (0x2a8000, 0x2b4000),
+        },
+        'zm': {
+            'u24': (0x280000, 0x28ffff),
+        },
+        'pm': {
+            'pm32': (0x200000, 0x27ffff),
+        },
+    },
+    'adsp_dsp_3_16bit': {
+        'parts': ['cs47l24_dsp3'],
+        'xm': {
+            'u24': (0x390000, 0x3a7fff),
+        },
+        'ym': {
+            'u24': (0x3a8000, 0x3b4000),
+        },
+        'zm': {
+            'u24': (0x380000, 0x38ffff),
+        },
+        'pm': {
+            'pm32': (0x300000, 0x37ffff),
         }
     }
 }
@@ -251,7 +309,7 @@ def get_args(args):
     parser.add_argument(dest='command', type=str, choices=supported_commands, help='The command you wish to execute.')
     parser.add_argument(dest='part_number', type=str, choices=supported_part_numbers,
                         help='The part number that the wmfw is targeted at.')
-    parser.add_argument(dest='wmfw', type=str,help='The wmfw (or \'firmware\') file to be parsed.')
+    parser.add_argument(dest='wmfw', type=str,help='The wmfw (or \'firmware\') file to be parsed.  Enter \'ROM\' for generating fw_img with only WMDR targeted to ROM FW.')
     parser.add_argument('--wmdr', dest='wmdrs', type=str, nargs='*', help='The wmdr file(s) to be parsed.')
     parser.add_argument('--binary-input', dest='bins', type=str, nargs='*', help='The bin file(s) to be parsed and their addresses. Format: "<hex addr>,<bin filename>", individual files separated by whitespace')
     parser.add_argument('-s', '--suffix', type=str, default='',
@@ -277,7 +335,7 @@ def get_args(args):
 
 def validate_args(args):
     # Check that WMFW path exists
-    if (not os.path.exists(args.wmfw)):
+    if ((not os.path.exists(args.wmfw)) and (args.wmfw != 'ROM')):
         print("Invalid wmfw path: " + args.wmfw)
         return False
     if (args.wmdrs is not None):
@@ -383,9 +441,12 @@ def main(argv):
         process_bins = True
     else:
         process_bins = False
-
-    # Parse WMFW and WMDR files
-    wmfw = wmfw_parser(args.wmfw)
+    # If only including WMDR based on ROM FW
+    if (args.wmfw == 'ROM'):
+        wmfw = wmfw_rom(args.part_number)
+    else:
+        # Parse WMFW and WMDR files
+        wmfw = wmfw_parser(args.wmfw)
     wmfw.parse()
 
     wmdrs = []

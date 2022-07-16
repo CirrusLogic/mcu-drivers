@@ -244,7 +244,7 @@ ifeq ($(MAKECMDGOALS), unit_test)
     PLFLAGS += -EL -r
 else ifdef IS_NOT_UNIT_TEST
     ifneq ($(MAKECMDGOALS), system_test)
-        CFLAGS += -Werror -Wall 
+        CFLAGS += -Werror -Wall
     endif
     CFLAGS += --std=gnu11
     CFLAGS += -fno-diagnostics-show-caret
@@ -279,7 +279,7 @@ endef
 
 # Add make rule for unit_test target
 define add_unit_test_rule
-unit_test: build_path $(BUILD_PATHS) $(LIBS) $(OBJS)
+unit_test: build_path $(BUILD_PATHS) $(MISC_SCRIPTS) $(LIBS) $(OBJS)
 	@echo -------------------------------------------------------------------------------
 	@echo LINKING $@
 	$(BULLSEYE_ON_CMD)
@@ -293,7 +293,7 @@ endef
 
 # Add rule for building a target with a hardware platform
 define add_platform_target_rule
-$(1): build_path $(BUILD_PATHS) firmware_converter $(LIBS) $(OBJS) $(PLATFORM_OBJS) $(ASM_OBJS) $(PLATFORM_ASM_OBJS)
+$(1): build_path $(BUILD_PATHS) firmware_converter $(MISC_SCRIPTS) $(LIBS) $(OBJS) $(PLATFORM_OBJS) $(ASM_OBJS) $(PLATFORM_ASM_OBJS)
 	@echo -------------------------------------------------------------------------------
 	@echo LINKING $@
 	$(CC) $(LDFLAGS) $(OBJS) $(PLATFORM_OBJS) $(ASM_OBJS) $(PLATFORM_ASM_OBJS) $(LIBS) -o $(BUILD_DIR)/$(MAKECMDGOALS).elf
@@ -364,4 +364,9 @@ BULLSEYE_EXCLUDE_PATHS += $(REPO_PATH)/build/
 BULLSEYE_EXCLUDE_PATHS += $(REPO_PATH)/tools/
 BULLSEYE_EXCLUDE_PATHS += $(REPO_PATH)/third_party/
 $(if $(filter $(BULLSEYE),1), $(eval BULLSEYE_INCLUSIONS=bullseye_inclusions) $(eval BULLSEYE_ON_CMD=cov01 --on) $(eval BULLSEYE_OFF_CMD=cov01 --off),)
+endef
+
+# Define useful function to warn if a wmfw file does not exist
+define WMFW_CHECK
+$(if $(wildcard $1),, $(info WARNING: The firmware file $1 is missing. Please supply your own firmware file. Contact Cirrus support for help.))
 endef

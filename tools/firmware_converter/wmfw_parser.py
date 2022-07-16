@@ -714,6 +714,128 @@ class wmfw_parser:
 
         return output_str
 
+class wmfw_rom(wmfw_parser):
+
+    def __init__(self, part_number):
+        self.part_number = part_number
+        wmfw_parser.__init__(self, "foo")
+        return
+
+    def update_fw_id_block_cs40l26(self):
+        self.fw_id_block.fields['core_id'] = 0x40000
+        self.fw_id_block.fields['format_version'] = 0x30000
+        self.fw_id_block.fields['vendor_id'] = 0x2
+        self.fw_id_block.fields['firmware_id'] = 0x0
+        self.fw_id_block.fields['firmware_revision'] = 0x12345
+        self.fw_id_block.fields['sys_config_mem_offsets']['xm_base'] = 0x3ea
+        self.fw_id_block.fields['sys_config_mem_offsets']['xm_size'] = 0x16
+        self.fw_id_block.fields['sys_config_mem_offsets']['ym_base'] = 0x57f
+        self.fw_id_block.fields['sys_config_mem_offsets']['ym_size'] = 0x1
+        self.fw_id_block.fields['number_of_algorithms'] = 0x1c
+        self.fw_id_block.fields['algorithm_info'] = [
+            {'algorithm_id': 258567, 'algorithm_version': 65539, 'algorithm_offsets': {'xm_base': 1884, 'xm_size': 238, 'ym_base': 4, 'ym_size': 238}},{'algorithm_id': 196797, 'algorithm_version': 131074, 'algorithm_offsets': {'xm_base': 2122, 'xm_size': 4013, 'ym_base': 1970, 'ym_size': 1}},
+            {'algorithm_id': 258560, 'algorithm_version': 65536, 'algorithm_offsets': {'xm_base': 7150, 'xm_size': 20, 'ym_base': 0, 'ym_size': 0}},
+            {'algorithm_id': 258561, 'algorithm_version': 65536, 'algorithm_offsets': {'xm_base': 7241, 'xm_size': 15, 'ym_base': 0, 'ym_size': 0}},
+            {'algorithm_id': 258562, 'algorithm_version': 65536, 'algorithm_offsets': {'xm_base': 7170, 'xm_size': 20, 'ym_base': 0, 'ym_size': 0}},
+            {'algorithm_id': 258563, 'algorithm_version': 65536, 'algorithm_offsets': {'xm_base': 7423, 'xm_size': 5, 'ym_base': 0, 'ym_size': 0}},
+            {'algorithm_id': 258572, 'algorithm_version': 65536, 'algorithm_offsets': {'xm_base': 6460, 'xm_size': 6, 'ym_base': 0, 'ym_size': 0}},
+            {'algorithm_id': 258566, 'algorithm_version': 65536, 'algorithm_offsets': {'xm_base': 212, 'xm_size': 210, 'ym_base': 0, 'ym_size': 0}},
+            {'algorithm_id': 258587, 'algorithm_version': 65537, 'algorithm_offsets': {'xm_base': 978, 'xm_size': 24, 'ym_base': 0, 'ym_size': 0}},
+            {'algorithm_id': 258578, 'algorithm_version': 196608, 'algorithm_offsets': {'xm_base': 1036, 'xm_size': 30, 'ym_base': 0, 'ym_size': 0}},
+            {'algorithm_id': 258575, 'algorithm_version': 65536, 'algorithm_offsets': {'xm_base': 776, 'xm_size': 12, 'ym_base': 0, 'ym_size': 0}},
+            {'algorithm_id': 258577, 'algorithm_version': 65536, 'algorithm_offsets': {'xm_base': 2566, 'xm_size': 250, 'ym_base': 0, 'ym_size': 0}},
+            {'algorithm_id': 196880, 'algorithm_version': 262146, 'algorithm_offsets': {'xm_base': 7034, 'xm_size': 60, 'ym_base': 1024, 'ym_size': 18}},
+            {'algorithm_id': 258576, 'algorithm_version': 327681, 'algorithm_offsets': {'xm_base': 2922, 'xm_size': 1410, 'ym_base': 0, 'ym_size': 0}},
+            {'algorithm_id': 258579, 'algorithm_version': 65792, 'algorithm_offsets': {'xm_base': 5327, 'xm_size': 53, 'ym_base': 0, 'ym_size': 0}},
+            {'algorithm_id': 258580, 'algorithm_version': 65536, 'algorithm_offsets': {'xm_base': 5594, 'xm_size': 164, 'ym_base': 0, 'ym_size': 0}},
+            {'algorithm_id': 258574, 'algorithm_version': 65792, 'algorithm_offsets': {'xm_base': 5759, 'xm_size': 47, 'ym_base': 0, 'ym_size': 0}},
+            {'algorithm_id': 258581, 'algorithm_version': 66048, 'algorithm_offsets': {'xm_base': 5806, 'xm_size': 148, 'ym_base': 0, 'ym_size': 0}},
+            {'algorithm_id': 258582, 'algorithm_version': 65536, 'algorithm_offsets': {'xm_base': 6033, 'xm_size': 47, 'ym_base': 0, 'ym_size': 0}},
+            {'algorithm_id': 258583, 'algorithm_version': 65536, 'algorithm_offsets': {'xm_base': 6133, 'xm_size': 46, 'ym_base': 0, 'ym_size': 0}},
+            {'algorithm_id': 258584, 'algorithm_version': 65536, 'algorithm_offsets': {'xm_base': 6256, 'xm_size': 41, 'ym_base': 0, 'ym_size': 0}},
+            {'algorithm_id': 258585, 'algorithm_version': 65793, 'algorithm_offsets': {'xm_base': 6302, 'xm_size': 128, 'ym_base': 0, 'ym_size': 1}},
+            {'algorithm_id': 258586, 'algorithm_version': 65536, 'algorithm_offsets': {'xm_base': 6442, 'xm_size': 256, 'ym_base': 0, 'ym_size': 0}},
+            {'algorithm_id': 204815, 'algorithm_version': 65536, 'algorithm_offsets': {'xm_base': 6758, 'xm_size': 161, 'ym_base': 0, 'ym_size': 0}},
+            {'algorithm_id': 258588, 'algorithm_version': 65792, 'algorithm_offsets': {'xm_base': 6919, 'xm_size': 49, 'ym_base': 0, 'ym_size': 0}},
+            {'algorithm_id': 196770, 'algorithm_version': 851968, 'algorithm_offsets': {'xm_base': 6968, 'xm_size': 52, 'ym_base': 0, 'ym_size': 0}},
+            {'algorithm_id': 258589, 'algorithm_version': 65536, 'algorithm_offsets': {'xm_base': 7077, 'xm_size': 22, 'ym_base': 0, 'ym_size': 0}},
+            {'algorithm_id': 258591, 'algorithm_version': 65536, 'algorithm_offsets': {'xm_base': 7099, 'xm_size': 17, 'ym_base': 0, 'ym_size': 0}}
+        ]
+        self.fw_id_block.fields['list_terminator'] = 0xbedead
+        return
+
+    def update_fw_id_block_cs40l50(self):
+        self.fw_id_block.fields['core_id'] = 0x40000
+        self.fw_id_block.fields['format_version'] = 0x30000
+        self.fw_id_block.fields['vendor_id'] = 0x2
+        self.fw_id_block.fields['firmware_id'] = 0x0
+        self.fw_id_block.fields['firmware_revision'] = 0x10301
+        self.fw_id_block.fields['sys_config_mem_offsets']['xm_base'] = 0x796
+        self.fw_id_block.fields['sys_config_mem_offsets']['xm_size'] = 0x20
+        self.fw_id_block.fields['sys_config_mem_offsets']['ym_base'] = 0x17a
+        self.fw_id_block.fields['sys_config_mem_offsets']['ym_size'] = 0x1
+        self.fw_id_block.fields['number_of_algorithms'] = 0x1c
+        self.fw_id_block.fields['algorithm_info'] = [
+            {'algorithm_id': 455175, 'algorithm_version': 131329, 'algorithm_offsets': {'xm_base': 0, 'xm_size': 0, 'ym_base': 1680, 'ym_size': 252}},
+            {'algorithm_id': 393405, 'algorithm_version': 327681, 'algorithm_offsets': {'xm_base': 5888, 'xm_size': 2018, 'ym_base': 3072, 'ym_size': 2000}},
+            {'algorithm_id': 393533, 'algorithm_version': 65536, 'algorithm_offsets': {'xm_base': 2940, 'xm_size': 74, 'ym_base': 0, 'ym_size': 0}},
+            {'algorithm_id': 455168, 'algorithm_version': 65792, 'algorithm_offsets': {'xm_base': 3979, 'xm_size': 20, 'ym_base': 0, 'ym_size': 0}},
+            {'algorithm_id': 455169, 'algorithm_version': 65792, 'algorithm_offsets': {'xm_base': 4000, 'xm_size': 45, 'ym_base': 0, 'ym_size': 0}},
+            {'algorithm_id': 455170, 'algorithm_version': 131330, 'algorithm_offsets': {'xm_base': 2724, 'xm_size': 22, 'ym_base': 0, 'ym_size': 0}},
+            {'algorithm_id': 455171, 'algorithm_version': 65796, 'algorithm_offsets': {'xm_base': 4079, 'xm_size': 5, 'ym_base': 0, 'ym_size': 0}},
+            {'algorithm_id': 455180, 'algorithm_version': 196609, 'algorithm_offsets': {'xm_base': 2574, 'xm_size': 9, 'ym_base': 0, 'ym_size': 0}},
+            {'algorithm_id': 455174, 'algorithm_version': 65536, 'algorithm_offsets': {'xm_base': 4088, 'xm_size': 210, 'ym_base': 0, 'ym_size': 0}},
+            {'algorithm_id': 455195, 'algorithm_version': 131072, 'algorithm_offsets': {'xm_base': 2583, 'xm_size': 64, 'ym_base': 0, 'ym_size': 0}},
+            {'algorithm_id': 393536, 'algorithm_version': 65537, 'algorithm_offsets': {'xm_base': 2647, 'xm_size': 8, 'ym_base': 1938, 'ym_size': 6}},
+            {'algorithm_id': 455186, 'algorithm_version': 720896, 'algorithm_offsets': {'xm_base': 2060, 'xm_size': 34, 'ym_base': 0, 'ym_size': 0}},
+            {'algorithm_id': 455183, 'algorithm_version': 65536, 'algorithm_offsets': {'xm_base': 5172, 'xm_size': 12, 'ym_base': 0, 'ym_size': 0}},
+            {'algorithm_id': 455185, 'algorithm_version': 131072, 'algorithm_offsets': {'xm_base': 1628, 'xm_size': 252, 'ym_base': 0, 'ym_size': 0}},
+            {'algorithm_id': 393488, 'algorithm_version': 262656, 'algorithm_offsets': {'xm_base': 2656, 'xm_size': 42, 'ym_base': 1658, 'ym_size': 18}},
+            {'algorithm_id': 455184, 'algorithm_version': 786432, 'algorithm_offsets': {'xm_base': 778, 'xm_size': 841, 'ym_base': 1318, 'ym_size': 87}},
+            {'algorithm_id': 455187, 'algorithm_version': 131072, 'algorithm_offsets': {'xm_base': 3047, 'xm_size': 108, 'ym_base': 0, 'ym_size': 0}},
+            {'algorithm_id': 455188, 'algorithm_version': 196608, 'algorithm_offsets': {'xm_base': 3155, 'xm_size': 165, 'ym_base': 0, 'ym_size': 0}},
+            {'algorithm_id': 455182, 'algorithm_version': 131073, 'algorithm_offsets': {'xm_base': 3320, 'xm_size': 61, 'ym_base': 0, 'ym_size': 0}},
+            {'algorithm_id': 455189, 'algorithm_version': 196608, 'algorithm_offsets': {'xm_base': 2816, 'xm_size': 139, 'ym_base': 0, 'ym_size': 0}},
+            {'algorithm_id': 455190, 'algorithm_version': 196608, 'algorithm_offsets': {'xm_base': 3381, 'xm_size': 48, 'ym_base': 0, 'ym_size': 0}},
+            {'algorithm_id': 455191, 'algorithm_version': 196608, 'algorithm_offsets': {'xm_base': 3429, 'xm_size': 48, 'ym_base': 0, 'ym_size': 0}},
+            {'algorithm_id': 455192, 'algorithm_version': 196608, 'algorithm_offsets': {'xm_base': 3477, 'xm_size': 43, 'ym_base': 0, 'ym_size': 0}},
+            {'algorithm_id': 455193, 'algorithm_version': 196608, 'algorithm_offsets': {'xm_base': 2970, 'xm_size': 77, 'ym_base': 0, 'ym_size': 1}},
+            {'algorithm_id': 455194, 'algorithm_version': 327680, 'algorithm_offsets': {'xm_base': 514, 'xm_size': 264, 'ym_base': 1024, 'ym_size': 8}},
+            {'algorithm_id': 401423, 'algorithm_version': 393216, 'algorithm_offsets': {'xm_base': 326, 'xm_size': 130, 'ym_base': 1288, 'ym_size': 130}},
+            {'algorithm_id': 455196, 'algorithm_version': 262144, 'algorithm_offsets': {'xm_base': 1880, 'xm_size': 21, 'ym_base': 2193, 'ym_size': 21}},
+            {'algorithm_id': 393378, 'algorithm_version': 851968, 'algorithm_offsets': {'xm_base': 2401, 'xm_size': 52, 'ym_base': 0, 'ym_size': 0}},
+            {'algorithm_id': 455197, 'algorithm_version': 65792, 'algorithm_offsets': {'xm_base': 2516, 'xm_size': 24, 'ym_base': 0, 'ym_size': 0}},
+            {'algorithm_id': 455199, 'algorithm_version': 65536, 'algorithm_offsets': {'xm_base': 2540, 'xm_size': 17, 'ym_base': 0, 'ym_size': 0}},
+            {'algorithm_id': 455201, 'algorithm_version': 196608, 'algorithm_offsets': {'xm_base': 2568, 'xm_size': 24, 'ym_base': 96, 'ym_size': 256}},
+            {'algorithm_id': 455200, 'algorithm_version': 196608, 'algorithm_offsets': {'xm_base': 2956, 'xm_size': 13, 'ym_base': 0, 'ym_size': 0}},
+            {'algorithm_id': 393532, 'algorithm_version': 262144, 'algorithm_offsets': {'xm_base': 2698, 'xm_size': 9, 'ym_base': 0, 'ym_size': 0}},
+            {'algorithm_id': 455204, 'algorithm_version': 196608, 'algorithm_offsets': {'xm_base': 1901, 'xm_size': 12, 'ym_base': 2221, 'ym_size': 2}},
+            {'algorithm_id': 455205, 'algorithm_version': 65539, 'algorithm_offsets': {'xm_base': 2116, 'xm_size': 31, 'ym_base': 0, 'ym_size': 0}},
+            {'algorithm_id': 455206, 'algorithm_version': 65537, 'algorithm_offsets': {'xm_base': 3646, 'xm_size': 82, 'ym_base': 0, 'ym_size': 0}},
+            {'algorithm_id': 455207, 'algorithm_version': 131072, 'algorithm_offsets': {'xm_base': 1619, 'xm_size': 8, 'ym_base': 0, 'ym_size': 0}},
+            {'algorithm_id': 455208, 'algorithm_version': 65536, 'algorithm_offsets': {'xm_base': 2166, 'xm_size': 20, 'ym_base': 0, 'ym_size': 0}},
+            {'algorithm_id': 455202, 'algorithm_version': 65536, 'algorithm_offsets': {'xm_base': 0, 'xm_size': 0, 'ym_base': 0, 'ym_size': 352}},
+            {'algorithm_id': 455209, 'algorithm_version': 65538, 'algorithm_offsets': {'xm_base': 2042, 'xm_size': 4, 'ym_base': 0, 'ym_size': 0}},
+            {'algorithm_id': 455203, 'algorithm_version': 65538, 'algorithm_offsets': {'xm_base': 5228, 'xm_size': 11, 'ym_base': 0, 'ym_size': 0}},
+            {'algorithm_id': 455210, 'algorithm_version': 65536, 'algorithm_offsets': {'xm_base': 2634, 'xm_size': 15, 'ym_base': 0, 'ym_size': 0}}
+        ]
+        self.fw_id_block.fields['list_terminator'] = 0xbedead
+        return
+
+    def parse(self):
+        dummy_bytestream = io.BytesIO(b'')
+        self.fw_id_block = halo_firmware_id_block(dummy_bytestream, None)
+        if (self.part_number == 'cs40l26'):
+            self.update_fw_id_block_cs40l26()
+        elif (self.part_number == 'cs40l50'):
+            self.update_fw_id_block_cs40l50()
+        else:
+            error_exit('Unsupported ROM: ' + self.part_number)
+
+        return
+
+
+
 #==========================================================================
 # HELPER FUNCTIONS
 #==========================================================================

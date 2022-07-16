@@ -127,7 +127,12 @@ $(eval $(call add_wisce_script_rule,cs47l15))
 firmware_converter:
 	@echo -------------------------------------------------------------------------------
 	@echo GENERATING cs47l15_fw_img
+ifeq ($(call WMFW_CHECK,$(HALO_FIRMWARE_PATH)/$(HALO_FIRMWARE_FILE)),)
+	@echo Running firmware_converter for $(HALO_FIRMWARE_FILE)
 	cd $(HALO_FIRMWARE_PATH) && python3 ../../tools/firmware_converter/firmware_converter.py fw_img_v2 cs47l15 $(HALO_FIRMWARE_FILE) --sym-input $(CONFIG_PATH)/cs47l15_sym.h --generic-sym
+else
+	@echo Not running firmware_converter for $(HALO_FIRMWARE_FILE) \(missing file\)
+endif
 
 # Compilation rules
 $(eval $(call $(ADD_OBJ_RULES), $(OBJS)))

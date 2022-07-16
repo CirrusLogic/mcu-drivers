@@ -46,6 +46,8 @@ eclipse_files_to_copy = {'.cproject': ['', 0],
                          'live_oak_stlink.launch': ['', 0],
                          'holdout_jlink.launch': ['', 0],
                          'holdout_stlink.launch': ['', 0],
+                         'blackstar_jlink.launch': ['', 0],
+                         'blackstar_stlink.launch': ['', 0],
 }
 
 #==========================================================================

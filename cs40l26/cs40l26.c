@@ -23,6 +23,7 @@
  * INCLUDES
  **********************************************************************************************************************/
 #include <stddef.h>
+#include <stdio.h>
 #include "cs40l26.h"
 #include "bsp_driver_if.h"
 #include "string.h"
@@ -83,7 +84,17 @@ static const uint32_t cs40l26_irq_eint_1_to_event_flag_map[] =
     IRQ1_IRQ1_EINT_1_WKSRC_STATUS3_EINT1_BITMASK, CS40L26_EVENT_FLAG_WKSRC_GPIO,
     IRQ1_IRQ1_EINT_1_WKSRC_STATUS4_EINT1_BITMASK, CS40L26_EVENT_FLAG_WKSRC_GPIO,
     IRQ1_IRQ1_EINT_1_WKSRC_STATUS5_EINT1_BITMASK, CS40L26_EVENT_FLAG_WKSRC_CP,
-    IRQ1_IRQ1_EINT_1_WKSRC_STATUS6_EINT1_BITMASK, CS40L26_EVENT_FLAG_WKSRC_CP
+    IRQ1_IRQ1_EINT_1_WKSRC_STATUS6_EINT1_BITMASK, CS40L26_EVENT_FLAG_WKSRC_CP,
+    IRQ1_IRQ1_EINT_1_BST_OVP_FLAG_RISE_BITMASK, CS40L26_EVENT_FLAG_BST_ERROR,
+    IRQ1_IRQ1_EINT_1_BST_OVP_FLAG_FALL_BITMASK, CS40L26_EVENT_FLAG_BST_ERROR,
+    IRQ1_IRQ1_EINT_1_BST_OVP_ERR_BITMASK, CS40L26_EVENT_FLAG_BST_ERROR,
+    IRQ1_IRQ1_EINT_1_BST_DCM_UVP_ERR_BITMASK, CS40L26_EVENT_FLAG_BST_ERROR,
+    IRQ1_IRQ1_EINT_1_BST_SHORT_ERR_BITMASK, CS40L26_EVENT_FLAG_BST_ERROR,
+    IRQ1_IRQ1_EINT_1_BST_IPK_FLAG_BITMASK, CS40L26_EVENT_FLAG_BST_ERROR,
+    IRQ1_IRQ1_EINT_1_TEMP_WARN_RISE_BITMASK, CS40L26_EVENT_FLAG_TEMP_ERROR,
+    IRQ1_IRQ1_EINT_1_TEMP_WARN_FALL_BITMASK, CS40L26_EVENT_FLAG_TEMP_ERROR,
+    IRQ1_IRQ1_EINT_1_TEMP_ERR_BITMASK, CS40L26_EVENT_FLAG_TEMP_ERROR,
+    IRQ1_IRQ1_EINT_1_AMP_ERR_BITMASK, CS40L26_EVENT_FLAG_AMP_ERROR
 };
 
 static const uint32_t cs40l26_a1_errata[] =
@@ -103,7 +114,32 @@ static const uint32_t cs40l26_hibernate_patch[] =
 
 static const uint32_t cs40l26_wseq_patch[] =
 {
-    CS40L26_DSP1RX1_INPUT
+    CS40L26_DSP1RX1_INPUT,
+    // Add refclk setting to Write Sequencer
+    0x04002C,
+    0x040670,
+    // Add non-default register values for ASP to WSEQ
+    0x040048,
+    0x040033,
+    0x000000,
+    0x480820,
+    0x200200,
+    0x000000,
+    0x480000,
+    0x01000F,
+    // Add DOUT setting to Write Sequencer
+    0x040000,
+    0x400055,
+    0x040000,
+    0x4000AA,
+    0x000000,
+    0x922810,
+    0x192D11,
+    0x040000,
+    0x4000CC,
+    0x040000,
+    0x400033,
+    0xFFFFFF
 };
 
 /***********************************************************************************************************************
@@ -244,6 +280,44 @@ static uint32_t cs40l26_pm_state_transition(cs40l26_t *driver, uint8_t state)
     return CS40L26_STATUS_OK;
 }
 
+static uint32_t cs40l26_error_release(cs40l26_t *driver, uint32_t err_rls)
+{
+    uint32_t ret, err_sts, err_cfg;
+    regmap_cp_config_t *cp = REGMAP_GET_CP(driver);
+
+    ret = regmap_read(cp, CS40L26_ERROR_RELEASE, &err_sts);
+    if (ret)
+    {
+        return ret;
+    }
+
+    err_cfg = err_sts & ~err_rls;
+
+    ret = regmap_write(cp, CS40L26_ERROR_RELEASE, err_cfg);
+    if (ret)
+    {
+        return ret;
+    }
+
+    err_cfg |= err_rls;
+
+    ret = regmap_write(cp, CS40L26_ERROR_RELEASE, err_cfg);
+    if (ret)
+    {
+        return ret;
+    }
+
+    err_cfg &= ~err_rls;
+
+    ret = regmap_write(cp, CS40L26_ERROR_RELEASE, err_cfg);
+    if (ret)
+    {
+        return ret;
+    }
+
+    return ret;
+}
+
 /**
  * Maps IRQ Flag to Event ID passed to BSP
  *
@@ -342,11 +416,35 @@ static uint32_t cs40l26_event_handler(cs40l26_t *driver)
             {
                 return ret;
             }
+        }
+        // Set event flags
+        driver->event_flags = cs40l26_irq_to_event_id(i, irq_statuses[i]);
+    }
 
-            // Handle each unmasked flag - currently nothing to do here
+    if (irq_statuses[0] & CS40L26_INT1_ACTUATOR_SAFE_MODE_IRQ_MASK)
+    {
+        // Handle BST flags
+        if (irq_statuses[0] & CS40L26_INT1_BOOST_IRQ_MASK)
+        {
+            ret = regmap_write(cp, CS40L26_GLOBAL_ENABLES_REG, 0);
+            if (ret)
+            {
+                return ret;
+            }
+        }
+        ret = cs40l26_error_release(driver, CS40L26_BST_ERR_RLS);
+        if (ret)
+        {
+            return ret;
+        }
 
-            // Set event flags
-            driver->event_flags = cs40l26_irq_to_event_id(i, irq_statuses[i]);
+        if (irq_statuses[0] & CS40L26_INT1_BOOST_IRQ_MASK)
+        {
+            ret = regmap_write(cp, CS40L26_GLOBAL_ENABLES_REG, 1);
+            if (ret)
+            {
+                return ret;
+            }
         }
     }
 
@@ -446,7 +544,7 @@ static uint32_t cs40l26_wseq_table_update(cs40l26_t *driver, uint32_t address, u
                     if (read)
                     {
                         uint32_t prev_address;
-                        uint32_t full_address;
+                        uint32_t full_address = address;
                         if (operation == CS40L26_POWER_SEQ_OP_WRITE_REG_ADDR8)
                         {
                             // Search back for full address, to fetch upper 3 bytes of address
@@ -459,10 +557,6 @@ static uint32_t cs40l26_wseq_table_update(cs40l26_t *driver, uint32_t address, u
                                     break;
                                 }
                             }
-                        }
-                        else
-                        {
-                            full_address = address;
                         }
                         regmap_read(cp, full_address, &value);
                     }
@@ -483,7 +577,7 @@ static uint32_t cs40l26_wseq_table_update(cs40l26_t *driver, uint32_t address, u
             if (read)
             {
                 uint32_t prev_address;
-                uint32_t full_address;
+                uint32_t full_address = address;
                 if (operation == CS40L26_POWER_SEQ_OP_WRITE_REG_ADDR8)
                 {
                     // Search back for full address, to fetch upper 3 bytes of address
@@ -496,10 +590,6 @@ static uint32_t cs40l26_wseq_table_update(cs40l26_t *driver, uint32_t address, u
                             break;
                         }
                     }
-                }
-                else
-                {
-                    full_address = address;
                 }
                 regmap_read(cp, full_address, &value);
             }
@@ -608,7 +698,7 @@ static uint32_t cs40l26_wseq_read_from_dsp(cs40l26_t *driver)
                     return CS40L26_STATUS_FAIL;
                 }
             }
-            cs40l26_wseq_table_update(driver, address, value, operation, false);
+            cs40l26_wseq_table_update(driver, address, value, operation, true);
         }
     }
 
@@ -787,6 +877,7 @@ uint32_t cs40l26_reset(cs40l26_t *driver)
     {
         return ret;
     }
+
     for (i = 0; i < 10; i++)
     {
         ret = regmap_read(cp, CS40L26_A1_DSP_HALO_STATE_REG, &halo_state);
@@ -824,12 +915,6 @@ uint32_t cs40l26_reset(cs40l26_t *driver)
         return CS40L26_STATUS_FAIL;
     }
 
-    ret = regmap_update_reg(cp, CS40L26_PLL_REFCLK_DETECT_0, CS40L26_PLL_REFCLK_DET_EN_MASK, 0);
-    if (ret)
-    {
-        return CS40L26_STATUS_FAIL;
-    }
-
     return CS40L26_STATUS_OK;
 }
 
@@ -846,6 +931,24 @@ uint32_t cs40l26_boot(cs40l26_t *driver, fw_img_info_t *fw_info)
     driver->fw_info = fw_info;
     if (driver->fw_info == NULL)
     {
+        ret = regmap_write(cp, CS40L26_DSP1_CCM_CORE_CONTROL, CS40L26_DSP_CCM_CORE_KILL);
+        if (ret)
+        {
+           return ret;
+        }
+
+        ret = regmap_write(cp, CS40L26_CALL_RAM_INIT, 1);
+        if (ret)
+        {
+            return ret;
+        }
+
+        ret = regmap_update_reg(cp, CS40L26_PWRMGT_CTL, CS40L26_MEM_RDY_MASK, 1 << CS40L26_MEM_RDY_SHIFT);
+        if (ret)
+        {
+            return ret;
+        }
+
         if (driver->config.cal_data.is_valid_f0)
         {
             ret = regmap_write(cp, CS40L26_F0_ESTIMATION_REDC_REG,
@@ -864,22 +967,15 @@ uint32_t cs40l26_boot(cs40l26_t *driver, fw_img_info_t *fw_info)
         return CS40L26_STATUS_OK;
     }
 
-    if (fw_info->header.fw_version < CS40L26_MIN_FW_VERSION)
+    ret = regmap_write(cp, CS40L26_DSP1_CCM_CORE_CONTROL, CS40L26_DSP_CCM_CORE_RESET);
+    if (ret)
     {
-        return CS40L26_STATUS_FAIL;
+        return ret;
     }
 
-    ret = regmap_update_reg(cp, CS40L26_PWRMGT_CTL, CS40L26_MEM_RDY_MASK, 1 << CS40L26_MEM_RDY_SHIFT);
-    if (ret)
-    {
-        return ret;
-    }
-    ret = regmap_write(cp, CS40L26_CALL_RAM_INIT, 1);
-    if (ret)
-    {
-        return ret;
-    }
-    if(driver->revid == CS40L26_REVID_A1)
+    regmap_write_array(cp, driver->config.syscfg_regs, driver->config.syscfg_regs_total);
+
+    if (driver->revid == CS40L26_REVID_A1)
     {
         ret = regmap_write_array(cp, (uint32_t *) cs40l26_a1_errata, sizeof(cs40l26_a1_errata)/sizeof(uint32_t));
         if (ret)
@@ -888,16 +984,6 @@ uint32_t cs40l26_boot(cs40l26_t *driver, fw_img_info_t *fw_info)
         }
     }
 
-    ret = regmap_write(cp, CS40L26_DSP1_CCM_CORE_CONTROL, CS40L26_DSP_CCM_CORE_RESET);
-    if (ret)
-    {
-        return ret;
-    }
-    ret = cs40l26_pm_state_transition(driver, CS40L26_PM_STATE_PREVENT_HIBERNATE);
-    if (ret)
-    {
-        return ret;
-    }
     ret = cs40l26_dsp_state_get(driver, &dsp_state);
     if (ret)
     {
@@ -1023,27 +1109,109 @@ uint32_t cs40l26_calibrate(cs40l26_t *driver)
 }
 
 /**
- * Trigger haptic effect
+ * Set buzzgen waveform
  *
  */
-uint32_t cs40l26_trigger(cs40l26_t *driver, uint32_t index, bool is_rom)
+uint32_t cs40l26_buzzgen_set(cs40l26_t *driver, uint16_t freq,
+                             uint16_t level, uint16_t duration, uint8_t buzzgen_num)
 {
-    uint32_t ret, wf_index;
+    uint32_t ret, base_reg, freq_reg, level_reg, duration_reg;
     regmap_cp_config_t *cp = REGMAP_GET_CP(driver);
 
-    if (is_rom)
+    if (buzzgen_num > CS40L26_CMD_MAX_INDEX_BUZZ_WAVE)
     {
-        wf_index = CS40L26_CMD_INDEX_ROM_WAVE | index;
-    }
-    else
-    {
-        wf_index = CS40L26_CMD_INDEX_RAM_WAVE | index;
+        return CS40L26_STATUS_FAIL;
     }
 
-    ret = regmap_write(cp, CS40L26_DSP_VIRTUAL1_MBOX_1, wf_index);
+    base_reg = fw_img_find_symbol(driver->fw_info, CS40L26_SYM_BUZZGEN_BUZZ_EFFECTS1_BUZZ_FREQ);
+    if (base_reg == 0)
+    {
+        return CS40L26_STATUS_FAIL;
+    }
+
+    freq_reg = base_reg
+               + ((buzzgen_num) * CS40L26_BUZZGEN_CONFIG_OFFSET);
+    level_reg = base_reg
+                + ((buzzgen_num) * CS40L26_BUZZGEN_CONFIG_OFFSET)
+                + CS40L26_BUZZGEN_LEVEL_OFFSET;
+    duration_reg = base_reg
+                   + ((buzzgen_num) * CS40L26_BUZZGEN_CONFIG_OFFSET)
+                   + CS40L26_BUZZGEN_DURATION_OFFSET;
+
+    ret = regmap_write(cp, freq_reg, freq);
     if (ret)
     {
         return ret;
     }
+
+    ret = regmap_write(cp, level_reg, level);
+    if (ret)
+    {
+        return ret;
+    }
+
+    ret = regmap_write(cp, duration_reg, duration);
+    if (ret)
+    {
+        return ret;
+    }
+
+    return ret;
+}
+
+/**
+ * Trigger haptic effect
+ *
+ */
+uint32_t cs40l26_trigger(cs40l26_t *driver, uint32_t index, cs40l26_wavetable_bank_t bank)
+{
+    uint32_t ret, wf_index;
+    regmap_cp_config_t *cp = REGMAP_GET_CP(driver);
+
+    switch (bank)
+    {
+        case RAM_BANK:
+            if (index > CS40L26_CMD_MAX_INDEX_RAM_WAVE)
+            {
+                return CS40L26_STATUS_FAIL;
+            }
+            wf_index = CS40L26_CMD_INDEX_RAM_WAVE | index;
+            break;
+
+        case ROM_BANK:
+            if (index > CS40L26_CMD_MAX_INDEX_ROM_WAVE)
+            {
+                return CS40L26_STATUS_FAIL;
+            }
+            wf_index = CS40L26_CMD_INDEX_ROM_WAVE | index;
+            break;
+
+        case BUZZ_BANK:
+            if (index > CS40L26_CMD_MAX_INDEX_BUZZ_WAVE)
+            {
+                return CS40L26_STATUS_FAIL;
+            }
+            wf_index = CS40L26_CMD_INDEX_BUZZ_WAVE | index;
+            break;
+
+        case OWT_BANK:
+            if (index > CS40L26_CMD_MAX_INDEX_OWT_WAVE)
+            {
+                return CS40L26_STATUS_FAIL;
+            }
+            wf_index = CS40L26_CMD_INDEX_OWT_WAVE | index;
+            break;
+
+        default:
+            return CS40L26_STATUS_FAIL;
+    }
+
+    ret = regmap_write(cp, CS40L26_DSP_VIRTUAL1_MBOX_1, wf_index);
+
+    if (ret)
+    {
+        return ret;
+    }
+
     return ret;
 }

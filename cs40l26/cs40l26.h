@@ -101,6 +101,9 @@ extern "C" {
  */
 #define CS40L26_EVENT_FLAG_DSP_ERROR                    (1 << 31)
 #define CS40L26_EVENT_FLAG_STATE_ERROR                  (1 << 30)
+#define CS40L26_EVENT_FLAG_BST_ERROR                    (1 << 18)
+#define CS40L26_EVENT_FLAG_TEMP_ERROR                   (1 << 24)
+#define CS40L26_EVENT_FLAG_AMP_ERROR                    (1 << 27)
 #define CS40L26_EVENT_FLAG_WKSRC_CP                     (1 << 1)
 #define CS40L26_EVENT_FLAG_WKSRC_GPIO                   (1 << 0)
 /** @} */
@@ -135,7 +138,9 @@ extern "C" {
 /**
  *  Minimum firmware version that will be accepted by the boot function
  */
-#define CS40L26_MIN_FW_VERSION     (0x7021B)
+#define CS40L26_MIN_FW_VERSION     (0x70223)
+#define CS40L26_CAL_MIN_FW_VERSION (0x1011B)
+#define CS40L26_WT_ONLY            (0x12345)
 
 /***********************************************************************************************************************
  * MACROS
@@ -153,6 +158,20 @@ extern "C" {
 /***********************************************************************************************************************
  * ENUMS, STRUCTS, UNIONS, TYPEDEFS
  **********************************************************************************************************************/
+
+/**
+ * Available haptic effects banks
+ *
+ * @see cs40l26_trigger
+ *
+ */
+typedef enum
+{
+    RAM_BANK      = 0,
+    ROM_BANK      = 1,
+    BUZZ_BANK     = 2,
+    OWT_BANK      = 3
+} cs40l26_wavetable_bank_t;
 
 /**
  * Function pointer to Notification Callback
@@ -320,7 +339,7 @@ uint32_t cs40l26_process(cs40l26_t *driver);
  */
 uint32_t cs40l26_reset(cs40l26_t *driver);
 
-/*
+/**
  * Write block of data to the CS40L26 register file
  *
  * This call is used to load the HALO FW/COEFF files to HALO RAM.
@@ -386,15 +405,34 @@ uint32_t cs40l26_calibrate(cs40l26_t *driver);
  *
  * @param [in] driver               Pointer to the driver state
  * @param [in] index                Index into the wavetable
- * @param [in] is_rom               Inidicates ROM wavetable (true) or RAM
- *                                  wavetable (false)
+ * @param [in] bank                 Inidicates which wavetable bank to trigger from
  *
  * @return
  * - CS40L26_STATUS_FAIL        if any control port transaction fails
  * - CS40L26_STATUS_OK          otherwise
  *
  */
-uint32_t cs40l26_trigger(cs40l26_t *driver, uint32_t index, bool is_rom);
+uint32_t cs40l26_trigger(cs40l26_t *driver, uint32_t index, cs40l26_wavetable_bank_t bank);
+
+/**
+ * Set properties of buzzgen waveform
+ *
+ * This will set the frequency, level and duration of a specific buzz effect
+ *
+ * @param [in] driver               Pointer to the driver state
+ * @param [in] freq                 Frequency (Hz) of the buzz effect (range: [0:max(uint_t)])
+ * @param [in] level                Amplitude of the buzz effect (255 = 10V, 127=5V) (range: [0:255])
+ * @param [in] duration             Duration of the buzz effect in 4mS steps (1=4mS, 2=8mS ...) (range: [0:max(int_t)])
+ * @param [in] buzzgen_num          Index of buzz to be modified (range: [0:5])
+ *                                  Buzz Effect 1 is known as the "OTP Buzz". Effects 2:6 are known as the "RAM Buzz"
+ *
+ * @return
+ * - CS40L26_STATUS_FAIL        if any control port transaction fails
+ * - CS40L26_STATUS_OK          otherwise
+ *
+ */
+uint32_t cs40l26_buzzgen_set(cs40l26_t *driver, uint16_t freq,
+                             uint16_t level, uint16_t duration, uint8_t buzzgen_num);
 
 /**********************************************************************************************************************/
 #ifdef __cplusplus

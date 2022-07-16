@@ -28,6 +28,7 @@
 #include "cs40l26_ext.h"
 #include "cs40l26_syscfg_regs.h"
 #include "cs40l26_fw_img.h"
+#include "cs40l26_cal_fw_img.h"
 
 /***********************************************************************************************************************
  * LOCAL LITERAL SUBSTITUTIONS
@@ -88,6 +89,17 @@ uint32_t bsp_dut_initialize(void)
         ret = BSP_STATUS_FAIL;
     }
 
+    uint32_t temp_buffer;
+    // CODEC_AIF1_CTRL(0DH):    E00D  CDC_AIF1_ENA=Enabled, CDC_AIF1LRCLK_DIR=FPGA Output, CDC_AIF1BCLK_DIR=FPGA Output, CDC_AIF1_HS_ENA=Disabled, CDC_AIF1_HS_STS=Disabled, CDC_AIF1_SRC=USB_AIF_CH_1_8_SRC
+    temp_buffer = __builtin_bswap32(0x000DE00D);
+    bsp_i2c_write(BSP_LN2_DEV_ID, (uint8_t *)&temp_buffer, 4, NULL, NULL);
+    // USB_AIF_CTRL1(19H):      9004  USB_AIF_CH_1_8_ENA=Enabled, USB_AIF_CH_1_8_HS_ENA=Enabled, USB_AIF_CH_1_8_HS_STS=Disabled, USB_AIF_CH_1_8_SRC=CDC_AIF1_SRC
+    temp_buffer = __builtin_bswap32(0x00199004);
+    bsp_i2c_write(BSP_LN2_DEV_ID, (uint8_t *)&temp_buffer, 4, NULL, NULL);
+    // USB_AIF_CTRL2(1AH):      9010  USB_AIF_CH_9_16_ENA=Enabled, USB_AIF_CH_9_16_HS_ENA=Enabled, USB_AIF_CH_9_16_HS_STS=Disabled, USB_AIF_CH_9_16_SRC=SOUNDCARD_AIF_SRC
+    temp_buffer = __builtin_bswap32(0x001A9010);
+    bsp_i2c_write(BSP_LN2_DEV_ID, (uint8_t *)&temp_buffer, 4, NULL, NULL);
+
     return ret;
 }
 
@@ -107,15 +119,23 @@ uint32_t bsp_dut_reset()
     return BSP_STATUS_OK;
 }
 
-uint32_t bsp_dut_boot()
+uint32_t bsp_dut_boot(bool cal_boot)
 {
     uint32_t ret;
     const uint8_t *fw_img;
     const uint8_t *fw_img_end;
     uint32_t write_size;
 
-    fw_img = cs40l26_fw_img;
-    fw_img_end = cs40l26_fw_img + FW_IMG_SIZE(cs40l26_fw_img);
+    if (cal_boot)
+    {
+        fw_img = cs40l26_cal_fw_img;
+        fw_img_end = cs40l26_cal_fw_img + FW_IMG_SIZE(cs40l26_cal_fw_img);
+    }
+    else
+    {
+        fw_img = cs40l26_fw_img;
+        fw_img_end = cs40l26_fw_img + FW_IMG_SIZE(cs40l26_fw_img);
+    }
 
     // Inform the driver that any current firmware is no longer available by passing a NULL
     // fw_info pointer to cs40l26_boot
@@ -157,6 +177,21 @@ uint32_t bsp_dut_boot()
     if (boot_state.fw_info.sym_table == NULL)
     {
         return BSP_STATUS_FAIL;
+    }
+
+    if (cal_boot)
+    {
+        if (boot_state.fw_info.header.fw_version < CS40L26_CAL_MIN_FW_VERSION && boot_state.fw_info.header.fw_version != CS40L26_WT_ONLY)
+        {
+            return BSP_STATUS_FAIL;
+        }
+    }
+    else
+    {
+        if (boot_state.fw_info.header.fw_version < CS40L26_MIN_FW_VERSION && boot_state.fw_info.header.fw_version != CS40L26_WT_ONLY)
+        {
+            return BSP_STATUS_FAIL;
+        }
     }
 
     // malloc enough memory to hold the alg_id list, using the alg_id_list_size in the fw_img header
@@ -295,11 +330,21 @@ uint32_t bsp_dut_enable_haptic_processing(bool enable)
     return ret;
 }
 
-uint32_t bsp_dut_trigger_haptic(uint8_t waveform, bool is_rom)
+uint32_t bsp_dut_trigger_haptic(uint8_t waveform, cs40l26_wavetable_bank_t bank)
 {
     uint32_t ret = BSP_STATUS_OK;
 
-    ret = cs40l26_trigger(&cs40l26_driver, waveform, is_rom);
+    ret = cs40l26_trigger(&cs40l26_driver, waveform, bank);
+
+    return ret;
+}
+
+uint32_t bsp_dut_buzzgen_set(uint16_t freq, uint16_t level,
+                             uint16_t duration, uint8_t buzzgen_num)
+{
+    uint32_t ret = BSP_STATUS_OK;
+
+    ret = cs40l26_buzzgen_set(&cs40l26_driver, freq, level, duration, buzzgen_num);
 
     return ret;
 }

@@ -1,7 +1,7 @@
 /**
- * @file sdk_version.h
+ * @file bsp_dut.h
  *
- * @brief Alt-OS SDK version literals
+ * @brief Functions and prototypes exported by the BSP module for the cs35l56 platform.
  *
  * @copyright
  * Copyright (c) Cirrus Logic 2022 All Rights Reserved, http://www.cirrus.com/
@@ -20,8 +20,8 @@
  *
  */
 
-#ifndef SDK_VERSION_H
-#define SDK_VERSION_H
+#ifndef HW_0_BSP_DUT_H
+#define HW_0_BSP_DUT_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -30,31 +30,14 @@ extern "C" {
 /***********************************************************************************************************************
  * INCLUDES
  **********************************************************************************************************************/
+#include "bsp_driver_if.h"
+#include "cs40l50_ext.h"
+#include <stdbool.h>
 
 /***********************************************************************************************************************
  * LITERALS & CONSTANTS
  **********************************************************************************************************************/
-
-/**
- * @defgroup SDK_VERSION_
- * @brief Defines for the release version of the SDK
- *
- * @details
- * Versions for the SDK are defined as:
- * - Major - The interface of the firmware or module has changed in a way that breaks backwards compatibility. This
- * means that the module will not work as before if the old interface is used.
- * - Minor - The interface of the firmware or module has changed, but not in a way that breaks backwards compatibility.
- * This means that the module will work as before if the old interface is used.
- * - Update - The function has changed without changing the interface, for instance for a bug fix.
- *
- * @{
- */
-#define SDK_VERSION_MAJOR       (4) ///< Release Major version
-#define SDK_VERSION_MINOR       (17) ///< Release Minor version
-#define SDK_VERSION_UPDATE      (0) ///< Release Update version
-#define SDK_GIT_SHA             ("1762c292077e4a79245c06eeb95c50d8485b688e") ///< Release Git SHA
-/** @} */
-
+#define BSP_DUT_I2C_ADDRESS_8BIT                            (0x60)
 
 /***********************************************************************************************************************
  * MACROS
@@ -71,10 +54,19 @@ extern "C" {
 /***********************************************************************************************************************
  * API FUNCTIONS
  **********************************************************************************************************************/
+uint32_t bsp_dut_initialize(void);
+uint32_t bsp_dut_reset(void);
+uint32_t bsp_dut_boot(void);
+uint32_t bsp_dut_process(void);
+uint32_t bsp_dut_calibrate(void);
+uint32_t bsp_dut_set_click_compensation(bool f0_enable, bool redc_enable);
+uint32_t bsp_dut_trigger_haptic(uint8_t waveform, cs40l50_wavetable_bank_t bank);
+uint32_t bsp_dut_trigger_rth_pwle(bool is_simple, rth_pwle_section_t **pwle_data, uint8_t num_sections, uint8_t repeat);
+uint32_t bsp_dut_trigger_rth_pcm(uint8_t *pcm_data, uint32_t num_sections, uint16_t buffer, uint16_t f0, uint16_t redc);
 
 /**********************************************************************************************************************/
 #ifdef __cplusplus
 }
 #endif
 
-#endif // SDK_VERSION_H
+#endif // HW_0_BSP_DUT_H

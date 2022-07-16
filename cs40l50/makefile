@@ -1,6 +1,6 @@
 ##############################################################################
 #
-# Makefile for CS47L63 Alt-OS driver
+# Makefile for CS40L50 Alt-OS driver
 #
 ##############################################################################
 # Licensed under the Apache License, Version 2.0 (the License); you may
@@ -28,83 +28,64 @@ REPO_PATH = $(abspath ../)
 include $(REPO_PATH)/common/common.mk
 
 # Assign paths and variables
-PART_NUM = cs47l63
+PART_NUM = cs40l50
 $(eval $(call assign_paths))
-PLATFORM_TARGETS = system_test baremetal freertos
+PLATFORM_TARGETS = system_test baremetal freertos blackstar
 VALID_TARGETS = unit_test $(PLATFORM_TARGETS)
 $(eval $(call eval_targets))
 $(eval $(call eval_optimization_level))
 
 # Include platform_bsp.mk
 ifdef IS_NOT_UNIT_TEST
-    PLATFORM=eestm32int
+    ifeq ($(MAKECMDGOALS), blackstar)
+        PLATFORM=blackstar
+    else
+        PLATFORM=eestm32int
+    endif
     include $(REPO_PATH)/common/platform_bsp/platform_bsp.mk
 endif
 
 # Assign firmware and configuration script variables
-HALO_FIRMWARE_FILE = shelleypassthru_HALO.wmfw
 WISCE_SCRIPT = $(CONFIG_PATH)/wisce_init.txt
+MISC_SCRIPTS = hwt_to_waveform_converter
 
 # Assign toolchain and toolchain flags
 $(eval $(call assign_toolchain))
 $(eval $(call assign_toolchain_flags))
 ifdef IS_NOT_UNIT_TEST
-    ifndef CONFIG_USE_MULTICHANNEL_UART
-        CONFIG_USE_MULTICHANNEL_UART = 1
-    endif
-    ifeq ($(CONFIG_USE_MULTICHANNEL_UART), 1)
-        CFLAGS += -DCONFIG_USE_MULTICHANNEL_UART
-    endif
-
-    ifeq ($(CONFIG_USE_VREGMAP), 1)
-        CFLAGS += -DCONFIG_USE_VREGMAP
-    	CFLAGS += -DSYS_ID=47630101
-    else
-    	CFLAGS += -DSYS_ID=47630100
-	endif
-
-    # Optional ADC patch
-    ifeq ($(CONFIG_ADC_STANDARD_MODE), 1)
-        CFLAGS += -DCS47L63_ADC_STANDARD_MODE
-    endif
+    CFLAGS += -DCONFIG_USE_MULTICHANNEL_UART
 
     ifeq ($(SEMIHOSTING), 1)
         CFLAGS += -DSEMIHOSTING
     endif
+
 endif
 
 # Assign sources and includes for driver library
-DRIVER_SRCS = $(DRIVER_PATH)/cs47l63.c
-DRIVER_SRCS += $(CONFIG_PATH)/cs47l63_syscfg_regs.c
+DRIVER_SRCS = $(DRIVER_PATH)/cs40l50.c
+DRIVER_SRCS += $(CONFIG_PATH)/cs40l50_syscfg_regs.c
 DRIVER_SRCS += $(COMMON_PATH)/fw_img.c
 DRIVER_SRCS += $(COMMON_PATH)/regmap.c
-DRIVER_SRCS += $(DRIVER_PATH)/cs47l63_ext.c
+DRIVER_SRCS += $(DRIVER_PATH)/cs40l50_ext.c
 INCLUDES += -I$(HALO_FIRMWARE_PATH)
+DRIVER_SRCS += $(DRIVER_PATH)/waveforms.c
 
 # Assign sources and includes for target project build
 $(eval $(call assign_sources_includes))
 C_SRCS += $(APP_PATH)/main.c
 ifeq ($(MAKECMDGOALS), unit_test)
-    C_SRCS += $(APP_PATH)/test_cs47l63.c
+    C_SRCS += $(APP_PATH)/test_cs40l50.c
     C_SRCS += $(APP_PATH)/mock_bsp.c
 
     ADD_OBJ_RULES = add_unit_test_obj_rules
 else ifdef IS_NOT_UNIT_TEST
-    C_SRCS += $(DRIVER_PATH)/bsp/bsp_cs47l63.c
-    C_SRCS += $(HALO_FIRMWARE_PATH)/cs47l63_fw_img.c
+    C_SRCS += $(DRIVER_PATH)/bsp/bsp_cs40l50.c
 
     ifeq ($(MAKECMDGOALS), system_test)
-        C_SRCS += $(APP_PATH)/test_cs47l63.c
-    endif
-    C_SRCS += $(COMMON_PATH)/bridge/bridge.c
-
-    ifeq ($(CONFIG_USE_VREGMAP), 1)
-        C_SRCS += $(DRIVER_PATH)/bsp/vregmap.c
+        C_SRCS += $(APP_PATH)/test_cs40l50.c
     endif
 
     INCLUDES += -I$(DRIVER_PATH)/bsp
-    INCLUDES += -I$(HALO_FIRMWARE_PATH)
-    INCLUDES += -I$(COMMON_PATH)/bridge
 
     ADD_OBJ_RULES = add_platform_obj_rules
 endif
@@ -113,12 +94,12 @@ endif
 $(eval $(call assign_objs))
 $(eval $(call assign_build_paths))
 
-# Assign paths to include/exclude for Bullseye builds
+# Assign bullseye vars (if a bullseye build)
 $(eval $(call add_bullseye_vars))
-BULLSEYE_INCLUDE_PATHS = $(DRIVER_PATH)/
-BULLSEYE_EXCLUDE_PATHS = $(DRIVER_PATH)/bsp/
-BULLSEYE_EXCLUDE_PATHS += $(DRIVER_PATH)/unit_test/
-BULLSEYE_EXCLUDE_PATHS += $(DRIVER_PATH)/system_test/
+BULLSEYE_INCLUDE_PATHS += $(REPO_PATH)/cs40l50/
+BULLSEYE_EXCLUDE_PATHS += $(REPO_PATH)/cs40l50/bsp/
+BULLSEYE_EXCLUDE_PATHS += $(REPO_PATH)/cs40l50/unit_test/
+BULLSEYE_EXCLUDE_PATHS += $(REPO_PATH)/cs40l50/system_test/
 
 # Print out make variables
 $(if $(filter-out clean, $(MAKECMDGOALS)), $(eval $(call print_vars, MAKE_PRE_SESSION_GLOBALS, $(MAKE_PRE_SESSION_GLOBALS))))
@@ -137,23 +118,23 @@ $(eval $(call add_build_dir_rules, $(BUILD_DIR), $(BUILD_PATHS)))
 $(eval $(call add_bullseye_rules, $(BULLSEYE_INCLUDE_PATHS), $(BULLSEYE_EXCLUDE_PATHS)))
 
 # Code generation rules
-$(eval $(call add_wisce_script_rule,cs47l63))
+$(eval $(call add_wisce_script_rule,cs40l50))
 
 .NOTPARALLEL: firmware_converter
 firmware_converter:
 	@echo -------------------------------------------------------------------------------
-	@echo GENERATING cs47l63_fw_img
-ifeq ($(call WMFW_CHECK,$(HALO_FIRMWARE_PATH)/$(HALO_FIRMWARE_FILE)),)
-	@echo Running firmware_converter for $(HALO_FIRMWARE_FILE)
-	cd $(HALO_FIRMWARE_PATH) && python3 ../../tools/firmware_converter/firmware_converter.py fw_img_v2 cs47l63 $(HALO_FIRMWARE_FILE) --sym-input $(CONFIG_PATH)/cs47l63_sym.h --generic-sym
-else
-	@echo Not running firmware_converter for $(HALO_FIRMWARE_FILE) \(missing file\)
-endif
+	@echo GENERATING cs40l50_fw_img
+#cd $(HALO_FIRMWARE_PATH) && python3 ../../tools/firmware_converter/firmware_converter.py fw_img_v2 cs40l50 $(HALO_FIRMWARE_FILE) --sym-input $(CONFIG_PATH)/cs40l50_sym.h
+
+hwt_to_waveform_converter:
+	@echo -------------------------------------------------------------------------------
+	@echo GENERATING waveforms
+	cd $(DRIVER_PATH) && python3 ../tools/hwt_to_waveform/hwt_to_waveform_converter.py waveforms.hwt
 
 # Compilation rules
 $(eval $(call $(ADD_OBJ_RULES), $(OBJS)))
-$(eval $(call add_driver_obj_rules, $(DRIVER_OBJS)))
-$(eval $(call add_asm_obj_rules, $(ASM_OBJS)))
+$(eval $(call add_driver_obj_rules))
+$(eval $(call add_asm_obj_rules))
 $(eval $(call add_driver_library_rule))
 
 # Final target rules
@@ -168,25 +149,18 @@ print_targets:
 	@echo       freertos
 	@echo       system_test
 	@echo       unit_test
+	@echo       blackstar
 	@echo
 	@echo Valid command line variables:
 	@echo		BULLSEYE=0	\(will disable Bullseye coverage\)
 	@echo		BULLSEYE=1	\(will enable Bullseye coverage\)
-	@echo
-	@echo       CONFIG_USE_VREGMAP=0 \(will disable bridge vregmap\)
-	@echo       CONFIG_USE_VREGMAP=1 \(will enable bridge vregmap\)
-	@echo
-	@echo       CONFIG_ADC_STANDARD_MODE=0 \(do not program the device for Standard Mode ADC Support\)
-	@echo       CONFIG_ADC_STANDARD_MODE=1 \(program the device for Standard Mode ADC Support\)
-	@echo
-	@echo       CONFIG_USE_MULTICHANNEL_UART=0 \(disable multichannel UART comms needed by smcio.py\)
-	@echo       CONFIG_USE_MULTICHANNEL_UART=1 \(\(default\) enable multichannel UART comms needed by smcio.py\)
 	@echo
 	@echo       OPTIMIZATION_LEVEL=0    \(configure for -O0 optimization level\)
 	@echo       OPTIMIZATION_LEVEL=1    \(configure for -O1 optimization level\)
 	@echo       OPTIMIZATION_LEVEL=2    \(configure for -O2 optimization level\)
 	@echo       OPTIMIZATION_LEVEL=3    \(configure for -O3 optimization level\)
 	@echo       OPTIMIZATION_LEVEL=s    \(configure for -Os optimization level\)
+	@echo
 
 clean:
 	$(RM) $(BUILD_DIR)

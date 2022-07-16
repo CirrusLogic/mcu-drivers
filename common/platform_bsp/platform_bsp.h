@@ -91,7 +91,7 @@ extern "C" {
 #define BSP_GPIO_ID_LD2                 (0)
 
 #ifndef BSP_DUT_I2C_ADDRESS_8BIT
-#define BSP_DUT_I2C_ADDRESS_8BIT (0x80)
+#define BSP_DUT_I2C_ADDRESS_8BIT (0x60)
 #endif
 
 /* Commands available for AT25SL128A EEPROM on RevB interposer */

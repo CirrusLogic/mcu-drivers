@@ -46,8 +46,6 @@ ifdef IS_NOT_UNIT_TEST
 endif
 
 # Assign firmware and configuration script variables
-HALO_FIRMWARE_WMDR =
-
 ifeq ($(CONFIG_8K_I2S), 1)
 ifeq ($(CONFIG_EXT_BOOST), 1)
 $(error Configuration CONFIG_8K_I2S not compatible with CONFIG_EXT_BOOST!)
@@ -209,8 +207,18 @@ $(eval $(call add_wisce_script_rule,cs40l25))
 firmware_converter:
 	@echo -------------------------------------------------------------------------------
 	@echo GENERATING cs40l25_fw_img
-	cd $(HALO_FIRMWARE_PATH) && python3 ../../tools/firmware_converter/firmware_converter.py fw_img_v2 cs40l25 $(HALO_FIRMWARE_FILE) --sym-input ../config/cs40l25_sym.h --generic-sym $(HALO_FIRMWARE_WMDR)
+ifeq ($(call WMFW_CHECK,$(HALO_FIRMWARE_PATH)/$(HALO_FIRMWARE_FILE)),)
+	@echo Running firmware_converter for $(HALO_FIRMWARE_FILE)
+	cd $(HALO_FIRMWARE_PATH) && python3 ../../tools/firmware_converter/firmware_converter.py fw_img_v2 cs40l25 $(HALO_FIRMWARE_FILE) --sym-input ../config/cs40l25_sym.h --generic-sym
+else
+	@echo Not running firmware_converter for $(HALO_FIRMWARE_FILE) \(missing file\)
+endif
+ifeq ($(call WMFW_CHECK,$(HALO_FIRMWARE_PATH)/$(HALO_CAL_FIRMWARE_FILE)),)
+	@echo Running firmware_converter for $(HALO_CAL_FIRMWARE_FILE)
 	cd $(HALO_FIRMWARE_PATH) && python3 ../../tools/firmware_converter/firmware_converter.py fw_img_v2 cs40l25 $(HALO_CAL_FIRMWARE_FILE) --suffix cal --sym-input ../config/cs40l25_cal_sym.h --generic-sym
+else
+	@echo Not running firmware_converter for $(HALO_CAL_FIRMWARE_FILE) \(missing file\)
+endif
 
 # Compilation rules
 $(eval $(call $(ADD_OBJ_RULES), $(OBJS)))

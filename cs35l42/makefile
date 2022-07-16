@@ -121,8 +121,21 @@ $(eval $(call add_wisce_script_rule,cs35l42))
 firmware_converter:
 	@echo -------------------------------------------------------------------------------
 	@echo GENERATING cs35l42_fw_img
+ifeq ($(call WMFW_CHECK,$(HALO_FIRMWARE_PATH)/$(HALO_FIRMWARE_FILE)),)
+	@echo Running firmware_converter for $(HALO_FIRMWARE_FILE)
 	cd $(HALO_FIRMWARE_PATH) && python3 ../../tools/firmware_converter/firmware_converter.py fw_img_v2 cs35l42 $(HALO_FIRMWARE_FILE) --sym-input $(CONFIG_PATH)/cs35l42_sym.h
+else
+	@echo Not running firmware_converter for $(HALO_FIRMWARE_FILE) \(missing file\)
+endif
+ifeq ($(call WMFW_CHECK,$(HALO_FIRMWARE_PATH)/$(HALO_FIRMWARE_FILE)),)
+ifeq ($(call WMFW_CHECK,$(HALO_FIRMWARE_PATH)/$(HALO_CAL_FIRMWARE_WMDR)),)
 	cd $(HALO_FIRMWARE_PATH) && python3 ../../tools/firmware_converter/firmware_converter.py fw_img_v2 cs35l42 $(HALO_FIRMWARE_FILE) --suffix cal --sym-input $(CONFIG_PATH)/cs35l42_sym.h --exclude-wmfw --wmdr $(HALO_CAL_FIRMWARE_WMDR)
+else
+	@echo Not running firmware_converter for $(HALO_CAL_FIRMWARE_WMDR) \(missing file\)
+endif
+else
+	@echo Not running firmware_converter for $(HALO_FIRMWARE_FILE) \(missing file\)
+endif
 
 # Compilation rules
 $(eval $(call $(ADD_OBJ_RULES), $(OBJS)))

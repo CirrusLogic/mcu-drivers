@@ -58,13 +58,16 @@ extern "C" {
  **********************************************************************************************************************/
 uint32_t bsp_dut_initialize(void);
 uint32_t bsp_dut_reset(void);
-uint32_t bsp_dut_boot();
+uint32_t bsp_dut_pre_boot(void);
+uint32_t bsp_dut_boot(bool cal_boot);
 uint32_t bsp_dut_calibrate(void);
 uint32_t bsp_dut_power_up(void);
 uint32_t bsp_dut_power_down(void);
 uint32_t bsp_dut_hibernate(void);
 uint32_t bsp_dut_wake(void);
-uint32_t bsp_dut_trigger_haptic(uint8_t waveform, bool is_rom);
+uint32_t bsp_dut_trigger_haptic(uint8_t waveform, cs40l26_wavetable_bank_t bank);
+uint32_t bsp_dut_buzzgen_set(uint16_t freq, uint16_t level,
+                             uint16_t duration, uint8_t buzzgen_num);
 uint32_t bsp_dut_trigger_rth_pwle(bool is_simple, rth_pwle_section_t **pwle_data, uint8_t num_sections, uint8_t repeat);
 uint32_t bsp_dut_trigger_rth_pcm(uint8_t *pcm_data, uint32_t num_sections, uint16_t buffer, uint16_t f0, uint16_t redc);
 uint32_t bsp_dut_has_processed(bool *has_processed);

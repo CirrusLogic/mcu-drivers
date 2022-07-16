@@ -3,6 +3,26 @@ Release Notes
 
 =============================================================================
 Summary:
+This is the release of Alt-OS Driver SDK v4.17.0
+Date: 2022/07/16
+
+Architectures/Compilers Used:
+GNU Arm Embedded Toolchain: arm-none-eabi-gcc -mcpu=cortex-m4
+
+New Features/Changes:
+[SQA-2028] Added cs40l50 driver
+[SQA-2649] Added hwt_to_waveform_converter to convert .hwt to .c and .h files
+[SQA-2610] common: Add better warning for missing firmware files
+[SQA-2704] firmware_converter - Add CS47L24 support
+[SQA-2461] cs40l26: Added buzzgen api
+[DRV-5704] cs40l26: Reading ROM w/ RAM wavetable
+[SQA-2460] cs40l26: Added events to handler.
+
+Fixed Bugs:
+
+=============================================================================
+=============================================================================
+Summary:
 This is the release of Alt-OS Driver SDK v4.16.0
 Date: 2022/06/24
 
