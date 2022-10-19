@@ -72,10 +72,21 @@ extern "C" {
 // DYNAMIC_F0
 #define CS40L26_SYM_DYNAMIC_F0_DYNAMIC_F0_ENABLED                   (0x5e)
 #define CS40L26_SYM_DYNAMIC_F0_DYN_F0_TABLE                         (0x62)
+// GPIO
+#define CS40L26_SYM_GPIO_GPI_ENABLE_BITMASK                         (0x160)
+#define CS40L26_SYM_GPIO_GPO_ENABLE_BITMASK                         (0x161)
 // PM
 #define CS40L26_SYM_PM_PM_TIMER_TIMEOUT_TICKS                       (0x276)
 #define CS40L26_SYM_PM_PM_CUR_STATE                                 (0x277)
 #define CS40L26_SYM_PM_POWER_ON_SEQUENCE                            (0x231)
+// MAILBOX
+#define CS40L26_SYM_MAILBOX_QUEUE_BASE                              (0x176)
+#define CS40L26_SYM_MAILBOX_QUEUE_LEN                               (0x177)
+#define CS40L26_SYM_MAILBOX_QUEUE_WT                                (0x178)
+#define CS40L26_SYM_MAILBOX_QUEUE_RD                                (0x179)
+#define CS40L26_SYM_MAILBOX_STATUS                                  (0x17a)
+// FW_RAM_EXT
+#define CS40L26_SYM_FW_RAM_EXT_GPI_PMIC_MUTE_ENABLE                 (0x18a)
 /** @} */
 
 /**********************************************************************************************************************/

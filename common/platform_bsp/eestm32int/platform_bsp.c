@@ -3215,6 +3215,9 @@ uint32_t bsp_register_gpio_cb(uint32_t gpio_id, bsp_callback_t cb, void *cb_arg)
             }
             break;
 
+        case BSP_GPIO_ID_NULL:
+            break;
+
         default:
             return BSP_STATUS_FAIL;
     }

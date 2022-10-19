@@ -32,6 +32,10 @@ extern "C" {
  **********************************************************************************************************************/
 #include "bsp_driver_if.h"
 #include <stdbool.h>
+#include "platform_bsp.h"
+#include "cs35l42.h"
+#include "cs35l42_fw_img.h"
+#include "cs35l42_cal_fw_img.h"
 
 /***********************************************************************************************************************
  * LITERALS & CONSTANTS
@@ -55,7 +59,10 @@ extern "C" {
  **********************************************************************************************************************/
 uint32_t bsp_dut_initialize(void);
 uint32_t bsp_dut_reset(void);
-uint32_t bsp_dut_boot(void);
+uint32_t bsp_dut_boot(cs35l42_t *driver,
+                      fw_img_boot_state_t *boot_state,
+                      const uint8_t *fw_img,
+                      bool is_wmdr_only);
 uint32_t bsp_dut_power_up(void);
 uint32_t bsp_dut_power_down(void);
 uint32_t bsp_dut_hibernate(void);

@@ -23,6 +23,7 @@
  * INCLUDES
  **********************************************************************************************************************/
 #include <stddef.h>
+#include <stdio.h>
 #include "cs40l26_ext.h"
 #include "bsp_driver_if.h"
 
@@ -80,6 +81,77 @@ cs40l26_pwle_short_section_t pwle_short_default =
 /***********************************************************************************************************************
  * LOCAL FUNCTIONS
  **********************************************************************************************************************/
+
+/***********************************************************************************************************************
+ * API FUNCTIONS
+ **********************************************************************************************************************/
+
+uint32_t cs40l26_mailbox_queue_handler(cs40l26_t *driver)
+{
+    uint32_t ret;
+    uint32_t val;
+    uint32_t rd;
+    uint32_t wt;
+    uint32_t count = 0;
+    uint32_t rd_sym, wt_sym;
+    regmap_cp_config_t *cp = REGMAP_GET_CP(driver);
+
+    if (driver->is_cal_boot)
+    {
+        rd_sym = CS40L26_CAL_SYM_MAILBOX_QUEUE_RD;
+        wt_sym = CS40L26_CAL_SYM_MAILBOX_QUEUE_WT;
+    }
+    else
+    {
+        rd_sym = CS40L26_SYM_MAILBOX_QUEUE_RD;
+        wt_sym = CS40L26_SYM_MAILBOX_QUEUE_WT;
+    }
+    do
+    {
+        if (count > CS40L26_MAILBOX_QUEUE_MAX_LEN)
+        {
+            return CS40L26_STATUS_FAIL;
+        }
+
+        ret = regmap_read_fw_control(cp, driver->fw_info, rd_sym, &rd);
+        if (ret)
+        {
+            return ret;
+        }
+        ret = regmap_read(cp, rd, &val);
+        if (ret)
+        {
+            return ret;
+        }
+
+        driver->mailbox_queue[count] = val;
+
+        if ((rd + 4) <= CS40L26_DSP_MBOX_8)
+        {
+            rd += 4;
+        }
+        else
+        {
+            rd = CS40L26_DSP_MBOX_2;
+        }
+        ret = regmap_write_fw_control(cp, driver->fw_info, rd_sym, rd);
+        if (ret)
+        {
+            return ret;
+        }
+
+        ret = regmap_read_fw_control(cp, driver->fw_info, wt_sym, &wt);
+        if (ret)
+        {
+            return ret;
+        }
+
+        count++;
+        // rd == wt: all messages read
+    } while (rd != wt);
+
+    return CS40L26_STATUS_OK;
+}
 
 /**
  * Enable the HALO FW Dynamic F0 Algorithm
@@ -292,7 +364,7 @@ uint32_t cs40l26_pack_pcm_data(regmap_cp_config_t *cp, int index, uint32_t *word
         break;
     };
 
-    return 0;
+    return CS40L26_STATUS_FAIL;
 }
 
 uint32_t cs40l26_trigger_pcm(cs40l26_t *driver, uint8_t *s, uint32_t num_sections, uint16_t buffer_size_samples, uint16_t f0, uint16_t redc)
@@ -360,4 +432,22 @@ uint32_t cs40l26_trigger_pcm(cs40l26_t *driver, uint8_t *s, uint32_t num_section
 
     }
     return ret;
+}
+
+uint32_t cs40l26_gpi_pmic_mute_enable(cs40l26_t *driver, bool enable)
+{
+    return regmap_update_fw_control(REGMAP_GET_CP(driver),
+                                    driver->fw_info,
+                                    CS40L26_SYM_FW_RAM_EXT_GPI_PMIC_MUTE_ENABLE,
+                                    CS40L26_GPI_PMIC_MUTE_ENABLE_MASK,
+                                    enable);
+}
+
+uint32_t cs40l26_gpi_pmic_mute_configure(cs40l26_t *driver, uint8_t gpi, bool level)
+{
+    return regmap_update_fw_control(REGMAP_GET_CP(driver),
+                                    driver->fw_info,
+                                    CS40L26_SYM_FW_RAM_EXT_GPI_PMIC_MUTE_ENABLE,
+                                    CS40L26_GPI_PMIC_MUTE_GPI_LEVEL_MASK,
+                                    (gpi << CS40L26_GPI_PMIC_MUTE_GPI_SHIFT) | (level << CS40L26_GPI_PMIC_MUTE_LEVEL_SHIFT));
 }

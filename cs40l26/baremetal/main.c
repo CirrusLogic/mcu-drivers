@@ -85,7 +85,9 @@ int main(void)
 
     while (1)
     {
+        bsp_dut_wake();
         bsp_dut_process();
+        bsp_dut_hibernate();
 
         if (bsp_was_pb_pressed(BSP_PB_ID_USER))
         {
@@ -99,13 +101,27 @@ int main(void)
                 {
                     bsp_dut_reset();
                     bsp_dut_boot(false);
+                    bsp_dut_configure_gpi(2);
+                    bsp_dut_configure_gpi_mute(2, 1);
+                    bsp_dut_enable_gpi_mute(1);
                     bsp_dut_buzzgen_set(0x100, 0x32, 200, 1);
                     bsp_dut_trigger_haptic(1, BUZZ_BANK);
-                    bsp_set_timer(1000, NULL, NULL);
+                    do
+                    {
+                        bsp_dut_process();
+                    } while (bsp_processing_haptic);
                     bsp_dut_buzzgen_set(0x100, 0x32, 20, 2);
                     bsp_dut_trigger_haptic(2, BUZZ_BANK);
-                    bsp_set_timer(300, NULL, NULL);
+                    do
+                    {
+                        bsp_dut_process();
+                    } while (bsp_processing_haptic);
                     bsp_dut_trigger_haptic(3, RAM_BANK);
+                    do
+                    {
+                        bsp_dut_process();
+                    } while (bsp_processing_haptic);
+                    bsp_dut_enable_gpi_mute(0);
                     bsp_dut_hibernate();
                     app_state++;
                 }

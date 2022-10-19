@@ -1,0 +1,38 @@
+<?xml version="1.0"?>
+<!--============================================================================
+== @file cs40l26_altos_bridge.xml
+==
+== @brief System description for SoundClear Studio bridge example for CS40L26
+==
+== @copyright
+== Copyright (c) Cirrus Logic 2022 All Rights Reserved, http://www.cirrus.com/
+==
+== Licensed under the Apache License, Version 2.0 (the License); you may
+== not use this file except in compliance with the License.
+== You may obtain a copy of the License at
+==
+== www.apache.org/licenses/LICENSE-2.0
+==
+== Unless required by applicable law or agreed to in writing, software
+== distributed under the License is distributed on an AS IS BASIS, WITHOUT
+== WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+== See the License for the specific language governing permissions and
+== limitations under the License.
+==
+=============================================================================
+-->
+<SCSSystem>
+  <BoardHardwareID>40260100</BoardHardwareID>
+  <Name>cs40l26_altos_bridge</Name>
+  <ReadableName>cs40l26_altos_bridge</ReadableName>
+  <Devices>
+    <Device>
+      <Type>CS40L26</Type>
+      <Name>CS40L26-1</Name>
+      <DeviceRevision/>
+      <DefinitionPath></DefinitionPath>
+      <ControlInterface>I2C</ControlInterface>
+      <DeviceAddress>0x80</DeviceAddress>
+    </Device>
+  </Devices>
+</SCSSystem>

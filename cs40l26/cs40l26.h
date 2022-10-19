@@ -34,6 +34,7 @@ extern "C" {
 #include <stdbool.h>
 #include "fw_img.h"
 #include "cs40l26_sym.h"
+#include "cs40l26_cal_sym.h"
 #include "cs40l26_spec.h"
 #include "cs40l26_syscfg_regs.h"
 #include "regmap.h"
@@ -101,9 +102,10 @@ extern "C" {
  */
 #define CS40L26_EVENT_FLAG_DSP_ERROR                    (1 << 31)
 #define CS40L26_EVENT_FLAG_STATE_ERROR                  (1 << 30)
-#define CS40L26_EVENT_FLAG_BST_ERROR                    (1 << 18)
-#define CS40L26_EVENT_FLAG_TEMP_ERROR                   (1 << 24)
+#define CS40L26_EVENT_FLAG_DSP_VIRTUAL2_MBOX            (1 << 29)
 #define CS40L26_EVENT_FLAG_AMP_ERROR                    (1 << 27)
+#define CS40L26_EVENT_FLAG_TEMP_ERROR                   (1 << 24)
+#define CS40L26_EVENT_FLAG_BST_ERROR                    (1 << 18)
 #define CS40L26_EVENT_FLAG_WKSRC_CP                     (1 << 1)
 #define CS40L26_EVENT_FLAG_WKSRC_GPIO                   (1 << 0)
 /** @} */
@@ -138,10 +140,14 @@ extern "C" {
 /**
  *  Minimum firmware version that will be accepted by the boot function
  */
-#define CS40L26_MIN_FW_VERSION     (0x70223)
-#define CS40L26_CAL_MIN_FW_VERSION (0x1011B)
-#define CS40L26_WT_ONLY            (0x12345)
+#define CS40L26_MIN_FW_VERSION                           (0x70223)
+#define CS40L26_CAL_MIN_FW_VERSION                       (0x1011B)
+#define CS40L26_WT_ONLY                                  (0x12345)
 
+/**
+ *  Maximum length of mailbox queue
+ */
+#define CS40L26_MAILBOX_QUEUE_MAX_LEN                    (7)
 /***********************************************************************************************************************
  * MACROS
  **********************************************************************************************************************/
@@ -200,25 +206,25 @@ typedef struct
     uint32_t redc;      ///< Encoded DC resistance (ReDC) determined by Calibration procedure.
 } cs40l26_calibration_t;
 
-  /**
-   * Entries used to write address value pairs to POWERONSEQUENCE.
-   *
-   * Write sequencer currently supports 4 V2 commands:
-   *
-   * WRITE_REG_FULL
-   * WRITE_REG_ADDR8
-   * WRITE_REG_L16
-   * WRITE_REG_H16
-   *
-   */
-  typedef struct
-  {
+/**
+* Entries used to write address value pairs to POWERONSEQUENCE.
+*
+* Write sequencer currently supports 4 V2 commands:
+*
+* WRITE_REG_FULL
+* WRITE_REG_ADDR8
+* WRITE_REG_L16
+* WRITE_REG_H16
+*
+*/
+typedef struct
+{
     uint32_t operation;
     uint32_t size;
     uint32_t offset;
     uint32_t address;
     uint32_t value;
-  } cs40l26_wseq_entry_t;
+} cs40l26_wseq_entry_t;
 
 /**
  * Configuration parameters required for calls to BSP-Driver Interface
@@ -263,7 +269,9 @@ typedef struct
     uint32_t revid;             ///< CS40L26 REVID of current device
     cs40l26_config_t config;    ///< Driver configuration fields - see cs40l26_config_t
     fw_img_info_t *fw_info;     ///< Current HALO FW/Coefficient boot configuration
+    bool is_cal_boot;           ///< Mark for calibration firmware
     uint32_t event_flags;       ///< Most recent event_flags reported to BSP Notification callback
+    uint32_t mailbox_queue[CS40L26_MAILBOX_QUEUE_MAX_LEN];
 } cs40l26_t;
 
 /***********************************************************************************************************************

@@ -42,35 +42,35 @@ extern "C" {
  */
 #define CS40L26_DYNAMIC_F0_TABLE_ENTRY_DEFAULT  (0x007FE000)
 
-#define WF_LENGTH_DEFAULT            (0x3FFFFF)
-#define PWLS_MS4                     (0)
-#define WAIT_TIME_DEFAULT            (0)
-#define REPEAT_DEFAULT               (0)
-#define LEVEL_MS4                    (0)
-#define TIME_DEFAULT                 (0)
-#define PWLS_LS4                     (0)
-#define EXT_FREQ_DEFAULT             (0)
-#define AMP_REG_DEFAULT              (0)
-#define BRAKING_DEFAULT              (0)
-#define CHIRP_DEFAULT                (0)
-#define FREQ_DEFAULT                 (0)
-#define LEVEL_LS8                    (0)
-#define VB_TAR_MS12                  (0)
-#define VB_TAR_LS4                   (0)
-#define LEVEL_DEFAULT                (0)
-#define LEVEL_MS8_DEFAULT            (0)
-#define LEVEL_LS4_DEFAULT            (0)
+#define WF_LENGTH_DEFAULT             (0x3FFFFF)
+#define PWLS_MS4                      (0)
+#define WAIT_TIME_DEFAULT             (0)
+#define REPEAT_DEFAULT                (0)
+#define LEVEL_MS4                     (0)
+#define TIME_DEFAULT                  (0)
+#define PWLS_LS4                      (0)
+#define EXT_FREQ_DEFAULT              (0)
+#define AMP_REG_DEFAULT               (0)
+#define BRAKING_DEFAULT               (0)
+#define CHIRP_DEFAULT                 (0)
+#define FREQ_DEFAULT                  (0)
+#define LEVEL_LS8                     (0)
+#define VB_TAR_MS12                   (0)
+#define VB_TAR_LS4                    (0)
+#define LEVEL_DEFAULT                 (0)
+#define LEVEL_MS8_DEFAULT             (0)
+#define LEVEL_LS4_DEFAULT             (0)
 
-#define PWLE_API_ENABLE              (0)
+#define PWLE_API_ENABLE               (0)
 
-#define WAV_LENGTH_DEFAULT           (0)
-#define DATA_LENGTH_DEFAULT          (0)
-#define F0_DEFAULT                   (0)
-#define SCALED_REDC_DEFAULT          (0)
+#define WAV_LENGTH_DEFAULT            (0)
+#define DATA_LENGTH_DEFAULT           (0)
+#define F0_DEFAULT                    (0)
+#define SCALED_REDC_DEFAULT           (0)
 
-#define CS40L26_PLAY_RTH             (0)
+#define CS40L26_PLAY_RTH              (0)
 
-#define CS40L26_RTH_TYPE_PCM         (0x8)
+#define CS40L26_RTH_TYPE_PCM          (0x8)
 
 /***********************************************************************************************************************
  * MACROS
@@ -254,6 +254,18 @@ typedef union
  **********************************************************************************************************************/
 
 /**
+ * Read all items waiting in mailbox queue
+ *
+ * @param [in/out] driver           Pointer to the driver state
+ *
+ * @return
+ * - CS40L26_STATUS_FAIL        if update of any HALO FW control fails
+ * - CS40L26_STATUS_OK          otherwise
+ *
+ */
+uint32_t cs40l26_mailbox_queue_handler(cs40l26_t *driver);
+
+/**
  * Enable the HALO FW Dynamic F0 Algorithm
  *
  * @param [in] driver           Pointer to the driver state
@@ -280,7 +292,7 @@ uint32_t cs40l26_set_dynamic_f0_enable(cs40l26_t *driver, bool enable);
  *
  * @return
  * - CS40L26_STATUS_FAIL
- *      - if any call to cs40l26_control fails
+ *      - if update of any HALO FW control fails
  *      - if the specified WaveTable index is >= 20
  * - CS40L26_STATUS_OK          otherwise
  *
@@ -292,6 +304,41 @@ uint32_t cs40l26_trigger_pwle(cs40l26_t *driver, rth_pwle_section_t **s);
 uint32_t cs40l26_trigger_pwle_advanced(cs40l26_t *driver, rth_pwle_section_t **s, uint8_t repeat, uint8_t num_sections);
 #endif
 uint32_t cs40l26_trigger_pcm(cs40l26_t *driver, uint8_t *s, uint32_t num_sections, uint16_t buffer_size_samples, uint16_t f0, uint16_t redc);
+
+/**
+ * Enable/disable GPI controlled mute functionality
+ *
+ * @param [in] driver           Pointer to the driver state
+ * @param [in] enable           Boolean value, 0 = disable, 1 = enable
+ *
+ * @return
+ * - CS40L26_STATUS_FAIL
+ *      - if update of any HALO FW control fails
+ * - CS40L26_STATUS_OK          otherwise
+ *
+ */
+uint32_t cs40l26_gpi_pmic_mute_enable(cs40l26_t *driver, bool enable);
+
+/**
+ * Configure GPI controlled mute functionality
+ *
+ * Configurable options:
+ *  - GPI to use; GPI_1=0, GPI2=1, GP3=2, GP4=3
+ *  - The active level. If the GPI level matches this then the amp output is muted. HIGH=1, LOW=0
+ *
+ * @param [in] driver           Pointer to the driver state
+ * @param [in] gpi              GPI to use
+ * @param [in] level            Level to mute
+ *
+ * @return
+ * - CS40L26_STATUS_FAIL
+ *      - if update of any HALO FW control fails
+ *      - if the specified GPI is > 3
+ * - CS40L26_STATUS_OK          otherwise
+ *
+ */
+uint32_t cs40l26_gpi_pmic_mute_configure(cs40l26_t *driver, uint8_t gpi, bool level);
+
 
 /**********************************************************************************************************************/
 #ifdef __cplusplus

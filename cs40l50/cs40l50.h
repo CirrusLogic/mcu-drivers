@@ -113,6 +113,13 @@ extern "C" {
 #define CS40L50_POLL_ACK_CTRL_MAX               (100)   ///< Maximum number of times to poll for ACKed memory writes
 /** @} */
 
+/**
+ *  Minimum firmware version that will be accepted by the boot function
+ */
+#define CS40L50_MIN_FW_VERSION     (0x70223)
+#define CS40L50_WT_ONLY            (0x12345)
+
+
 /***********************************************************************************************************************
  * MACROS
  **********************************************************************************************************************/
@@ -128,7 +135,8 @@ extern "C" {
  */
 typedef enum
 {
-    ROM_BANK      = 0
+    ROM_BANK      = 0,
+    RAM_BANK      = 1
 } cs40l50_wavetable_bank_t;
 
 /**
@@ -181,6 +189,7 @@ typedef struct
     uint32_t *syscfg_regs;                              ///< Pointer to array of configuration register/value pairs
     uint32_t syscfg_regs_total;                         ///< Total pairs in syscfg_regs[]
     cs40l50_calibration_t cal_data;     ///< Calibration data from previous calibration sequence
+    bool is_ext_bst;                    ///< Indicates whether the device is internal or external boost
 } cs40l50_config_t;
 
 /**
@@ -326,6 +335,18 @@ uint32_t cs40l50_boot(cs40l50_t *driver, fw_img_info_t *fw_info);
 uint32_t cs40l50_power(cs40l50_t *driver, uint32_t power_state);
 
 /**
+ * Sets the timeout ticks for hibernate.
+ *
+ * @param [in] driver           Pointer to the driver state
+ * @param [in] ms               Duration before hibernation when allowing hibernate
+ *
+ * @return
+ * - CS40L50_STATUS_FAIL        if any control port activity fails
+ * - CS40L50_STATUS_OK          otherwise
+ */
+uint32_t cs40l50_timeout_ticks_set(cs40l50_t *driver, uint32_t ms);
+
+/**
  * Calibrate the HALO Core DSP Protection Algorithm
  *
  * This performs the calibration procedure for Prince Haptic Control firmwares.
@@ -344,6 +365,30 @@ uint32_t cs40l50_power(cs40l50_t *driver, uint32_t power_state);
  *
  */
 uint32_t cs40l50_calibrate(cs40l50_t *driver);
+
+/**
+ * Sets a given ReDC value to the REDC_OTP_STORED register
+ *
+ * @param [in] driver               Pointer to the driver state
+ * @param [in] redc                 Value of ReDC to be written. In Q7.17 format and in units Ohm * 2.9/24
+ *
+ * @return
+ * - CS40L50_STATUS_FAIL        if writing the value fails
+ * - CS40L50_STATUS_OK          otherwise
+ */
+uint32_t cs40l50_set_redc(cs40l50_t *driver, uint32_t redc);
+
+/**
+ * Sets a given F0 value to the F0_OTP_STORED register
+ *
+ * @param [in] driver               Pointer to the driver state
+ * @param [in] f0                   Value of F0 to be written. In Q10.14 format and in units Hz
+ *
+ * @return
+ * - CS40L50_STATUS_FAIL        if writing the value fails
+ * - CS40L50_STATUS_OK          otherwise
+ */
+uint32_t cs40l50_set_f0(cs40l50_t *driver, uint32_t f0);
 
 /**
  * Trigger haptic effect

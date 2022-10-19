@@ -25,8 +25,8 @@
  *
  */
 
-#ifndef CS40L26_SYM_H
-#define CS40L26_SYM_H
+#ifndef CS40L26_CAL_SYM_H
+#define CS40L26_CAL_SYM_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -71,6 +71,12 @@ extern "C" {
 // DYNAMIC_F0
 #define CS40L26_CAL_SYM_DYNAMIC_F0_DYNAMIC_F0_ENABLED                   (0x5e)
 #define CS40L26_CAL_SYM_DYNAMIC_F0_DYN_F0_TABLE                         (0x62)
+// MAILBOX
+#define CS40L26_CAL_SYM_MAILBOX_QUEUE_BASE                              (0x17e)
+#define CS40L26_CAL_SYM_MAILBOX_QUEUE_LEN                               (0x17f)
+#define CS40L26_CAL_SYM_MAILBOX_QUEUE_WT                                (0x180)
+#define CS40L26_CAL_SYM_MAILBOX_QUEUE_RD                                (0x181)
+#define CS40L26_CAL_SYM_MAILBOX_STATUS                                  (0x182)
 // PM
 #define CS40L26_CAL_SYM_PM_PM_TIMER_TIMEOUT_TICKS                       (0x276)
 #define CS40L26_CAL_SYM_PM_PM_CUR_STATE                                 (0x277)
@@ -82,5 +88,5 @@ extern "C" {
 }
 #endif
 
-#endif // CS40L26_SYM_H
+#endif // CS40L26_CAL_SYM_H
 

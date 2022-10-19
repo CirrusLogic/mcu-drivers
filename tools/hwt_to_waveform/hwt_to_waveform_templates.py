@@ -1,5 +1,34 @@
+#==========================================================================
+# (c) 2022 Cirrus Logic, Inc.
+#--------------------------------------------------------------------------
+# Project : Templates for waveforms.c and .h files
+# File    : hwt_to_waveform_templates.py
+#--------------------------------------------------------------------------
+# Licensed under the Apache License, Version 2.0 (the License); you may
+# not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an AS IS BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#--------------------------------------------------------------------------
+#
+# Environment Requirements: None
+#
+#==========================================================================
+
+#==========================================================================
+# IMPORTS
+#==========================================================================
 import json
 
+#==========================================================================
+# CONSTANTS/GLOBALS
+#==========================================================================
 pwle_section_template_str = """static rth_pwle_section_t pwle_{pwle_num}_section{num} =
 {
     .duration = {duration},
@@ -32,7 +61,10 @@ uint8_t pcm_{pcm_num}_data[{num_samples}] =
 
 uint32_t pcm_{pcm_num}_data_size = {num_samples};
 """
-
+redc_factors = {
+    "cs40l26": 128/5.857,
+    "cs40l50": 128/8.275
+}
 #==========================================================================
 # CLASSES
 #==========================================================================
@@ -93,11 +125,16 @@ class f0:
             return output_str
 
 class redc:
-    def __init__(self, redc):
+    def __init__(self, redc, dev):
         self.output_str = ''
         self.redc = redc
+        self.dev = dev
     def __str__(self):
-        output_str = str(round((float(self.redc) / 5.857) * 128))
+        device = str(self.dev)
+        if redc_factors.get(device) is None:
+            exit('Unsupported device: ' + device)
+        else:
+            output_str = str(round((float(self.redc)*redc_factors[device])))
         return output_str
 
 class pcm_sample:
@@ -174,17 +211,18 @@ class pwle_section_list:
         return output_str
 
 class pcm_header:
-    def __init__(self, f0, redc, pcm_num):
+    def __init__(self, f0, redc, pcm_num, dev):
         self.template_str = pcm_f0_redc_template
         self.output_str = ''
         self.f0 = f0
         self.redc = redc
         self.pcm_num = pcm_num
+        self.dev = dev
     def __str__(self):
         output_str = self.template_str
         output_str = output_str.replace('{pcm_num}', str(self.pcm_num))
         output_str = output_str.replace('{f0}', str(f0(self.f0)))
-        output_str = output_str.replace('{redc}', str(redc(self.redc)))
+        output_str = output_str.replace('{redc}', str(redc(self.redc, self.dev)))
         return output_str
 
 class pcm_data:

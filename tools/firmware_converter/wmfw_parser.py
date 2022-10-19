@@ -467,10 +467,30 @@ class wmfw_coefficient_descriptor_data_block(wmfw_block):
     def __str__(self):
         return component_to_string(self, 'Coefficient Descriptor Data Block')
 
+
+def unpack_memory(bytestream, convert=False, from_mem_type='', to_mem_type=''):
+    new_word_list = []
+    new_bytes_list = list(bytestream.read())
+    temp = int(len(new_bytes_list) / 4)
+    for i in range(0, int(len(new_bytes_list) / 4)):
+        new_word = new_bytes_list[i * 4]
+        new_word = new_word << 8
+        new_word = new_word + new_bytes_list[i * 4 + 1]
+        new_word = new_word << 8
+        new_word = new_word + new_bytes_list[i * 4 + 2]
+        new_word = new_word << 8
+        new_word = new_word + new_bytes_list[i * 4 + 3]
+        new_word_list.append(new_word)
+
+    if convert:
+        return memory_type_converter(from_mem_type, to_mem_type, new_word_list)
+    else:
+        return new_word_list
+
+
 class halo_firmware_id_block:
 
-    def __init__(self, bytestream, memory_type):
-        self.stream_pos = bytestream.tell()
+    def __init__(self, memory_type):
         self.memory_type = memory_type
         self.fields = dict()
         self.fields['core_id'] = 0
@@ -494,25 +514,8 @@ class halo_firmware_id_block:
         new_bytestr = bytestream.read(3)
         return bytestr_to_int(new_bytestr, 3)
 
-    def unpack_memory(self, bytestream):
-        new_word_list = []
-        new_bytes_list = list(bytestream.read())
-        for i in range(0, int(len(new_bytes_list)/4)):
-            new_word = new_bytes_list[i * 4]
-            new_word = new_word << 8
-            new_word = new_word + new_bytes_list[i * 4 + 1]
-            new_word = new_word << 8
-            new_word = new_word + new_bytes_list[i * 4 + 2]
-            new_word = new_word << 8
-            new_word = new_word + new_bytes_list[i * 4 + 3]
-
-            new_word_list.append(new_word)
-
-        return memory_type_converter(self.memory_type, 'u24', new_word_list)
-
-
-    def parse(self, bytestream):
-        unpacked_word_list = self.unpack_memory(bytestream)
+    def parse(self, bytestream, fw_id_block_byte_len, next_block_bytestream):
+        unpacked_word_list = unpack_memory(bytestream, True, self.memory_type, 'u24')
         self.fields['core_id'] = unpacked_word_list[0]
         self.fields['format_version'] = unpacked_word_list[1]
         self.fields['vendor_id'] = unpacked_word_list[2]
@@ -523,19 +526,100 @@ class halo_firmware_id_block:
         self.fields['sys_config_mem_offsets']['ym_base'] = unpacked_word_list[7]
         self.fields['sys_config_mem_offsets']['ym_size'] = unpacked_word_list[8]
         self.fields['number_of_algorithms'] = unpacked_word_list[9]
-        for i in range(0, self.fields['number_of_algorithms']):
-            new_index = 10 + (i * 6)
-            new_info = dict()
-            new_info['algorithm_id'] = unpacked_word_list[new_index]
-            new_info['algorithm_version'] = unpacked_word_list[new_index + 1]
-            new_info['algorithm_offsets'] = dict()
-            new_info['algorithm_offsets']['xm_base'] = unpacked_word_list[new_index + 2]
-            new_info['algorithm_offsets']['xm_size'] = unpacked_word_list[new_index + 3]
-            new_info['algorithm_offsets']['ym_base'] = unpacked_word_list[new_index + 4]
-            new_info['algorithm_offsets']['ym_size'] = unpacked_word_list[new_index + 5]
-            self.fields['algorithm_info'].append(new_info)
 
-        return
+        # Halo wmfw may be generated using the nopad option which may split any data block into a packed block
+        # and unpacked block. It is vital the FW-Id table is processed in its entirety. There is no flag in
+        # the wmfw to indicate that the nopad option was used.
+        # If nopad was used the FW-Id table will likely be split into 2 consecutive blocks.
+        # Two checks will be used to decide whether the FW-Id block is split:
+        # 1. If FW-id table size (based on the algo count) <= byte len from block header, then likely nopad was NOT used
+        # 2.a If 0xBEDEAD is contained inside the 1st block then likely nopad was NOT used
+        # 2.b If nopad was used assume 0xBEDEAD to appear in the immediate next block after the first FW-Id block, this
+        # block will be UNPACKED data.
+        # (For simplicity we're assuming the 0xBEDEAD block will follow immediately after but in theory it  could be anywhere.
+        # This will break the tool)
+
+        # In the case nopad was used, the FW-id table size (based on the algo count) means that for odd algo counts
+        # the trailing block will contain only 0xBEADED and no other data. Whereas even algo counts mean the trailing
+        # block will contain the last 2 words of data (YM-base, YM-size) and the 0xBEDEAD
+
+        algo_cnt = self.fields['number_of_algorithms']
+        fw_id_byte_size = (11 + (algo_cnt * 6)) * 3
+        if fw_id_byte_size > fw_id_block_byte_len:
+            # If the total fw-id table size is larger than this block it is likely it has been
+            # split into a following block (due to the nopad option)
+            if algo_cnt % 2:
+                # If algo cnt is odd, the 2nd block will contain only 0xBEDEAD occupying 4 bytes.
+                # Expect 0xBEDEAD and only 0xBEDEAD data in the 2nd block
+                next_block_unpacked_word_list = unpack_memory(next_block_bytestream)
+                if 0xBEDEAD not in next_block_unpacked_word_list:
+                    error_exit("Parsing Halo FW-Id: terminator was expected in 2nd data block but not found")
+                if 0xBEDEAD in unpacked_word_list:
+                    error_exit("Parsing Halo FW-Id: terminator found in 1st data block instead on 2nd")
+
+                for i in range(0, self.fields['number_of_algorithms']):
+                    new_index = 10 + (i * 6)
+                    new_info = dict()
+                    new_info['algorithm_id'] = unpacked_word_list[new_index]
+                    new_info['algorithm_version'] = unpacked_word_list[new_index + 1]
+                    new_info['algorithm_offsets'] = dict()
+                    new_info['algorithm_offsets']['xm_base'] = unpacked_word_list[new_index + 2]
+                    new_info['algorithm_offsets']['xm_size'] = unpacked_word_list[new_index + 3]
+                    new_info['algorithm_offsets']['ym_base'] = unpacked_word_list[new_index + 4]
+                    new_info['algorithm_offsets']['ym_size'] = unpacked_word_list[new_index + 5]
+                    self.fields['algorithm_info'].append(new_info)
+
+            else:
+                # parse only n-1 algo's within fw-id table, then parse last algo but do not expect the
+                # ym_base, ym_size words to be present. Instead, expect these from the next block
+                new_index = 0
+                for i in range(0, self.fields['number_of_algorithms'] - 1):
+                    new_index = 10 + (i * 6)
+                    new_info = dict()
+                    new_info['algorithm_id'] = unpacked_word_list[new_index]
+                    new_info['algorithm_version'] = unpacked_word_list[new_index + 1]
+                    new_info['algorithm_offsets'] = dict()
+                    new_info['algorithm_offsets']['xm_base'] = unpacked_word_list[new_index + 2]
+                    new_info['algorithm_offsets']['xm_size'] = unpacked_word_list[new_index + 3]
+                    new_info['algorithm_offsets']['ym_base'] = unpacked_word_list[new_index + 4]
+                    new_info['algorithm_offsets']['ym_size'] = unpacked_word_list[new_index + 5]
+                    self.fields['algorithm_info'].append(new_info)
+
+                new_info = dict()
+                new_info['algorithm_id'] = unpacked_word_list[new_index + 1]
+                new_info['algorithm_version'] = unpacked_word_list[new_index + 2]
+                new_info['algorithm_offsets'] = dict()
+                new_info['algorithm_offsets']['xm_base'] = unpacked_word_list[new_index + 3]
+                new_info['algorithm_offsets']['xm_size'] = unpacked_word_list[new_index + 4]
+
+                # Extract YMBase & YMSize from 2nd block
+                next_block_unpacked_word_list = unpack_memory(next_block_bytestream)
+                new_info['algorithm_offsets']['ym_base'] = next_block_unpacked_word_list[0]
+                new_info['algorithm_offsets']['ym_size'] = next_block_unpacked_word_list[1]
+                self.fields['algorithm_info'].append(new_info)
+
+                # Ensure 0xBEDEAD exists in 2nd block and not in the prev one
+                if 0xBEDEAD not in next_block_unpacked_word_list:
+                    error_exit("Parsing Halo FW-Id: terminator was expected in 2nd data block but not found")
+                if 0xBEDEAD in unpacked_word_list:
+                    error_exit("Parsing Halo FW-Id: terminator found in 1st data block instead on 2nd")
+
+        else:
+            # Else fw-id data is all in the same block
+            for i in range(0, self.fields['number_of_algorithms']):
+                new_index = 10 + (i * 6)
+                new_info = dict()
+                new_info['algorithm_id'] = unpacked_word_list[new_index]
+                new_info['algorithm_version'] = unpacked_word_list[new_index + 1]
+                new_info['algorithm_offsets'] = dict()
+                new_info['algorithm_offsets']['xm_base'] = unpacked_word_list[new_index + 2]
+                new_info['algorithm_offsets']['xm_size'] = unpacked_word_list[new_index + 3]
+                new_info['algorithm_offsets']['ym_base'] = unpacked_word_list[new_index + 4]
+                new_info['algorithm_offsets']['ym_size'] = unpacked_word_list[new_index + 5]
+                self.fields['algorithm_info'].append(new_info)
+
+            if 0xBEDEAD not in unpacked_word_list:
+                error_exit("Parsing Halo FW-Id: terminator expected in 1st data block but not found")
 
     def get_adjusted_offset(self, algorithm_id, memory_region, start_offset):
         temp_offsets = None
@@ -555,9 +639,7 @@ class halo_firmware_id_block:
 
 class adsp_firmware_id_block:
 
-    def __init__(self, bytestream, memory_type):
-        self.stream_pos = bytestream.tell()
-        self.memory_type = memory_type
+    def __init__(self):
         self.fields = dict()
         self.fields['core_id'] = 0
         self.fields['format_version'] = 0
@@ -579,25 +661,8 @@ class adsp_firmware_id_block:
         new_bytestr = bytestream.read(3)
         return bytestr_to_int(new_bytestr, 3)
 
-    def unpack_memory(self, bytestream):
-        new_word_list = []
-        new_bytes_list = list(bytestream.read())
-        for i in range(0, int(len(new_bytes_list)/4)):
-            new_word = new_bytes_list[i * 4]
-            new_word = new_word << 8
-            new_word = new_word + new_bytes_list[i * 4 + 1]
-            new_word = new_word << 8
-            new_word = new_word + new_bytes_list[i * 4 + 2]
-            new_word = new_word << 8
-            new_word = new_word + new_bytes_list[i * 4 + 3]
-
-            new_word_list.append(new_word)
-
-        return new_word_list
-
-
     def parse(self, bytestream):
-        unpacked_word_list = self.unpack_memory(bytestream)
+        unpacked_word_list = unpack_memory(bytestream)
         self.fields['core_id'] = int.from_bytes(unpacked_word_list[0].to_bytes(4, byteorder='little'), byteorder='big', signed=False)
         self.fields['format_version'] = int.from_bytes(unpacked_word_list[1].to_bytes(4, byteorder='little'), byteorder='big', signed=False)
         self.fields['firmware_id'] = unpacked_word_list[2]
@@ -668,12 +733,19 @@ class wmfw_parser:
         # Get Firmware ID Block for beginning XM - assume it's in first data block
         first_data_block_bytes = self.blocks[1].data
         first_data_block_memory_type = self.blocks[1].memory_type
-        temp_bytestream = io.BytesIO(b''.join(first_data_block_bytes))
+        block_bytestream = io.BytesIO(b''.join(first_data_block_bytes))
         if self.header.fields['file_format_version'] in [1, 2]: # If ADSP2 v1 or v2== 2
-            self.fw_id_block = adsp_firmware_id_block(temp_bytestream, first_data_block_memory_type)
+            self.fw_id_block = adsp_firmware_id_block()
+            self.fw_id_block.parse(block_bytestream)
         else:  # Else Halo
-            self.fw_id_block = halo_firmware_id_block(temp_bytestream, first_data_block_memory_type)
-        self.fw_id_block.parse(temp_bytestream)
+            self.fw_id_block = halo_firmware_id_block(first_data_block_memory_type)
+
+            # Halo fw-id block parser may require the 2nd data block incase the fw-id table is split
+            next_data_block_bytes = self.blocks[2].data
+            next_block_bytestream = io.BytesIO(b''.join(next_data_block_bytes))
+            self.fw_id_block.parse(block_bytestream,
+                                   self.blocks[1].fields['block_size'],
+                                   next_block_bytestream)
 
         return
 
@@ -769,7 +841,7 @@ class wmfw_rom(wmfw_parser):
         self.fw_id_block.fields['format_version'] = 0x30000
         self.fw_id_block.fields['vendor_id'] = 0x2
         self.fw_id_block.fields['firmware_id'] = 0x0
-        self.fw_id_block.fields['firmware_revision'] = 0x10301
+        self.fw_id_block.fields['firmware_revision'] = 0x12345
         self.fw_id_block.fields['sys_config_mem_offsets']['xm_base'] = 0x796
         self.fw_id_block.fields['sys_config_mem_offsets']['xm_size'] = 0x20
         self.fw_id_block.fields['sys_config_mem_offsets']['ym_base'] = 0x17a
@@ -823,8 +895,7 @@ class wmfw_rom(wmfw_parser):
         return
 
     def parse(self):
-        dummy_bytestream = io.BytesIO(b'')
-        self.fw_id_block = halo_firmware_id_block(dummy_bytestream, None)
+        self.fw_id_block = halo_firmware_id_block(None)
         if (self.part_number == 'cs40l26'):
             self.update_fw_id_block_cs40l26()
         elif (self.part_number == 'cs40l50'):
@@ -834,6 +905,12 @@ class wmfw_rom(wmfw_parser):
 
         return
 
+    def __str__(self):
+        output_str = str(self.fw_id_block) + "\n"
+        for block in self.blocks:
+            output_str = output_str + str(block) + "\n"
+
+        return output_str
 
 
 #==========================================================================

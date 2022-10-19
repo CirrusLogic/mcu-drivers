@@ -29,10 +29,18 @@
 #include "cs40l26_syscfg_regs.h"
 #include "cs40l26_fw_img.h"
 #include "cs40l26_cal_fw_img.h"
+#ifdef CONFIG_USE_BRIDGE
+#include "bridge.h"
+#endif
 
 /***********************************************************************************************************************
  * LOCAL LITERAL SUBSTITUTIONS
  **********************************************************************************************************************/
+
+/***********************************************************************************************************************
+ * LOCAL FUNCTIONS
+ **********************************************************************************************************************/
+void cs40l26_notification_callback(uint32_t event_flags, void *arg);
 
 /***********************************************************************************************************************
  * LOCAL VARIABLES
@@ -46,20 +54,33 @@ static cs40l26_bsp_config_t bsp_config =
 {
     .cp_config.dev_id = BSP_DUT_DEV_ID,
     .reset_gpio_id = BSP_GPIO_ID_DUT_CDC_RESET,
-    .int_gpio_id = BSP_GPIO_ID_DUT_CDC_INT,
+    .int_gpio_id = BSP_GPIO_ID_NULL,
     .cp_config.bus_type = REGMAP_BUS_TYPE_I2C,
     .cp_config.receive_max = 0, // No calls to regmap_read_block for the cs40l26 driver
-    .notification_cb = &bsp_notification_callback,
+    .notification_cb = &cs40l26_notification_callback,
     .notification_cb_arg = NULL
 };
+
+#ifdef CONFIG_USE_BRIDGE
+static bridge_device_t device_list[] =
+{
+    {
+        .bus_i2c_cs_address = 0x80,
+        .device_id_str = "CS40A26",
+        .dev_name_str = "CS40A26-1",
+        .b.dev_id = BSP_DUT_DEV_ID,
+        .b.bus_type = REGMAP_BUS_TYPE_I2C,
+        .b.receive_max = BRIDGE_BLOCK_BUFFER_LENGTH_BYTES,
+        .b.spi_pad_len = 2
+    }
+};
+#endif
 
 /***********************************************************************************************************************
  * GLOBAL VARIABLES
  **********************************************************************************************************************/
-
-/***********************************************************************************************************************
- * LOCAL FUNCTIONS
- **********************************************************************************************************************/
+bool bsp_processing_haptic;
+bool bsp_hibernation;
 
 /***********************************************************************************************************************
  * API FUNCTIONS
@@ -100,6 +121,11 @@ uint32_t bsp_dut_initialize(void)
     temp_buffer = __builtin_bswap32(0x001A9010);
     bsp_i2c_write(BSP_LN2_DEV_ID, (uint8_t *)&temp_buffer, 4, NULL, NULL);
 
+
+#ifdef CONFIG_USE_BRIDGE
+    bridge_initialize(&device_list[0], (sizeof(device_list)/sizeof(bridge_device_t)));
+#endif
+
     return ret;
 }
 
@@ -115,6 +141,8 @@ uint32_t bsp_dut_reset()
     }
 
     current_halo_heartbeat = 0;
+    bsp_processing_haptic = false;
+    bsp_hibernation = false;
 
     return BSP_STATUS_OK;
 }
@@ -128,11 +156,13 @@ uint32_t bsp_dut_boot(bool cal_boot)
 
     if (cal_boot)
     {
+        cs40l26_driver.is_cal_boot = true;
         fw_img = cs40l26_cal_fw_img;
         fw_img_end = cs40l26_cal_fw_img + FW_IMG_SIZE(cs40l26_cal_fw_img);
     }
     else
     {
+        cs40l26_driver.is_cal_boot = false;
         fw_img = cs40l26_fw_img;
         fw_img_end = cs40l26_fw_img + FW_IMG_SIZE(cs40l26_fw_img);
     }
@@ -291,6 +321,7 @@ uint32_t bsp_dut_hibernate(void)
 
     if (ret == CS40L26_STATUS_OK)
     {
+        bsp_hibernation = true;
         return BSP_STATUS_OK;
     }
     else
@@ -307,6 +338,7 @@ uint32_t bsp_dut_wake(void)
 
     if (ret == CS40L26_STATUS_OK)
     {
+        bsp_hibernation = false;
         return BSP_STATUS_OK;
     }
     else
@@ -329,6 +361,7 @@ uint32_t bsp_dut_enable_haptic_processing(bool enable)
 
     return ret;
 }
+
 
 uint32_t bsp_dut_trigger_haptic(uint8_t waveform, cs40l26_wavetable_bank_t bank)
 {
@@ -392,6 +425,8 @@ uint32_t bsp_dut_process(void)
 {
     uint32_t ret;
 
+    cs40l26_driver.mode = CS40L26_MODE_HANDLING_EVENTS;
+
     ret = cs40l26_process(&cs40l26_driver);
 
     if (ret != CS40L26_STATUS_OK)
@@ -399,5 +434,111 @@ uint32_t bsp_dut_process(void)
         return BSP_STATUS_FAIL;
     }
 
+#ifdef CONFIG_USE_BRIDGE
+    bridge_process();
+#endif
+
     return BSP_STATUS_OK;
+}
+
+
+uint32_t bsp_dut_configure_gpi(uint8_t gpi)
+{
+    uint32_t ret, reg, mask, ctrl, shift;
+    regmap_cp_config_t *cp = REGMAP_GET_CP(&cs40l26_driver);
+
+    switch (gpi)
+    {
+        case 0:
+            reg = CS40L26_GPIO_PAD_CONTROL;
+            mask = CS40L26_GP1_CTRL_MASK;
+            shift = CS40L26_GP1_CTRL_SHIFT;
+            ctrl = CS40L26_GPIO1_CTRL1;
+            break;
+        case 1:
+            reg = CS40L26_GPIO_PAD_CONTROL;
+            mask = CS40L26_GP2_CTRL_MASK;
+            shift = CS40L26_GP2_CTRL_SHIFT;
+            ctrl = CS40L26_GPIO2_CTRL1;
+            break;
+        case 2:
+            reg = CS40L26_SDIN_PAD_CONTROL;
+            mask = CS40L26_GP3_CTRL_MASK;
+            shift = CS40L26_GP3_CTRL_SHIFT;
+            ctrl = CS40L26_GPIO3_CTRL1;
+            break;
+        case 3:
+            reg = CS40L26_LRCK_PAD_CONTROL;
+            mask = CS40L26_GP4_CTRL_MASK;
+            shift = CS40L26_GP4_CTRL_SHIFT;
+            ctrl = CS40L26_GPIO4_CTRL1;
+            break;
+        default:
+            return BSP_STATUS_FAIL; // unsupported gpi
+    }
+
+    ret = regmap_update_reg(cp, reg, mask, 1 << shift); // enable pin as GPIO
+    ret |= regmap_update_reg(cp, ctrl, CS40L26_GPX_DIR_MASK | CS40L26_GPX_DB_MASK,
+                                       CS40L26_GPX_DIR_MASK | CS40L26_GPX_DB_MASK); // ensure pin is set to input and debounce is enabled
+
+    return ret;
+}
+
+uint32_t bsp_dut_configure_gpi_mute(uint8_t gpi, bool level)
+{
+    uint32_t ret;
+
+    ret = cs40l26_gpi_pmic_mute_configure(&cs40l26_driver, gpi, level);
+
+    if (ret != CS40L26_STATUS_OK)
+    {
+        return BSP_STATUS_FAIL;
+    }
+
+    return BSP_STATUS_OK;
+}
+
+uint32_t bsp_dut_enable_gpi_mute(bool enable)
+{
+    uint32_t ret;
+
+    ret = cs40l26_gpi_pmic_mute_enable(&cs40l26_driver, enable);
+
+    if (ret != CS40L26_STATUS_OK)
+    {
+        return BSP_STATUS_FAIL;
+    }
+
+    return BSP_STATUS_OK;
+}
+
+void cs40l26_notification_callback(uint32_t event_flags, void *arg)
+{
+    uint32_t ret;
+    if (event_flags & CS40L26_EVENT_FLAG_DSP_VIRTUAL2_MBOX)
+    {
+        ret = cs40l26_mailbox_queue_handler(&cs40l26_driver);
+        if (ret)
+        {
+            return;
+        }
+        for (uint32_t i = 0; i < CS40L26_MAILBOX_QUEUE_MAX_LEN; i++)
+        {
+            if ((cs40l26_driver.mailbox_queue[i] == CS40L26_DSP_MBOX_HAPTIC_TRIGGER_MBOX) ||
+                (cs40l26_driver.mailbox_queue[i] == CS40L26_DSP_MBOX_HAPTIC_TRIGGER_GPIO) ||
+                (cs40l26_driver.mailbox_queue[i] == CS40L26_DSP_MBOX_HAPTIC_TRIGGER_I2S))
+            {
+                bsp_processing_haptic = true;
+            }
+            if ((cs40l26_driver.mailbox_queue[i] == CS40L26_DSP_MBOX_HAPTIC_COMPLETE_MBOX) ||
+                (cs40l26_driver.mailbox_queue[i] == CS40L26_DSP_MBOX_HAPTIC_COMPLETE_GPIO) ||
+                (cs40l26_driver.mailbox_queue[i] == CS40L26_DSP_MBOX_HAPTIC_COMPLETE_I2S))
+            {
+                bsp_processing_haptic = false;
+            }
+            cs40l26_driver.mailbox_queue[i] = 0;
+        }
+    }
+
+    return;
 }

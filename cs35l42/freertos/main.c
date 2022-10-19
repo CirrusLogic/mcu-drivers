@@ -27,11 +27,12 @@
 #include "platform_bsp.h"
 #include "FreeRTOS.h"
 #include "task.h"
+#include "semphr.h"
 
 /***********************************************************************************************************************
  * LOCAL LITERAL SUBSTITUTIONS
  **********************************************************************************************************************/
-#define APP_STATE_CAL          (1)
+#define APP_STATE_CALIBRATE    (1)
 #define APP_STATE_PLAY         (2)
 #define APP_STATE_PLAY_GAIN    (3)
 #define APP_STATE_STOP         (4)
@@ -44,13 +45,14 @@
 /***********************************************************************************************************************
  * LOCAL VARIABLES
  **********************************************************************************************************************/
-static uint8_t app_audio_state = APP_STATE_CAL;
+static uint8_t app_audio_state = APP_STATE_CALIBRATE;
 static TaskHandle_t AmpControlTaskHandle = NULL;
 static TaskHandle_t AmpEventTaskHandle = NULL;
 
 /***********************************************************************************************************************
  * GLOBAL VARIABLES
  **********************************************************************************************************************/
+SemaphoreHandle_t mutex_boot;
 
 /***********************************************************************************************************************
  * LOCAL FUNCTIONS
@@ -109,6 +111,10 @@ void app_init(void)
 static void AmpControlThread(void *argument)
 {
     uint32_t flags;
+    cs35l42_t *temp_driver;
+    bsp_dut_get_driver_handle((void **) &temp_driver);
+    static fw_img_boot_state_t cs35l42_boot_state;
+    static fw_img_boot_state_t cs35l42_cal_boot_state;
 
     for (;;)
     {
@@ -120,14 +126,16 @@ static void AmpControlThread(void *argument)
 
         switch (app_audio_state)
         {
-            case APP_STATE_CAL:
+            case APP_STATE_CALIBRATE:
                 if (flags & AMP_CONTROL_FLAG_PB_PRESSED)
                 {
                     bsp_audio_stop();
                     bsp_audio_set_fs(BSP_AUDIO_FS_48000_HZ);
                     bsp_audio_play_record(BSP_PLAY_SILENCE);
                     bsp_dut_reset();
-                    bsp_dut_boot();
+                    bsp_dut_boot(temp_driver, &cs35l42_boot_state, cs35l42_fw_img, false);
+                    // Load additional bin file for performing calibration
+                    bsp_dut_boot(temp_driver, &cs35l42_cal_boot_state, cs35l42_cal_fw_img, true);
                     bsp_dut_power_up();
                     bsp_dut_calibrate();
                     bsp_dut_power_down();
@@ -142,7 +150,7 @@ static void AmpControlThread(void *argument)
                     bsp_audio_set_fs(BSP_AUDIO_FS_48000_HZ);
                     bsp_audio_play(BSP_PLAY_STEREO_1KHZ_20DBFS);
                     bsp_dut_reset();
-                    bsp_dut_boot();
+                    bsp_dut_boot(temp_driver, &cs35l42_boot_state, cs35l42_fw_img, false);
                     bsp_dut_power_up();
                     app_audio_state++;
                 }
@@ -155,7 +163,7 @@ static void AmpControlThread(void *argument)
                     bsp_audio_set_fs(BSP_AUDIO_FS_48000_HZ);
                     bsp_audio_play(BSP_PLAY_STEREO_1KHZ_20DBFS);
                     bsp_dut_reset();
-                    bsp_dut_boot();
+                    bsp_dut_boot(temp_driver, &cs35l42_boot_state, cs35l42_fw_img, false);
                     bsp_dut_set_dig_gain(-6);
                     bsp_dut_power_up();
                     app_audio_state++;
@@ -182,7 +190,7 @@ static void AmpControlThread(void *argument)
                 if (flags & AMP_CONTROL_FLAG_PB_PRESSED)
                 {
                     bsp_dut_wake();
-                    app_audio_state = APP_STATE_CAL;
+                    app_audio_state = APP_STATE_CALIBRATE;
                 }
                 break;
 
@@ -232,6 +240,12 @@ int main(void)
                 (void *) NULL,
                 tskIDLE_PRIORITY,
                 &AmpEventTaskHandle);
+
+    mutex_boot = xSemaphoreCreateMutex();
+    if( mutex_boot == NULL )
+    {
+        return BSP_STATUS_FAIL; /* There was insufficient heap memory available for the mutex to be created. */
+    }
 
     app_init();
 

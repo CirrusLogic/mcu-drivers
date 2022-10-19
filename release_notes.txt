@@ -3,6 +3,36 @@ Release Notes
 
 =============================================================================
 Summary:
+This is the release of Alt-OS Driver SDK v4.18.0
+Date: 2022/10/19
+
+Architectures/Compilers Used:
+GNU Arm Embedded Toolchain: arm-none-eabi-gcc -mcpu=cortex-m4
+
+New Features/Changes:
+cs35l42: changed dut_boot() for easier integration in stereo use case
+cs40l26: Added bridge support
+cs40l26: Add support for MBOX queue
+cs40l26: add GPI controlled mute
+cs40l50: Add RAM wavetable triggering
+cs40l50: Add power API
+cs40l50: Add API to set ReDC and F0
+cs40l50: Add set timeout_ticks API
+cs40l50: Add A1 errata and device configurations
+cs40l50: Updated wt.bin and added cs40l50_wt.bin
+firmware_converter: tidy up cmd line options for ROM
+
+Fixed Bugs:
+firmware_converter: handle nopad Halo files
+cs40l26: Fix missing 'extern C' bracket
+cs40l50: Corrected incorrect calibration value
+tools: Fix issues with blackstar .launch
+tools: Fixed incorrect PCM ReDC value from hwt_to_waveform tool
+common: Added missing platform_bsp files for blackstar
+
+=============================================================================
+=============================================================================
+Summary:
 This is the release of Alt-OS Driver SDK v4.17.0
 Date: 2022/07/16
 

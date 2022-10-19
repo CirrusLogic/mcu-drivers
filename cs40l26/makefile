@@ -62,6 +62,11 @@ ifdef IS_NOT_UNIT_TEST
         CFLAGS += -DCONFIG_USE_MULTICHANNEL_UART
     endif
 
+    ifneq ($(PLATFORM), holdout)
+        CFLAGS += -DCONFIG_USE_BRIDGE
+        CFLAGS += -DSYS_ID=40260100
+	endif
+
     ifeq ($(SEMIHOSTING), 1)
         CFLAGS += -DSEMIHOSTING
     endif
@@ -155,7 +160,7 @@ endif
 
 	@echo -------------------------------------------------------------------------------
 	@echo GENERATING waveforms
-	cd $(DRIVER_PATH) && python3 ../tools/hwt_to_waveform/hwt_to_waveform_converter.py waveforms.hwt
+	cd $(DRIVER_PATH) && python3 ../tools/hwt_to_waveform/hwt_to_waveform_converter.py cs40l26 waveforms.hwt
 
 # Compilation rules
 $(eval $(call $(ADD_OBJ_RULES), $(OBJS)))

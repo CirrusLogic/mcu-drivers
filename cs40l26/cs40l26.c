@@ -79,22 +79,23 @@
  */
 static const uint32_t cs40l26_irq_eint_1_to_event_flag_map[] =
 {
-    IRQ1_IRQ1_EINT_1_WKSRC_STATUS1_EINT1_BITMASK, CS40L26_EVENT_FLAG_WKSRC_GPIO,
-    IRQ1_IRQ1_EINT_1_WKSRC_STATUS2_EINT1_BITMASK, CS40L26_EVENT_FLAG_WKSRC_GPIO,
-    IRQ1_IRQ1_EINT_1_WKSRC_STATUS3_EINT1_BITMASK, CS40L26_EVENT_FLAG_WKSRC_GPIO,
-    IRQ1_IRQ1_EINT_1_WKSRC_STATUS4_EINT1_BITMASK, CS40L26_EVENT_FLAG_WKSRC_GPIO,
-    IRQ1_IRQ1_EINT_1_WKSRC_STATUS5_EINT1_BITMASK, CS40L26_EVENT_FLAG_WKSRC_CP,
-    IRQ1_IRQ1_EINT_1_WKSRC_STATUS6_EINT1_BITMASK, CS40L26_EVENT_FLAG_WKSRC_CP,
-    IRQ1_IRQ1_EINT_1_BST_OVP_FLAG_RISE_BITMASK, CS40L26_EVENT_FLAG_BST_ERROR,
-    IRQ1_IRQ1_EINT_1_BST_OVP_FLAG_FALL_BITMASK, CS40L26_EVENT_FLAG_BST_ERROR,
-    IRQ1_IRQ1_EINT_1_BST_OVP_ERR_BITMASK, CS40L26_EVENT_FLAG_BST_ERROR,
-    IRQ1_IRQ1_EINT_1_BST_DCM_UVP_ERR_BITMASK, CS40L26_EVENT_FLAG_BST_ERROR,
-    IRQ1_IRQ1_EINT_1_BST_SHORT_ERR_BITMASK, CS40L26_EVENT_FLAG_BST_ERROR,
-    IRQ1_IRQ1_EINT_1_BST_IPK_FLAG_BITMASK, CS40L26_EVENT_FLAG_BST_ERROR,
-    IRQ1_IRQ1_EINT_1_TEMP_WARN_RISE_BITMASK, CS40L26_EVENT_FLAG_TEMP_ERROR,
-    IRQ1_IRQ1_EINT_1_TEMP_WARN_FALL_BITMASK, CS40L26_EVENT_FLAG_TEMP_ERROR,
-    IRQ1_IRQ1_EINT_1_TEMP_ERR_BITMASK, CS40L26_EVENT_FLAG_TEMP_ERROR,
-    IRQ1_IRQ1_EINT_1_AMP_ERR_BITMASK, CS40L26_EVENT_FLAG_AMP_ERROR
+    IRQ1_IRQ1_EINT_1_WKSRC_STATUS1_EINT1_BITMASK,  CS40L26_EVENT_FLAG_WKSRC_GPIO,
+    IRQ1_IRQ1_EINT_1_WKSRC_STATUS2_EINT1_BITMASK,  CS40L26_EVENT_FLAG_WKSRC_GPIO,
+    IRQ1_IRQ1_EINT_1_WKSRC_STATUS3_EINT1_BITMASK,  CS40L26_EVENT_FLAG_WKSRC_GPIO,
+    IRQ1_IRQ1_EINT_1_WKSRC_STATUS4_EINT1_BITMASK,  CS40L26_EVENT_FLAG_WKSRC_GPIO,
+    IRQ1_IRQ1_EINT_1_WKSRC_STATUS5_EINT1_BITMASK,  CS40L26_EVENT_FLAG_WKSRC_CP,
+    IRQ1_IRQ1_EINT_1_WKSRC_STATUS6_EINT1_BITMASK,  CS40L26_EVENT_FLAG_WKSRC_CP,
+    IRQ1_IRQ1_EINT_1_BST_OVP_FLAG_RISE_BITMASK,    CS40L26_EVENT_FLAG_BST_ERROR,
+    IRQ1_IRQ1_EINT_1_BST_OVP_FLAG_FALL_BITMASK,    CS40L26_EVENT_FLAG_BST_ERROR,
+    IRQ1_IRQ1_EINT_1_BST_OVP_ERR_BITMASK,          CS40L26_EVENT_FLAG_BST_ERROR,
+    IRQ1_IRQ1_EINT_1_BST_DCM_UVP_ERR_BITMASK,      CS40L26_EVENT_FLAG_BST_ERROR,
+    IRQ1_IRQ1_EINT_1_BST_SHORT_ERR_BITMASK,        CS40L26_EVENT_FLAG_BST_ERROR,
+    IRQ1_IRQ1_EINT_1_BST_IPK_FLAG_BITMASK,         CS40L26_EVENT_FLAG_BST_ERROR,
+    IRQ1_IRQ1_EINT_1_TEMP_WARN_RISE_BITMASK,       CS40L26_EVENT_FLAG_TEMP_ERROR,
+    IRQ1_IRQ1_EINT_1_TEMP_WARN_FALL_BITMASK,       CS40L26_EVENT_FLAG_TEMP_ERROR,
+    IRQ1_IRQ1_EINT_1_TEMP_ERR_BITMASK,             CS40L26_EVENT_FLAG_TEMP_ERROR,
+    IRQ1_IRQ1_EINT_1_AMP_ERR_BITMASK,              CS40L26_EVENT_FLAG_AMP_ERROR,
+    IRQ1_IRQ1_EINT_1_DSP_VIRTUAL2_MBOX_WR_BITMASK, CS40L26_EVENT_FLAG_DSP_VIRTUAL2_MBOX
 };
 
 static const uint32_t cs40l26_a1_errata[] =
@@ -139,6 +140,14 @@ static const uint32_t cs40l26_wseq_patch[] =
     0x4000CC,
     0x040000,
     0x400033,
+    // Add GPIO settings
+    CS40L26_GPIO_PAD_CONTROL,
+    CS40L26_SDIN_PAD_CONTROL,
+    CS40L26_LRCK_PAD_CONTROL,
+    CS40L26_GPIO1_CTRL1,
+    CS40L26_GPIO2_CTRL1,
+    CS40L26_GPIO3_CTRL1,
+    CS40L26_GPIO4_CTRL1,
     0xFFFFFF
 };
 
@@ -318,6 +327,26 @@ static uint32_t cs40l26_error_release(cs40l26_t *driver, uint32_t err_rls)
     return ret;
 }
 
+static uint32_t cs40l26_unmask_interrupts(cs40l26_t *driver)
+{
+    uint32_t ret = CS40L26_STATUS_OK;
+    uint32_t map_size = (sizeof(cs40l26_irq_eint_1_to_event_flag_map) / sizeof(uint32_t));
+    regmap_cp_config_t *cp = REGMAP_GET_CP(driver);
+
+    for (uint8_t i = 0; i < map_size; i+= 2)
+    {
+        ret = regmap_update_reg(cp,
+                                IRQ1_IRQ1_MASK_REG,
+                                cs40l26_irq_eint_1_to_event_flag_map[i],
+                                0);
+        if (ret)
+        {
+            return ret;
+        }
+    }
+    return ret;
+}
+
 /**
  * Maps IRQ Flag to Event ID passed to BSP
  *
@@ -383,10 +412,10 @@ static uint32_t cs40l26_event_handler(cs40l26_t *driver)
     {
         return ret;
     }
-    // If event handler was called without any IRQ set, then return error
+    // If event handler was called without any IRQ set, then return
     if (irq_statuses[0] == 0)
     {
-        return CS40L26_STATUS_FAIL;
+        return CS40L26_STATUS_OK;
     }
 
     for (uint8_t i = 0; i < CS40L26_IRQ1_REG_TOTAL; i++)
@@ -418,7 +447,10 @@ static uint32_t cs40l26_event_handler(cs40l26_t *driver)
             }
         }
         // Set event flags
-        driver->event_flags = cs40l26_irq_to_event_id(i, irq_statuses[i]);
+        if (i == 0)
+        {
+            driver->event_flags = cs40l26_irq_to_event_id(i, irq_statuses[i]);
+        }
     }
 
     if (irq_statuses[0] & CS40L26_INT1_ACTUATOR_SAFE_MODE_IRQ_MASK)
@@ -740,11 +772,7 @@ static uint32_t cs40l26_allow_hibernate(cs40l26_t *driver)
     {
         return ret;
     }
-    ret = regmap_write(cp, IRQ1_IRQ1_MASK_1_REG, 0xFFFFFFFF);
-    if (ret)
-    {
-        return ret;
-    }
+
     ret = cs40l26_pm_state_transition(driver, CS40L26_PM_STATE_ALLOW_HIBERNATE);
     if (ret)
     {
@@ -757,6 +785,7 @@ static uint32_t cs40l26_allow_hibernate(cs40l26_t *driver)
 static uint32_t cs40l26_prevent_hibernate(cs40l26_t *driver)
 {
     uint32_t ret = CS40L26_STATUS_FAIL;
+
     for(int i = 0; i < CS40L26_WAKE_ATTEMPTS; i++)
     {
         ret = cs40l26_pm_state_transition(driver, CS40L26_PM_STATE_PREVENT_HIBERNATE);
@@ -765,7 +794,7 @@ static uint32_t cs40l26_prevent_hibernate(cs40l26_t *driver)
             return ret;
         }
     }
-    return ret;
+    return cs40l26_unmask_interrupts(driver);
 }
 
 /***********************************************************************************************************************
@@ -898,6 +927,12 @@ uint32_t cs40l26_reset(cs40l26_t *driver)
         return CS40L26_STATUS_FAIL;
     }
     ret = cs40l26_pm_state_transition(driver, CS40L26_PM_STATE_PREVENT_HIBERNATE);
+    if (ret)
+    {
+        return ret;
+    }
+
+    ret = cs40l26_unmask_interrupts(driver);
     if (ret)
     {
         return ret;

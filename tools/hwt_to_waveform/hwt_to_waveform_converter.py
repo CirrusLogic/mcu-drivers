@@ -1,3 +1,29 @@
+#==========================================================================
+# (c) 2022 Cirrus Logic, Inc.
+#--------------------------------------------------------------------------
+# Project : Convert from HWT Files to C Header/Source
+# File    : hwt_to_waveform_converter.py
+#--------------------------------------------------------------------------
+# Licensed under the Apache License, Version 2.0 (the License); you may
+# not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an AS IS BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#--------------------------------------------------------------------------
+#
+# Environment Requirements: None
+#
+#==========================================================================
+
+#==========================================================================
+# IMPORTS
+#==========================================================================
 import json
 import sys
 from hwt_to_waveform_templates import pwle_section, pwle_section_list, pcm_header, pcm_data
@@ -6,7 +32,8 @@ from hwt_to_waveform_templates import pwle_section, pwle_section_list, pcm_heade
 # MAIN PROGRAM
 #==========================================================================
 print("waveform_converter\n")
-f = open(sys.argv[1])
+dev = sys.argv[1]
+f = open(sys.argv[2])
 fwave_c = open("waveforms.c", "w")
 fwave_h = open("waveforms.h", "w")
 data = json.load(f)
@@ -30,7 +57,7 @@ for entry in data["Entries"]:
         pwle_num += 1
     else:
         pcm_str = ''
-        pcm_str = pcm_str + str(pcm_header(entry["Body"]["F0"]["Value"], entry["Body"]["ScaledReDc"]["Value"], pcm_num))
+        pcm_str = pcm_str + str(pcm_header(entry["Body"]["F0"]["Value"], entry["Body"]["ScaledReDc"]["Value"], pcm_num, dev))
         pcm_str = pcm_str + str(pcm_data(entry["Body"]["Samples"], pcm_num)) + '\n'
         file_output_str += pcm_str
         file_h_output_str += 'extern uint16_t pcm_' + str(pcm_num) + '_f0;\n'

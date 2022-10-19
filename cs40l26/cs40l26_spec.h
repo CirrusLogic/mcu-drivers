@@ -44,6 +44,8 @@ extern "C" {
 
 #define CS40L26_CALL_RAM_INIT             (0x2800FF8)
 
+#define CS40L26_DSP_MBOX_2                (0x13004)
+#define CS40L26_DSP_MBOX_8                (0x1301C)
 #define CS40L26_DSP_VIRTUAL1_MBOX_1       (0x13020)
 #define CS40L26_DSP_VIRTUAL1_MBOX_2       (0x13024)
 
@@ -118,24 +120,35 @@ extern "C" {
 /* DSP mailbox controls */
 #define CS40L26_DSP_MBOX_RESET      (0x0)
 
-#define CS40L26_DSP_MBOX_CMD_HIBER          (0x02000001)
-#define CS40L26_DSP_MBOX_CMD_WAKEUP         (0x02000002)
-#define CS40L26_DSP_MBOX_CMD_PREVENT_HIBER  (0x02000003)
-#define CS40L26_DSP_MBOX_CMD_ALLOW_HIBER    (0x02000004)
-#define CS40L26_DSP_MBOX_CMD_SHUTDOWN       (0x02000005)
-#define CS40L26_DSP_MBOX_PM_CMD_BASE        CS40L26_DSP_MBOX_CMD_HIBER
+// Inbound
+#define CS40L26_DSP_MBOX_CMD_PING                (0x0A000000)
+#define CS40L26_DSP_MBOX_CMD_HIBER               (0x02000001)
+#define CS40L26_DSP_MBOX_CMD_WAKEUP              (0x02000002)
+#define CS40L26_DSP_MBOX_CMD_PREVENT_HIBER       (0x02000003)
+#define CS40L26_DSP_MBOX_CMD_ALLOW_HIBER         (0x02000004)
+#define CS40L26_DSP_MBOX_CMD_SHUTDOWN            (0x02000005)
+#define CS40L26_DSP_MBOX_PM_CMD_BASE             CS40L26_DSP_MBOX_CMD_HIBER
+#define CS40L26_DSP_MBOX_REDC_EST                (0x07000002)
+#define CS40L26_DSP_MBOX_F0_EST                  (0x07000001)
 
-#define CS40L26_DSP_MBOX_REDC_EST           (0x7000002)
-#define CS40L26_DSP_MBOX_F0_EST             (0x7000001)
+// Outbound
+#define CS40L26_DSP_MBOX_HAPTIC_COMPLETE_MBOX    (0x01000000)
+#define CS40L26_DSP_MBOX_HAPTIC_COMPLETE_GPIO    (0x01000001)
+#define CS40L26_DSP_MBOX_HAPTIC_COMPLETE_I2S     (0x01000002)
+#define CS40L26_DSP_MBOX_HAPTIC_TRIGGER_MBOX     (0x01000010)
+#define CS40L26_DSP_MBOX_HAPTIC_TRIGGER_GPIO     (0x01000011)
+#define CS40L26_DSP_MBOX_HAPTIC_TRIGGER_I2S      (0x01000012)
+#define CS40L26_DSP_MBOX_AWAKE                   (0x02000002)
+#define CS40L26_DSP_MBOX_ACK                     (0x0A000000)
 
-#define CS40L26_CMD_INDEX_RAM_WAVE          (0x01000000)
-#define CS40L26_CMD_MAX_INDEX_RAM_WAVE      (0x7F)
-#define CS40L26_CMD_INDEX_ROM_WAVE          (0x01800000)
-#define CS40L26_CMD_MAX_INDEX_ROM_WAVE      (0x2B)
-#define CS40L26_CMD_INDEX_BUZZ_WAVE         (0x01800080)
-#define CS40L26_CMD_MAX_INDEX_BUZZ_WAVE     (0x05)
-#define CS40L26_CMD_INDEX_OWT_WAVE          (0x01400000)
-#define CS40L26_CMD_MAX_INDEX_OWT_WAVE      (0x7F)
+#define CS40L26_CMD_INDEX_RAM_WAVE               (0x01000000)
+#define CS40L26_CMD_MAX_INDEX_RAM_WAVE           (0x7F)
+#define CS40L26_CMD_INDEX_ROM_WAVE               (0x01800000)
+#define CS40L26_CMD_MAX_INDEX_ROM_WAVE           (0x2B)
+#define CS40L26_CMD_INDEX_BUZZ_WAVE              (0x01800080)
+#define CS40L26_CMD_MAX_INDEX_BUZZ_WAVE          (0x05)
+#define CS40L26_CMD_INDEX_OWT_WAVE               (0x01400000)
+#define CS40L26_CMD_MAX_INDEX_OWT_WAVE           (0x7F)
 
 /* OWT/RTH */
 #define CS40L26_OWT_SLOT0_TYPE     (0x02804F44)
@@ -196,7 +209,7 @@ extern "C" {
 #define IRQ1_IRQ1_EINT_1_WKSRC_STATUS6_EINT1_BITMASK    (1 << 14)
 #define IRQ1_IRQ1_EINT_1_BST_OVP_FLAG_RISE_BITMASK      (1 << 18)
 #define IRQ1_IRQ1_EINT_1_BST_OVP_FLAG_FALL_BITMASK      (1 << 19)
-#define    IRQ1_IRQ1_EINT_1_BST_OVP_ERR_BITMASK            (1 << 20)
+#define IRQ1_IRQ1_EINT_1_BST_OVP_ERR_BITMASK            (1 << 20)
 #define IRQ1_IRQ1_EINT_1_BST_DCM_UVP_ERR_BITMASK        (1 << 21)
 #define IRQ1_IRQ1_EINT_1_BST_SHORT_ERR_BITMASK          (1 << 22)
 #define IRQ1_IRQ1_EINT_1_BST_IPK_FLAG_BITMASK           (1 << 23)
@@ -204,6 +217,8 @@ extern "C" {
 #define IRQ1_IRQ1_EINT_1_TEMP_WARN_FALL_BITMASK         (1 << 25)
 #define IRQ1_IRQ1_EINT_1_TEMP_ERR_BITMASK               (1 << 26)
 #define IRQ1_IRQ1_EINT_1_AMP_ERR_BITMASK                (1 << 27)
+#define IRQ1_IRQ1_EINT_1_DSP_VIRTUAL1_MBOX_WR_BITMASK   (1 << 30)
+#define IRQ1_IRQ1_EINT_1_DSP_VIRTUAL2_MBOX_WR_BITMASK   (1 << 31)
 
 #define MSM_BLOCK_ENABLES_BST_EN                        (0x20)
 
@@ -218,6 +233,37 @@ extern "C" {
 #define CS40L26_MEM_RDY_MASK                            (1)
 #define CS40L26_MEM_RDY_SHIFT                           (1)
 
-  /** @} */
+/* GPIO */
+#define CS40L26_GPIO_PAD_CONTROL                        (0x0000242C)
+#define CS40L26_GP1_CTRL_MASK                           (0x00070000)
+#define CS40L26_GP1_CTRL_SHIFT                          (16)
+#define CS40L26_GP2_CTRL_MASK                           (0x07000000)
+#define CS40L26_GP2_CTRL_SHIFT                          (24)
+#define CS40L26_GP8_CTRL_MASK                           (0x70000000)
+#define CS40L26_GP8_CTRL_SHIFT                          (28)
+#define CS40L26_SDIN_PAD_CONTROL                        (0x00002420)
+#define CS40L26_GP3_CTRL_MASK                           (0x00000008)
+#define CS40L26_GP3_CTRL_SHIFT                          (3)
+#define CS40L26_LRCK_PAD_CONTROL                        (0x00002418)
+#define CS40L26_GP4_CTRL_MASK                           (0x00000010)
+#define CS40L26_GP4_CTRL_SHIFT                          (4)
+#define CS40L26_GPIO1_CTRL1                             (0x00011008)
+#define CS40L26_GPIO2_CTRL1                             (0x0001100C)
+#define CS40L26_GPIO3_CTRL1                             (0x00011010)
+#define CS40L26_GPIO4_CTRL1                             (0x00011014)
+#define CS40L26_GPX_DIR_MASK                            (0x80000000)
+#define CS40L26_GPX_DB_MASK                             (0x00002000)
 
-#endif /* __CS40L26_SPEC_H__ */
+#define CS40L26_GPI_PMIC_MUTE_ENABLE_MASK               (0x00000001)
+#define CS40L26_GPI_PMIC_MUTE_GPI_LEVEL_MASK            (0x0000000E)
+#define CS40L26_GPI_PMIC_MUTE_GPI_SHIFT                 (1)
+#define CS40L26_GPI_PMIC_MUTE_LEVEL_SHIFT               (3)
+
+/** @} */
+
+/**********************************************************************************************************************/
+#ifdef __cplusplus
+}
+#endif
+
+#endif // CS40L26_SPEC_H

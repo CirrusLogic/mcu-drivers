@@ -1,7 +1,7 @@
 /**
  * @file main.c
  *
- * @brief The main function for CS40L25 System Test Harness
+ * @brief The main function for CS40L50 System Test Harness
  *
  * @copyright
  * Copyright (c) Cirrus Logic 2022 All Rights Reserved, http://www.cirrus.com/
@@ -103,7 +103,10 @@ void app_init(void)
     bsp_set_led(1, BSP_LD2_MODE_OFF, 0);
     bsp_dut_initialize();
     bsp_dut_reset();
-    bsp_dut_trigger_haptic(0, ROM_BANK);
+    bsp_dut_calibrate();
+    bsp_dut_trigger_haptic(23, ROM_BANK);
+    bsp_driver_if_g->set_timer(7, NULL, NULL);
+    bsp_dut_set_click_compensation(true, true);
 
     return;
 }
@@ -112,14 +115,15 @@ void app_process_pb(void)
 {
     if (bsp_was_pb_pressed(0))
     {
+        bsp_dut_wake();
         switch (app_state)
         {
         case 0:
           /**
            * Trapezoidal PWLE click waveform - Full cycle
-           * Ramp up - Sine Chirp, 50Hz to 330Hz, 0FS to 0.5FS in 0.50ms
-           * Base - Sine, 330Hz, 0.5FS, 2.50ms
-           * Ramp down - Sine Chirp, 330Hz to 50Hz, 0.5FS to 0FS in 0.50ms
+           * Ramp up - Sine Chirp, 50Hz to 330Hz, 0FS to 0.33FS in 0.50ms
+           * Base - Sine, 330Hz, 0.33FS, 2.50ms
+           * Ramp down - Sine Chirp, 330Hz to 50Hz, 0.33FS to 0FS in 0.50ms
            *
            */
             bsp_dut_trigger_rth_pwle(false, pwle1, pwle_1_size, 0);
@@ -127,9 +131,9 @@ void app_process_pb(void)
         case 1:
           /**
            * Trapezoidal PWLE click waveform - Half cycle
-           * Ramp up - Sine Chirp, 50Hz to 100Hz, 0FS to 0.7FS in 0.75ms
-           * Base - Sine, 100Hz, 0.7FS, 4.00ms
-           * Ramp down - Sine Chirp, 100Hz to 50Hz, 0.7FS to 0FS in 0.75ms
+           * Ramp up - Sine Chirp, 50Hz to 100Hz, 0FS to 0.41FS in 0.75ms
+           * Base - Sine, 100Hz, 0.41FS, 4.00ms
+           * Ramp down - Sine Chirp, 100Hz to 50Hz, 0.41FS to 0FS in 0.75ms
            *
            */
             bsp_dut_trigger_rth_pwle(false, pwle2, pwle_2_size, 0);
@@ -137,7 +141,7 @@ void app_process_pb(void)
         case 2:
           /**
            * Long PWLE buzz waveform
-           * Sine, 125ms, 180Hz, 0.2FS to 0.45FS, 168 half cycles, 265Hz, 0.45FS to 0.65FS
+           * Sine, 125ms, 180Hz, 0.13FS to 0.29FS, 168 half cycles, 265Hz, 0.29FS to 0.42FS
            *
            */
             bsp_dut_trigger_rth_pwle(false, pwle3, pwle_3_size, 0);
@@ -145,7 +149,7 @@ void app_process_pb(void)
         case 3:
           /**
            * Short PCM click waveform
-           * Sine, 1cycle, 400Hz, 1FS
+           * Sine, 1cycle, 400Hz, .46FS
            *
            */
             bsp_dut_trigger_rth_pcm(pcm_1_data, pcm_1_data_size, pcm_1_data_size, 0, 0);
@@ -153,7 +157,7 @@ void app_process_pb(void)
         case 4:
           /**
            * Short PCM click waveform with click compensation
-           * Sine, 1cycle, 200Hz, 0.5FS
+           * Sine, 1cycle, 240Hz, 0.34FS
            *
            */
             bsp_dut_trigger_rth_pcm(pcm_1_data, pcm_1_data_size, pcm_1_data_size, pcm_1_f0, pcm_1_redc);
@@ -161,7 +165,7 @@ void app_process_pb(void)
         case 5:
           /**
            * Long PCM buzz waveform
-           * Sine, 3cycles, 220Hz, 0.75FS, 1.5cycles, 100Hz, 0.25FS
+           * Sine, 3cycles, 220Hz, 0.49FS, 1.5cycles, 100Hz, 0.16FS
            *
            */
             bsp_dut_trigger_rth_pcm(pcm_2_data, pcm_2_data_size, 114, 0, 0);
@@ -171,6 +175,7 @@ void app_process_pb(void)
         app_set_sel_leds((app_state+1)%7);
         app_state++;
         app_state %= 6;
+        bsp_dut_hibernate();
     }
 
     return;

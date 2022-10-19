@@ -91,8 +91,12 @@ extern "C" {
 #define CS40L50_HALO_HEARTBEAT                                              (0x02809E5C)
 #define CS40L50_DSP_VIRTUAL1_MBOX_1                                         (0x11020)
 #define CS40L50_REDC_ESTIMATION_REG                                         (0x0280284C)
+#define CS40L50_F0_OTP_STORED                                               (0x02805C00)
+#define CS40L50_REDC_OTP_STORED                                             (0x02805C04)
+#define CS40L50_RE_EST_STATUS_REG                                           (0x03401B40)
 #define CS40L50_F0_ESTIMATION_REG                                           (0x02802854)
 #define CS40L50_VIBEGEN_COMPENSATION_ENABLE_REG                             (0x02805C30)
+#define CS40L50_REVID_A1                                                    (0xA1)
 
 #define CS40L50_CMD_INDEX_ROM_WAVE                                          (0x01800000)
 #define CS40L50_CMD_INDEX_RAM_WAVE                                          (0x01000000)
@@ -125,6 +129,14 @@ extern "C" {
 #define CS40L50_PM_STATE_ALLOW_HIBERNATE                                    (3)
 #define CS40L50_PM_STATE_SHUTDOWN                                           (4)
 
+#define CS40L50_PM_TIMEOUT_MS_MAX                                           (10000)
+#define CS40L50_PM_TICKS_MS_DIV                                             (32)
+#define CS40L50_PM_TIMEOUT_TICKS_UPPER_SHIFT                                (24)
+#define CS40L50_PM_TIMEOUT_TICKS_UPPER_MASK                                 (0x00FFFFFF)
+#define CS40L50_PM_TIMEOUT_TICKS_LOWER_MASK                                 (0xFFFFFFFF)
+#define CS40L50_PM_TIMER_TIMEOUT_TICKS_3_L                                  (0x02803FF0)
+#define CS40L50_PM_TIMER_TIMEOUT_TICKS_3_H                                  (0x02803FF4)
+
 #define CS40L50_DSP_STATE_MASK                                              (0xFF)
 
 /* DSP mailbox controls */
@@ -136,8 +148,15 @@ extern "C" {
 #define CS40L50_DSP_MBOX_CMD_SHUTDOWN                                       (0x02000005)
 #define CS40L50_DSP_MBOX_PM_CMD_BASE                                        CS40L50_DSP_MBOX_CMD_HIBER
 
+#define CS40L50_DSP_BYTES_PER_WORD                                          (4)
+#define CS40L50_DSP_MBOX_QUEUE_BASE                                         (0x02803FBC)
+#define CS40L50_DSP_MBOX_QUEUE_LEN                                          (0x02803FC0)
+#define CS40L50_DSP_MBOX_QUEUE_WT                                           (0x02803FC4)
+#define CS40L50_DSP_MBOX_QUEUE_RD                                           (0x02803FC8)
+
 #define CS40L50_DSP_MBOX_F0_EST                                             (0x7000001)
 #define CS40L50_DSP_MBOX_REDC_EST                                           (0x7000002)
+#define CS40L50_DSP_MBOX_REDC_EST_START                                     (0x7000012)
 #define CS40L50_DSP_MBOX_REDC_EST_DONE                                      (0x7000022)
 /* OWT/RTH */
 #define  CS40L50_OWT_WAVE_XM_TABLE                                          (0x02805C48)

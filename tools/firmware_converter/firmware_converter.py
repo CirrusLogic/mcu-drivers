@@ -304,6 +304,17 @@ def validate_environment():
     return result
 
 def get_args(args):
+
+    global optional_args_list, rom_allowed_options
+
+    optional_args_list = ['--wmdr', '--binary-input', '-s', '--suffix', '-i', '--i2c-address', '-b', '--block-size-limit',
+                          '--sym-input', '--sym-output', '--binary', '--binary-output',
+                          '--wmdr-only', '--exclude-wmfw', '--generic-sym', '--fw-img-version',
+                          '--revision-check', '--sym-partition', '--no-sym-table',
+                          '--exclude-dummy', '--skip-command-print', '--output-directory']
+
+    rom_allowed_options = ['--wmdr', '--wmdr-only', '--exclude-wmfw', '--binary', '--binary-output']
+
     """Parse arguments"""
     parser = argparse.ArgumentParser(description='Parse command line arguments')
     parser.add_argument(dest='command', type=str, choices=supported_commands, help='The command you wish to execute.')
@@ -318,9 +329,9 @@ def get_args(args):
     parser.add_argument('-b', '--block-size-limit', type=int, default='4140', dest='block_size_limit', help='Specify maximum byte size of block per control port transaction.  Can be no larger than 4140.')
     parser.add_argument('--sym-input', dest='symbol_id_input', type=str, default=None, help='The location of the symbol table C header(s).  If not specified, a header is generated with all controls.')
     parser.add_argument('--sym-output', dest='symbol_id_output', type=str, default=None, help='The location of the output symbol table C header.  Only used when no --sym-input is specified.')
-    parser.add_argument('--binary', dest='binary_output', action="store_true", help='Request binary fw_img output format. WARNING: --binary is going to be depracated soon, please use --binary-output.')
+    parser.add_argument('--binary', dest='binary_output', action="store_true", help='Request binary fw_img output format. WARNING: --binary is going to be deprecated soon, please use --binary-output.')
     parser.add_argument('--binary-output', dest='binary_output', action="store_true", help='Request binary fw_img output format.')
-    parser.add_argument('--wmdr-only', dest='exclude_wmfw', action="store_true", help='(To be depracated, please use --exclude-wmfw) Request to ONLY store WMDR files in fw_img.')
+    parser.add_argument('--wmdr-only', dest='exclude_wmfw', action="store_true", help='(To be deprecated, please use --exclude-wmfw) Request to ONLY store WMDR files in fw_img.')
     parser.add_argument('--exclude-wmfw', dest='exclude_wmfw', action="store_true", help='Request to ONLY store WMDR/bin files in fw_img.')
     parser.add_argument('--generic-sym', dest='generic_sym', action="store_true", help='Use generic algorithm name for \'FIRMWARE_*\' algorithm controls')
     parser.add_argument('--fw-img-version', type=lambda x: int(x,0), default='0', dest='fw_img_version', help='Release version for the fw_img that ties together a WMFW fw revision with releases of BIN files. Accepts type int of any base.')
@@ -333,11 +344,20 @@ def get_args(args):
 
     return parser.parse_args(args[1:])
 
+
 def validate_args(args):
     # Check that WMFW path exists
     if ((not os.path.exists(args.wmfw)) and (args.wmfw != 'ROM')):
         print("Invalid wmfw path: " + args.wmfw)
         return False
+
+    # Check ROM optional arguments
+    if args.wmfw == 'ROM':
+        for a in sys.argv[1:]:
+            if a in list(set(optional_args_list) - set(rom_allowed_options)):
+                print("ROM option does not allow additional arguments except: {}".format(', '.join(rom_allowed_options)))
+                return False
+
     if (args.wmdrs is not None):
         # Check that WMDR path(s) exists
         for wmdr in args.wmdrs:

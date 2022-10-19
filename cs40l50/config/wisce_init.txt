@@ -1,69 +1,95 @@
-*-------------------------------------------------------------------------------
-* Cirrus Logic device configuration file
-* Created by WISCE.exe utility version 3.12.0.3 at 4/22/2021 1:54:02 PM
-*
-* Devices on system:
-*   CS40L50 at SMBUS/0x70
-*-------------------------------------------------------------------------------
-
-*-------------------------------------------------------------------------------
-* Register operations have the following format:
-*
-*      <register> <value> <access_type> <action> [<dev_addr>] [<mask>]
-*
-* where:
-*      <register>      is the register index
-*      <value>         is the data value
-*      <access_type>   is one of:
-*          AC97_16_bit_data
-*          3wire_9_bit_data
-*          2wire_9_bit_data
-*      <action>        is one of
-*          Write         - write the given value
-*          Read          - documents the value that was read
-*          RModW         - read/modify/write
-*                          (newval = (currval & ~<mask>) | <value>)
-*      <dev_addr>      is the 2wire device address or the SPI chip select
-*      <mask>          is the mask for the RModW operation
-*
-* for example:
-*   R12  0x1234  AC97_16_bit_data Write
-*     - this would write the hex value 0x1234 to register 12 (decimal)
-*       using AC97
-*
-*   R36  0x1F5   2wire_9_bit_data Write 0x34
-*     - this would write the hexadecimal value 0x1F5 to register
-*       36 (decimal) on the 2-wire device at address 0x34 (hex)
-*
-*   0xC  4660    AC97_16_bit_data Write
-*   0x24 501     2wire_9_bit_data Write 0x34
-*     - these are the same two operations using hexadecimal registers
-*       and decimal values
-*
-* Lines beginning with// are comments and are ignored when processing
-* the file.
-*
-* The register index can be written either in decimal format, prefixed by 'R'
-* or in hexadecimal format, prefixed by '0x'.
-*
-* For 9-bit 2- and 3-wire operations, <value> is the actual 9 bit register
-* contents, NOT the 16 bit data word.
-*
-* Entries in a line can be separated by spaces or tabs. The amount of
-* space between each entry does not matter but entries must be arranged
-* in the correct order from left to right. A file can be created in a text
-* editor (e.g. Notepad), or created in Excel and saved as .txt format
-* (tab separated).
-*
-*-------------------------------------------------------------------------------
-
 * ----- ------ -------------------- ------- --------- ------------------------------
 *  REG   DATA         ACCESS        READ OR  DEVICE
 * INDEX  VALUE         TYPE          WRITE   ADDRESS  COMMENT (for information only)
 * ----- ------ -------------------- ------- --------- ------------------------------
-  0x2018 0x3321 SMbus_32inx_32dat     Write  0x70      *
-  0x3800 0x0082 SMbus_32inx_32dat     Write  0x70      *
-  0x3800 0x006E SMbus_32inx_32dat     Write  0x70      *
-  0x3808 0xC0000001 SMbus_32inx_32dat     Write  0x70      *
-  0x380C 0xC8710200 SMbus_32inx_32dat     Write  0x70      *
-  0x3810 0x0001 SMbus_32inx_32dat     Write  0x70      *
+
+* CS40L50 A0 Erratas
+
+** Hardware Erratas - https://docs.cirrus.com/pages/viewpage.action?pageId=362494143	
+
+*** Unconditional Erratas
+	message Apply CS40L50 HW Erratas
+	* None
+
+*** Conditional Erratas	
+
+**** Internal Boost mode
+	if 0x2018 0x0020 SMbus_32inx_32dat Check 0x60 0x20  * BLOCK_ENABLES(2018H):    0020  BST_EN=Boost converter enabled   	
+		message Apply CS40L50 HW Erratas for Internal Boost mode	
+	* JAMRSN-2491 - Boost startup can cause device reset	
+		0x40 0x0055 SMbus_32inx_32dat     	Write  0x60      * OTP_MEM16(40H):          0055  
+		0x40 0x00AA SMbus_32inx_32dat     	Write  0x60      * OTP_MEM16(40H):          00AA  
+		0x3808 0x40000001 SMbus_32inx_32dat Write  0x60      * BOOST_CCM_CFG(3808H):    40000001  BST_CCM_DRV_SLOPE=0100, BST_CCM_THLD=1 24 MHz clock cycles
+		0x38EC 0x0032 SMbus_32inx_32dat     Write  0x60      * BOOST_BOOST_ANA_TEST2(38ECH): 0032  BOOST_BST_PHA_FORCE_BYPS_TST=0, BOOST_BST_PHA_PREDR_VISCTRL_HV=00, BOOST_BST_PHA_PREDR_VISCTRL_LV=00, BOOST_BST_PHA_NSWTIMELMT_EN=1, BOOST_BST_PHA_NSPD_CTRL_TST=12
+		0x40 0x0000 SMbus_32inx_32dat     	Write  0x60      * OTP_MEM16(40H):          0000 		
+	* JAMRSN-2607 (Amplifier) - CS40L50 B0 - Explore FW changes to enable Class-H			
+		0x201C 0x0010 SMbus_32inx_32dat     Write  0x60      * BLOCK_ENABLES2(201CH):   0010  ASP_EN=Disabled, CLASSH_EN=Class H enabled
+		0x3800 0x026E SMbus_32inx_32dat     Write  0x60      * BOOST_VOLTAGE_CFG(3800H): 026E  BST_CTL_SEL=Class H tracking value, BST_CTL=8 V
+		
+**** External VDD_AMP supply mode
+	else
+		message Apply CS40L50 HW Erratas for External VDD_AMP supply mode	
+	* JAMRSN-2438 (Power Management) - External VDD_AMP mode bringup requires VP_UVP_ERR_IGNORE to be set	
+		0x2034 0x2000000 SMbus_32inx_32dat     	Write  0x60      * ERROR_RELEASE(2034H):    2000000  GLOBAL_ERR_RLS=If the amplifier calibration error condition is present, Safe Mode is applied	
+		* Check for VP UVP Error
+		0x2040 0x08000000 SMbus_32inx_32dat		Read   0x60      * CHIP_STATUS(2040H):      STATUS_VP_UVP_ERR=0	
+	
+    endif
+
+** Firmware Erratas - https://docs.cirrus.com/display/JAMRSN/08-FEB-2022+Jamerson+Firmware%3A+ROM_DROP_17 
+
+*** Unconditional Erratas	
+	message Apply CS40L50 FW Erratas
+	* JAMRSN-2541 (F0 Estimation) - First F0 calibration lower than frequency center
+		0x280279C 0x6 SMbus_32inx_32dat Write 0x60 - * INTERNAL (* g_f0_estimation_obj.frame_size)
+	* JAMRSN-2206 (Dynamic F0) - The device does not go to standby state after ROM waveform playback is completed 	
+		0x280285C 0x0000 SMbus_32inx_32dat     Write  0x60      * DYNAMIC_F0_DYNAMIC_F0_ENABLED(280285CH): 0000  DYNAMIC_F0_DYNAMIC_F0_ENABLED=0
+		
+*** Conditional Erratas	
+	* None
+
+	
+** Power-on Write Sequencer	- Firmware uses first 13 power-on writes
+
+*** Hardware
+**** Internal Boost mode
+	if 0x2018 0x0020 SMbus_32inx_32dat Check 0x60 0x20  * BLOCK_ENABLES(2018H):    0020  BST_EN=Boost converter enabled   	
+		message Apply CS40L50 HW Write Sequencer Erratas for Internal Boost mode
+	* JAMRSN-2607 (Amplifier) - CS40L50 B0 - Explore FW changes to enable Class-H
+		* BLOCK_ENABLES2 (0x201C) 0x0000 -> 0x0010 (CLASSH_EN=Class H enabled)
+		* PM_POWER_ON_SEQUENCE14 0x040020 SMbus_32inx_32dat Write 0x60  * | OP  |ADDR3|ADDR2|
+		* PM_POWER_ON_SEQUENCE15 0x1C0010 SMbus_32inx_32dat Write 0x60  * |ADDR1|DATA2|DATA1|
+		0x280404C 0x040020 SMbus_32inx_32dat Write 0x60 * | OP |ADDR3|ADDR2|
+		0x2804050 0x1C0010 SMbus_32inx_32dat Write 0x60 * |ADDR1|DATA2|DATA1|			
+		* BOOST_VOLTAGE_CFG (0x3800) 0x00FA -> 0x02FA (BOOST_CTL_SEL = CLASSH)
+		* PM_POWER_ON_SEQUENCE16 0x040038 SMbus_32inx_32dat Write 0x60  * | OP  |ADDR3|ADDR2|
+		* PM_POWER_ON_SEQUENCE17 0x0002FA SMbus_32inx_32dat Write 0x60  * |ADDR1|DATA2|DATA1|
+		* PM_POWER_ON_SEQUENCE18 0xFFFFFF SMbus_32inx_32dat Write 0x60  * Terminator
+		0x2804054 0x040038 SMbus_32inx_32dat Write 0x60  * | OP  |ADDR3|ADDR2|
+		0x2804058 0x0002FA SMbus_32inx_32dat Write 0x60  * |ADDR1|DATA2|DATA1|
+		0x280405C 0xFFFFFF SMbus_32inx_32dat Write 0x60  * Terminator	
+
+**** External VDD_AMP supply mode
+	else
+		message Apply CS40L50 HW Write Sequencer Erratas for External VDD_AMP supply mode	   	
+	* JAMRSN-2438 (Power Management) - External VDD_AMP mode bringup requires VP_UVP_ERR_IGNORE to be set	
+		* ERROR_RELEASE (0x2034) 0x00000000 -> 0x02000000 (VP_UVP_ERR_IGNORE=1)
+		* PM_POWER_ON_SEQUENCE14 0x050020 SMbus_32inx_32dat Write 0x60 * | OP (WRITE_REG_H16) |ADDR3|ADDR2|
+		* PM_POWER_ON_SEQUENCE15 0x340200 SMbus_32inx_32dat Write 0x60 * |ADDR1|DATA2|DATA1|		
+		0x280404C 0x050020 SMbus_32inx_32dat Write 0x60 * | OP |ADDR3|ADDR2|
+		0x2804050 0x340200 SMbus_32inx_32dat Write 0x60 * |ADDR1|DATA2|DATA1|	
+	* JAMRSN-2674 (Power Management) - Incorrect or no playback after hibernate for External VDD_AMP 
+		* BLOCK_ENABLES (0x2018) 0x3321 -> 0x3201 (Disable VDDBMON_EN=0, BST_EN=0)
+		* PM_POWER_ON_SEQUENCE16 0x040020 SMbus_32inx_32dat Write 0x60 * | OP (WRITE_REG_L16) |ADDR3|ADDR2|
+		* PM_POWER_ON_SEQUENCE17 0x183201 SMbus_32inx_32dat Write 0x60 * |ADDR1|DATA2|DATA1|		
+		0x2804054 0x040020 SMbus_32inx_32dat Write 0x60 * | OP |ADDR3|ADDR2|
+		0x2804058 0x183201 SMbus_32inx_32dat Write 0x60 * |ADDR1|DATA2|DATA1|				
+		* MON_VALUE_CTRL1(0x4404) 0x000000000 -> 0x01000000 (VBST_MON_SRC=VDD_AMP)
+		* PM_POWER_ON_SEQUENCE18 0x050044 SMbus_32inx_32dat Write 0x60 * | OP (WRITE_REG_H16) |ADDR3|ADDR2|
+		* PM_POWER_ON_SEQUENCE19 0x040100 SMbus_32inx_32dat Write 0x60 * |ADDR1|DATA2|DATA1|	
+		0x280405C 0x050044 SMbus_32inx_32dat Write 0x60 * | OP |ADDR3|ADDR2|
+		0x2804060 0x040100 SMbus_32inx_32dat Write 0x60 * |ADDR1|DATA2|DATA1|
+		0x2804064 0xFFFFFF SMbus_32inx_32dat Write 0x60 * Terminator			
+	endif
+	
+* End	

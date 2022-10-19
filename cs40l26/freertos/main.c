@@ -27,6 +27,7 @@
 #include "platform_bsp.h"
 #include "FreeRTOS.h"
 #include "task.h"
+#include "bridge.h"
 
 /***********************************************************************************************************************
  * LOCAL LITERAL SUBSTITUTIONS
@@ -44,6 +45,7 @@
 static uint8_t app_state = APP_STATE_BUZZ;
 static TaskHandle_t HapticControlTaskHandle = NULL;
 static TaskHandle_t HapticEventTaskHandle = NULL;
+static TaskHandle_t BridgeTaskHandle = NULL;
 
 /***********************************************************************************************************************
  * GLOBAL VARIABLES
@@ -131,13 +133,21 @@ static void HapticControlThread(void *argument)
                 {
                     bsp_dut_reset();
                     bsp_dut_boot(false);
+                    bsp_dut_configure_gpi(2);
+                    bsp_dut_configure_gpi_mute(2, 1);
+                    bsp_dut_enable_gpi_mute(1);
                     bsp_dut_buzzgen_set(0x100, 0x32, 200, 1);
                     bsp_dut_trigger_haptic(1, BUZZ_BANK);
-                    bsp_set_timer(1000, NULL, NULL);
+                    bsp_processing_haptic = true;
+                    while (bsp_processing_haptic);
                     bsp_dut_buzzgen_set(0x100, 0x32, 20, 2);
                     bsp_dut_trigger_haptic(2, BUZZ_BANK);
-                    bsp_set_timer(300, NULL, NULL);
+                    bsp_processing_haptic = true;
+                    while (bsp_processing_haptic);
                     bsp_dut_trigger_haptic(3, RAM_BANK);
+                    bsp_processing_haptic = true;
+                    while (bsp_processing_haptic);
+                    bsp_dut_enable_gpi_mute(0);
                     bsp_dut_hibernate();
                     app_state++;
                 }
@@ -174,19 +184,23 @@ static void HapticControlThread(void *argument)
 
 static void HapticEventThread(void *argument)
 {
-    uint32_t flags = 0;
-
     for (;;)
     {
-        /* Wait to be notified of an interrupt. */
-        xTaskNotifyWait(pdFALSE,    /* Don't clear bits on entry. */
-                        APP_FLAG_BSP_NOTIFICATION,
-                        &flags, /* Stores the notified value. */
-                        portMAX_DELAY);
+        vTaskDelay(10);
+        if (!bsp_hibernation)
+        {
+            bsp_dut_process();
+        }
+    }
+}
 
-        bsp_dut_process();
-
-        flags = 0;
+static void BridgeThread(void *argument)
+{
+    const TickType_t pollingTime = pdMS_TO_TICKS(5);
+    while(true)
+    {
+        bridge_process();
+        vTaskDelay(pollingTime);
     }
 }
 
@@ -209,8 +223,15 @@ int main(void)
                 "HapticEventTask",
                 configMINIMAL_STACK_SIZE,
                 (void *) NULL,
-                (tskIDLE_PRIORITY + 1),
+                tskIDLE_PRIORITY,
                 &HapticEventTaskHandle);
+
+    xTaskCreate(BridgeThread,
+                "BridgeTask",
+                configMINIMAL_STACK_SIZE,
+                (void *) NULL,
+                tskIDLE_PRIORITY,
+                &BridgeTaskHandle);
 
     app_init();
 

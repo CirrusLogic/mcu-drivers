@@ -52,6 +52,8 @@ extern "C" {
 /***********************************************************************************************************************
  * GLOBAL VARIABLES
  **********************************************************************************************************************/
+extern bool bsp_processing_haptic;
+extern bool bsp_hibernation;
 
 /***********************************************************************************************************************
  * API FUNCTIONS
@@ -74,6 +76,9 @@ uint32_t bsp_dut_has_processed(bool *has_processed);
 uint32_t bsp_dut_enable_haptic_processing(bool enable);
 uint32_t bsp_dut_dynamic_calibrate(uint8_t index);
 uint32_t bsp_dut_process(void);
+uint32_t bsp_dut_configure_gpi_mute(uint8_t gpi, bool level);
+uint32_t bsp_dut_enable_gpi_mute(bool enable);
+uint32_t bsp_dut_configure_gpi(uint8_t gpi);
 
 /**********************************************************************************************************************/
 #ifdef __cplusplus

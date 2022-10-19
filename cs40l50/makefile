@@ -46,6 +46,9 @@ ifdef IS_NOT_UNIT_TEST
 endif
 
 # Assign firmware and configuration script variables
+HALO_FIRMWARE_FILE = ROM
+HALO_CAL_FIRMWARE_FILE = cs40l50_cal.wmfw
+HALO_FIRMWARE_WMDR = cs40l50_wt.bin --wmdr-only
 WISCE_SCRIPT = $(CONFIG_PATH)/wisce_init.txt
 MISC_SCRIPTS = hwt_to_waveform_converter
 
@@ -80,6 +83,7 @@ ifeq ($(MAKECMDGOALS), unit_test)
     ADD_OBJ_RULES = add_unit_test_obj_rules
 else ifdef IS_NOT_UNIT_TEST
     C_SRCS += $(DRIVER_PATH)/bsp/bsp_cs40l50.c
+    C_SRCS += $(HALO_FIRMWARE_PATH)/cs40l50_fw_img.c
 
     ifeq ($(MAKECMDGOALS), system_test)
         C_SRCS += $(APP_PATH)/test_cs40l50.c
@@ -124,12 +128,12 @@ $(eval $(call add_wisce_script_rule,cs40l50))
 firmware_converter:
 	@echo -------------------------------------------------------------------------------
 	@echo GENERATING cs40l50_fw_img
-#cd $(HALO_FIRMWARE_PATH) && python3 ../../tools/firmware_converter/firmware_converter.py fw_img_v2 cs40l50 $(HALO_FIRMWARE_FILE) --sym-input $(CONFIG_PATH)/cs40l50_sym.h
+	cd $(HALO_FIRMWARE_PATH) && python3 ../../tools/firmware_converter/firmware_converter.py fw_img_v2 cs40l50 $(HALO_FIRMWARE_FILE) --wmdr $(HALO_FIRMWARE_WMDR)
 
 hwt_to_waveform_converter:
 	@echo -------------------------------------------------------------------------------
 	@echo GENERATING waveforms
-	cd $(DRIVER_PATH) && python3 ../tools/hwt_to_waveform/hwt_to_waveform_converter.py waveforms.hwt
+	cd $(DRIVER_PATH) && python3 ../tools/hwt_to_waveform/hwt_to_waveform_converter.py cs40l50 waveforms.hwt
 
 # Compilation rules
 $(eval $(call $(ADD_OBJ_RULES), $(OBJS)))
@@ -137,7 +141,6 @@ $(eval $(call add_driver_obj_rules))
 $(eval $(call add_asm_obj_rules))
 $(eval $(call add_driver_library_rule))
 
-# Final target rules
 $(eval $(call add_unit_test_rule))
 $(eval $(call add_platform_target_rule, $(PLATFORM_TARGETS)))
 

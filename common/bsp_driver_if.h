@@ -4,7 +4,7 @@
  * @brief Functions and prototypes that define the BSP-to-Device Driver Interface
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2019, 2020 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2019-2020, 2022 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -434,5 +434,8 @@ extern bsp_driver_if_t *bsp_driver_if_g;
 /***********************************************************************************************************************
  * API FUNCTIONS
  **********************************************************************************************************************/
+#ifdef __cplusplus
+}
+#endif
 
 #endif // BSP_DRIVER_IF_H

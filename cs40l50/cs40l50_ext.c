@@ -93,7 +93,18 @@ uint32_t cs40l50_set_click_compensation_enable(cs40l50_t *driver, bool f0_enable
 
     if (redc_enable)
     {
+        uint32_t integer, fractional,redc_stored;
         enable |= CS40L50_COMPENSATION_ENABLE_REDC_MASK;
+
+        integer = (driver->config.cal_data.redc & (0xFF << 15)) >> 15;
+        fractional = (driver->config.cal_data.redc & 0x7FFF) * 4;
+        //redc_stored is converted from Q8.15 to (Q7.17 * 29/240)
+        redc_stored = ((((integer << 17) | fractional) * 29) / 240) & 0x00FFFFFF;
+        ret = regmap_write(cp, CS40L50_REDC_OTP_STORED, redc_stored);
+        if (ret)
+        {
+            return ret;
+        }
     }
 
     ret = regmap_write(cp, CS40L50_VIBEGEN_COMPENSATION_ENABLE_REG, (uint32_t) enable);
