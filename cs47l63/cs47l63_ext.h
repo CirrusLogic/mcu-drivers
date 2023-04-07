@@ -4,7 +4,7 @@
  * @brief Functions and prototypes exported by the CS47L63 Driver Extended API module
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2021 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2021, 2023 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -30,11 +30,20 @@ extern "C" {
 /***********************************************************************************************************************
  * INCLUDES
  **********************************************************************************************************************/
-#include "cs47l63.h"
+#include <stddef.h>
 
 /***********************************************************************************************************************
  * LITERALS & CONSTANTS
  **********************************************************************************************************************/
+ /**
+ * @defgroup CS47L63_DSP_
+ * @brief Values for communicating with DSP
+ *
+ * @{
+ */
+#define CS47L63_DSP_OFFSET_MUL_VALUE              4
+#define CS47L63_DSP_UNPACKED24_BYTES_PER_REG      4
+#define CS47L63_DSP_IRQ_ACK_VAL                   0x1
 
 /***********************************************************************************************************************
  * MACROS

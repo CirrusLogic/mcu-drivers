@@ -4,7 +4,7 @@
  * @brief The main function for CS40L25 System Test Harness
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2019, 2021 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2019, 2021, 2023 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -156,7 +156,7 @@ int main(void)
 #if CONFIG_8K_I2S
                     bsp_audio_set_fs(BSP_AUDIO_FS_8000_HZ);
 #endif
-                    bsp_audio_play_record(BSP_PLAY_STEREO_1KHZ_20DBFS);
+                    bsp_audio_play_record(BSP_I2S_PORT_PRIMARY, BSP_PLAY_STEREO_1KHZ_20DBFS);
                     bsp_dut_start_i2s();
                     app_state++;
                 }
@@ -166,7 +166,7 @@ int main(void)
                 if (bsp_pb_pressed)
                 {
                     bsp_dut_stop_i2s();
-                    bsp_audio_stop();
+                    bsp_audio_stop(BSP_I2S_PORT_PRIMARY);
                     bsp_dut_hibernate();
                     app_state++;
                 }

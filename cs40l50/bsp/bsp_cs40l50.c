@@ -4,7 +4,7 @@
  * @brief Implementation of the BSP for the cs40l50 platform.
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2022 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2022-2023 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -23,9 +23,9 @@
  * INCLUDES
  **********************************************************************************************************************/
 #include <string.h>
+#include <stdlib.h>
 #include "platform_bsp.h"
 #include "cs40l50.h"
-#include "cs40l50_ext.h"
 #include "cs40l50_syscfg_regs.h"
 #include "cs40l50_fw_img.h"
 
@@ -51,6 +51,8 @@ static cs40l50_bsp_config_t bsp_config =
     .cp_config.bus_type = REGMAP_BUS_TYPE_I2C,
     .cp_config.receive_max = 0, // No calls to regmap_read_block for the cs40l50 driver
 };
+
+static cs40l50_df0_table_entry_t dynamic_f0;
 
 /***********************************************************************************************************************
  * GLOBAL VARIABLES
@@ -82,6 +84,8 @@ uint32_t bsp_dut_initialize(void)
 
         haptic_config.is_ext_bst = false;
 
+        haptic_config.dynamic_f0_threshold = 0x20C5;
+
         haptic_status = cs40l50_configure(&cs40l50_driver, &haptic_config);
     }
 
@@ -102,6 +106,14 @@ uint32_t bsp_dut_initialize(void)
 
     // CDC_MCLK1_ENA=Enabled, CDC_MCLK1_SRC=CLK_24.576MHz
     temp_buffer = __builtin_bswap32(0x001E8007);
+    bsp_i2c_write(BSP_LN2_DEV_ID, (uint8_t *)&temp_buffer, 4, NULL, NULL);
+
+    // Set CDC_GPIO1 to GND for S1/S2 functionality
+    // CDC_GPIO1 source set to Channel 1
+    temp_buffer = __builtin_bswap32(0x00370001);
+    bsp_i2c_write(BSP_LN2_DEV_ID, (uint8_t *)&temp_buffer, 4, NULL, NULL);
+    // Channel 1 source set to Logic 0
+    temp_buffer = __builtin_bswap32(0x00B900FE);
     bsp_i2c_write(BSP_LN2_DEV_ID, (uint8_t *)&temp_buffer, 4, NULL, NULL);
 
     return ret;
@@ -138,21 +150,13 @@ uint32_t bsp_dut_boot(void)
     fw_img = cs40l50_fw_img;
     fw_img_end = cs40l50_fw_img + FW_IMG_SIZE(cs40l50_fw_img);
 
-    // Inform the driver that any current firmware is no longer available by passing a NULL
-    // fw_info pointer to cs40l50_boot
-    ret = cs40l50_boot(&cs40l50_driver, NULL);
-    if (ret != CS40L50_STATUS_OK)
-    {
-        return ret;
-    }
-
     // Free anything malloc'ed in previous boots
     if (boot_state.fw_info.sym_table)
-        bsp_free(boot_state.fw_info.sym_table);
+        free(boot_state.fw_info.sym_table);
     if (boot_state.fw_info.alg_id_list)
-        bsp_free(boot_state.fw_info.alg_id_list);
+        free(boot_state.fw_info.alg_id_list);
     if (boot_state.block_data)
-        bsp_free(boot_state.block_data);
+        free(boot_state.block_data);
 
     // Ensure your fw_img_boot_state_t struct is initialised to zero.
     memset(&boot_state, 0, sizeof(fw_img_boot_state_t));
@@ -171,22 +175,33 @@ uint32_t bsp_dut_boot(void)
         return BSP_STATUS_FAIL;
     }
 
+    // Inform the driver that any current firmware is no longer available by passing a NULL
+    // fw_info pointer to cs40l50_boot
+    if (boot_state.fw_info.header.fw_version != CS40L50_WT_ONLY)
+    {
+        ret = cs40l50_boot(&cs40l50_driver, NULL);
+        if (ret != CS40L50_STATUS_OK)
+        {
+            return ret;
+        }
+    }
+
     // malloc enough memory to hold the symbol table, using sym_table_size in the previously
     // read in fw_img header
-    boot_state.fw_info.sym_table = (fw_img_v1_sym_table_t *)bsp_malloc(boot_state.fw_info.header.sym_table_size *
+    boot_state.fw_info.sym_table = (fw_img_v1_sym_table_t *) malloc(boot_state.fw_info.header.sym_table_size *
                                                                    sizeof(fw_img_v1_sym_table_t));
-    if (boot_state.fw_info.sym_table == NULL)
+    if ((boot_state.fw_info.sym_table == NULL) && (boot_state.fw_info.header.sym_table_size > 0))
     {
         return BSP_STATUS_FAIL;
     }
 
-    if (boot_state.fw_info.header.fw_version < CS40L50_MIN_FW_VERSION && boot_state.fw_info.header.fw_version != CS40L50_WT_ONLY)
+    if ((boot_state.fw_info.header.fw_version < CS40L50_MIN_FW_VERSION) && (boot_state.fw_info.header.fw_version != CS40L50_WT_ONLY))
     {
         return BSP_STATUS_FAIL;
     }
 
     // malloc enough memory to hold the alg_id list, using the alg_id_list_size in the fw_img header
-    boot_state.fw_info.alg_id_list = (uint32_t *) bsp_malloc(boot_state.fw_info.header.alg_id_list_size * sizeof(uint32_t));
+    boot_state.fw_info.alg_id_list = (uint32_t *) malloc(boot_state.fw_info.header.alg_id_list_size * sizeof(uint32_t));
     if (boot_state.fw_info.alg_id_list == NULL)
     {
         return BSP_STATUS_FAIL;
@@ -205,7 +220,7 @@ uint32_t bsp_dut_boot(void)
     {
         boot_state.block_data_size = boot_state.fw_info.header.max_block_size;
     }
-    boot_state.block_data = (uint8_t *) bsp_malloc(boot_state.block_data_size);
+    boot_state.block_data = (uint8_t *) malloc(boot_state.block_data_size);
     if (boot_state.block_data == NULL)
     {
         return BSP_STATUS_FAIL;
@@ -251,7 +266,10 @@ uint32_t bsp_dut_boot(void)
     }
 
     // fw_img processing is complete, so inform the driver and pass it the fw_info block
-    ret = cs40l50_boot(&cs40l50_driver, &boot_state.fw_info);
+    if (boot_state.fw_info.header.fw_version != CS40L50_WT_ONLY)
+    {
+        ret = cs40l50_boot(&cs40l50_driver, &boot_state.fw_info);
+    }
 
     current_halo_heartbeat = 0;
 
@@ -365,6 +383,26 @@ uint32_t bsp_dut_set_f0(uint32_t f0)
     return BSP_STATUS_OK;
 }
 
+uint32_t bsp_dut_dynamic_f0_set_enable(bool enable)
+{
+    uint32_t ret;
+
+    // Enable Dynamic F0
+    ret = cs40l50_set_dynamic_f0(&cs40l50_driver, enable);
+
+    return ret;
+}
+
+uint32_t bsp_dut_configure_gpio_trigger(cs40l50_gpio_bank_t gpio, bool rth,
+                                        uint8_t attenuation, bool ram, uint8_t plybck_index)
+{
+    uint32_t ret;
+
+    ret = cs40l50_configure_gpio_trigger(&cs40l50_driver, gpio, rth, attenuation, ram, plybck_index);
+
+    return ret;
+}
+
 uint32_t bsp_dut_trigger_haptic(uint8_t waveform, cs40l50_wavetable_bank_t bank)
 {
     uint32_t ret = BSP_STATUS_OK;
@@ -394,6 +432,21 @@ uint32_t bsp_dut_trigger_rth_pcm(uint8_t *pcm_data, uint32_t num_sections, uint1
     uint32_t ret = BSP_STATUS_OK;
 
     ret = cs40l50_trigger_pcm(&cs40l50_driver, pcm_data, num_sections, buffer, f0, redc);
+
+    return ret;
+}
+
+uint32_t bsp_dut_dynamic_calibrate(uint8_t index)
+{
+    uint32_t ret = BSP_STATUS_OK;
+
+    // Read Dynamic F0 from WT Index 0
+    dynamic_f0.table1.index = index;
+    ret = cs40l50_get_dynamic_f0(&cs40l50_driver, &dynamic_f0);
+    if (ret != CS40L50_STATUS_OK)
+    {
+        return BSP_STATUS_FAIL;
+    }
 
     return ret;
 }

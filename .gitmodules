@@ -1,3 +1,6 @@
 [submodule "third_party/st/STM32CubeF4"]
 	path = third_party/st/STM32CubeF4
 	url = https://github.com/STMicroelectronics/STM32CubeF4.git
+[submodule "third_party/sbc"]
+	path = third_party/sbc
+	url = https://git.kernel.org/pub/scm/bluetooth/sbc

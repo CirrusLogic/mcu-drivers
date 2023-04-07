@@ -183,7 +183,7 @@ const uint16_t pcm_silence_32bit_stereo_single_period[PCM_1KHZ_SINGLE_PERIOD_LEN
  * channel first:
  * - Left channel Sample 1
  * - Right channel Sample 1
- * - eft channel Sample 2
+ * - Left channel Sample 2
  * - ...
  *
  */
@@ -247,7 +247,7 @@ const uint16_t pcm_20dBFs_1kHz_16bit_stereo_single_period[PCM_1KHZ_SINGLE_PERIOD
  * channel first:
  * - Left channel Sample 1
  * - Right channel Sample 1
- * - eft channel Sample 2
+ * - Left channel Sample 2
  * - ...
  *
  */
@@ -810,7 +810,7 @@ const uint16_t pcm_20dBFs_100Hz_32bit_stereo_single_period[] =
  * channel first:
  * - Left channel Sample 1
  * - Right channel Sample 1
- * - eft channel Sample 2
+ * - Left channel Sample 2
  * - ...
  *
  */
@@ -1340,6 +1340,39 @@ const uint16_t pcm_20dBFs_1kHz_16bit_8000_stereo_single_period[PCM_1KTONE_8kHz_S
   0xf333, 0xf333,
   0xf6f3, 0xf6f2
 };
+
+/**
+ * Table of PCM samples for single period of stereo / silence / -20dBFs / 16-bit / 16000
+ *
+ * Table uses type of uint16_t, so 16-bit samples are directly implemented.  Total length of table is
+ * PCM_1KHZ_SINGLE_PERIOD_LENGTH per channel, thus * 2 for stereo.  16-bit words are arranged Left
+ * channel first:
+ * - Left channel Sample 1
+ * - Right channel Sample 1
+ * - Left channel Sample 2
+ * - ...
+ *
+ */
+const uint16_t pcm_test[16 * 2] =
+{
+  0x0000, 0xffff,
+  0x04e5, 0x04e6,
+  0x090d, 0x090c,
+  0x0bd3, 0x0bd3,
+  0x0ccd, 0x0ccd,
+  0x0bd3, 0x0bd4,
+  0x090c, 0x090d,
+  0x04e6, 0x04e6,
+  0x0000, 0x0000,
+  0xfb1a, 0xfb1a,
+  0xf6f2, 0xf6f3,
+  0xf42d, 0xf42c,
+  0xf333, 0xf333,
+  0xf42d, 0xf42d,
+  0xf6f3, 0xf6f3,
+  0xfb1a, 0xfb19,
+};
+
 /*****************************************************************************
 * Function Definitions
 *****************************************************************************/

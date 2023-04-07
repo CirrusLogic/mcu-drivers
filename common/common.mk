@@ -68,12 +68,17 @@ $(1): $(2)
 	@echo COMPILING $(2)
 	$(CC) $(CFLAGS) $(INCLUDES) -MD -MP -MT $(1) -MF $(subst .o,.d,$(1)) $(2) -o $(1)
 endef
+
 define add_unit_test_obj_rules
 $(foreach obj,$(OBJS),$(eval $(call obj_rule,$(obj),$(subst $(BUILD_DIR),$(REPO_PATH),$(obj:.o=.c)))))
+$(foreach obj,$(PLATFORM_OBJS),$(eval $(call obj_rule,$(obj),$(subst $(PLATFORM_MCU_BUILD_PATH),$(PLATFORM_MCU_SRC_PATH),$(obj:.o=.c)))))
+$(foreach obj,$(SBC_OBJS),$(eval $(call obj_rule,$(obj),$(subst $(SBC_BUILD_PATH),$(SBC_PATH),$(obj:.o=.c)))))
 endef
+
 define add_platform_obj_rules
-$(foreach obj,$(filter-out $(PLATFORM_MCU_BUILD_PATH)%,$(OBJS)),$(eval $(call obj_rule,$(obj),$(subst $(BUILD_DIR),$(REPO_PATH),$(obj:.o=.c)))))
-$(foreach obj,$(filter $(PLATFORM_MCU_BUILD_PATH)%,$(OBJS)),$(eval $(call obj_rule,$(obj),$(subst $(PLATFORM_MCU_BUILD_PATH),$(PLATFORM_MCU_SRC_PATH),$(obj:.o=.c)))))
+$(foreach obj,$(OBJS),$(eval $(call obj_rule,$(obj),$(subst $(BUILD_DIR),$(REPO_PATH),$(obj:.o=.c)))))
+$(foreach obj,$(PLATFORM_OBJS),$(eval $(call obj_rule,$(obj),$(subst $(PLATFORM_MCU_BUILD_PATH),$(PLATFORM_MCU_SRC_PATH),$(obj:.o=.c)))))
+$(foreach obj,$(SBC_OBJS),$(eval $(call obj_rule,$(obj),$(subst $(SBC_BUILD_PATH),$(SBC_PATH),$(obj:.o=.c)))))
 endef
 
 # Create a target for each .o files, depending on its corresponding .c file
@@ -174,6 +179,8 @@ HALO_FIRMWARE_PATH = $(REPO_PATH)/$(PART_NUM)/fw
 APP_PATH = $(REPO_PATH)/$(PART_NUM)/$(MAKECMDGOALS)
 CONFIG_PATH = $(REPO_PATH)/$(PART_NUM)/config
 COMMON_PATH = $(REPO_PATH)/common
+BUFFERS_PATH = $(REPO_PATH)/common/buffers
+COMPRESSION_PATH = $(REPO_PATH)/common/compression
 endef
 
 # Evaluate OPTIMIZATION_LEVEL make argument
@@ -236,6 +243,7 @@ define assign_toolchain_flags
 ifeq ($(MAKECMDGOALS), unit_test)
     CFLAGS += -g -std=c99 -c
     CFLAGS += -DUSE_BULLSEYE
+    CFLAGS += -DUNIT_TESTS
     CFLAGS += $(DEBUG_OPTIONS)
     CFLAGS += $(OPTIMIZATION_OPTIONS)
 
@@ -243,6 +251,9 @@ ifeq ($(MAKECMDGOALS), unit_test)
 
     PLFLAGS += -EL -r
 else ifdef IS_NOT_UNIT_TEST
+    ifeq ($(PLATFORM), eestm32int)
+        CFLAGS += -DCONFIG_LN2
+    endif
     ifneq ($(MAKECMDGOALS), system_test)
         CFLAGS += -Werror -Wall
     endif
@@ -255,6 +266,9 @@ else ifdef IS_NOT_UNIT_TEST
     CFLAGS += $(OPTIMIZATION_OPTIONS)
     ifeq ($(MAKECMDGOALS), freertos)
         CFLAGS += -DUSE_CMSIS_OS
+        LDFLAGS += -Xlinker --wrap="malloc"
+        LDFLAGS += -Xlinker --wrap="free"
+        C_SRCS += $(COMMON_PATH)/mem_alloc_wrapper.c
     else
         CFLAGS += -DNO_OS
     endif
@@ -279,11 +293,11 @@ endef
 
 # Add make rule for unit_test target
 define add_unit_test_rule
-unit_test: build_path $(BUILD_PATHS) $(MISC_SCRIPTS) $(LIBS) $(OBJS)
+unit_test: build_path $(BUILD_PATHS) $(MISC_SCRIPTS) $(LIBS) $(OBJS) $(SBC_OBJS)
 	@echo -------------------------------------------------------------------------------
 	@echo LINKING $@
 	$(BULLSEYE_ON_CMD)
-	$(CC) $(LDFLAGS) $(OBJS) -lm $(LIBS) -o $(BUILD_DIR)/unit_test.exe
+	$(CC) $(LDFLAGS) $(OBJS) $(SBC_OBJS) -lm $(LIBS) -o $(BUILD_DIR)/unit_test.exe
 	$(BULLSEYE_OFF_CMD)
 	@echo -------------------------------------------------------------------------------
 	@echo RUNNING $@
@@ -293,10 +307,10 @@ endef
 
 # Add rule for building a target with a hardware platform
 define add_platform_target_rule
-$(1): build_path $(BUILD_PATHS) firmware_converter $(MISC_SCRIPTS) $(LIBS) $(OBJS) $(PLATFORM_OBJS) $(ASM_OBJS) $(PLATFORM_ASM_OBJS)
+$(1): build_path $(BUILD_PATHS) firmware_converter $(MISC_SCRIPTS) $(LIBS) $(OBJS) $(PLATFORM_OBJS) $(SBC_OBJS) $(ASM_OBJS) $(PLATFORM_ASM_OBJS)
 	@echo -------------------------------------------------------------------------------
 	@echo LINKING $@
-	$(CC) $(LDFLAGS) $(OBJS) $(PLATFORM_OBJS) $(ASM_OBJS) $(PLATFORM_ASM_OBJS) $(LIBS) -o $(BUILD_DIR)/$(MAKECMDGOALS).elf
+	$(CC) $(LDFLAGS) $(OBJS) $(PLATFORM_OBJS) $(SBC_OBJS) $(ASM_OBJS) $(PLATFORM_ASM_OBJS) $(LIBS) -o $(BUILD_DIR)/$(MAKECMDGOALS).elf
 	@echo -------------------------------------------------------------------------------
 	@echo SIZE of $(MAKECMDGOALS).elf
 	$(SIZE) -t $(BUILD_DIR)/$(MAKECMDGOALS).elf
@@ -342,7 +356,8 @@ endef
 define assign_objs
 DRIVER_OBJS += $(subst $(REPO_PATH),$(BUILD_DIR),$(DRIVER_SRCS:.c=.o))
 OBJS += $(subst $(REPO_PATH),$(BUILD_DIR),$(C_SRCS:.c=.o))
-OBJS += $(subst $(PLATFORM_MCU_SRC_PATH),$(PLATFORM_MCU_BUILD_PATH),$(PLATFORM_MCU_C_SRCS:.c=.o))
+PLATFORM_OBJS = $(subst $(PLATFORM_MCU_SRC_PATH),$(PLATFORM_MCU_BUILD_PATH),$(PLATFORM_MCU_C_SRCS:.c=.o))
+SBC_OBJS = $(subst $(SBC_PATH),$(SBC_BUILD_PATH),$(SBC_C_SRCS:.c=.o))
 ASM_OBJS += $(subst $(REPO_PATH),$(BUILD_DIR),$(ASM_SRCS:.s=.o))
 ASM_OBJS += $(subst $(PLATFORM_MCU_SRC_PATH),$(PLATFORM_MCU_BUILD_PATH),$(PLATFORM_MCU_ASM_SRCS:.s=.o))
 endef
@@ -351,13 +366,14 @@ endef
 define assign_build_paths
 BUILD_PATHS += $(sort $(dir $(DRIVER_OBJS)))
 BUILD_PATHS += $(sort $(dir $(OBJS)))
+BUILD_PATHS += $(sort $(dir $(PLATFORM_OBJS)))
+BUILD_PATHS += $(sort $(dir $(SBC_OBJS)))
 BUILD_PATHS += $(sort $(dir $(ASM_OBJS)))
 endef
 
 # Assign Bullseye-related variables
 define add_bullseye_vars
 BULLSEYE_INCLUDE_PATHS =
-BULLSEYE_INCLUDE_PATHS += $(REPO_PATH)/common/
 BULLSEYE_EXCLUDE_PATHS =
 BULLSEYE_EXCLUDE_PATHS += $(REPO_PATH)/common/platform_bsp/
 BULLSEYE_EXCLUDE_PATHS += $(REPO_PATH)/build/

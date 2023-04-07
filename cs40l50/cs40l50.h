@@ -4,7 +4,7 @@
  * @brief Functions and prototypes exported by the CS40L50 Driver module
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2022 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2022-2023 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -36,6 +36,7 @@ extern "C" {
 #include "cs40l50_syscfg_regs.h"
 #include "cs40l50_spec.h"
 #include "regmap.h"
+#include "rth_types.h"
 
 #include "sdk_version.h"
 
@@ -54,7 +55,7 @@ extern "C" {
 /** @} */
 
 /**
- * @defgroup CS40L26_POWER_STATE_
+ * @defgroup CS40L50_POWER_STATE_
  * @brief Power_state of the driver
  *
  * @see cs40l50_t member state
@@ -116,9 +117,72 @@ extern "C" {
 /**
  *  Minimum firmware version that will be accepted by the boot function
  */
-#define CS40L50_MIN_FW_VERSION     (0x70223)
+#define CS40L50_MIN_FW_VERSION     (0x30405)
 #define CS40L50_WT_ONLY            (0x12345)
 
+/**
+ * Default values for different open wavetable fields
+ */
+#define WF_LENGTH_DEFAULT            (0x3FFFFF)
+#define PWLS_MS4                     (0)
+#define WAIT_TIME_DEFAULT            (0)
+#define REPEAT_DEFAULT               (0)
+#define LEVEL_MS4                    (0)
+#define TIME_DEFAULT                 (0)
+#define PWLS_LS4                     (0)
+#define EXT_FREQ_DEFAULT             (1)
+#define AMP_REG_DEFAULT              (0)
+#define BRAKING_DEFAULT              (0)
+#define CHIRP_DEFAULT                (0)
+#define FREQ_DEFAULT                 (0)
+#define LEVEL_LS8                    (0)
+#define VB_TAR_MS12                  (0)
+#define VB_TAR_LS4                   (0)
+#define LEVEL_DEFAULT                (0)
+#define LEVEL_MS8_DEFAULT            (0)
+#define LEVEL_LS4_DEFAULT            (0)
+
+#define PWLE_API_ENABLE              (0)
+
+#define WAV_LENGTH_DEFAULT           (0)
+#define DATA_LENGTH_DEFAULT          (0)
+#define F0_DEFAULT                   (0)
+#define SCALED_REDC_DEFAULT          (0)
+
+#define CS40L50_PLAY_RTH             (0)
+
+#define CS40L50_RTH_TYPE_PCM         (0x8)
+#define CS40L50_RTH_TYPE_PWLE        (12)
+
+/**
+ * @defgroup CS40L50_EVENT_FLAG_
+ * @brief Flags passed to Notification Callback to notify BSP of specific driver events
+ *
+ * @see CS40L50_notification_callback_t argument event_flags
+ *
+ * @{
+ */
+#define CS40L50_EVENT_FLAG_DSP_ERROR                    (1 << 31)
+#define CS40L50_EVENT_FLAG_STATE_ERROR                  (1 << 30)
+#define CS40L50_EVENT_FLAG_RUNTIME_SHORT_DETECTED       (1 << 23)
+#define CS40L50_EVENT_FLAG_PERMANENT_SHORT_DETECTED     (1 << 22)
+#define CS40L50_EVENT_FLAG_AWAKE                        (1 << 21)
+#define CS40L50_EVENT_FLAG_INIT_COMPLETE                (1 << 20)
+#define CS40L50_EVENT_FLAG_HAPTIC_COMPLETE_GPIO         (1 << 19)
+#define CS40L50_EVENT_FLAG_HAPTIC_TRIGGER_GPIO          (1 << 18)
+#define CS40L50_EVENT_FLAG_HAPTIC_COMPLETE_MBOX         (1 << 17)
+#define CS40L50_EVENT_FLAG_HAPTIC_TRIGGER_MBOX          (1 << 16)
+#define CS40L50_EVENT_FLAG_HAPTIC_COMPLETE_I2S          (1 << 15)
+#define CS40L50_EVENT_FLAG_HAPTIC_TRIGGER_I2S           (1 << 14)
+#define CS40L50_EVENT_FLAG_AMP_ERROR                    (1 << 2)
+#define CS40L50_EVENT_FLAG_TEMP_ERROR                   (1 << 1)
+#define CS40L50_EVENT_FLAG_BST_ERROR                    (1 << 0)
+/** @} */
+
+/**
+ * Default value of Dynamic F0 table entry
+ */
+#define CS40L50_DYNAMIC_F0_TABLE_ENTRY_DEFAULT          (0x007FE000)
 
 /***********************************************************************************************************************
  * MACROS
@@ -138,6 +202,32 @@ typedef enum
     ROM_BANK      = 0,
     RAM_BANK      = 1
 } cs40l50_wavetable_bank_t;
+
+/**
+ * Available gpios to configure their triggered waveform
+ *
+ * @see cs40l50_configure_gpio_trigger
+ *
+ */
+typedef enum
+{
+    GPIO3_RISE,
+    GPIO3_FALL,
+    GPIO4_RISE,
+    GPIO4_FALL,
+    GPIO5_RISE,
+    GPIO5_FALL,
+    GPIO6_RISE,
+    GPIO6_FALL,
+    GPIO10_RISE,
+    GPIO10_FALL,
+    GPIO11_RISE,
+    GPIO11_FALL,
+    GPIO12_RISE,
+    GPIO12_FALL,
+    GPIO13_RISE,
+    GPIO13_FALL
+} cs40l50_gpio_bank_t;
 
 /**
  * Function pointer to Notification Callback
@@ -161,7 +251,7 @@ typedef void (*cs40l50_notification_callback_t)(uint32_t event_flags, void *arg)
  */
 typedef struct
 {
-    bool is_valid_f0;   ///< (True) Calibration state is valid
+    bool is_valid;   ///< (True) Calibration state is valid
     uint32_t f0;        ///< Encoded resonant frequency (f0) determined by Calibration procedure.
     uint32_t redc;      ///< Encoded DC resistance (ReDC) determined by Calibration procedure.
 } cs40l50_calibration_t;
@@ -185,11 +275,13 @@ typedef struct
  */
 typedef struct
 {
-    cs40l50_bsp_config_t bsp_config;                    ///< BSP Configuration
-    uint32_t *syscfg_regs;                              ///< Pointer to array of configuration register/value pairs
-    uint32_t syscfg_regs_total;                         ///< Total pairs in syscfg_regs[]
+    cs40l50_bsp_config_t bsp_config;    ///< BSP Configuration
+    uint32_t *syscfg_regs;              ///< Pointer to array of configuration register/value pairs
+    uint32_t syscfg_regs_total;         ///< Total pairs in syscfg_regs[]
     cs40l50_calibration_t cal_data;     ///< Calibration data from previous calibration sequence
     bool is_ext_bst;                    ///< Indicates whether the device is internal or external boost
+    bool enable_mbox_irq;               ///< Enable IRQ for MBOX after device reset
+    uint32_t dynamic_f0_threshold;      ///< imonRingPPThreshold
 } cs40l50_config_t;
 
 /**
@@ -213,6 +305,202 @@ typedef struct
 
     uint32_t event_flags;                       ///< Most recent event_flags reported to BSP Notification callback
 } cs40l50_t;
+
+typedef struct
+{
+    union
+    {
+        uint32_t word;
+        struct
+        {
+            uint32_t wf_length                  : 24;
+            uint32_t reserved                   : 8;
+        };
+    };
+} cs40l50_pwle_word1_entry_t;
+
+typedef struct
+{
+    union
+    {
+        uint32_t word;
+        struct
+        {
+            uint32_t pwls_ms4                    : 4;
+            uint32_t wait_time                   : 12;
+            uint32_t repeat                      : 8;
+            uint32_t reserved                    : 8;
+        };
+    };
+} cs40l50_pwle_word2_entry_t;
+
+typedef struct
+{
+    union
+    {
+        uint32_t word;
+        struct
+        {
+            uint32_t level_ms4                   : 4;
+            uint32_t time                        : 16;
+            uint32_t pwls_ls4                    : 4;
+            uint32_t reserved                    : 8;
+        };
+    };
+} cs40l50_pwle_word3_entry_t;
+
+typedef struct
+{
+    union
+    {
+        uint32_t word;
+        struct
+        {
+            uint32_t ext_freq                      : 1;
+            uint32_t amp_reg                       : 1;
+            uint32_t braking                       : 1;
+            uint32_t chirp                         : 1;
+            uint32_t freq                          : 12;
+            uint32_t level_ls8                     : 8;
+            uint32_t reserved                      : 8;
+        };
+    };
+} cs40l50_pwle_word4_entry_t;
+
+typedef struct
+{
+    union
+    {
+      uint32_t word;
+      struct
+      {
+          uint32_t level_ms4                     : 4;
+          uint32_t time                          : 16;
+          uint32_t reserved                      : 12;
+      };
+    };
+} cs40l50_pwle_word5_entry_t;
+
+typedef struct
+{
+    union
+    {
+        uint32_t word;
+        struct
+        {
+            uint32_t ext_freq                      : 1;
+            uint32_t amp_reg                       : 1;
+            uint32_t braking                       : 1;
+            uint32_t chirp                         : 1;
+            uint32_t freq                          : 12;
+            uint32_t level_ls8                     : 8;
+            uint32_t reserved                      : 8;
+        };
+    };
+} cs40l50_pwle_word6_entry_t;
+
+
+typedef union
+{
+    uint32_t words[6];
+    struct
+    {
+        cs40l50_pwle_word1_entry_t word1;
+        cs40l50_pwle_word2_entry_t word2;
+        cs40l50_pwle_word3_entry_t word3;
+        cs40l50_pwle_word4_entry_t word4;
+        cs40l50_pwle_word5_entry_t word5;
+        cs40l50_pwle_word6_entry_t word6;
+    };
+} cs40l50_pwle_t;
+
+typedef union
+{
+    uint32_t word1;
+    struct
+    {
+        uint32_t level_ms8                   : 8;
+        uint32_t time                        : 16;
+        uint32_t reserved                    : 8;
+    };
+} cs40l50_pwle_short_word1_entry_t;
+
+typedef union
+{
+    uint32_t word2;
+    struct
+    {
+        uint32_t reserved_0                  : 4;
+        uint32_t ext_freq                    : 1;
+        uint32_t amp_reg                     : 1;
+        uint32_t braking                     : 1;
+        uint32_t chirp                       : 1;
+        uint32_t freq                        : 12;
+        uint32_t level_ls4                   : 4;
+        uint32_t reserved_1                  : 8;
+    };
+} cs40l50_pwle_short_word2_entry_t;
+
+typedef union
+{
+    uint32_t words[2];
+    struct
+    {
+        cs40l50_pwle_short_word1_entry_t word1;
+        cs40l50_pwle_short_word2_entry_t word2;
+    };
+} cs40l50_pwle_short_section_t;
+
+/**
+ * Dynamic F0 table1 entry type
+ */
+typedef struct
+{
+    union
+    {
+        uint32_t word;
+        struct
+        {
+            uint32_t f0                         : 13;   ///< F0 in Q10.3 format
+            uint32_t index                      : 8;    ///< Index in Wave Table
+            uint32_t wave_in_owt                : 1;    ///< Waveform is OWT Entry
+            uint32_t wave_in_rom                : 1;    ///< Waveform is ROM Entry
+            uint32_t reserved                   : 9;
+        };
+    };
+} cs40l50_df0_table1_entry_t;
+
+/**
+ * Dynamic F0 table2 entry type
+ *
+ * Table holding design F0 and design ReDC values for each dyn_f0_table1 entry
+ */
+typedef struct
+{
+    union
+    {
+        uint32_t word;
+        struct
+        {
+            uint32_t design_redc_stored         : 12;   ///< (ReDC / VImon ratio) * 128; VImon ratio = 8.276; ReDC = (0, 31.989 Ohms)
+            uint32_t design_f0_stored           : 12;   ///< F0 Stored value = (frequency - 50) * 8
+            uint32_t reserved                   : 8;
+        };
+    };
+} cs40l50_df0_table2_entry_t;
+
+/**
+ * Dynamic F0 table entry type
+ */
+typedef struct
+{
+    struct
+    {
+        cs40l50_df0_table1_entry_t table1;
+        cs40l50_df0_table2_entry_t table2;
+        uint32_t table3;                    ///< Table holding attenuation factors for each dyn_f0_table1 entry. (1, 100)
+    };
+} cs40l50_df0_table_entry_t;
 
 /***********************************************************************************************************************
  * GLOBAL VARIABLES
@@ -405,6 +693,16 @@ uint32_t cs40l50_set_f0(cs40l50_t *driver, uint32_t f0);
  *
  */
 uint32_t cs40l50_trigger(cs40l50_t *driver, uint32_t index, cs40l50_wavetable_bank_t bank);
+
+uint32_t cs40l50_configure_gpio_trigger(cs40l50_t *driver, cs40l50_gpio_bank_t gpio, bool rth,
+                                        uint8_t attenuation, bool ram, uint8_t plybck_index);
+
+uint32_t cs40l50_set_click_compensation_enable(cs40l50_t *driver, bool f0_enable, bool redc_enable);
+uint32_t cs40l50_trigger_pwle(cs40l50_t *driver, rth_pwle_section_t **s);
+uint32_t cs40l50_trigger_pwle_advanced(cs40l50_t *driver, rth_pwle_section_t **s, uint8_t repeat, uint8_t num_sections);
+uint32_t cs40l50_trigger_pcm(cs40l50_t *driver, uint8_t *s, uint32_t num_sections, uint16_t buffer_size_samples, uint16_t f0, uint16_t redc);
+uint32_t cs40l50_set_dynamic_f0(cs40l50_t *driver, bool enable);
+uint32_t cs40l50_get_dynamic_f0(cs40l50_t *driver, cs40l50_df0_table_entry_t *f0_entry);
 
 /*
  * Reads the contents of a single register/memory address

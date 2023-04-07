@@ -4,7 +4,7 @@
  * @brief Implementation of the BSP for the cs40l26 platform.
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2021-2022 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2021-2023 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -23,11 +23,13 @@
  * INCLUDES
  **********************************************************************************************************************/
 #include <string.h>
+#include <stdlib.h>
 #include "platform_bsp.h"
 #include "cs40l26.h"
 #include "cs40l26_ext.h"
 #include "cs40l26_syscfg_regs.h"
 #include "cs40l26_fw_img.h"
+#include "cs40l26_waveform.h"
 #include "cs40l26_cal_fw_img.h"
 #ifdef CONFIG_USE_BRIDGE
 #include "bridge.h"
@@ -47,6 +49,7 @@ void cs40l26_notification_callback(uint32_t event_flags, void *arg);
  **********************************************************************************************************************/
 static cs40l26_t cs40l26_driver;
 static fw_img_boot_state_t boot_state;
+static fw_img_boot_state_t wt_boot_state;
 static uint32_t current_halo_heartbeat = 0;
 static cs40l26_dynamic_f0_table_entry_t dynamic_f0;
 
@@ -102,6 +105,8 @@ uint32_t bsp_dut_initialize(void)
         haptic_config.syscfg_regs = cs40l26_syscfg_regs;
         haptic_config.syscfg_regs_total = CS40L26_SYSCFG_REGS_TOTAL;
 
+        haptic_config.bclk_freq = CS40L26_BCLK_FREQ;
+
         haptic_status = cs40l26_configure(&cs40l26_driver, &haptic_config);
     }
 
@@ -111,14 +116,11 @@ uint32_t bsp_dut_initialize(void)
     }
 
     uint32_t temp_buffer;
-    // CODEC_AIF1_CTRL(0DH):    E00D  CDC_AIF1_ENA=Enabled, CDC_AIF1LRCLK_DIR=FPGA Output, CDC_AIF1BCLK_DIR=FPGA Output, CDC_AIF1_HS_ENA=Disabled, CDC_AIF1_HS_STS=Disabled, CDC_AIF1_SRC=USB_AIF_CH_1_8_SRC
-    temp_buffer = __builtin_bswap32(0x000DE00D);
+    // Configure Codec AIF1 source to be GF AIF1
+    temp_buffer = __builtin_bswap32(0x000DE00B);
     bsp_i2c_write(BSP_LN2_DEV_ID, (uint8_t *)&temp_buffer, 4, NULL, NULL);
-    // USB_AIF_CTRL1(19H):      9004  USB_AIF_CH_1_8_ENA=Enabled, USB_AIF_CH_1_8_HS_ENA=Enabled, USB_AIF_CH_1_8_HS_STS=Disabled, USB_AIF_CH_1_8_SRC=CDC_AIF1_SRC
-    temp_buffer = __builtin_bswap32(0x00199004);
-    bsp_i2c_write(BSP_LN2_DEV_ID, (uint8_t *)&temp_buffer, 4, NULL, NULL);
-    // USB_AIF_CTRL2(1AH):      9010  USB_AIF_CH_9_16_ENA=Enabled, USB_AIF_CH_9_16_HS_ENA=Enabled, USB_AIF_CH_9_16_HS_STS=Disabled, USB_AIF_CH_9_16_SRC=SOUNDCARD_AIF_SRC
-    temp_buffer = __builtin_bswap32(0x001A9010);
+    // Configure GF AIF1 source to Codec AIF1
+    temp_buffer = __builtin_bswap32(0x00168004);
     bsp_i2c_write(BSP_LN2_DEV_ID, (uint8_t *)&temp_buffer, 4, NULL, NULL);
 
 
@@ -177,11 +179,11 @@ uint32_t bsp_dut_boot(bool cal_boot)
 
     // Free anything malloc'ed in previous boots
     if (boot_state.fw_info.sym_table)
-        bsp_free(boot_state.fw_info.sym_table);
+        free(boot_state.fw_info.sym_table);
     if (boot_state.fw_info.alg_id_list)
-        bsp_free(boot_state.fw_info.alg_id_list);
+        free(boot_state.fw_info.alg_id_list);
     if (boot_state.block_data)
-        bsp_free(boot_state.block_data);
+        free(boot_state.block_data);
 
     // Ensure your fw_img_boot_state_t struct is initialised to zero.
     memset(&boot_state, 0, sizeof(fw_img_boot_state_t));
@@ -202,7 +204,7 @@ uint32_t bsp_dut_boot(bool cal_boot)
 
     // malloc enough memory to hold the symbol table, using sym_table_size in the previously
     // read in fw_img header
-    boot_state.fw_info.sym_table = (fw_img_v1_sym_table_t *)bsp_malloc(boot_state.fw_info.header.sym_table_size *
+    boot_state.fw_info.sym_table = (fw_img_v1_sym_table_t *)malloc(boot_state.fw_info.header.sym_table_size *
                                                                    sizeof(fw_img_v1_sym_table_t));
     if (boot_state.fw_info.sym_table == NULL)
     {
@@ -225,7 +227,7 @@ uint32_t bsp_dut_boot(bool cal_boot)
     }
 
     // malloc enough memory to hold the alg_id list, using the alg_id_list_size in the fw_img header
-    boot_state.fw_info.alg_id_list = (uint32_t *) bsp_malloc(boot_state.fw_info.header.alg_id_list_size * sizeof(uint32_t));
+    boot_state.fw_info.alg_id_list = (uint32_t *) malloc(boot_state.fw_info.header.alg_id_list_size * sizeof(uint32_t));
     if (boot_state.fw_info.alg_id_list == NULL)
     {
         return BSP_STATUS_FAIL;
@@ -244,7 +246,7 @@ uint32_t bsp_dut_boot(bool cal_boot)
     {
         boot_state.block_data_size = boot_state.fw_info.header.max_block_size;
     }
-    boot_state.block_data = (uint8_t *) bsp_malloc(boot_state.block_data_size);
+    boot_state.block_data = (uint8_t *) malloc(boot_state.block_data_size);
     if (boot_state.block_data == NULL)
     {
         return BSP_STATUS_FAIL;
@@ -293,6 +295,122 @@ uint32_t bsp_dut_boot(bool cal_boot)
     ret = cs40l26_boot(&cs40l26_driver, &boot_state.fw_info);
 
     current_halo_heartbeat = 0;
+
+    return ret;
+}
+
+uint32_t bsp_dut_load_wavetable()
+{
+    uint32_t ret;
+    const uint8_t *waveform;
+    const uint8_t *waveform_end;
+    uint32_t write_size;
+
+    waveform = cs40l26_waveform;
+    waveform_end = cs40l26_waveform + FW_IMG_SIZE(cs40l26_waveform);
+
+    // Free anything malloc'ed in previous boots
+    if (wt_boot_state.fw_info.sym_table)
+        free(wt_boot_state.fw_info.sym_table);
+    if (wt_boot_state.fw_info.alg_id_list)
+        free(wt_boot_state.fw_info.alg_id_list);
+    if (wt_boot_state.block_data)
+        free(wt_boot_state.block_data);
+
+    // Ensure your waveform_boot_state_t struct is initialised to zero.
+    memset(&wt_boot_state, 0, sizeof(fw_img_boot_state_t));
+
+    // Emulate a system where only 1k fw_img blocks can be processed at a time
+    write_size = 1024;
+
+    // Initialise pointer to the currently available fw_img data
+    wt_boot_state.fw_img_blocks = (uint8_t *) waveform;
+    wt_boot_state.fw_img_blocks_size = write_size;
+
+    // Read in the fw_img header
+    ret = fw_img_read_header(&wt_boot_state);
+    if (ret)
+    {
+        return BSP_STATUS_FAIL;
+    }
+
+    // malloc enough memory to hold the symbol table, using sym_table_size in the previously
+    // read in fw_img header
+    wt_boot_state.fw_info.sym_table = (fw_img_v1_sym_table_t *)malloc(wt_boot_state.fw_info.header.sym_table_size *
+                                                                   sizeof(fw_img_v1_sym_table_t));
+    if (wt_boot_state.fw_info.sym_table == NULL)
+    {
+        return BSP_STATUS_FAIL;
+    }
+
+    // malloc enough memory to hold the alg_id list, using the alg_id_list_size in the fw_img header
+    wt_boot_state.fw_info.alg_id_list = (uint32_t *) malloc(wt_boot_state.fw_info.header.alg_id_list_size * sizeof(uint32_t));
+    if (wt_boot_state.fw_info.alg_id_list == NULL)
+    {
+        return BSP_STATUS_FAIL;
+    }
+
+    // Finally malloc enough memory to hold the largest data block in the fw_img being processed.
+    // This may have been configured during fw_img creation.
+    // If your control interface has specific memory requirements (dma-able, etc), then this memory
+    // should adhere to them.
+    // From fw_img_v2 forward, the max_block_size is stored in the fw_img header itself
+    if (wt_boot_state.fw_info.preheader.img_format_rev == 1)
+    {
+        wt_boot_state.block_data_size = 4140;
+    }
+    else
+    {
+        wt_boot_state.block_data_size = wt_boot_state.fw_info.header.max_block_size;
+    }
+    wt_boot_state.block_data = (uint8_t *) malloc(wt_boot_state.block_data_size);
+    if (wt_boot_state.block_data == NULL)
+    {
+        return BSP_STATUS_FAIL;
+    }
+
+    while (waveform < waveform_end)
+    {
+        // Start processing the rest of the fw_img
+        ret = fw_img_process(&wt_boot_state);
+        if (ret == FW_IMG_STATUS_DATA_READY)
+        {
+            // Data is ready to be sent to the device, so pass it to the driver
+            ret = regmap_write_block((&cs40l26_driver.config.bsp_config.cp_config),
+                                     wt_boot_state.block.block_addr,
+                                     wt_boot_state.block_data,
+                                     wt_boot_state.block.block_size);
+            if (ret == CS40L26_STATUS_FAIL)
+            {
+                return BSP_STATUS_FAIL;
+            }
+            // There is still more data in this fw_img block, so don't provide new data
+            continue;
+        }
+        if (ret == FW_IMG_STATUS_FAIL)
+        {
+            return BSP_STATUS_FAIL;
+        }
+
+        // This fw_img block has been processed, so fetch the next block.
+        // In this example, we just increment the pointer.
+        waveform += write_size;
+
+        if (ret == FW_IMG_STATUS_NODATA)
+        {
+            if (waveform_end - waveform < write_size)
+            {
+                write_size = waveform_end - waveform;
+            }
+
+            wt_boot_state.fw_img_blocks = (uint8_t *) waveform;
+            wt_boot_state.fw_img_blocks_size = write_size;
+        }
+    }
+
+    //ret = regmap_write(&cs40l26_driver.config.bsp_config.cp_config, CS40L26_DSP_VIRTUAL1_MBOX_1,
+    //                  CS40L26_DSP_MBOX_CMD_OWT_RESET);
+    ret = cs40l26_load_waveform(&cs40l26_driver);
 
     return ret;
 }
@@ -347,9 +465,29 @@ uint32_t bsp_dut_wake(void)
     }
 }
 
+uint32_t bsp_dut_start_i2s(void)
+{
+    uint32_t ret;
+
+    ret = cs40l26_start_i2s(&cs40l26_driver);
+    if (ret == CS40L26_STATUS_OK)
+    {
+        return BSP_STATUS_OK;
+    }
+    else
+    {
+        return BSP_STATUS_FAIL;
+    }
+}
+
+uint32_t bsp_dut_stop_i2s(void)
+{
+    return cs40l26_stop_i2s(&cs40l26_driver);
+}
+
 uint32_t bsp_dut_enable_haptic_processing(bool enable)
 {
-    uint32_t ret = BSP_STATUS_OK;
+    uint32_t ret;
 
     // Enable Dynamic F0
     ret = cs40l26_set_dynamic_f0_enable(&cs40l26_driver, enable);
@@ -362,10 +500,26 @@ uint32_t bsp_dut_enable_haptic_processing(bool enable)
     return ret;
 }
 
+uint32_t bsp_dut_owt_upload_effect(uint32_t *effect, uint8_t size)
+{
+    uint32_t ret;
 
+    ret = cs40l26_owt_upload_effect(&cs40l26_driver, effect, size);
+
+    return ret;
+}
+
+uint32_t bsp_dut_owt_reset_table(void)
+{
+    uint32_t ret;
+
+    ret = cs40l26_owt_reset_table(&cs40l26_driver);
+
+    return ret;
+}
 uint32_t bsp_dut_trigger_haptic(uint8_t waveform, cs40l26_wavetable_bank_t bank)
 {
-    uint32_t ret = BSP_STATUS_OK;
+    uint32_t ret;
 
     ret = cs40l26_trigger(&cs40l26_driver, waveform, bank);
 
@@ -375,7 +529,7 @@ uint32_t bsp_dut_trigger_haptic(uint8_t waveform, cs40l26_wavetable_bank_t bank)
 uint32_t bsp_dut_buzzgen_set(uint16_t freq, uint16_t level,
                              uint16_t duration, uint8_t buzzgen_num)
 {
-    uint32_t ret = BSP_STATUS_OK;
+    uint32_t ret;
 
     ret = cs40l26_buzzgen_set(&cs40l26_driver, freq, level, duration, buzzgen_num);
 
@@ -384,7 +538,7 @@ uint32_t bsp_dut_buzzgen_set(uint16_t freq, uint16_t level,
 
 uint32_t bsp_dut_trigger_rth_pwle(bool is_simple, rth_pwle_section_t **pwle_data, uint8_t num_sections, uint8_t repeat)
 {
-    uint32_t ret = BSP_STATUS_OK;
+    uint32_t ret;
     if (is_simple)
     {
         ret = cs40l26_trigger_pwle(&cs40l26_driver, pwle_data);
@@ -399,7 +553,7 @@ uint32_t bsp_dut_trigger_rth_pwle(bool is_simple, rth_pwle_section_t **pwle_data
 
 uint32_t bsp_dut_trigger_rth_pcm(uint8_t *pcm_data, uint32_t num_sections, uint16_t buffer, uint16_t f0, uint16_t redc)
 {
-    uint32_t ret = BSP_STATUS_OK;
+    uint32_t ret;
 
     ret = cs40l26_trigger_pcm(&cs40l26_driver, pcm_data, num_sections, buffer, f0, redc);
 
@@ -408,11 +562,17 @@ uint32_t bsp_dut_trigger_rth_pcm(uint8_t *pcm_data, uint32_t num_sections, uint1
 
 uint32_t bsp_dut_dynamic_calibrate(uint8_t index)
 {
-    uint32_t ret = BSP_STATUS_OK;
+    uint32_t ret;
 
     // Read Dynamic F0 from WT Index 0
     dynamic_f0.index = index;
     ret = cs40l26_get_dynamic_f0(&cs40l26_driver, &dynamic_f0);
+    if (ret != CS40L26_STATUS_OK)
+    {
+        return BSP_STATUS_FAIL;
+    }
+
+    ret = cs40l26_set_dynamic_f0_enable(&cs40l26_driver, 1);
     if (ret != CS40L26_STATUS_OK)
     {
         return BSP_STATUS_FAIL;
@@ -514,9 +674,10 @@ uint32_t bsp_dut_enable_gpi_mute(bool enable)
 
 void cs40l26_notification_callback(uint32_t event_flags, void *arg)
 {
-    uint32_t ret;
     if (event_flags & CS40L26_EVENT_FLAG_DSP_VIRTUAL2_MBOX)
     {
+        uint32_t ret;
+
         ret = cs40l26_mailbox_queue_handler(&cs40l26_driver);
         if (ret)
         {

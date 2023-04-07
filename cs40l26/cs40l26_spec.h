@@ -4,7 +4,7 @@
  * @brief Constants and Types from CS40L26 datasheet
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2021-2022 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2021-2023 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -38,6 +38,17 @@ extern "C" {
 
 #define CS40L26_GLOBAL_ENABLES_REG        (0x2014)
 
+#define CS40L26_REFCLK_INPUT_REG          (0x2C04)
+
+#define CS40L26_PLL_REFCLK_SEL_MASK       (0x7)
+#define CS40L26_PLL_REFCLK_FREQ_SHIFT     (5)
+#define CS40L26_PLL_REFCLK_FREQ_MASK      (0x3F << CS40L26_PLL_REFCLK_FREQ_SHIFT)
+#define CS40L26_BCLK_SHIFT                (5)
+#define CS40L26_BCLK_FREQ                 (0x21 << CS40L26_BCLK_SHIFT)
+#define CS40L26_REFCLK_PLL_LOOP_SHIFT     (11)
+#define CS40L26_REFCLK_PLL_LOOP_MASK      (1 << CS40L26_REFCLK_PLL_LOOP_SHIFT)
+
+#define CS40L26_PLL_CLK_SEL_BCLK          (0x0)
 #define CS40L26_PLL_REFCLK_DETECT_0       (0x2C28)
 
 #define CS40L26_PWRMGT_CTL                (0x2900)
@@ -128,6 +139,11 @@ extern "C" {
 #define CS40L26_DSP_MBOX_CMD_ALLOW_HIBER         (0x02000004)
 #define CS40L26_DSP_MBOX_CMD_SHUTDOWN            (0x02000005)
 #define CS40L26_DSP_MBOX_PM_CMD_BASE             CS40L26_DSP_MBOX_CMD_HIBER
+#define CS40L26_DSP_MBOX_CMD_START_I2S           (0x03000002)
+#define CS40L26_DSP_MBOX_CMD_STOP_I2S            (0x03000003)
+#define CS40L26_DSP_MBOX_CMD_OWT_PUSH            (0x03000008)
+#define CS40L26_DSP_MBOX_CMD_OWT_RESET           (0x03000009)
+#define CS40L26_DSP_MBOX_CMD_STOP_PLAYBACK       (0x05000000)
 #define CS40L26_DSP_MBOX_REDC_EST                (0x07000002)
 #define CS40L26_DSP_MBOX_F0_EST                  (0x07000001)
 
@@ -160,7 +176,7 @@ extern "C" {
 #define CS40L26_OWT_SLOT1_LENGTH   (CS40L26_OWT_SLOT1_TYPE + 0x8)
 #define CS40L26_OWT_SLOT1_DATA     (CS40L26_OWT_SLOT1_TYPE + 0xC)
 #define CS40L26_VIBEGEN_OWT_XM     (0x028041dc)
-#define CS40L26_OWT_PUSH           (0x03000008)
+#define CS40l26_VIBEGEN_OWT_WAVETABLE (0x0280215C)
 #define CS40L26_TRIGGER_RTH        (0x01400000)
 #define CS40L26_MAX_PWLE_SECTIONS  (126)
 #define CS40L26_SLOT0_MAX_PWLE_SECTIONS  (61)
@@ -197,6 +213,7 @@ extern "C" {
 #define CS40L26_ERROR_RELEASE                           (0x00002034)
 #define IRQ1_IRQ1_STATUS_REG                            (0x00010004)
 #define IRQ1_IRQ1_EINT_1_REG                            (0x00010010)
+#define IRQ1_IRQ1_STS1_REG                              (0x00010090)
 #define IRQ1_IRQ1_MASK_REG                              (0x00010110)
 #define MSM_BLOCK_ENABLES_REG                           (0x00002018)
 
@@ -258,6 +275,15 @@ extern "C" {
 #define CS40L26_GPI_PMIC_MUTE_GPI_LEVEL_MASK            (0x0000000E)
 #define CS40L26_GPI_PMIC_MUTE_GPI_SHIFT                 (1)
 #define CS40L26_GPI_PMIC_MUTE_LEVEL_SHIFT               (3)
+
+/* A2H */
+#define CS40L26_ASP_ENABLES1                            (0x4800)
+#define CS40L26_ASP_CONTROL1                            (0x4804)
+#define CS40L26_DACPCM2_INPUT                           (0x4C08)
+#define CS40L26_ASPTX1_INPUT                            (0x4C20)
+#define CS40L26_DATA_SRC_MASK                           (0x3F)
+#define CS40L26_DATA_SRC_DSP1TX1                        (0x32)
+#define CS40L26_DATA_SRC_VMON                           (0x18)
 
 /** @} */
 

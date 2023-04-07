@@ -1,31 +1,31 @@
 Artifact Info:
-Artifact           : CS40L50 Alt-OS Driver: 4.18.0 - fcca64efab2d752f3407878e171df2814cf70049
+Artifact           : CS40L50 Alt-OS Driver: 4.19.0 - a5cf637613da79e9d7d4fd6c4b2a671e56d312ce
 Test Target MCU SDK: STM32Cube_FW_F4: 1.24.1
 Target toolchain   : GNU Arm Embedded Toolchain: arm-none-eabi-gcc (GNU Tools for Arm Embedded Processors 8-2019-q3-update) 8.3.1 20190703 (release) [gcc-8-branch revision 273027]
 Build system       : make: GNU Make 3.82
-OS                 : Linux: 3.10.0-1160.62.1.el7.x86_64
+OS                 : Linux: 3.10.0-1160.88.1.el7.x86_64
 Shell              : bash: GNU bash, version 4.2.46(2)-release (x86_64-redhat-linux-gnu)
-Host toolchain     : MinGW GCC: gcc (GCC) 4.8.5 20150623 (Red Hat 4.8.5-39)
-Build Job          : jamerson_h_alt_os_nightly: 104
-Git SHA            : fcca64efab2d752f3407878e171df2814cf70049
+Host toolchain     : MinGW GCC: gcc (GCC) 4.8.5 20150623 (Red Hat 4.8.5-44)
+Build Job          : jamerson_h_alt_os_nightly: 274
+Git SHA            : a5cf637613da79e9d7d4fd6c4b2a671e56d312ce
 
 System resources:
 
 Build Configuration 1:
 
 Artifact filename    : libcs40l50.a
-Driver TEXT          : 3972
+Driver TEXT          : 5100
 Driver BSS           : 4
 Driver DATA          : 616
-Driver Max Stack     : 136 (cs40l50_reset -> regmap_write_array -> regmap_update_reg -> regmap_read -> GET_BYTE_FROM_WORD)
+Driver Max Stack     : 192 (cs40l50_process -> cs40l50_event_handler -> regmap_read -> GET_BYTE_FROM_WORD)
 
 Artifact filename    : freertos.elf
-Driver TEXT          : 1956
-Driver BSS           : 180
-Driver DATA          : 176
+Driver TEXT          : 4376
+Driver BSS           : 184
+Driver DATA          : 285
 
 Artifact filename    : cs40l50_fw_img.o
-Driver TEXT          : 4752
+Driver TEXT          : 772
 
 Compiler flags:
     -mcpu=cortex-m4

@@ -30,7 +30,7 @@ include $(REPO_PATH)/common/common.mk
 # Assign paths and variables
 PART_NUM = cs40l50
 $(eval $(call assign_paths))
-PLATFORM_TARGETS = system_test baremetal freertos blackstar
+PLATFORM_TARGETS = system_test freertos blackstar
 VALID_TARGETS = unit_test $(PLATFORM_TARGETS)
 $(eval $(call eval_targets))
 $(eval $(call eval_optimization_level))
@@ -47,8 +47,8 @@ endif
 
 # Assign firmware and configuration script variables
 HALO_FIRMWARE_FILE = ROM
-HALO_CAL_FIRMWARE_FILE = cs40l50_cal.wmfw
-HALO_FIRMWARE_WMDR = cs40l50_wt.bin --wmdr-only
+#HALO_FIRMWARE_FILE = CS40L50_Rev3.4.5.wmfw
+HALO_FIRMWARE_WMDR = cs40l50_wt.bin
 WISCE_SCRIPT = $(CONFIG_PATH)/wisce_init.txt
 MISC_SCRIPTS = hwt_to_waveform_converter
 
@@ -69,9 +69,8 @@ DRIVER_SRCS = $(DRIVER_PATH)/cs40l50.c
 DRIVER_SRCS += $(CONFIG_PATH)/cs40l50_syscfg_regs.c
 DRIVER_SRCS += $(COMMON_PATH)/fw_img.c
 DRIVER_SRCS += $(COMMON_PATH)/regmap.c
-DRIVER_SRCS += $(DRIVER_PATH)/cs40l50_ext.c
 INCLUDES += -I$(HALO_FIRMWARE_PATH)
-DRIVER_SRCS += $(DRIVER_PATH)/waveforms.c
+DRIVER_SRCS += $(CONFIG_PATH)/waveforms.c
 
 # Assign sources and includes for target project build
 $(eval $(call assign_sources_includes))
@@ -133,7 +132,7 @@ firmware_converter:
 hwt_to_waveform_converter:
 	@echo -------------------------------------------------------------------------------
 	@echo GENERATING waveforms
-	cd $(DRIVER_PATH) && python3 ../tools/hwt_to_waveform/hwt_to_waveform_converter.py cs40l50 waveforms.hwt
+	cd $(DRIVER_PATH) && python3 ../tools/hwt_to_waveform/hwt_to_waveform_converter.py cs40l50 config/waveforms.hwt --output-directory $(CONFIG_PATH)
 
 # Compilation rules
 $(eval $(call $(ADD_OBJ_RULES), $(OBJS)))
@@ -148,7 +147,6 @@ print_targets:
 	@echo ERROR:  No valid target specified.
 	@echo
 	@echo Valid targets:
-	@echo       baremetal
 	@echo       freertos
 	@echo       system_test
 	@echo       unit_test

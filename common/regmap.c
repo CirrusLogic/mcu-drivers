@@ -4,7 +4,7 @@
  * @brief Generic regmap operations implementation.
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2021 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2021, 2023 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -347,8 +347,6 @@ uint32_t regmap_update_reg(regmap_cp_config_t *cp, uint32_t addr, uint32_t mask,
 uint32_t regmap_poll_reg(regmap_cp_config_t *cp, uint32_t addr, uint32_t val, uint8_t tries, uint32_t delay)
 {
     uint32_t tmp, ret;
-
-    ret = REGMAP_STATUS_FAIL;
 
     for (int i = 0; i < tries; i++)
     {

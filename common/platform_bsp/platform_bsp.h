@@ -4,7 +4,7 @@
  * @brief Functions and prototypes exported by the Platform BSP module
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2021-2022 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2021-2023 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -60,6 +60,10 @@ extern "C" {
 #define BSP_GPIO_ID_INTP_LED4           (11)
 #define BSP_GPIO_ID_INTP_LED_ALL        (12)
 #define BSP_GPIO_ID_INTP_LED5           (13)
+#define BSP_GPIO_ID_GF_GPIO10           (14)
+#define BSP_GPIO_ID_GF_GPIO11           (15)
+#define BSP_GPIO_ID_GF_GPIO12           (16)
+#define BSP_GPIO_ID_GF_GPIO13           (17)
 
 #define BSP_SUPPLY_ID_LN2_DCVDD         (1)
 
@@ -74,6 +78,7 @@ extern "C" {
 #define BSP_PLAY_STEREO_1KHZ_20DBFS     (1)
 #define BSP_PLAY_STEREO_100HZ_20DBFS    (2)
 #define BSP_PLAY_STEREO_PATTERN         (3)
+#define BSP_PLAY_STEREO_TEST            (4)
 
 #define BSP_BUS_TYPE_I2C                (0)
 #define BSP_BUS_TYPE_SPI                (1)
@@ -81,6 +86,7 @@ extern "C" {
 #define BSP_STATUS_DUT_EVENTS           (2)
 
 #define BSP_AUDIO_FS_8000_HZ            (8000)
+#define BSP_AUDIO_FS_16000_HZ           (16000)
 #define BSP_AUDIO_FS_48000_HZ           (48000)
 #define BSP_AUDIO_FS_44100_HZ           (44100)
 
@@ -122,6 +128,12 @@ extern "C" {
  * ENUMS, STRUCTS, UNIONS, TYPEDEFS
  **********************************************************************************************************************/
 typedef void (*bsp_app_callback_t)(uint32_t status, void *arg);
+typedef enum
+{
+    BSP_I2S_PORT_PRIMARY = 0,
+    BSP_I2S_PORT_SECONDARY,
+    BSP_I2S_PORT_NULL
+} bsp_i2s_port_t;
 
 /***********************************************************************************************************************
  * GLOBAL VARIABLES
@@ -140,12 +152,21 @@ extern FILE* bridge_read_file;
  **********************************************************************************************************************/
 uint32_t bsp_initialize(bsp_app_callback_t cb, void *cb_arg);
 uint32_t bsp_audio_set_fs(uint32_t fs_hz);
-uint32_t bsp_audio_play(uint8_t content);
-uint32_t bsp_audio_play_record(uint8_t content);
-uint32_t bsp_audio_pause(void);
-uint32_t bsp_audio_resume(void);
-uint32_t bsp_audio_stop(void);
+uint32_t bsp_audio_play(bsp_i2s_port_t port, uint8_t content);
+uint32_t bsp_audio_play_record(bsp_i2s_port_t port, uint8_t content);
+uint32_t bsp_audio_play_stream(bsp_i2s_port_t port,
+                               uint8_t *content,
+                               uint32_t length,
+                               bsp_callback_t half_cb,
+                               void *half_cb_arg,
+                               bsp_callback_t cplt_cb,
+                               void *cplt_cb_arg);
+uint32_t bsp_audio_continue_play_stream(bsp_i2s_port_t port, uint8_t *content, uint32_t length);
+uint32_t bsp_audio_pause(bsp_i2s_port_t port);
+uint32_t bsp_audio_resume(bsp_i2s_port_t port);
+uint32_t bsp_audio_stop(bsp_i2s_port_t port);
 uint32_t bsp_set_timer(uint32_t duration_ms, bsp_callback_t cb, void *cb_arg);
+uint32_t bsp_set_gpio(uint32_t gpio_id, uint8_t gpio_state);
 bool     bsp_was_pb_pressed(uint8_t pb_id);
 void     bsp_sleep(void);
 uint32_t bsp_register_pb_cb(uint32_t pb_id, bsp_app_callback_t cb, void *cb_arg);
@@ -162,8 +183,6 @@ uint32_t bsp_i2c_write(uint32_t bsp_dev_id,
                        uint32_t write_length,
                        bsp_callback_t cb,
                        void *cb_arg);
-void*    bsp_malloc(size_t size);
-void     bsp_free(void* ptr);
 uint32_t bsp_set_ld2(uint8_t mode, uint32_t blink_100ms);
 uint32_t bsp_toggle_gpio(uint32_t gpio_id);
 uint32_t bsp_eeprom_control(uint8_t command);

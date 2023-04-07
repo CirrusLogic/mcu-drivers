@@ -4,7 +4,7 @@
  * @brief Functions and prototypes exported by the CS40L26 Driver module
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2021-2022 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2021-2023 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -249,6 +249,7 @@ typedef struct
     uint32_t *syscfg_regs;              ///< Pointer to system configuration table
     uint32_t syscfg_regs_total;         ///< Total entries in system configuration table
     cs40l26_calibration_t cal_data;     ///< Calibration data from previous calibration sequence
+    uint32_t bclk_freq;                 ///< Frequency of bclk
 } cs40l26_config_t;
 
 /**
@@ -274,6 +275,34 @@ typedef struct
     uint32_t mailbox_queue[CS40L26_MAILBOX_QUEUE_MAX_LEN];
 } cs40l26_t;
 
+typedef union
+{
+    uint32_t word;
+    struct
+    {
+        uint32_t asp_tx1_en                 : 1;
+        uint32_t asp_tx2_en                 : 1;
+        uint32_t asp_tx3_en                 : 1;
+        uint32_t asp_tx4_en                 : 1;
+        uint32_t reserved_0                 : 12;
+        uint32_t asp_rx1_en                 : 1;
+        uint32_t asp_rx2_en                 : 1;
+        uint32_t asp_rx3_en                 : 1;
+        uint32_t reserved_1                 : 13;
+    };
+} cs40l26_dataif_asp_enables1_t;
+
+typedef union
+{
+    uint32_t word;
+    struct
+    {
+        uint32_t pll_refclk_sel             : 3;
+        uint32_t pll_refclk_en              : 1;
+        uint32_t pll_refclk_freq            : 6;
+        uint32_t pll_loop                   : 1;
+    };
+} cs40l26_ccm_refclk_input_t;
 /***********************************************************************************************************************
  * GLOBAL VARIABLES
  **********************************************************************************************************************/
@@ -441,6 +470,9 @@ uint32_t cs40l26_trigger(cs40l26_t *driver, uint32_t index, cs40l26_wavetable_ba
  */
 uint32_t cs40l26_buzzgen_set(cs40l26_t *driver, uint16_t freq,
                              uint16_t level, uint16_t duration, uint8_t buzzgen_num);
+uint32_t cs40l26_start_i2s(cs40l26_t *driver);
+uint32_t cs40l26_stop_i2s(cs40l26_t *driver);
+uint32_t cs40l26_load_waveform(cs40l26_t *driver);
 
 /**********************************************************************************************************************/
 #ifdef __cplusplus

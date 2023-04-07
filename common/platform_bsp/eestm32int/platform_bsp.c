@@ -4,7 +4,7 @@
  * @brief Implementation of the BSP for the HW ID0 platform.
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2021-2022 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2021-2023 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -46,7 +46,7 @@
 #define BSP_I2C_TRANSACTION_TYPE_DB_WRITE               (2)
 #define BSP_I2C_TRANSACTION_TYPE_INVALID                (3)
 
-/* I2S peripheral configuration defines */
+/* Primary I2S peripheral configuration defines */
 #define I2S_HW                          SPI2
 #define I2S_CLK_ENABLE()                __HAL_RCC_SPI2_CLK_ENABLE()
 #define I2S_CLK_DISABLE()               __HAL_RCC_SPI2_CLK_DISABLE()
@@ -59,6 +59,22 @@
 #define I2S_SDOUT_GPIO_PIN              GPIO_PIN_15
 #define I2S_SDIN_PIN                    GPIO_PIN_14
 
+/* Secondary I2S peripheral configuration defines */
+#define I2S3_HW                          SPI3
+#define I2S3_CLK_ENABLE()                __HAL_RCC_SPI3_CLK_ENABLE()
+#define I2S3_CLK_DISABLE()               __HAL_RCC_SPI3_CLK_DISABLE()
+#define I2S3_LRCLK_SCLK_SDOUT_AF         GPIO_AF5_SPI3
+#define I2S3_SDIN_AF                     GPIO_AF6_I2S3ext
+#define I2S3_GPIO_PORT_CLK_ENABLE()      __HAL_RCC_GPIOC_CLK_ENABLE()
+#define I2S3_GPIO_PORT                   GPIOC
+#define I2S3_SCLK_GPIO_PIN               GPIO_PIN_10
+#define I2S3_SDOUT_GPIO_PIN              GPIO_PIN_12
+#define I2S3_SDIN_PIN                    GPIO_PIN_11
+
+#define I2S3_GPIO_PORT_LRCLK_ENABLE()    __HAL_RCC_GPIOC_CLK_ENABLE()
+#define I2S3_GPIO_PORT_LRCLK             GPIOA
+#define I2S3_LRCLK_GPIO_PIN              GPIO_PIN_4
+
 /* I2S DMA Stream definitions */
 #define I2S_TX_DMAx_CLK_ENABLE()        __HAL_RCC_DMA1_CLK_ENABLE()
 #define I2S_TX_DMAx_CLK_DISABLE()       __HAL_RCC_DMA1_CLK_DISABLE()
@@ -68,7 +84,6 @@
 #define I2S_TX_DMAx_PERIPH_DATA_SIZE    DMA_PDATAALIGN_HALFWORD
 #define I2S_TX_DMAx_MEM_DATA_SIZE       DMA_MDATAALIGN_HALFWORD
 #define I2S_TX_IRQHandler               DMA1_Stream4_IRQHandler
-
 #define I2S_RX_DMAx_CLK_ENABLE()        __HAL_RCC_DMA1_CLK_ENABLE()
 #define I2S_RX_DMAx_CLK_DISABLE()       __HAL_RCC_DMA1_CLK_DISABLE()
 #define I2S_RX_DMAx_STREAM              DMA1_Stream3
@@ -97,7 +112,11 @@
 /* BSP Audio Format definitions */
 #define BSP_I2S_STANDARD                        I2S_STANDARD_PHILIPS
 #define BSP_I2S_FS_HZ                           (I2S_AUDIOFREQ_48K)
+#ifdef USE_SBC
+#define BSP_I2S_WORD_SIZE_BITS                  (16)
+#else
 #define BSP_I2S_WORD_SIZE_BITS                  (32)
+#endif
 #if (BSP_I2S_WORD_SIZE_BITS == 32)
     #define BSP_I2S_DATA_FORMAT                 (I2S_DATAFORMAT_32B)
     #define BSP_I2S_SUBFRAME_SIZE_BITS          (32)
@@ -195,6 +214,8 @@
 /* Select the preemption priority level(0 is the highest) */
 #define I2S_TX_IRQ_PREPRIO                          (0x7)
 #define I2S_RX_IRQ_PREPRIO                          (0x8)
+#define I2S3_TX_IRQ_PREPRIO                         (0x7)
+#define I2S3_RX_IRQ_PREPRIO                         (0x8)
 #define BSP_DUT_CDC_INT_PREEMPT_PRIO                (0xE)
 #define BSP_DUT_DSP_INT_PREEMPT_PRIO                (0xF)
 #define USART2_IRQ_PREPRIO                          (0xF)
@@ -260,6 +281,15 @@ static uint32_t bsp_i2c_write_length;
 static uint8_t *bsp_i2c_write_buffer_ptr;
 static bool bsp_i2c_transaction_complete;
 static bool bsp_i2c_transaction_error;
+
+static bsp_callback_t bsp_i2s_half_cb;
+static void *bsp_i2s_half_cb_arg;
+static bsp_callback_t bsp_i2s_cplt_cb;
+static void *bsp_i2s_cplt_cb_arg;
+static bsp_callback_t bsp_i2s3_half_cb;
+static void *bsp_i2s3_half_cb_arg;
+static bsp_callback_t bsp_i2s3_cplt_cb;
+static void *bsp_i2s3_cplt_cb_arg;
 
 static uint16_t playback_buffer[PLAYBACK_BUFFER_SIZE_2BYTES];
 static uint16_t record_buffer[RECORD_BUFFER_SIZE_2BYTES];
@@ -436,6 +466,7 @@ TIM_HandleTypeDef tim_drv_handle;
 TIM_HandleTypeDef led_tim_drv_handle;
 I2C_HandleTypeDef i2c_drv_handle;
 I2S_HandleTypeDef i2s_drv_handle;
+I2S_HandleTypeDef i2s3_drv_handle;
 SPI_HandleTypeDef hspi1;
 EXTI_HandleTypeDef exti_pb0_handle, exti_pb1_handle, exti_pb2_handle, exti_pb3_handle, exti_pb4_handle, exti_cdc_int_handle, exti_dsp_int_handle;
 UART_HandleTypeDef uart_drv_handle;
@@ -682,6 +713,26 @@ static void I2S_Init(uint32_t i2s_fs_hz)
         Error_Handler();
     }
 
+
+
+    i2s3_drv_handle.Instance = I2S3_HW;
+
+    __HAL_I2S_DISABLE(&i2s3_drv_handle);
+
+    i2s3_drv_handle.Init.AudioFreq   = i2s_fs_hz;
+    i2s3_drv_handle.Init.ClockSource = I2S_CLOCK_PLL;
+    i2s3_drv_handle.Init.CPOL        = I2S_CPOL_LOW;
+    i2s3_drv_handle.Init.DataFormat  = BSP_I2S_DATA_FORMAT;
+    i2s3_drv_handle.Init.MCLKOutput  = I2S_MCLKOUTPUT_DISABLE;
+    i2s3_drv_handle.Init.Mode        = I2S_MODE_MASTER_TX;
+    i2s3_drv_handle.Init.FullDuplexMode = I2S_FULLDUPLEXMODE_ENABLE;
+    i2s3_drv_handle.Init.Standard    = BSP_I2S_STANDARD;
+
+    if(HAL_I2S_Init(&i2s3_drv_handle) != HAL_OK)
+    {
+        Error_Handler();
+    }
+
     return;
 }
 
@@ -694,6 +745,12 @@ static void I2S_Deinit(void)
         Error_Handler();
     }
 
+    __HAL_I2S_DISABLE(&i2s3_drv_handle);
+
+    if(HAL_I2S_DeInit(&i2s3_drv_handle) != HAL_OK)
+    {
+        Error_Handler();
+    }
     return;
 }
 
@@ -1607,6 +1664,8 @@ void HAL_I2S_MspInit(I2S_HandleTypeDef *hi2s)
 {
     static DMA_HandleTypeDef hdma_i2sTx;
     static DMA_HandleTypeDef hdma_i2sRx;
+    static DMA_HandleTypeDef hdma_spi3_tx;
+    static DMA_HandleTypeDef hdma_i2s3_ext_rx;
     GPIO_InitTypeDef  GPIO_InitStruct;
 
     if(hi2s->Instance == I2S_HW)
@@ -1672,6 +1731,104 @@ void HAL_I2S_MspInit(I2S_HandleTypeDef *hi2s)
         HAL_NVIC_SetPriority(I2S_RX_DMAx_IRQ, I2S_RX_IRQ_PREPRIO, 0);
         HAL_NVIC_EnableIRQ(I2S_RX_DMAx_IRQ);
     }
+    else if(hi2s->Instance==I2S3_HW)
+    {
+        /* USER CODE BEGIN SPI3_MspInit 0 */
+
+        /* USER CODE END SPI3_MspInit 0 */
+        /* Peripheral clock enable */
+        __HAL_RCC_SPI3_CLK_ENABLE();
+        __HAL_RCC_DMA1_CLK_ENABLE();
+
+        __HAL_RCC_GPIOA_CLK_ENABLE();
+        __HAL_RCC_GPIOC_CLK_ENABLE();
+        /**I2S3 GPIO Configuration
+        PA4     ------> I2S3_WS
+        PC10     ------> I2S3_CK
+        PC11     ------> I2S3_ext_SD
+        PC12     ------> I2S3_SD
+        */
+        GPIO_InitStruct.Pin = GPIO_PIN_4;
+        GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+        GPIO_InitStruct.Pull = GPIO_NOPULL;
+        GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+        GPIO_InitStruct.Alternate = GPIO_AF6_SPI3;
+        HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+        GPIO_InitStruct.Pin = GPIO_PIN_10|GPIO_PIN_12;
+        GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+        GPIO_InitStruct.Pull = GPIO_NOPULL;
+        GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+        GPIO_InitStruct.Alternate = GPIO_AF6_SPI3;
+        HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+
+        GPIO_InitStruct.Pin = GPIO_PIN_11;
+        GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+        GPIO_InitStruct.Pull = GPIO_NOPULL;
+        GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+        GPIO_InitStruct.Alternate = GPIO_AF5_I2S3ext;
+        HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+
+        /* I2S3 DMA Init */
+        /* I2S3_EXT_RX Init */
+        hdma_i2s3_ext_rx.Instance = DMA1_Stream0;
+        hdma_i2s3_ext_rx.Init.Channel = DMA_CHANNEL_3;
+        hdma_i2s3_ext_rx.Init.Direction = DMA_PERIPH_TO_MEMORY;
+        hdma_i2s3_ext_rx.Init.PeriphInc = DMA_PINC_DISABLE;
+        hdma_i2s3_ext_rx.Init.MemInc = DMA_MINC_ENABLE;
+        hdma_i2s3_ext_rx.Init.PeriphDataAlignment = DMA_PDATAALIGN_HALFWORD;
+        hdma_i2s3_ext_rx.Init.MemDataAlignment = DMA_MDATAALIGN_HALFWORD;
+        hdma_i2s3_ext_rx.Init.Mode = DMA_CIRCULAR;
+        hdma_i2s3_ext_rx.Init.Priority = DMA_PRIORITY_HIGH;
+        hdma_i2s3_ext_rx.Init.FIFOMode = DMA_FIFOMODE_ENABLE;
+        hdma_i2s3_ext_rx.Init.FIFOThreshold = DMA_FIFO_THRESHOLD_FULL;
+        hdma_i2s3_ext_rx.Init.MemBurst = DMA_MBURST_SINGLE;
+        hdma_i2s3_ext_rx.Init.PeriphBurst = DMA_PBURST_SINGLE;
+
+        __HAL_LINKDMA(hi2s, hdmarx, hdma_i2s3_ext_rx);
+        HAL_DMA_DeInit(&hdma_i2s3_ext_rx);
+        if (HAL_DMA_Init(&hdma_i2s3_ext_rx) != HAL_OK)
+        {
+          Error_Handler();
+        }
+
+        /* SPI3_TX Init */
+        hdma_spi3_tx.Instance = DMA1_Stream5;
+        hdma_spi3_tx.Init.Channel = DMA_CHANNEL_0;
+        hdma_spi3_tx.Init.Direction = DMA_MEMORY_TO_PERIPH;
+        hdma_spi3_tx.Init.PeriphInc = DMA_PINC_DISABLE;
+        hdma_spi3_tx.Init.MemInc = DMA_MINC_ENABLE;
+        hdma_spi3_tx.Init.PeriphDataAlignment = DMA_PDATAALIGN_HALFWORD;
+        hdma_spi3_tx.Init.MemDataAlignment = DMA_MDATAALIGN_HALFWORD;
+        hdma_spi3_tx.Init.Mode = DMA_CIRCULAR;
+        hdma_spi3_tx.Init.Priority = DMA_PRIORITY_HIGH;
+        hdma_spi3_tx.Init.FIFOMode = DMA_FIFOMODE_ENABLE;
+        hdma_spi3_tx.Init.FIFOThreshold = DMA_FIFO_THRESHOLD_FULL;
+        hdma_spi3_tx.Init.MemBurst = DMA_MBURST_SINGLE;
+        hdma_spi3_tx.Init.PeriphBurst = DMA_PBURST_SINGLE;
+
+        __HAL_LINKDMA(hi2s, hdmatx, hdma_spi3_tx);
+        HAL_DMA_DeInit(&hdma_spi3_tx);
+        if (HAL_DMA_Init(&hdma_spi3_tx) != HAL_OK)
+        {
+          Error_Handler();
+        }
+
+        /* I2S3 interrupt Init */
+        // HAL_NVIC_SetPriority(SPI3_IRQn, 0, 0);
+        // HAL_NVIC_EnableIRQ(SPI3_IRQn);
+
+        /* I2S DMA IRQ Channel configuration */
+        HAL_NVIC_SetPriority(DMA1_Stream5_IRQn, I2S3_TX_IRQ_PREPRIO, 0);
+        HAL_NVIC_EnableIRQ(DMA1_Stream5_IRQn);
+
+        HAL_NVIC_SetPriority(DMA1_Stream0_IRQn, I2S3_RX_IRQ_PREPRIO, 0);
+        HAL_NVIC_EnableIRQ(DMA1_Stream0_IRQn);
+
+        /* USER CODE BEGIN SPI3_MspInit 1 */
+
+        /* USER CODE END SPI3_MspInit 1 */
+    }
 
     return;
 }
@@ -1680,19 +1837,45 @@ void HAL_I2S_MspDeInit(I2S_HandleTypeDef *hi2s)
 {
     GPIO_InitTypeDef  GPIO_InitStruct;
 
-    HAL_NVIC_DisableIRQ(I2S_TX_DMAx_IRQ);
-    HAL_NVIC_DisableIRQ(I2S_RX_DMAx_IRQ);
-
     if(hi2s->Instance == I2S_HW)
     {
+        HAL_NVIC_DisableIRQ(I2S_TX_DMAx_IRQ);
+        HAL_NVIC_DisableIRQ(I2S_RX_DMAx_IRQ);
         HAL_DMA_DeInit(hi2s->hdmatx);
         HAL_DMA_DeInit(hi2s->hdmarx);
+
+        GPIO_InitStruct.Pin = I2S_LRCLK_GPIO_PIN | I2S_SCLK_GPIO_PIN | I2S_SDOUT_GPIO_PIN | I2S_SDIN_PIN;
+        HAL_GPIO_DeInit(I2S_GPIO_PORT, GPIO_InitStruct.Pin);
+    }
+    else if(hi2s->Instance==SPI3)
+    {
+        HAL_NVIC_DisableIRQ(DMA1_Stream5_IRQn);
+        HAL_NVIC_DisableIRQ(DMA1_Stream0_IRQn);
+        // HAL_NVIC_DisableIRQ(SPI3_IRQn);
+        HAL_DMA_DeInit(hi2s->hdmatx);
+        HAL_DMA_DeInit(hi2s->hdmarx);
+        /* USER CODE BEGIN SPI3_MspDeInit 0 */
+
+        /* USER CODE END SPI3_MspDeInit 0 */
+        /* Peripheral clock disable */
+        __HAL_RCC_SPI3_CLK_DISABLE();
+
+        /**I2S3 GPIO Configuration
+        PA4     ------> I2S3_WS
+        PC10     ------> I2S3_CK
+        PC11     ------> I2S3_ext_SD
+        PC12     ------> I2S3_SD
+        */
+        HAL_GPIO_DeInit(GPIOA, GPIO_PIN_4);
+
+        HAL_GPIO_DeInit(GPIOC, GPIO_PIN_10|GPIO_PIN_11|GPIO_PIN_12);
+
+        /* USER CODE BEGIN SPI3_MspDeInit 1 */
+
+        /* USER CODE END SPI3_MspDeInit 1 */
     }
 
     __HAL_I2S_DISABLE(hi2s);
-
-    GPIO_InitStruct.Pin = I2S_LRCLK_GPIO_PIN | I2S_SCLK_GPIO_PIN | I2S_SDOUT_GPIO_PIN | I2S_SDIN_PIN;
-    HAL_GPIO_DeInit(I2S_GPIO_PORT, GPIO_InitStruct.Pin);
 
     I2S_CLK_DISABLE();
 
@@ -1703,7 +1886,27 @@ void HAL_I2S_TxCpltCallback(I2S_HandleTypeDef *hi2s)
 {
     if(hi2s->Instance == I2S_HW)
     {
-        bsp_audio_play(0);
+        if (bsp_i2s_cplt_cb != NULL)
+        {
+            bsp_i2s_cplt_cb(((hi2s->ErrorCode == HAL_I2S_ERROR_NONE) ? BSP_STATUS_OK : BSP_STATUS_FAIL), \
+                            bsp_i2s_cplt_cb_arg);
+        }
+        else
+        {
+            bsp_audio_play(BSP_I2S_PORT_PRIMARY, 0);
+        }
+    }
+    else if(hi2s->Instance == I2S3_HW)
+    {
+        if (bsp_i2s3_cplt_cb != NULL)
+        {
+            bsp_i2s3_cplt_cb(((hi2s->ErrorCode == HAL_I2S_ERROR_NONE) ? BSP_STATUS_OK : BSP_STATUS_FAIL), \
+                            bsp_i2s3_cplt_cb_arg);
+        }
+        else
+        {
+            bsp_audio_play(BSP_I2S_PORT_SECONDARY, 0);
+        }
     }
 
     bsp_irq_count++;
@@ -1713,6 +1916,22 @@ void HAL_I2S_TxCpltCallback(I2S_HandleTypeDef *hi2s)
 
 void HAL_I2S_TxHalfCpltCallback(I2S_HandleTypeDef *hi2s)
 {
+    if (hi2s->Instance == I2S_HW)
+    {
+        if (bsp_i2s_half_cb != NULL)
+        {
+            uint32_t error = (hi2s->ErrorCode == HAL_I2S_ERROR_NONE) ? BSP_STATUS_OK : BSP_STATUS_FAIL;
+            bsp_i2s_half_cb(error, bsp_i2s_half_cb_arg);
+        }
+    }
+    else if (hi2s->Instance == I2S3_HW)
+    {
+        if (bsp_i2s3_half_cb != NULL)
+        {
+            uint32_t error = (hi2s->ErrorCode == HAL_I2S_ERROR_NONE) ? BSP_STATUS_OK : BSP_STATUS_FAIL;
+            bsp_i2s3_half_cb(error, bsp_i2s3_half_cb_arg);
+        }
+    }
     return;
 }
 
@@ -1737,7 +1956,10 @@ void HAL_I2SEx_TxRxCpltCallback(I2S_HandleTypeDef *hi2s)
     {
         ;
     }
-
+    else if(hi2s->Instance == I2S3_HW)
+    {
+        ;
+    }
     bsp_irq_count++;
 
     return;
@@ -1746,6 +1968,10 @@ void HAL_I2SEx_TxRxCpltCallback(I2S_HandleTypeDef *hi2s)
 void HAL_I2S_ErrorCallback(I2S_HandleTypeDef *hi2s)
 {
     if(hi2s->Instance == I2S_HW)
+    {
+        Error_Handler();
+    }
+    else if(hi2s->Instance == I2S3_HW)
     {
         Error_Handler();
     }
@@ -2333,6 +2559,11 @@ uint32_t bsp_initialize(bsp_app_callback_t cb, void *cb_arg)
     bsp_i2c_done_cb_arg = NULL;
     bsp_i2c_current_transaction_type = BSP_I2C_TRANSACTION_TYPE_INVALID;
 
+    bsp_i2s_half_cb = NULL;
+    bsp_i2s_half_cb_arg = NULL;
+    bsp_i2s3_half_cb = NULL;
+    bsp_i2s3_half_cb_arg = NULL;
+
     for (int i = 0; i < BSP_PB_TOTAL; i++)
     {
         bsp_pb_pressed_flags[i] = false;
@@ -2388,7 +2619,7 @@ void bsp_notification_callback(uint32_t event_flags, void *arg)
 
 uint32_t bsp_audio_set_fs(uint32_t fs_hz)
 {
-    if ((fs_hz != 8000) && (fs_hz != 48000) && (fs_hz != 44100))
+    if ((fs_hz != 8000) && (fs_hz != 16000) && (fs_hz != 48000) && (fs_hz != 44100))
     {
         return BSP_STATUS_FAIL;
     }
@@ -2402,15 +2633,30 @@ uint32_t bsp_audio_set_fs(uint32_t fs_hz)
     return BSP_STATUS_OK;
 }
 
-uint32_t bsp_audio_play(uint8_t content)
+uint32_t bsp_audio_play(bsp_i2s_port_t port, uint8_t content)
 {
+    I2S_HandleTypeDef *i2s_handle;
+
+    if (port == BSP_I2S_PORT_PRIMARY)
+    {
+        i2s_handle = &i2s_drv_handle;
+    }
+    else if (port == BSP_I2S_PORT_SECONDARY)
+    {
+        i2s_handle = &i2s3_drv_handle;
+    }
+    else
+    {
+        return BSP_STATUS_FAIL;
+    }
+
     switch (content)
     {
         case BSP_PLAY_SILENCE:
 #if (BSP_I2S_2BYTES_PER_SUBFRAME == 2)
             playback_content = (uint16_t *) pcm_silence_32bit_stereo_single_period;
 #else
-            playback_content = pcm_silence_16bit_stereo_single_period;
+            playback_content = (uint16_t *) pcm_silence_16bit_stereo_single_period;
 #endif
             break;
 
@@ -2420,7 +2666,7 @@ uint32_t bsp_audio_play(uint8_t content)
 #if (BSP_I2S_2BYTES_PER_SUBFRAME == 2)
                 playback_content = (uint16_t *) pcm_20dBFs_1kHz_32bit_8000_stereo_single_period;
 #else
-                playback_content = pcm_20dBFs_1kHz_16bit_8000_stereo_single_period;
+                playback_content = (uint16_t *) pcm_20dBFs_1kHz_16bit_stereo_single_period;
 #endif
             }
             else
@@ -2428,7 +2674,7 @@ uint32_t bsp_audio_play(uint8_t content)
 #if (BSP_I2S_2BYTES_PER_SUBFRAME == 2)
                 playback_content = (uint16_t *) pcm_20dBFs_1kHz_32bit_stereo_single_period;
 #else
-                playback_content = pcm_20dBFs_1kHz_16bit_stereo_single_period;
+                playback_content = (uint16_t *) pcm_20dBFs_1kHz_16bit_stereo_single_period;
 #endif
             }
             break;
@@ -2436,9 +2682,9 @@ uint32_t bsp_audio_play(uint8_t content)
         case BSP_PLAY_STEREO_100HZ_20DBFS:
 #ifdef TEST_TONES_INCLUDE_100HZ
 #if (BSP_I2S_2BYTES_PER_SUBFRAME == 2)
-            playback_content = pcm_20dBFs_100Hz_32bit_stereo_single_period;
+            playback_content = (uint16_t *) pcm_20dBFs_100Hz_32bit_stereo_single_period;
 #else
-            playback_content = pcm_20dBFs_100Hz_16bit_stereo_single_period;
+            playback_content = (uint16_t *) pcm_20dBFs_100Hz_16bit_stereo_single_period;
 #endif
 #else
             return BSP_STATUS_FAIL;
@@ -2451,7 +2697,7 @@ uint32_t bsp_audio_play(uint8_t content)
             break;
     }
 
-    if (HAL_OK == HAL_I2S_Transmit_DMA(&i2s_drv_handle, playback_content, BSP_I2S_DMA_SIZE))
+    if (HAL_OK == HAL_I2S_Transmit_DMA(i2s_handle, playback_content, BSP_I2S_DMA_SIZE))
     {
         return BSP_STATUS_OK;
     }
@@ -2461,9 +2707,24 @@ uint32_t bsp_audio_play(uint8_t content)
     }
 }
 
-uint32_t bsp_audio_record(void)
+uint32_t bsp_audio_record(bsp_i2s_port_t port)
 {
-    if (HAL_OK == HAL_I2S_Receive_DMA(&i2s_drv_handle, record_buffer, BSP_I2S_DMA_SIZE))
+    I2S_HandleTypeDef *i2s_handle;
+
+    if (port == BSP_I2S_PORT_PRIMARY)
+    {
+        i2s_handle = &i2s_drv_handle;
+    }
+    else if (port == BSP_I2S_PORT_SECONDARY)
+    {
+        i2s_handle = &i2s3_drv_handle;
+    }
+    else
+    {
+        return BSP_STATUS_FAIL;
+    }
+
+    if (HAL_OK == HAL_I2S_Receive_DMA(i2s_handle, record_buffer, BSP_I2S_DMA_SIZE))
     {
         return BSP_STATUS_OK;
     }
@@ -2473,9 +2734,24 @@ uint32_t bsp_audio_record(void)
     }
 }
 
-uint32_t bsp_audio_play_record(uint8_t content)
+uint32_t bsp_audio_play_record(bsp_i2s_port_t port, uint8_t content)
 {
     uint16_t dma_transfer_size = 0;
+    I2S_HandleTypeDef *i2s_handle;
+
+    if (port == BSP_I2S_PORT_PRIMARY)
+    {
+        i2s_handle = &i2s_drv_handle;
+    }
+    else if (port == BSP_I2S_PORT_SECONDARY)
+    {
+        i2s_handle = &i2s3_drv_handle;
+    }
+    else
+    {
+        return BSP_STATUS_FAIL;
+    }
+
     switch (content)
     {
         case BSP_PLAY_SILENCE:
@@ -2483,7 +2759,7 @@ uint32_t bsp_audio_play_record(uint8_t content)
 #if (BSP_I2S_2BYTES_PER_SUBFRAME == 2)
             playback_content = (uint16_t *) pcm_silence_32bit_stereo_single_period;
 #else
-            playback_content = pcm_silence_16bit_stereo_single_period;
+            playback_content = (uint16_t *) pcm_silence_16bit_stereo_single_period;
 #endif
             break;
 
@@ -2494,7 +2770,7 @@ uint32_t bsp_audio_play_record(uint8_t content)
 #if (BSP_I2S_2BYTES_PER_SUBFRAME == 2)
                 playback_content = (uint16_t *) pcm_20dBFs_1kHz_32bit_8000_stereo_single_period;
 #else
-                playback_content = pcm_20dBFs_1kHz_16bit_8000_stereo_single_period;
+                playback_content = (uint16_t *) pcm_20dBFs_1kHz_16bit_stereo_single_period;
 #endif
             }
             else
@@ -2503,22 +2779,31 @@ uint32_t bsp_audio_play_record(uint8_t content)
 #if (BSP_I2S_2BYTES_PER_SUBFRAME == 2)
                 playback_content = (uint16_t *) pcm_20dBFs_1kHz_32bit_stereo_single_period;
 #else
-                playback_content = pcm_20dBFs_1kHz_16bit_stereo_single_period;
+                playback_content = (uint16_t *) pcm_20dBFs_1kHz_16bit_stereo_single_period;
 #endif
             }
             break;
 
         case BSP_PLAY_STEREO_100HZ_20DBFS:
+            dma_transfer_size = PCM_100HZ_SINGLE_PERIOD_LENGTH_2BYTES;
 #ifdef TEST_TONES_INCLUDE_100HZ
 #if (BSP_I2S_2BYTES_PER_SUBFRAME == 2)
-            playback_content = pcm_20dBFs_100Hz_32bit_stereo_single_period;
+            playback_content = (uint16_t *) pcm_20dBFs_100Hz_32bit_stereo_single_period;
 #else
-            playback_content = pcm_20dBFs_100Hz_16bit_stereo_single_period;
+            playback_content = (uint16_t *) pcm_20dBFs_100Hz_16bit_stereo_single_period;
 #endif
 #else
             return BSP_STATUS_FAIL;
 #endif
             break;
+
+#if (BSP_I2S_2BYTES_PER_SUBFRAME == 1)
+        case BSP_PLAY_STEREO_TEST:
+            dma_transfer_size = 16 * 2;
+            bsp_audio_set_fs(BSP_AUDIO_FS_16000_HZ);
+            playback_content = (uint16_t *) pcm_test;
+            break;
+#endif
 
         default:
         case BSP_PLAY_STEREO_PATTERN:
@@ -2526,7 +2811,7 @@ uint32_t bsp_audio_play_record(uint8_t content)
             break;
     }
 
-    if (HAL_OK == HAL_I2SEx_TransmitReceive_DMA(&i2s_drv_handle, playback_content, record_buffer, dma_transfer_size))
+    if (HAL_OK == HAL_I2SEx_TransmitReceive_DMA(i2s_handle, playback_content, record_buffer, dma_transfer_size))
     {
         return BSP_STATUS_OK;
     }
@@ -2536,9 +2821,92 @@ uint32_t bsp_audio_play_record(uint8_t content)
     }
 }
 
-uint32_t bsp_audio_pause(void)
+uint32_t bsp_audio_play_stream(bsp_i2s_port_t port,
+                               uint8_t *content,
+                               uint32_t length,
+                               bsp_callback_t half_cb,
+                               void *half_cb_arg,
+                               bsp_callback_t cplt_cb,
+                               void *cplt_cb_arg)
 {
-    if (HAL_OK == HAL_I2S_DMAPause(&i2s_drv_handle))
+    uint16_t dma_transfer_size = length / 2;
+    I2S_HandleTypeDef *i2s_handle;
+
+    if (port == BSP_I2S_PORT_PRIMARY)
+    {
+        i2s_handle = &i2s_drv_handle;
+        bsp_i2s_half_cb = half_cb;
+        bsp_i2s_half_cb_arg = half_cb_arg;
+        bsp_i2s_cplt_cb = cplt_cb;
+        bsp_i2s_cplt_cb_arg = cplt_cb_arg;
+    }
+    else if (port == BSP_I2S_PORT_SECONDARY)
+    {
+        i2s_handle = &i2s3_drv_handle;
+        bsp_i2s3_half_cb = half_cb;
+        bsp_i2s3_half_cb_arg = half_cb_arg;
+        bsp_i2s3_cplt_cb = cplt_cb;
+        bsp_i2s3_cplt_cb_arg = cplt_cb_arg;
+    }
+    else
+    {
+        return BSP_STATUS_FAIL;
+    }
+
+    playback_content = (uint16_t *) content;
+    if (HAL_OK != HAL_I2S_Transmit_DMA(i2s_handle, playback_content, dma_transfer_size))
+    {
+        return BSP_STATUS_FAIL;
+    }
+
+    return BSP_STATUS_OK;
+}
+
+uint32_t bsp_audio_continue_play_stream(bsp_i2s_port_t port, uint8_t *content, uint32_t length)
+{
+    uint16_t dma_transfer_size = length / 2;
+    I2S_HandleTypeDef *i2s_handle;
+
+    if (port == BSP_I2S_PORT_PRIMARY)
+    {
+        i2s_handle = &i2s_drv_handle;
+    }
+    else if (port == BSP_I2S_PORT_SECONDARY)
+    {
+        i2s_handle = &i2s3_drv_handle;
+    }
+    else
+    {
+        return BSP_STATUS_FAIL;
+    }
+
+    playback_content = (uint16_t *) content;
+    if (HAL_OK != HAL_I2S_Transmit_DMA(i2s_handle, playback_content, dma_transfer_size))
+    {
+        return BSP_STATUS_FAIL;
+    }
+
+    return BSP_STATUS_OK;
+}
+
+uint32_t bsp_audio_pause(bsp_i2s_port_t port)
+{
+    I2S_HandleTypeDef *i2s_handle;
+
+    if (port == BSP_I2S_PORT_PRIMARY)
+    {
+        i2s_handle = &i2s_drv_handle;
+    }
+    else if (port == BSP_I2S_PORT_SECONDARY)
+    {
+        i2s_handle = &i2s3_drv_handle;
+    }
+    else
+    {
+        return BSP_STATUS_FAIL;
+    }
+
+    if (HAL_OK == HAL_I2S_DMAPause(i2s_handle))
     {
         return BSP_STATUS_OK;
     }
@@ -2548,9 +2916,24 @@ uint32_t bsp_audio_pause(void)
     }
 }
 
-uint32_t bsp_audio_resume(void)
+uint32_t bsp_audio_resume(bsp_i2s_port_t port)
 {
-    if (HAL_OK == HAL_I2S_DMAResume(&i2s_drv_handle))
+    I2S_HandleTypeDef *i2s_handle;
+
+    if (port == BSP_I2S_PORT_PRIMARY)
+    {
+        i2s_handle = &i2s_drv_handle;
+    }
+    else if (port == BSP_I2S_PORT_SECONDARY)
+    {
+        i2s_handle = &i2s3_drv_handle;
+    }
+    else
+    {
+        return BSP_STATUS_FAIL;
+    }
+
+    if (HAL_OK == HAL_I2S_DMAResume(i2s_handle))
     {
         return BSP_STATUS_OK;
     }
@@ -2560,9 +2943,24 @@ uint32_t bsp_audio_resume(void)
     }
 }
 
-uint32_t bsp_audio_stop(void)
+uint32_t bsp_audio_stop(bsp_i2s_port_t port)
 {
-    if (HAL_OK == HAL_I2S_DMAStop(&i2s_drv_handle))
+    I2S_HandleTypeDef *i2s_handle;
+
+    if (port == BSP_I2S_PORT_PRIMARY)
+    {
+        i2s_handle = &i2s_drv_handle;
+    }
+    else if (port == BSP_I2S_PORT_SECONDARY)
+    {
+        i2s_handle = &i2s3_drv_handle;
+    }
+    else
+    {
+        return BSP_STATUS_FAIL;
+    }
+
+    if (HAL_OK == HAL_I2S_DMAStop(i2s_handle))
     {
         return BSP_STATUS_OK;
     }
@@ -3364,24 +3762,6 @@ uint32_t bsp_spi_restore_speed(void)
     return BSP_STATUS_OK;
 }
 
-void* bsp_malloc(size_t size)
-{
-#ifdef NO_OS
-    return malloc(size);
-#else
-    return pvPortMalloc(size);
-#endif
-}
-
-void bsp_free(void* ptr)
-{
-#ifdef NO_OS
-    return free(ptr);
-#else
-    return vPortFree(ptr);
-#endif
-}
-
 uint32_t bsp_set_ld2(uint8_t mode, uint32_t blink_100ms)
 {
     if (mode == BSP_LD2_MODE_BLINK)
@@ -3532,7 +3912,7 @@ uint32_t bsp_eeprom_program_verify(uint32_t addr,
 {
     uint32_t ret;
     uint8_t * return_buffer;
-    return_buffer = (uint8_t *) bsp_malloc(data_length);
+    return_buffer = (uint8_t *) malloc(data_length);
 
     ret = bsp_eeprom_program(addr, data_buffer, data_length);
     if (ret)
@@ -3550,12 +3930,12 @@ uint32_t bsp_eeprom_program_verify(uint32_t addr,
     {
         if (data_buffer[i] != return_buffer[i])
         {
-            bsp_free(return_buffer);
+            free(return_buffer);
             return BSP_STATUS_FAIL;
         }
     }
 
-    bsp_free(return_buffer);
+    free(return_buffer);
 
     return BSP_STATUS_OK;
 }

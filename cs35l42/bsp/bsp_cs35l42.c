@@ -4,7 +4,7 @@
  * @brief Implementation of the BSP for the cs35l42 platform.
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2022 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2022-2023 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -155,11 +155,11 @@ uint32_t bsp_dut_boot(cs35l42_t *driver,
 
     // Free anything malloc'ed in previous boots
     if (boot_state->fw_info.sym_table)
-        bsp_free(boot_state->fw_info.sym_table);
+        free(boot_state->fw_info.sym_table);
     if (boot_state->fw_info.alg_id_list)
-        bsp_free(boot_state->fw_info.alg_id_list);
+        free(boot_state->fw_info.alg_id_list);
     if (boot_state->block_data)
-        bsp_free(boot_state->block_data);
+        free(boot_state->block_data);
 
     // Ensure your fw_img_boot_state_t struct is initialised to zero.
     memset(boot_state, 0, sizeof(fw_img_boot_state_t));
@@ -182,7 +182,7 @@ uint32_t bsp_dut_boot(cs35l42_t *driver,
     {
         // malloc enough memory to hold the symbol table, using sym_table_size in the previously
         // read in fw_img header
-        boot_state->fw_info.sym_table = (fw_img_v1_sym_table_t *)bsp_malloc(boot_state->fw_info.header.sym_table_size *
+        boot_state->fw_info.sym_table = (fw_img_v1_sym_table_t *)malloc(boot_state->fw_info.header.sym_table_size *
                                                                     sizeof(fw_img_v1_sym_table_t));
         if (boot_state->fw_info.sym_table == NULL)
         {
@@ -190,7 +190,7 @@ uint32_t bsp_dut_boot(cs35l42_t *driver,
         }
 
         // malloc enough memory to hold the alg_id list, using the alg_id_list_size in the fw_img header
-        boot_state->fw_info.alg_id_list = (uint32_t *) bsp_malloc(boot_state->fw_info.header.alg_id_list_size * sizeof(uint32_t));
+        boot_state->fw_info.alg_id_list = (uint32_t *) malloc(boot_state->fw_info.header.alg_id_list_size * sizeof(uint32_t));
         if (boot_state->fw_info.alg_id_list == NULL)
         {
             CRUS_THROW(cs35l42_exit_boot);
@@ -203,7 +203,7 @@ uint32_t bsp_dut_boot(cs35l42_t *driver,
     // should adhere to them.
     // From fw_img_v2 forward, the max_block_size is stored in the fw_img header itself
     boot_state->block_data_size = boot_state->fw_info.header.max_block_size;
-    boot_state->block_data = (uint8_t *) bsp_malloc(boot_state->block_data_size);
+    boot_state->block_data = (uint8_t *) malloc(boot_state->block_data_size);
     if (boot_state->block_data == NULL)
     {
         CRUS_THROW(cs35l42_exit_boot);
@@ -254,7 +254,7 @@ uint32_t bsp_dut_boot(cs35l42_t *driver,
         ret = cs35l42_boot(driver, &(boot_state->fw_info));
     }
 
-    bsp_free(boot_state->block_data);
+    free(boot_state->block_data);
     boot_state->block_data = NULL;
 
     CRUS_CATCH(cs35l42_exit_boot);

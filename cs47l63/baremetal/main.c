@@ -4,7 +4,7 @@
  * @brief The main function for CS47L63 System Test Harness
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2021 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2021, 2023 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -29,14 +29,15 @@
 /***********************************************************************************************************************
  * LOCAL LITERAL SUBSTITUTIONS
  **********************************************************************************************************************/
-#define APP_STATE_UNINITIALIZED         (0)
-#define APP_STATE_STANDBY               (1)
-#define APP_STATE_TG_HP                 (2)
-#define APP_STATE_STANDBY2              (3)
-#define APP_STATE_DSP_PRELOAD_PT        (4)
-#define APP_STATE_TG_DSP_HP             (5)
-#define APP_STATE_MIC_DSP_HP            (6)
-#define APP_STATE_DSP_DISABLE           (7)
+#define APP_STATE_UNINITIALIZED           (0)
+#define APP_STATE_STANDBY                 (1)
+#define APP_STATE_SCC_RECORD_P16          (2)
+#define APP_STATE_SCC_MANUAL_TRIGGER_P16  (3)
+#define APP_STATE_SCC_PROCESS_IRQ_P16     (4)
+#define APP_STATE_STANDBY2                (5)
+#define APP_STATE_SCC_RECORD_MSBC         (6)
+#define APP_STATE_SCC_MANUAL_TRIGGER_MSBC (7)
+#define APP_STATE_SCC_PROCESS_IRQ_MSBC    (8)
 
 /***********************************************************************************************************************
  * LOCAL VARIABLES
@@ -96,15 +97,47 @@ int main(void)
             case APP_STATE_STANDBY:
                 if (bsp_pb_pressed)
                 {
-                    bsp_dut_use_case(BSP_USE_CASE_TG_HP_EN);
+                    bsp_dut_use_case(BSP_USE_CASE_SCC_RECORD_PACKED16);
                     app_state++;
                 }
                 break;
 
-            case APP_STATE_TG_HP:
+            case APP_STATE_SCC_RECORD_P16:
+            case APP_STATE_SCC_RECORD_MSBC:
+                if (bsp_process_irq)
+                {
+                    // Triggered by phrase so switch state.
+                    if (bsp_dut_use_case(BSP_USE_CASE_SCC_TRIGGERED) != BSP_STATUS_FAIL)
+                    {
+                        app_state += 2;
+                    }
+                }
+                else if (bsp_pb_pressed)
+                {
+                    bsp_dut_use_case(BSP_USE_CASE_SCC_MANUAL_TRIGGER);
+                    app_state++;
+                }
+                break;
+
+            case APP_STATE_SCC_MANUAL_TRIGGER_P16:
+            case APP_STATE_SCC_MANUAL_TRIGGER_MSBC:
+                // Triggered either by phrase or button press so switch state.
+                bsp_dut_use_case(BSP_USE_CASE_SCC_TRIGGERED);
+                app_state++;
+                break;
+
+            case APP_STATE_SCC_PROCESS_IRQ_P16:
+                if (bsp_process_irq)
+                {
+                    bsp_dut_use_case(BSP_USE_CASE_SCC_PROCESS_IRQ);
+                }
+                if (bsp_process_i2s)
+                {
+                    bsp_dut_use_case(BSP_USE_CASE_SCC_PROCESS_I2S);
+                }
                 if (bsp_pb_pressed)
                 {
-                    bsp_dut_use_case(BSP_USE_CASE_TG_HP_DIS);
+                    bsp_dut_use_case(BSP_USE_CASE_SCC_STOP_RECORDING);
                     app_state++;
                 }
                 break;
@@ -112,33 +145,23 @@ int main(void)
             case APP_STATE_STANDBY2:
                 if (bsp_pb_pressed)
                 {
-                    bsp_dut_use_case(BSP_USE_CASE_DSP_PRELOAD_PT_EN);
+                    bsp_dut_use_case(BSP_USE_CASE_SCC_RECORD_MSBC);
                     app_state++;
                 }
                 break;
 
-            case APP_STATE_DSP_PRELOAD_PT:
-                if (bsp_pb_pressed)
+            case APP_STATE_SCC_PROCESS_IRQ_MSBC:
+                if (bsp_process_irq)
                 {
-                    bsp_dut_use_case(BSP_USE_CASE_TG_DSP_HP_EN);
-                    app_state++;
+                    bsp_dut_use_case(BSP_USE_CASE_SCC_PROCESS_IRQ);
                 }
-                break;
-
-            case APP_STATE_TG_DSP_HP:
-                if (bsp_pb_pressed)
+                if (bsp_process_i2s)
                 {
-                    bsp_dut_use_case(BSP_USE_CASE_TG_DSP_HP_DIS);
-                    bsp_dut_use_case(BSP_USE_CASE_MIC_DSP_HP_EN);
-                    app_state++;
+                    bsp_dut_use_case(BSP_USE_CASE_SCC_PROCESS_I2S);
                 }
-                break;
-
-            case APP_STATE_MIC_DSP_HP:
                 if (bsp_pb_pressed)
                 {
-                    bsp_dut_use_case(BSP_USE_CASE_MIC_DSP_HP_DIS);
-                    bsp_dut_use_case(BSP_USE_CASE_DSP_PRELOAD_PT_DIS);
+                    bsp_dut_use_case(BSP_USE_CASE_SCC_STOP_RECORDING);
                     app_state = APP_STATE_STANDBY;
                 }
                 break;

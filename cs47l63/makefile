@@ -29,6 +29,7 @@ include $(REPO_PATH)/common/common.mk
 
 # Assign paths and variables
 PART_NUM = cs47l63
+USE_SBC = 1
 $(eval $(call assign_paths))
 PLATFORM_TARGETS = system_test baremetal freertos
 VALID_TARGETS = unit_test $(PLATFORM_TARGETS)
@@ -41,8 +42,13 @@ ifdef IS_NOT_UNIT_TEST
     include $(REPO_PATH)/common/platform_bsp/platform_bsp.mk
 endif
 
+# Include sbc.mk
+ifdef USE_SBC
+    include $(REPO_PATH)/third_party/sbc.mk
+endif
+
 # Assign firmware and configuration script variables
-HALO_FIRMWARE_FILE = shelleypassthru_HALO.wmfw
+HALO_FIRMWARE_FILE = CS47L63_SCH_SCC_MSBC_S_000A00.wmfw
 WISCE_SCRIPT = $(CONFIG_PATH)/wisce_init.txt
 
 # Assign toolchain and toolchain flags
@@ -86,13 +92,21 @@ $(eval $(call assign_sources_includes))
 C_SRCS += $(APP_PATH)/main.c
 ifeq ($(MAKECMDGOALS), unit_test)
     C_SRCS += $(APP_PATH)/test_cs47l63.c
+    C_SRCS += $(COMMON_PATH)/buffers/unit_test/test_data_ringbuf.c
     C_SRCS += $(APP_PATH)/mock_bsp.c
+    DRIVER_SRCS += $(BUFFERS_PATH)/data_ringbuf.c
+
+    INCLUDES += -I$(BUFFERS_PATH)
 
     ADD_OBJ_RULES = add_unit_test_obj_rules
 else ifdef IS_NOT_UNIT_TEST
     C_SRCS += $(DRIVER_PATH)/bsp/bsp_cs47l63.c
     C_SRCS += $(HALO_FIRMWARE_PATH)/cs47l63_fw_img.c
 
+    DRIVER_SRCS += $(BUFFERS_PATH)/data_ringbuf.c
+    DRIVER_SRCS += $(COMMON_PATH)/scc.c
+    DRIVER_SRCS += $(BUFFERS_PATH)/dspbuf.c
+    DRIVER_SRCS += $(COMPRESSION_PATH)/decompr.c $(COMPRESSION_PATH)/msbc.c $(COMPRESSION_PATH)/packed16.c
     ifeq ($(MAKECMDGOALS), system_test)
         C_SRCS += $(APP_PATH)/test_cs47l63.c
     endif
@@ -105,6 +119,8 @@ else ifdef IS_NOT_UNIT_TEST
     INCLUDES += -I$(DRIVER_PATH)/bsp
     INCLUDES += -I$(HALO_FIRMWARE_PATH)
     INCLUDES += -I$(COMMON_PATH)/bridge
+    INCLUDES += -I$(BUFFERS_PATH)
+    INCLUDES += -I$(COMPRESSION_PATH)
 
     ADD_OBJ_RULES = add_platform_obj_rules
 endif

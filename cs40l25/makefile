@@ -91,10 +91,6 @@ ifdef IS_NOT_UNIT_TEST
         CFLAGS += -DCONFIG_USE_MULTICHANNEL_UART
     endif
 
-    ifeq ($(PLATFORM), eestm32int)
-        CFLAGS += -DCONFIG_LN2
-    endif
-
     ifneq ($(PLATFORM), live_oak)
         CFLAGS += -DCONFIG_USE_BRIDGE
         C_SRCS += $(COMMON_PATH)/bridge/bridge.c

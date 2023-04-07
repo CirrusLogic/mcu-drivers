@@ -3,6 +3,33 @@ Release Notes
 
 =============================================================================
 Summary:
+This is the release of Alt-OS Driver SDK v4.19.0
+Date: 2023/04/07
+
+Architectures/Compilers Used:
+GNU Arm Embedded Toolchain: arm-none-eabi-gcc -mcpu=cortex-m4
+
+New Features/Changes:
+[SQA-2120] cs47l63: SCC trigger, download, decode and playback use-case
+[SQA-2054] cs47l63: Implement compressed buffer API
+[SQA-2054] common: Add ringbuffers
+[SQA-2054] common: Compressed buffer API
+[DRV-5891] cs40l50: Added driver API for F0 calibration, RAM FW download, Dynamic F0
+[DRV-5958] cs40l50: support MBOX interrupts, event_handler
+[DRV-5890] cs40l50: Implemented GPI trigger configuration
+[DRV-6026] cs40l26: Added standalone wavetable loading.
+[DRV-6027] cs40l26: Added polling for IRQ
+[DRV-6082] cs40l26: Implement OWT loading, triggering, reset
+[DRV-5971] cs40l26: Added support for Dynamic F0
+[DRV-5948] cs40l26: Added click compensation
+[DRV-5979] cs40l26: Implementing I2S streaming
+
+Fixed Bugs:
+test_tone_tables: fixed support for 100Hz
+
+=============================================================================
+=============================================================================
+Summary:
 This is the release of Alt-OS Driver SDK v4.18.0
 Date: 2022/10/19
 

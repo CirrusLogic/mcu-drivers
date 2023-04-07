@@ -4,7 +4,7 @@
  * @brief Implementation of the BSP for the cs47l35 platform.
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2021-2022 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2021-2023 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -196,11 +196,11 @@ uint32_t bsp_dut_boot(uint32_t core_no, const uint8_t *fw_img_ptr, fw_img_boot_s
 
     // Free anything malloc'ed in previous boots
     if (boot_state->fw_info.sym_table)
-        bsp_free(boot_state->fw_info.sym_table);
+        free(boot_state->fw_info.sym_table);
     if (boot_state->fw_info.alg_id_list)
-        bsp_free(boot_state->fw_info.alg_id_list);
+        free(boot_state->fw_info.alg_id_list);
     if (boot_state->block_data)
-        bsp_free(boot_state->block_data);
+        free(boot_state->block_data);
 
     // Ensure your fw_img_boot_state_t struct is initialised to zero.
     memset(boot_state, 0, sizeof(fw_img_boot_state_t));
@@ -221,7 +221,7 @@ uint32_t bsp_dut_boot(uint32_t core_no, const uint8_t *fw_img_ptr, fw_img_boot_s
 
     // malloc enough memory to hold the symbol table, using sym_table_size in the previously
     // read in fw_img header
-    boot_state->fw_info.sym_table = (fw_img_v1_sym_table_t *)bsp_malloc(boot_state->fw_info.header.sym_table_size *
+    boot_state->fw_info.sym_table = (fw_img_v1_sym_table_t *)malloc(boot_state->fw_info.header.sym_table_size *
                                                                    sizeof(fw_img_v1_sym_table_t));
     if (boot_state->fw_info.sym_table == NULL)
     {
@@ -229,7 +229,7 @@ uint32_t bsp_dut_boot(uint32_t core_no, const uint8_t *fw_img_ptr, fw_img_boot_s
     }
 
     // malloc enough memory to hold the alg_id list, using the alg_id_list_size in the fw_img header
-    boot_state->fw_info.alg_id_list = (uint32_t *) bsp_malloc(boot_state->fw_info.header.alg_id_list_size * sizeof(uint32_t));
+    boot_state->fw_info.alg_id_list = (uint32_t *) malloc(boot_state->fw_info.header.alg_id_list_size * sizeof(uint32_t));
     if (boot_state->fw_info.alg_id_list == NULL)
     {
         return BSP_STATUS_FAIL;
@@ -241,7 +241,7 @@ uint32_t bsp_dut_boot(uint32_t core_no, const uint8_t *fw_img_ptr, fw_img_boot_s
     // should adhere to them.
     // From fw_img_v2 forward, the max_block_size is stored in the fw_img header itself
     boot_state->block_data_size = boot_state->fw_info.header.max_block_size;
-    boot_state->block_data = (uint8_t *) bsp_malloc(boot_state->block_data_size);
+    boot_state->block_data = (uint8_t *) malloc(boot_state->block_data_size);
     if (boot_state->block_data == NULL)
     {
         return BSP_STATUS_FAIL;
@@ -284,7 +284,7 @@ uint32_t bsp_dut_boot(uint32_t core_no, const uint8_t *fw_img_ptr, fw_img_boot_s
         }
     }
 
-    bsp_free(boot_state->block_data);
+    free(boot_state->block_data);
     boot_state->block_data = NULL;
 
     // fw_img processing is complete, so inform the driver and pass it the fw_info block
@@ -474,7 +474,7 @@ uint32_t bsp_dut_use_case(uint32_t use_case)
             cs47l35_write_reg(&cs47l35_driver, buf_symbol, 0x5);
 
             // Init data and dsp buffer
-            lin_buf_ptr_dec =  (uint8_t *)bsp_malloc(BSP_DUT_BUFFER_SIZE);
+            lin_buf_ptr_dec =  (uint8_t *)malloc(BSP_DUT_BUFFER_SIZE);
             buf_symbol = cs47l35_find_symbol(&cs47l35_driver, 2, CS47L35_DSP2_SYM_SILK_DECODER_RING_BUFF_ADDRESS);
             ret = cs47l35_dsp_buf_init(&cs47l35_driver, &buffer_dec, lin_buf_ptr_dec, BSP_DUT_BUFFER_SIZE, buf_symbol, 2);
             if (ret)
@@ -486,7 +486,7 @@ uint32_t bsp_dut_use_case(uint32_t use_case)
             start_decoding_flag = true;
 
             // Init data and dsp buffer
-            lin_buf_ptr_enc =  (uint8_t *)bsp_malloc(BSP_DUT_BUFFER_SIZE);
+            lin_buf_ptr_enc =  (uint8_t *)malloc(BSP_DUT_BUFFER_SIZE);
             buf_symbol = cs47l35_find_symbol(&cs47l35_driver, 2, CS47L35_DSP2_SYM_SILK_ENCODER_RING_BUFF_ADDRESS);
             ret = cs47l35_dsp_buf_init(&cs47l35_driver, &buffer_enc, lin_buf_ptr_enc, BSP_DUT_BUFFER_SIZE, buf_symbol, 2);
             if (ret)
@@ -494,7 +494,7 @@ uint32_t bsp_dut_use_case(uint32_t use_case)
                 break;
             }
 
-            opus_data = (uint8_t *)bsp_malloc(BSP_DUT_RECORDING_SIZE);
+            opus_data = (uint8_t *)malloc(BSP_DUT_RECORDING_SIZE);
             opus_data_len = 0x8000;
             bytes_read_total = 0;
 
@@ -607,9 +607,9 @@ uint32_t bsp_dut_use_case(uint32_t use_case)
 
             start_encoding_flag = false;
             start_decoding_flag = false;
-            bsp_free(lin_buf_ptr_dec);
-            bsp_free(lin_buf_ptr_enc);
-            bsp_free(opus_data);
+            free(lin_buf_ptr_dec);
+            free(lin_buf_ptr_enc);
+            free(opus_data);
 
             cs47l35_write_reg(&cs47l35_driver, CS47L35_DAC_DIGITAL_VOLUME_1R, 0x360);
             cs47l35_write_reg(&cs47l35_driver, CS47L35_DAC_DIGITAL_VOLUME_1L, 0x360);

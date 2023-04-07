@@ -4,7 +4,7 @@
  * @brief The main function for CS35L41 System Test Harness
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2019, 2021-2022 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2019, 2021-2023 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -127,9 +127,9 @@ static void AmpControlThread(void *argument)
             case APP_STATE_CAL_PDN:
                 if (flags & AMP_CONTROL_FLAG_PB_PRESSED)
                 {
-                    bsp_audio_stop();
+                    bsp_audio_stop(BSP_I2S_PORT_PRIMARY);
                     bsp_audio_set_fs(BSP_AUDIO_FS_48000_HZ);
-                    bsp_audio_play_record(BSP_PLAY_SILENCE);
+                    bsp_audio_play_record(BSP_I2S_PORT_PRIMARY, BSP_PLAY_SILENCE);
                     bsp_dut_reset();
                     bsp_dut_boot(true);
                     bsp_dut_power_up();
@@ -142,9 +142,9 @@ static void AmpControlThread(void *argument)
             case APP_STATE_PDN:
                 if (flags & AMP_CONTROL_FLAG_PB_PRESSED)
                 {
-                    bsp_audio_stop();
+                    bsp_audio_stop(BSP_I2S_PORT_PRIMARY);
                     bsp_audio_set_fs(BSP_AUDIO_FS_48000_HZ);
-                    bsp_audio_play_record(BSP_PLAY_STEREO_1KHZ_20DBFS);
+                    bsp_audio_play_record(BSP_I2S_PORT_PRIMARY, BSP_PLAY_STEREO_1KHZ_20DBFS);
                     bsp_dut_reset();
                     bsp_dut_boot(false);
                     uint8_t dut_id;
@@ -169,9 +169,9 @@ static void AmpControlThread(void *argument)
                     bsp_dut_is_processing(&is_processing);
 
                     bsp_dut_change_fs(BSP_AUDIO_FS_44100_HZ);
-                    bsp_audio_stop();
+                    bsp_audio_stop(BSP_I2S_PORT_PRIMARY);
                     bsp_audio_set_fs(BSP_AUDIO_FS_44100_HZ);
-                    bsp_audio_play_record(BSP_PLAY_STEREO_1KHZ_20DBFS);
+                    bsp_audio_play_record(BSP_I2S_PORT_PRIMARY, BSP_PLAY_STEREO_1KHZ_20DBFS);
 
                     bsp_dut_is_processing(&is_processing);
 
@@ -189,9 +189,9 @@ static void AmpControlThread(void *argument)
                     bsp_dut_is_processing(&is_processing);
 
                     bsp_dut_change_fs(BSP_AUDIO_FS_48000_HZ);
-                    bsp_audio_stop();
+                    bsp_audio_stop(BSP_I2S_PORT_PRIMARY);
                     bsp_audio_set_fs(BSP_AUDIO_FS_48000_HZ);
-                    bsp_audio_play_record(BSP_PLAY_STEREO_1KHZ_20DBFS);
+                    bsp_audio_play_record(BSP_I2S_PORT_PRIMARY, BSP_PLAY_STEREO_1KHZ_20DBFS);
 
                     bsp_dut_is_processing(&is_processing);
 

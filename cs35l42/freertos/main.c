@@ -4,7 +4,7 @@
  * @brief The main function for CS35L42 System Test Harness
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2022 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2022-2023 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -129,9 +129,9 @@ static void AmpControlThread(void *argument)
             case APP_STATE_CALIBRATE:
                 if (flags & AMP_CONTROL_FLAG_PB_PRESSED)
                 {
-                    bsp_audio_stop();
+                    bsp_audio_stop(BSP_I2S_PORT_PRIMARY);
                     bsp_audio_set_fs(BSP_AUDIO_FS_48000_HZ);
-                    bsp_audio_play_record(BSP_PLAY_SILENCE);
+                    bsp_audio_play_record(BSP_I2S_PORT_PRIMARY, BSP_PLAY_SILENCE);
                     bsp_dut_reset();
                     bsp_dut_boot(temp_driver, &cs35l42_boot_state, cs35l42_fw_img, false);
                     // Load additional bin file for performing calibration
@@ -146,9 +146,9 @@ static void AmpControlThread(void *argument)
             case APP_STATE_PLAY:
                 if (flags & AMP_CONTROL_FLAG_PB_PRESSED)
                 {
-                    bsp_audio_stop();
+                    bsp_audio_stop(BSP_I2S_PORT_PRIMARY);
                     bsp_audio_set_fs(BSP_AUDIO_FS_48000_HZ);
-                    bsp_audio_play(BSP_PLAY_STEREO_1KHZ_20DBFS);
+                    bsp_audio_play(BSP_I2S_PORT_PRIMARY, BSP_PLAY_STEREO_1KHZ_20DBFS);
                     bsp_dut_reset();
                     bsp_dut_boot(temp_driver, &cs35l42_boot_state, cs35l42_fw_img, false);
                     bsp_dut_power_up();
@@ -159,9 +159,9 @@ static void AmpControlThread(void *argument)
             case APP_STATE_PLAY_GAIN:
                 if (flags & AMP_CONTROL_FLAG_PB_PRESSED)
                 {
-                    bsp_audio_stop();
+                    bsp_audio_stop(BSP_I2S_PORT_PRIMARY);
                     bsp_audio_set_fs(BSP_AUDIO_FS_48000_HZ);
-                    bsp_audio_play(BSP_PLAY_STEREO_1KHZ_20DBFS);
+                    bsp_audio_play(BSP_I2S_PORT_PRIMARY, BSP_PLAY_STEREO_1KHZ_20DBFS);
                     bsp_dut_reset();
                     bsp_dut_boot(temp_driver, &cs35l42_boot_state, cs35l42_fw_img, false);
                     bsp_dut_set_dig_gain(-6);

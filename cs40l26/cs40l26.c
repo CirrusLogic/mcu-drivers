@@ -4,7 +4,7 @@
  * @brief The CS40L26 Driver module
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2021-2022 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2021-2023 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -319,10 +319,6 @@ static uint32_t cs40l26_error_release(cs40l26_t *driver, uint32_t err_rls)
     err_cfg &= ~err_rls;
 
     ret = regmap_write(cp, CS40L26_ERROR_RELEASE, err_cfg);
-    if (ret)
-    {
-        return ret;
-    }
 
     return ret;
 }
@@ -405,9 +401,16 @@ static uint32_t cs40l26_event_handler(cs40l26_t *driver)
     uint32_t irq_statuses[CS40L26_IRQ1_REG_TOTAL];
     uint32_t irq_masks[CS40L26_IRQ1_REG_TOTAL];
     regmap_cp_config_t *cp = REGMAP_GET_CP(driver);
+    uint32_t data;
+
+    ret = regmap_read(cp, IRQ1_IRQ1_STATUS_REG, &data);
+    if (ret || (data == 0))
+    {
+        return ret;
+    }
 
     // Read IRQ1_STATUS
-    ret = regmap_read(cp, IRQ1_IRQ1_STATUS_REG, &(irq_statuses[0]));
+    ret = regmap_read(cp, IRQ1_IRQ1_STS1_REG, &(irq_statuses[0]));
     if (ret)
     {
         return ret;
@@ -575,10 +578,10 @@ static uint32_t cs40l26_wseq_table_update(cs40l26_t *driver, uint32_t address, u
                 {
                     if (read)
                     {
-                        uint32_t prev_address;
                         uint32_t full_address = address;
                         if (operation == CS40L26_POWER_SEQ_OP_WRITE_REG_ADDR8)
                         {
+                            uint32_t prev_address;
                             // Search back for full address, to fetch upper 3 bytes of address
                             for (int j = i; j >= 0; j--)
                             {
@@ -608,10 +611,10 @@ static uint32_t cs40l26_wseq_table_update(cs40l26_t *driver, uint32_t address, u
         {
             if (read)
             {
-                uint32_t prev_address;
                 uint32_t full_address = address;
                 if (operation == CS40L26_POWER_SEQ_OP_WRITE_REG_ADDR8)
                 {
+                    uint32_t prev_address;
                     // Search back for full address, to fetch upper 3 bytes of address
                     for (int j = num_entries; j >= 0; j--)
                     {
@@ -677,7 +680,6 @@ static uint32_t cs40l26_wseq_read_from_dsp(cs40l26_t *driver)
     uint32_t temp_entry[3];
     uint32_t address;
     uint32_t value;
-    uint32_t operation;
     uint32_t base_reg = fw_img_find_symbol(driver->fw_info, CS40L26_SYM_PM_POWER_ON_SEQUENCE);
     regmap_cp_config_t *cp = REGMAP_GET_CP(driver);
 
@@ -688,6 +690,7 @@ static uint32_t cs40l26_wseq_read_from_dsp(cs40l26_t *driver)
 
     for (uint32_t i = 0; i < CS40L26_POWER_SEQ_MAX_WORDS; i++)
     {
+        uint32_t operation;
         regmap_read(cp, base_reg + (4 * i), &(temp_entry[0]));
 
         operation = ((temp_entry[0] & 0xFF0000) >> 16);
@@ -739,7 +742,7 @@ static uint32_t cs40l26_wseq_read_from_dsp(cs40l26_t *driver)
 
 static uint32_t cs40l26_allow_hibernate(cs40l26_t *driver)
 {
-    uint32_t ret = CS40L26_STATUS_FAIL;
+    uint32_t ret;
     regmap_cp_config_t *cp = REGMAP_GET_CP(driver);
 
     ret = regmap_write_fw_control(cp, driver->fw_info, CS40L26_SYM_PM_PM_TIMER_TIMEOUT_TICKS, 0);
@@ -774,20 +777,15 @@ static uint32_t cs40l26_allow_hibernate(cs40l26_t *driver)
     }
 
     ret = cs40l26_pm_state_transition(driver, CS40L26_PM_STATE_ALLOW_HIBERNATE);
-    if (ret)
-    {
-        return ret;
-    }
 
     return ret;
 }
 
 static uint32_t cs40l26_prevent_hibernate(cs40l26_t *driver)
 {
-    uint32_t ret = CS40L26_STATUS_FAIL;
-
     for(int i = 0; i < CS40L26_WAKE_ATTEMPTS; i++)
     {
+        uint32_t ret;
         ret = cs40l26_pm_state_transition(driver, CS40L26_PM_STATE_PREVENT_HIBERNATE);
         if (!ret)
         {
@@ -1144,6 +1142,166 @@ uint32_t cs40l26_calibrate(cs40l26_t *driver)
 }
 
 /**
+ * Start I2S Streaming mode
+ *
+ */
+uint32_t cs40l26_start_i2s(cs40l26_t *driver)
+{
+    uint32_t ret, mbox_rd, data;
+    regmap_cp_config_t *cp = REGMAP_GET_CP(driver);
+
+    ret = regmap_write_acked_reg(cp, CS40L26_DSP_VIRTUAL1_MBOX_1, CS40L26_DSP_MBOX_CMD_STOP_PLAYBACK,
+                                 CS40L26_DSP_MBOX_RESET, 5, 1);
+    if (ret)
+    {
+        return ret;
+    }
+
+    ret = regmap_update_reg(cp, CS40L26_REFCLK_INPUT_REG,
+                            CS40L26_REFCLK_PLL_LOOP_MASK,
+                            1 << CS40L26_REFCLK_PLL_LOOP_SHIFT);
+    if (ret)
+    {
+        return ret;
+    }
+
+    ret = regmap_update_reg(cp, CS40L26_REFCLK_INPUT_REG,
+                            CS40L26_PLL_REFCLK_FREQ_MASK, driver->config.bclk_freq);
+    if (ret)
+    {
+        return ret;
+    }
+
+    ret = regmap_update_reg(cp, CS40L26_REFCLK_INPUT_REG,
+                            CS40L26_PLL_REFCLK_SEL_MASK, 0);
+    if (ret)
+    {
+        return ret;
+    }
+
+    ret = regmap_update_reg(cp, CS40L26_REFCLK_INPUT_REG,
+                            CS40L26_REFCLK_PLL_LOOP_MASK, 0);
+    if (ret)
+    {
+        return ret;
+    }
+
+    cs40l26_dataif_asp_enables1_t asp_reg_val;
+    asp_reg_val.word = 0;
+    asp_reg_val.asp_rx1_en = 1;
+    ret = regmap_write(cp, CS40L26_ASP_ENABLES1, asp_reg_val.word);
+    if (ret)
+    {
+        return ret;
+    }
+
+    ret = regmap_write_fw_control(cp, driver->fw_info, CS40L26_SYM_A2H_A2HEN, 1);
+    if (ret)
+    {
+        return ret;
+    }
+
+    ret = regmap_write_acked_reg(cp, CS40L26_DSP_VIRTUAL1_MBOX_1,
+                                 CS40L26_DSP_MBOX_CMD_START_I2S, CS40L26_DSP_MBOX_RESET, 5, 1);
+    if (ret)
+    {
+        return ret;
+    }
+
+    //Polling 10ms for MBOX_HAPTIC_TRIGGER_I2S message
+    for (int i = 0; i < 10; i++)
+    {
+        ret = regmap_read_fw_control(cp, driver->fw_info, CS40L26_SYM_MAILBOX_QUEUE_RD, &mbox_rd);
+        if (ret)
+        {
+            return ret;
+        }
+        ret = regmap_read(cp, mbox_rd, &data);
+        if (ret)
+        {
+            return ret;
+        }
+        if (data == CS40L26_DSP_MBOX_HAPTIC_TRIGGER_I2S)
+        {
+            break;
+        }
+        bsp_driver_if_g->set_timer(1 , NULL, NULL);
+    }
+
+    return ret;
+}
+
+uint32_t cs40l26_stop_i2s(cs40l26_t *driver)
+{
+    uint32_t ret, mbox_rd, data;
+    regmap_cp_config_t *cp = REGMAP_GET_CP(driver);
+
+    ret = regmap_write_acked_reg(cp, CS40L26_DSP_VIRTUAL1_MBOX_1, CS40L26_DSP_MBOX_CMD_STOP_I2S,
+                                 CS40L26_DSP_MBOX_RESET, 5, 1);
+    if (ret)
+    {
+        return ret;
+    }
+
+    ret = regmap_update_reg(cp, CS40L26_ASP_ENABLES1, (0x3 << 16) | 3, 0);
+    if (ret)
+    {
+        return ret;
+    }
+    ret = regmap_update_reg(cp, CS40L26_ASPTX1_INPUT, 0x3F, CS40L26_DATA_SRC_VMON);
+    if (ret)
+    {
+        return ret;
+    }
+    ret = regmap_write_fw_control(cp, driver->fw_info, CS40L26_SYM_A2H_A2HEN, 0);
+    if (ret)
+    {
+        return ret;
+    }
+    ret = regmap_update_reg(cp, CS40L26_REFCLK_INPUT_REG,
+                            CS40L26_REFCLK_PLL_LOOP_MASK, 1 << 11);
+    if (ret)
+    {
+        return ret;
+    }
+    ret = regmap_update_reg(cp, CS40L26_REFCLK_INPUT_REG, CS40L26_PLL_REFCLK_FREQ_MASK |
+                            CS40L26_PLL_REFCLK_SEL_MASK, 0);
+    if (ret)
+    {
+        return ret;
+    }
+    ret = regmap_write(cp, CS40L26_REFCLK_INPUT_REG, 0x815);
+    if (ret)
+    {
+        return ret;
+    }
+    ret = regmap_update_reg(cp, CS40L26_REFCLK_INPUT_REG,
+                            CS40L26_REFCLK_PLL_LOOP_MASK, 0);
+    if (ret)
+    {
+        return ret;
+    }
+    for (int i = 0; i < 10; i++)
+    {
+        ret = regmap_read_fw_control(cp, driver->fw_info, CS40L26_SYM_MAILBOX_QUEUE_RD, &mbox_rd);
+        if (ret)
+        {
+            return ret;
+        }
+        ret = regmap_read(cp, mbox_rd, &data);
+        if (ret)
+        {
+            return ret;
+        }
+        if (data == CS40L26_DSP_MBOX_HAPTIC_COMPLETE_I2S)
+        {
+            return CS40L26_STATUS_OK;
+        }
+        bsp_driver_if_g->set_timer(1 , NULL, NULL);
+    }
+    return ret;
+}
+/**
  * Set buzzgen waveform
  *
  */
@@ -1186,10 +1344,17 @@ uint32_t cs40l26_buzzgen_set(cs40l26_t *driver, uint16_t freq,
     }
 
     ret = regmap_write(cp, duration_reg, duration);
-    if (ret)
-    {
-        return ret;
-    }
+
+    return ret;
+}
+
+uint32_t cs40l26_load_waveform(cs40l26_t *driver)
+{
+    uint32_t ret;
+    regmap_cp_config_t *cp = REGMAP_GET_CP(driver);
+
+    ret = regmap_write(cp, CS40L26_DSP_VIRTUAL1_MBOX_1,
+                       CS40L26_DSP_MBOX_CMD_OWT_RESET);
 
     return ret;
 }
@@ -1242,11 +1407,6 @@ uint32_t cs40l26_trigger(cs40l26_t *driver, uint32_t index, cs40l26_wavetable_ba
     }
 
     ret = regmap_write(cp, CS40L26_DSP_VIRTUAL1_MBOX_1, wf_index);
-
-    if (ret)
-    {
-        return ret;
-    }
 
     return ret;
 }

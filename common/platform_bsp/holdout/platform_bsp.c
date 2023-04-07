@@ -4,7 +4,7 @@
  * @brief Implementation of the BSP for the Live Oak platform.
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2022 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2022-2023 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -870,41 +870,6 @@ void bsp_notification_callback(uint32_t event_flags, void *arg)
     return;
 }
 
-uint32_t bsp_audio_set_fs(uint32_t fs_hz)
-{
-    return BSP_STATUS_FAIL;
-}
-
-uint32_t bsp_audio_play(uint8_t content)
-{
-    return BSP_STATUS_FAIL;
-}
-
-uint32_t bsp_audio_record(void)
-{
-    return BSP_STATUS_FAIL;
-}
-
-uint32_t bsp_audio_play_record(uint8_t content)
-{
-    return BSP_STATUS_FAIL;
-}
-
-uint32_t bsp_audio_pause(void)
-{
-    return BSP_STATUS_FAIL;
-}
-
-uint32_t bsp_audio_resume(void)
-{
-    return BSP_STATUS_FAIL;
-}
-
-uint32_t bsp_audio_stop(void)
-{
-    return BSP_STATUS_FAIL;
-}
-
 uint32_t bsp_set_timer(uint32_t duration_ms, bsp_callback_t cb, void *cb_arg)
 {
     bsp_timer_cb = cb;
@@ -1199,24 +1164,6 @@ uint32_t bsp_spi_throttle_speed(uint32_t speed_hz)
 uint32_t bsp_spi_restore_speed(void)
 {
     return BSP_STATUS_FAIL;
-}
-
-void* bsp_malloc(size_t size)
-{
-#ifdef NO_OS
-    return malloc(size);
-#else
-    return pvPortMalloc(size);
-#endif
-}
-
-void bsp_free(void* ptr)
-{
-#ifdef NO_OS
-    return free(ptr);
-#else
-    return vPortFree(ptr);
-#endif
 }
 
 uint32_t bsp_set_ld2(uint8_t mode, uint32_t blink_100ms)

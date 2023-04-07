@@ -51,6 +51,7 @@ extern TIM_HandleTypeDef tim_drv_handle;
 extern TIM_HandleTypeDef led_tim_drv_handle;
 extern I2C_HandleTypeDef i2c_drv_handle;
 extern I2S_HandleTypeDef i2s_drv_handle;
+extern I2S_HandleTypeDef i2s3_drv_handle;
 extern EXTI_HandleTypeDef exti_pb0_handle, exti_pb1_handle, exti_pb2_handle, exti_pb3_handle, exti_pb4_handle, exti_cdc_int_handle, exti_dsp_int_handle;
 extern UART_HandleTypeDef uart_drv_handle;
 /* USER CODE END PV */
@@ -297,10 +298,19 @@ void DMA1_Stream4_IRQHandler(void)
   HAL_DMA_IRQHandler(i2s_drv_handle.hdmatx);
 }
 
-
 void DMA1_Stream3_IRQHandler(void)
 {
   HAL_DMA_IRQHandler(i2s_drv_handle.hdmarx);
+}
+
+void DMA1_Stream0_IRQHandler(void)
+{
+    HAL_DMA_IRQHandler(i2s3_drv_handle.hdmarx);
+}
+
+void DMA1_Stream5_IRQHandler(void)
+{
+    HAL_DMA_IRQHandler(i2s3_drv_handle.hdmatx);
 }
 
 void USART2_IRQHandler(void)

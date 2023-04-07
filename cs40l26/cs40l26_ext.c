@@ -4,7 +4,7 @@
  * @brief The CS40L25 Driver Extended API module
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2021-2022 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2021-2023 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -35,6 +35,9 @@
  * Total entries in Dynamic F0 table
  */
 #define CS40L26_DYNAMIC_F0_TABLE_SIZE           (20)
+
+#define CS40L26_CLICK_COMPENSATION_F0_EN        (0x1)
+#define CS40L26_CLICK_COMPENSATION_REDC_EN      (0x2)
 
 /***********************************************************************************************************************
  * LOCAL VARIABLES
@@ -88,7 +91,6 @@ cs40l26_pwle_short_section_t pwle_short_default =
 
 uint32_t cs40l26_mailbox_queue_handler(cs40l26_t *driver)
 {
-    uint32_t ret;
     uint32_t val;
     uint32_t rd;
     uint32_t wt;
@@ -108,6 +110,7 @@ uint32_t cs40l26_mailbox_queue_handler(cs40l26_t *driver)
     }
     do
     {
+        uint32_t ret;
         if (count > CS40L26_MAILBOX_QUEUE_MAX_LEN)
         {
             return CS40L26_STATUS_FAIL;
@@ -154,6 +157,35 @@ uint32_t cs40l26_mailbox_queue_handler(cs40l26_t *driver)
 }
 
 /**
+ * Enable the HALO FW Click Compensation
+ *
+ */
+uint32_t cs40l26_set_click_compensation_enable(cs40l26_t *driver, bool f0_enable, bool redc_enable)
+{
+    uint32_t ret;
+    uint32_t enable = 0;
+    regmap_cp_config_t *cp = REGMAP_GET_CP(driver);
+
+    if (driver->fw_info == NULL || driver->fw_info->header.fw_version == 0x12345)
+    {
+        return CS40L26_STATUS_FAIL;
+    }
+    if (f0_enable)
+    {
+        enable |= CS40L26_CLICK_COMPENSATION_F0_EN;
+    }
+
+    if (redc_enable)
+    {
+        enable |= CS40L26_CLICK_COMPENSATION_REDC_EN;
+    }
+
+    ret = regmap_write_fw_control(cp, driver->fw_info, CS40L26_SYM_VIBEGEN_COMPENSATION_ENABLE, enable);
+
+    return ret;
+}
+
+/**
  * Enable the HALO FW Dynamic F0 Algorithm
  *
  */
@@ -162,30 +194,51 @@ uint32_t cs40l26_set_dynamic_f0_enable(cs40l26_t *driver, bool enable)
     uint32_t ret;
     regmap_cp_config_t *cp = REGMAP_GET_CP(driver);
 
-    ret = regmap_write(cp, CS40L26_DYNAMIC_F0_ENABLED, enable);
-    if (ret)
+    if (driver->fw_info == NULL || driver->fw_info->header.fw_version == 0x12345)
     {
-        return ret;
-    }
+        ret = regmap_write(cp, CS40L26_DYNAMIC_F0_ENABLED, enable);
+        if (ret)
+        {
+            return ret;
+        }
 
-    ret = regmap_write(cp, CS40L26_DYNAMIC_F0_IMONRINGPPTHRESHOLD, 0x20C5);
-    if (ret)
+        ret = regmap_write(cp, CS40L26_DYNAMIC_F0_IMONRINGPPTHRESHOLD, 0x20C5);
+        if (ret)
+        {
+            return ret;
+        }
+
+        ret = regmap_write(cp, CS40L26_DYNAMIC_F0_FRME_SKIP, 0x30);
+        if (ret)
+        {
+            return ret;
+        }
+
+        ret = regmap_write(cp, CS40L26_DYNAMIC_F0_NUM_PEAKS_TOFIND, 5);
+    }
+    else
     {
-        return ret;
+        ret = regmap_write_fw_control(cp, driver->fw_info,
+                                      CS40L26_SYM_DYNAMIC_F0_DYNAMIC_F0_ENABLED, enable);
+        if (ret)
+        {
+            return ret;
+        }
+        ret = regmap_write_fw_control(cp, driver->fw_info,
+                                      CS40L26_SYM_DYNAMIC_F0_IMONRINGPPTHRESHOLD, 0x20C5);
+        if (ret)
+        {
+            return ret;
+        }
+        ret = regmap_write_fw_control(cp, driver->fw_info,
+                                      CS40L26_SYM_DYNAMIC_F0_FRME_SKIP, 0x30);
+        if (ret)
+        {
+            return ret;
+        }
+        ret = regmap_write_fw_control(cp, driver->fw_info,
+                                      CS40L26_SYM_DYNAMIC_F0_NUM_PEAKS_TOFIND, 5);
     }
-
-    ret = regmap_write(cp, CS40L26_DYNAMIC_F0_FRME_SKIP, 0x30);
-    if (ret)
-    {
-        return ret;
-    }
-
-    ret = regmap_write(cp, CS40L26_DYNAMIC_F0_NUM_PEAKS_TOFIND, 5);
-    if (ret)
-    {
-        return ret;
-    }
-
     return ret;
 }
 
@@ -236,6 +289,10 @@ uint32_t cs40l26_trigger_pwle(cs40l26_t *driver, rth_pwle_section_t **s)
 
     addr = CS40L26_OWT_SLOT0_DATA;
     ret = regmap_write(cp, CS40L26_OWT_SLOT0_TYPE, 12);
+    if (ret)
+    {
+        return ret;
+    }
 
     pwle_default.word3.pwls_ls4 = 2;
     pwle_default.word3.time = s[0]->duration;
@@ -257,10 +314,7 @@ uint32_t cs40l26_trigger_pwle(cs40l26_t *driver, rth_pwle_section_t **s)
         addr += 0x4;
     }
     ret = regmap_write(cp, CS40L26_DSP_VIRTUAL1_MBOX_1, CS40L26_TRIGGER_RTH);
-    if (ret)
-    {
-        return ret;
-    }
+
     return ret;
 }
 
@@ -272,6 +326,10 @@ uint32_t cs40l26_trigger_pwle_advanced(cs40l26_t *driver, rth_pwle_section_t **s
 
     addr = CS40L26_OWT_SLOT0_DATA;
     ret = regmap_write(cp, CS40L26_OWT_SLOT0_TYPE, 12);
+    if (ret)
+    {
+        return ret;
+    }
 
     pwle_default.word2.repeat = repeat;
     pwle_default.word2.pwls_ms4 = (num_sections & 0xF0) >> 4;
@@ -329,10 +387,6 @@ uint32_t cs40l26_trigger_pwle_advanced(cs40l26_t *driver, rth_pwle_section_t **s
     }
 
     ret = regmap_write(cp, CS40L26_DSP_VIRTUAL1_MBOX_1, CS40L26_TRIGGER_RTH);
-    if (ret)
-    {
-        return ret;
-    }
 
     return ret;
 }
@@ -450,4 +504,45 @@ uint32_t cs40l26_gpi_pmic_mute_configure(cs40l26_t *driver, uint8_t gpi, bool le
                                     CS40L26_SYM_FW_RAM_EXT_GPI_PMIC_MUTE_ENABLE,
                                     CS40L26_GPI_PMIC_MUTE_GPI_LEVEL_MASK,
                                     (gpi << CS40L26_GPI_PMIC_MUTE_GPI_SHIFT) | (level << CS40L26_GPI_PMIC_MUTE_LEVEL_SHIFT));
+}
+
+uint32_t cs40l26_owt_upload_effect(cs40l26_t *driver, uint32_t *effect, uint8_t size)
+{
+    uint32_t ret, addr, offset, data;
+    regmap_cp_config_t *cp = REGMAP_GET_CP(driver);
+
+    ret = regmap_read_fw_control(cp, driver->fw_info, CS40L26_SYM_VIBEGEN_OWT_SIZE_XM, &data);
+    if ((size > data) || ret)
+    {
+        return ret;
+    }
+
+    ret = regmap_read_fw_control(cp, driver->fw_info, CS40L26_SYM_VIBEGEN_OWT_NEXT_XM, &offset);
+    if(ret)
+    {
+        return ret;
+    }
+
+    addr = CS40l26_VIBEGEN_OWT_WAVETABLE + (4*offset);
+
+    for (int i = 0; i < size; i++)
+    {
+        ret = regmap_write(cp, addr, effect[i]);
+        if (ret)
+        {
+            return ret;
+        }
+        addr+=0x4;
+    }
+
+    ret = regmap_write(cp, CS40L26_DSP_VIRTUAL1_MBOX_1, CS40L26_DSP_MBOX_CMD_OWT_PUSH);
+
+    return ret;
+}
+
+uint32_t cs40l26_owt_reset_table(cs40l26_t *driver)
+{
+    regmap_cp_config_t *cp = REGMAP_GET_CP(driver);
+
+    return regmap_write(cp, CS40L26_DSP_VIRTUAL1_MBOX_1, CS40L26_DSP_MBOX_CMD_OWT_RESET);
 }

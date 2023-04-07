@@ -5,7 +5,7 @@
  * @brief Master table of known firmware symbols for the CS40L26 Driver module
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2021-2022 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2021-2023 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -69,24 +69,32 @@ extern "C" {
 #define CS40L26_SYM_FIRMWARE_HALO_HEARTBEAT                         (0x3)
 // BUZZGEN
 #define CS40L26_SYM_BUZZGEN_BUZZ_EFFECTS1_BUZZ_FREQ                 (0x1d)
+// VIBEGEN
+#define CS40L26_SYM_VIBEGEN_NUM_OF_WAVES                            (0x3e)
+#define CS40L26_SYM_VIBEGEN_COMPENSATION_ENABLE                     (0x44)
+#define CS40L26_SYM_VIBEGEN_WAVE_XM_TABLE                           (0x45)
+#define CS40L26_SYM_VIBEGEN_OWT_SIZE_XM                             (0x47)
+#define CS40L26_SYM_VIBEGEN_OWT_NEXT_XM                             (0x48)
 // DYNAMIC_F0
-#define CS40L26_SYM_DYNAMIC_F0_DYNAMIC_F0_ENABLED                   (0x5e)
-#define CS40L26_SYM_DYNAMIC_F0_DYN_F0_TABLE                         (0x62)
+#define CS40L26_SYM_DYNAMIC_F0_DYNAMIC_F0_ENABLED                   (0x17)
+#define CS40L26_SYM_DYNAMIC_F0_IMONRINGPPTHRESHOLD                  (0x18)
+#define CS40L26_SYM_DYNAMIC_F0_FRME_SKIP                            (0x19)
+#define CS40L26_SYM_DYNAMIC_F0_NUM_PEAKS_TOFIND                     (0x1a)
+#define CS40L26_SYM_DYNAMIC_F0_DYN_F0_TABLE                         (0x1b)
 // GPIO
-#define CS40L26_SYM_GPIO_GPI_ENABLE_BITMASK                         (0x160)
-#define CS40L26_SYM_GPIO_GPO_ENABLE_BITMASK                         (0x161)
+#define CS40L26_SYM_GPIO_GPI_ENABLE_BITMASK                         (0x161)
+#define CS40L26_SYM_GPIO_GPO_ENABLE_BITMASK                         (0x162)
 // PM
-#define CS40L26_SYM_PM_PM_TIMER_TIMEOUT_TICKS                       (0x276)
-#define CS40L26_SYM_PM_PM_CUR_STATE                                 (0x277)
-#define CS40L26_SYM_PM_POWER_ON_SEQUENCE                            (0x231)
+#define CS40L26_SYM_PM_PM_TIMER_TIMEOUT_TICKS                       (0x16f)
+#define CS40L26_SYM_PM_PM_CUR_STATE                                 (0x170)
+#define CS40L26_SYM_PM_POWER_ON_SEQUENCE                            (0x173)
 // MAILBOX
-#define CS40L26_SYM_MAILBOX_QUEUE_BASE                              (0x176)
-#define CS40L26_SYM_MAILBOX_QUEUE_LEN                               (0x177)
-#define CS40L26_SYM_MAILBOX_QUEUE_WT                                (0x178)
-#define CS40L26_SYM_MAILBOX_QUEUE_RD                                (0x179)
-#define CS40L26_SYM_MAILBOX_STATUS                                  (0x17a)
+#define CS40L26_SYM_MAILBOX_QUEUE_WT                                (0x179)
+#define CS40L26_SYM_MAILBOX_QUEUE_RD                                (0x17a)
 // FW_RAM_EXT
-#define CS40L26_SYM_FW_RAM_EXT_GPI_PMIC_MUTE_ENABLE                 (0x18a)
+#define CS40L26_SYM_FW_RAM_EXT_GPI_PMIC_MUTE_ENABLE                 (0x18b)
+// A2H
+#define CS40L26_SYM_A2H_A2HEN                                       (0x1bf)
 /** @} */
 
 /**********************************************************************************************************************/

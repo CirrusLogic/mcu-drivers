@@ -4,7 +4,7 @@
  * @brief PCM sample tables for Render path Test Tone
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2021 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2021, 2023 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -39,7 +39,7 @@ extern "C" {
  * Build switch to include 100Hz sinewave tables
  *
  */
-//#define TEST_TONES_INCLUDE_100HZ
+#define TEST_TONES_INCLUDE_100HZ
 
 /**
  * Length of 1kHz sine period sampled at 48kHz in number of samples
@@ -143,6 +143,7 @@ extern const uint16_t pcm_20dBFs_1kHz_32bit_8000_stereo_single_period[PCM_1KTONE
  *
  */
 extern const uint16_t pcm_20dbfs_1kHz_16bit_8000_stereo_single_period[PCM_1KTONE_8kHz_SINGLE_PERIOD_LENGTH_2BYTES];
+extern const uint16_t pcm_test[16 * 2];
 
 /***********************************************************************************************************************
  * API FUNCTIONS

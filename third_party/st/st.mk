@@ -32,6 +32,7 @@ PLATFORM_MCU_BUILD_PATH = $(STM32CUBEF4_BUILD_PATH)
 
 # Assign flags
 CFLAGS += -mcpu=cortex-m4 -mthumb -mfpu=fpv4-sp-d16 -mfloat-abi=hard --specs=nano.specs
+
 CFLAGS += -DUSE_HAL_DRIVER -DSTM32F401xE
 ifeq ($(USE_FREERTOS), 1)
     CFLAGS += -DUSE_CMSIS_OS

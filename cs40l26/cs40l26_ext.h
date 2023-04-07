@@ -4,7 +4,7 @@
  * @brief Functions and prototypes exported by the CS40L25 Driver Extended API module
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2021-2022 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2021-2023 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -338,6 +338,33 @@ uint32_t cs40l26_gpi_pmic_mute_enable(cs40l26_t *driver, bool enable);
  *
  */
 uint32_t cs40l26_gpi_pmic_mute_configure(cs40l26_t *driver, uint8_t gpi, bool level);
+
+/**
+ * Upload PWLE or PCM data to the Open Wavetable
+ *
+ * @param [in] driver           Pointer to the driver state
+ * @param [in] effect           Pointer to OWT effect data
+ * @param [in] size             Size of data in words
+ *
+ * @return
+ * - CS40L26_STATUS_FAIL
+ *      - if there is no space to upload effect
+ *      - if any i2c transaction fails
+ * - CS40L26_STATUS_OK          otherwise
+ */
+uint32_t cs40l26_owt_upload_effect(cs40l26_t *driver, uint32_t *effect, uint8_t size);
+
+/**
+ * Reset all Open Wavetable contents
+ *
+ * @param [in] driver           Pointer to the driver state
+ *
+ * @return
+ * - CS40L26_STATUS_FAIL
+ *      - if the mailbox i2c write fails
+ * - CS40L26_STATUS_OK          otherwise
+ */
+uint32_t cs40l26_owt_reset_table(cs40l26_t *driver);
 
 
 /**********************************************************************************************************************/

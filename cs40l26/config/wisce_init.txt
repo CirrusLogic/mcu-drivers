@@ -2,34 +2,5 @@
 *  REG   DATA         ACCESS        READ OR  DEVICE
 * INDEX  VALUE         TYPE          WRITE   ADDRESS  COMMENT (for information only)
 * ----- ------ -------------------- ------- --------- ------------------------------
-* Prevent DSP to going into Hibernate
-  0x13020 0x2000002 SMbus_32inx_32dat     Write  0x80      * DSP_VIRTUAL1_MBOX_1(13020H): 2000003  DSP_VIRTUAL1_MBOX_1=2000003
-  0x13020 0x2000003 SMbus_32inx_32dat     Write  0x80      * DSP_VIRTUAL1_MBOX_1(13020H): 2000003  DSP_VIRTUAL1_MBOX_1=2000003
-* End
 
-* 48kHzGSR_PLL_12-288MHzBCLK.txt
-  0x2C04 0x0005 SMbus_32inx_32dat     Write  0x80      * REFCLK_INPUT(2C04H):     0005  PLL_FORCE_EN=Normal operation (PLL not forced on/selected), PLL_OPEN_LOOP=Closed loop (PLL is locked to REFCLK), PLL_REFCLK_FREQ=32.768 kHz, PLL_REFCLK_EN=Reference clock input disabled, PLL_REFCLK_SEL=MCLK input
-  0x2C04 0x0660 SMbus_32inx_32dat     Write  0x80      * REFCLK_INPUT(2C04H):     0660  PLL_FORCE_EN=Normal operation (PLL not forced on/selected), PLL_OPEN_LOOP=Closed loop (PLL is locked to REFCLK), PLL_REFCLK_FREQ=12.288 MHz, PLL_REFCLK_EN=Reference clock input disabled, PLL_REFCLK_SEL=BCLK input
-  0x2C04 0x0670 SMbus_32inx_32dat     Write  0x80      * REFCLK_INPUT(2C04H):     0670  PLL_FORCE_EN=Normal operation (PLL not forced on/selected), PLL_OPEN_LOOP=Closed loop (PLL is locked to REFCLK), PLL_REFCLK_FREQ=12.288 MHz, PLL_REFCLK_EN=Enabled (normal mode), PLL_REFCLK_SEL=BCLK input
-  0x2C0C 0x0003 SMbus_32inx_32dat     Write  0x80      * GLOBAL_SAMPLE_RATE(2C0CH): 0003  GLOBAL_FS=48.0 kHz
-
-*ASP Config I2S_Slave_24-bit_256fsBCLK_12M228Hz_Tx1-4_Rx1
-  0x4804 0x0033 SMbus_32inx_32dat     Write  0x80      * ASP_CONTROL1(4804H):     0033
-  0x4808 0x20200200 SMbus_32inx_32dat     Write  0x80      * ASP_CONTROL2(4808H):     20200200  ASP_RX_WIDTH=32 BCLK cycles per slot, ASP_FMT=I<sup>2</sup>S mode, ASP_BCLK_INV=ASP_BCLK not inverted, ASP_FSYNC_INV=ASP_FSYNC not inverted
-  0x480C 0x0002 SMbus_32inx_32dat     Write  0x80      * ASP_CONTROL3(480CH):     0002  ASP_DOUT_HIZ_DLY=No additional delay in de-asserting TX data pin (DOUT) enable during unused timeslots, ASP_DOUT_HIZ_CTRL=Logic 0 during unused timeslots, but Hi-Z while all transmit channels disabled
-  0x4810 0x3020100 SMbus_32inx_32dat     Write  0x80      * ASP_FRAME_CONTROL1(4810H): 3020100  ASP_TX4_SLOT=3, ASP_TX3_SLOT=2, ASP_TX2_SLOT=1, ASP_TX1_SLOT=0
-  0x4820 0x20100 SMbus_32inx_32dat     Write  0x80      * ASP_FRAME_CONTROL5(4820H): 20100  ASP_RX3_SLOT=2, ASP_RX2_SLOT=1, ASP_RX1_SLOT=0
-  0x4830 0x0018 SMbus_32inx_32dat     Write  0x80      * ASP_DATA_CONTROL1(4830H): 0018  ASP_TX_WL=24 cycles per slot
-  0x4840 0x0018 SMbus_32inx_32dat     Write  0x80      * ASP_DATA_CONTROL5(4840H): 0018  ASP_RX_WL=24 Data bits per slot
-  0x4800 0x1000F SMbus_32inx_32dat     Write  0x80      * ASP_ENABLES1(4800H):     1000F  ASP_RX3_EN=Disabled, ASP_RX2_EN=Disabled, ASP_RX1_EN=Enabled
-
-* Set Alert Pin as DOUT
-   0x40 0x0055 SMbus_32inx_32dat     Write  0x80
-   0x40 0x00AA SMbus_32inx_32dat     Write  0x80
-   0x9228 0x00000000 SMbus_32inx_32dat rmodw  0x80 0x80000000
-   0x40 0x00CC SMbus_32inx_32dat     Write  0x80
-   0x40 0x0033 SMbus_32inx_32dat     Write  0x80
-
-  0x4C20 0x0018 SMbus_32inx_32dat     Write  0x80      * ASPTX1_INPUT(4C20H):     0018  ASPTX1_SRC=Voltage Monitor
-  0x4C24 0x0019 SMbus_32inx_32dat     Write  0x80      * ASPTX2_INPUT(4C24H):     0019  ASPTX2_SRC=Current Monitor
-  0x4C2C 0x0032 SMbus_32inx_32dat     Write  0x80      * ASPTX4_INPUT(4C2CH):     0032  ASPTX4_SRC=DSP1 Channel 1
+  0x4808 0x20000000 SMbus_32inx_32dat rmodw  0x80 0xFF000000  * Set ASP_RX_WIDTH to 0x20 (32-bit)

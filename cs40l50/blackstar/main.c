@@ -4,7 +4,7 @@
  * @brief The main function for CS40L50 System Test Harness
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2022 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2022-2023 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -104,8 +104,15 @@ void app_init(void)
     bsp_dut_initialize();
     bsp_dut_reset();
     bsp_dut_calibrate();
+    bsp_dut_boot();
     bsp_dut_trigger_haptic(23, ROM_BANK);
-    bsp_driver_if_g->set_timer(7, NULL, NULL);
+    bsp_driver_if_g->set_timer(50, NULL, NULL);
+    bsp_dut_configure_gpio_trigger(GPIO10_RISE, false, 0, false, 23);
+    bsp_set_gpio(14, 1);
+    bsp_driver_if_g->set_timer(50, NULL, NULL);
+    bsp_dut_configure_gpio_trigger(GPIO10_FALL, false, 0, false, 23);
+    bsp_set_gpio(14, 0);
+    bsp_driver_if_g->set_timer(50, NULL, NULL);
     bsp_dut_set_click_compensation(true, true);
 
     return;
@@ -170,11 +177,18 @@ void app_process_pb(void)
            */
             bsp_dut_trigger_rth_pcm(pcm_2_data, pcm_2_data_size, 114, 0, 0);
             break;
+        case 6:
+          /**
+           * Dynamic F0 RAM wavetable test
+           */
+            bsp_dut_dynamic_f0_set_enable(true);
+            bsp_dut_trigger_haptic(2, RAM_BANK);
+            break;
         }
 
-        app_set_sel_leds((app_state+1)%7);
+        app_set_sel_leds((app_state+1)%8);
         app_state++;
-        app_state %= 6;
+        app_state %= 7;
         bsp_dut_hibernate();
     }
 

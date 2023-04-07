@@ -4,7 +4,7 @@
  * @brief Functions and prototypes exported by the CS47L63 Driver module
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2021 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2021, 2023 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -152,15 +152,6 @@ extern "C" {
 /***********************************************************************************************************************
  * MACROS
  **********************************************************************************************************************/
-
-/**
- * debug printf safe to use when semihosting is disabled
- */
-#ifdef SEMIHOSTING
-#define debug_printf(...) printf(__VA_ARGS__)
-#else
-#define debug_printf(...)
-#endif
 
 /***********************************************************************************************************************
  * ENUMS, STRUCTS, UNIONS, TYPEDEFS

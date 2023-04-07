@@ -4,7 +4,7 @@
  * @brief The main function for CS40L50 System Test Harness
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2022 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2022-2023 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -25,13 +25,18 @@
 #include <stddef.h>
 #include <stdlib.h>
 #include "platform_bsp.h"
+#include "rth_types.h"
+#include "waveforms.h"
 #include "FreeRTOS.h"
 #include "task.h"
 
 /***********************************************************************************************************************
  * LOCAL LITERAL SUBSTITUTIONS
  **********************************************************************************************************************/
-#define APP_STATE_BUZZ          (0)
+#define APP_STATE_DYNAMIC_F0    (0)
+#define APP_STATE_RTH_PWLE      (1)
+#define APP_STATE_RTH_PCM       (2)
+#define APP_STATE_HIBERNATE     (3)
 
 #define HAPTIC_CONTROL_FLAG_PB_PRESSED      (1 << 0)
 #define APP_FLAG_BSP_NOTIFICATION           (1 << 1)
@@ -39,9 +44,9 @@
 /***********************************************************************************************************************
  * LOCAL VARIABLES
  **********************************************************************************************************************/
-static uint8_t app_state = APP_STATE_BUZZ;
-static TaskHandle_t AmpControlTaskHandle = NULL;
-static TaskHandle_t AmpEventTaskHandle = NULL;
+static uint8_t app_state = APP_STATE_DYNAMIC_F0;
+static TaskHandle_t HapticControlTaskHandle = NULL;
+static TaskHandle_t HapticEventTaskHandle = NULL;
 
 /***********************************************************************************************************************
  * GLOBAL VARIABLES
@@ -60,7 +65,7 @@ void app_bsp_notification_callback(uint32_t status, void *arg)
     }
     else if (status == BSP_STATUS_DUT_EVENTS)
     {
-        xTaskNotifyFromISR(AmpEventTaskHandle,
+        xTaskNotifyFromISR(HapticEventTaskHandle,
                            (int32_t) arg,
                            eSetBits,
                            &xHigherPriorityTaskWoken);
@@ -82,7 +87,7 @@ void app_bsp_pb_callback(uint32_t status, void *arg)
         exit(1);
     }
 
-    xTaskNotifyFromISR(AmpControlTaskHandle,
+    xTaskNotifyFromISR(HapticControlTaskHandle,
                        (int32_t) arg,
                        eSetBits,
                        &xHigherPriorityTaskWoken);
@@ -94,20 +99,21 @@ void app_init(void)
 {
     bsp_initialize(app_bsp_notification_callback, (void *) APP_FLAG_BSP_NOTIFICATION);
     bsp_register_pb_cb(BSP_PB_ID_USER, app_bsp_pb_callback, (void *) HAPTIC_CONTROL_FLAG_PB_PRESSED);
-
-    bsp_audio_stop();
-    bsp_audio_set_fs(BSP_AUDIO_FS_48000_HZ);
-    bsp_audio_play(BSP_PLAY_SILENCE);
     bsp_dut_initialize();
     bsp_dut_reset();
-    bsp_dut_boot();
+    bsp_dut_calibrate();
 
     bsp_set_ld2(BSP_LD2_MODE_ON, 0);
+    bsp_dut_trigger_haptic(0, ROM_BANK);
+    bsp_dut_boot();
+    bsp_dut_configure_gpio_trigger(GPIO13_RISE, false, 0, false, 23);
+    bsp_dut_configure_gpio_trigger(GPIO13_FALL, false, 0, false, 0);
+    bsp_dut_trigger_haptic(1, RAM_BANK);
 
     return;
 }
 
-static void AmpControlThread(void *argument)
+static void HapticControlThread(void *argument)
 {
     uint32_t flags = 0;
 
@@ -122,10 +128,41 @@ static void AmpControlThread(void *argument)
 
         switch (app_state)
         {
-            case APP_STATE_BUZZ:
+            case APP_STATE_DYNAMIC_F0:
                 if (flags & HAPTIC_CONTROL_FLAG_PB_PRESSED)
                 {
-                    app_state = APP_STATE_BUZZ;
+                    bsp_dut_wake();
+                    bsp_dut_dynamic_calibrate(1);
+                    bsp_dut_hibernate();
+                    app_state++;
+                }
+                break;
+
+            case APP_STATE_RTH_PWLE:
+                if (flags & HAPTIC_CONTROL_FLAG_PB_PRESSED)
+                {
+                    bsp_dut_trigger_rth_pwle(false, pwle1, pwle_1_size, 0);
+                    app_state++;
+                }
+                break;
+
+            case APP_STATE_RTH_PCM:
+                if (flags & HAPTIC_CONTROL_FLAG_PB_PRESSED)
+                {
+                    bsp_dut_trigger_rth_pcm(pcm_1_data, pcm_1_data_size, pcm_1_data_size, 0, 0);
+                    app_state++;
+                }
+                break;
+
+            case APP_STATE_HIBERNATE:
+                if (flags & HAPTIC_CONTROL_FLAG_PB_PRESSED)
+                {
+                    bsp_dut_trigger_rth_pwle(false, pwle1, pwle_1_size, 0);
+                    bsp_dut_hibernate();
+                    bsp_driver_if_g->set_timer(100, NULL, NULL);
+                    bsp_dut_wake();
+                    bsp_dut_trigger_rth_pwle(false, pwle1, pwle_1_size, 0);
+                    app_state = APP_STATE_DYNAMIC_F0;
                 }
                 break;
 
@@ -137,7 +174,7 @@ static void AmpControlThread(void *argument)
     }
 }
 
-static void AmpEventThread(void *argument)
+static void HapticEventThread(void *argument)
 {
     uint32_t flags = 0;
 
@@ -163,19 +200,19 @@ int main(void)
 {
     int ret_val = 0;
 
-    xTaskCreate(AmpControlThread,
-                "AmpControlTask",
+    xTaskCreate(HapticControlThread,
+                "HapticControlTask",
                 configMINIMAL_STACK_SIZE,
                 (void *) NULL,
                 tskIDLE_PRIORITY,
-                &AmpControlTaskHandle);
+                &HapticControlTaskHandle);
 
-    xTaskCreate(AmpEventThread,
-                "AmpEventTask",
+    xTaskCreate(HapticEventThread,
+                "HapticEventTask",
                 configMINIMAL_STACK_SIZE,
                 (void *) NULL,
                 (tskIDLE_PRIORITY + 1),
-                &AmpEventTaskHandle);
+                &HapticEventTaskHandle);
 
     app_init();
 

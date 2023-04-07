@@ -48,7 +48,6 @@ endif
 # Assign firmware and configuration script variables
 HALO_FIRMWARE_FILE = cs40l26.wmfw
 HALO_CAL_FIRMWARE_FILE = cs40l26_cal.wmfw
-HALO_FIRMWARE_WMDR = cs40l26_wt.bin
 WISCE_SCRIPT = $(CONFIG_PATH)/wisce_init.txt
 
 # Assign toolchain and toolchain flags
@@ -92,6 +91,7 @@ ifeq ($(MAKECMDGOALS), unit_test)
 else ifdef IS_NOT_UNIT_TEST
     C_SRCS += $(DRIVER_PATH)/bsp/bsp_cs40l26.c
     C_SRCS += $(HALO_FIRMWARE_PATH)/cs40l26_fw_img.c
+    C_SRCS += $(HALO_FIRMWARE_PATH)/cs40l26_waveform.c
     C_SRCS += $(HALO_FIRMWARE_PATH)/cs40l26_cal_fw_img.c
 
     ifeq ($(MAKECMDGOALS), system_test)
@@ -144,7 +144,7 @@ firmware_converter:
 ifeq ($(call WMFW_CHECK,$(HALO_FIRMWARE_PATH)/$(HALO_FIRMWARE_FILE)),)
 ifeq ($(call WMFW_CHECK,$(HALO_FIRMWARE_PATH)/$(HALO_FIRMWARE_WMDR)),)
 	@echo Running firmware_converter for $(HALO_FIRMWARE_FILE) and $(HALO_FIRMWARE_WMDR)
-	cd $(HALO_FIRMWARE_PATH) && python3 ../../tools/firmware_converter/firmware_converter.py fw_img_v2 cs40l26 $(HALO_FIRMWARE_FILE) --sym-input $(CONFIG_PATH)/cs40l26_sym.h --generic-sym --wmdr $(HALO_FIRMWARE_WMDR)
+	cd $(HALO_FIRMWARE_PATH) && python3 ../../tools/firmware_converter/firmware_converter.py fw_img_v2 cs40l26 $(HALO_FIRMWARE_FILE) --sym-input $(CONFIG_PATH)/cs40l26_sym.h --generic-sym --wmdr tuning.bin
 else
 	@echo Not running firmware_converter for $(HALO_FIRMWARE_WMDR) \(missing file\)
 endif
