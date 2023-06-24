@@ -3,6 +3,20 @@ Release Notes
 
 =============================================================================
 Summary:
+This is the release of Alt-OS Driver SDK v4.20.0
+Date: 2023/06/27
+
+Architectures/Compilers Used:
+GNU Arm Embedded Toolchain: arm-none-eabi-gcc -mcpu=cortex-m4
+
+New Features/Changes:
+[DRV-6323] firmware_converter: Updated supported devices
+
+Fixed Bugs:
+
+=============================================================================
+=============================================================================
+Summary:
 This is the release of Alt-OS Driver SDK v4.19.0
 Date: 2023/04/07
 

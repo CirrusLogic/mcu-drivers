@@ -37,6 +37,7 @@ from hwt_to_waveform_templates import pwle_section, pwle_section_list, pcm_heade
 # CONSTANTS/GLOBALS
 #==========================================================================
 supported_part_numbers = ['cs40l26',
+                          'cs40l26m',
                           'cs40l50',]
 
 #==========================================================================

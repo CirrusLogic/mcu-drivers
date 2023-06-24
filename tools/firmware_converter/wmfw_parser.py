@@ -897,7 +897,7 @@ class wmfw_rom(wmfw_parser):
 
     def parse(self):
         self.fw_id_block = halo_firmware_id_block(None)
-        if (self.part_number == 'cs40l26'):
+        if (self.part_number == 'cs40l26' or self.part_number == 'cs40l26m'):
             self.update_fw_id_block_cs40l26()
         elif (self.part_number == 'cs40l50'):
             self.update_fw_id_block_cs40l50()

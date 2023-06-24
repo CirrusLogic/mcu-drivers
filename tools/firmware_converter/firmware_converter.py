@@ -1,5 +1,5 @@
 #==========================================================================
-# (c) 2019-2022 Cirrus Logic, Inc.
+# (c) 2019-2023 Cirrus Logic, Inc.
 #--------------------------------------------------------------------------
 # Project : Convert from WMFW/WMDR ("BIN") Files to C Header/Source
 # File    : firmware_converter.py
@@ -56,6 +56,7 @@ supported_part_numbers = ['cs35l41',
                           'cs47l35_dsp2',
                           'cs47l35_dsp3',
                           'cs40l26',
+                          'cs40l26m',
                           'cs35l56',
                           'cs40l50',
                           'cs47l24_dsp2',
@@ -75,6 +76,7 @@ supported_mem_maps = {
             'cs47l66',
             'cs47l67',
             'cs40l26',
+            'cs40l26m',
             'cs35l56',
             'cs40l50'
         ],
