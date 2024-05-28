@@ -1,5 +1,5 @@
 #==========================================================================
-# (c) 2021-2022 Cirrus Logic, Inc.
+# (c) 2021-2022, 2024 Cirrus Logic, Inc.
 #--------------------------------------------------------------------------
 # Project :
 # File    : create_ide_projects.py
@@ -48,6 +48,8 @@ eclipse_files_to_copy = {'.cproject': ['', 0],
                          'holdout_stlink.launch': ['', 0],
                          'blackstar_jlink.launch': ['', 0],
                          'blackstar_stlink.launch': ['', 0],
+                         'blackstack_jlink.launch': ['', 0],
+                         'blackstack_stlink.launch': ['', 0],
 }
 
 #==========================================================================

@@ -4,7 +4,7 @@
  * @brief Alt-OS SDK version literals
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2023 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2024 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -50,9 +50,9 @@ extern "C" {
  * @{
  */
 #define SDK_VERSION_MAJOR       (4) ///< Release Major version
-#define SDK_VERSION_MINOR       (20) ///< Release Minor version
+#define SDK_VERSION_MINOR       (21) ///< Release Minor version
 #define SDK_VERSION_UPDATE      (0) ///< Release Update version
-#define SDK_GIT_SHA             ("43794ef15b97582c8878bbf9d5d6f88a7b926b76") ///< Release Git SHA
+#define SDK_GIT_SHA             ("b3fdd5e2699cbcac52d21d0d8ae379052a329678") ///< Release Git SHA
 /** @} */
 
 

@@ -4,7 +4,7 @@
  * @brief The CS40L50 Driver module
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2022-2023 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2022-2024 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -45,6 +45,12 @@
  * Total INT and MASK registers to handle in IRQ1
  */
 #define CS40L50_IRQ1_REG_TOTAL          (10)
+
+/**
+ * This ID is unique to the Blackstar BSP and maps to
+ * the I2C address CS40L50_I2C_BROADCAST_ADDR_DEFAULT
+ */
+#define CS40L50_BROADCAST_DEVID          (7)
 
 #define CS40L50_EVENT_GLOBAL_ERROR_STATE_MASK (CS40L50_EVENT_FLAG_AMP_ERROR | \
                                                CS40L50_EVENT_FLAG_TEMP_ERROR | \
@@ -178,6 +184,13 @@ static uint32_t cs40l50_mbox_command_to_event_id_map[] =
     CS40L50_MBOX_COMMAND_AWAKE, CS40L50_EVENT_FLAG_AWAKE,
     CS40L50_MBOX_COMMAND_PERMANENT_SHORT_DETECTED, CS40L50_EVENT_FLAG_PERMANENT_SHORT_DETECTED,
     CS40L50_MBOX_COMMAND_RUNTIME_SHORT_DETECTED, CS40L50_EVENT_FLAG_RUNTIME_SHORT_DETECTED
+};
+
+static regmap_cp_config_t broadcast_cp =
+{
+    .dev_id = CS40L50_BROADCAST_DEVID,
+    .bus_type = REGMAP_BUS_TYPE_I2C,
+    .receive_max = 0,
 };
 
 /***********************************************************************************************************************
@@ -1104,6 +1117,9 @@ uint32_t cs40l50_trigger(cs40l50_t *driver, uint32_t index, cs40l50_wavetable_ba
     uint32_t ret, wf_index;
     regmap_cp_config_t *cp = REGMAP_GET_CP(driver);
 
+    if (driver->config.broadcast)
+        cp = &broadcast_cp;
+
     switch (bank)
     {
         case ROM_BANK:
@@ -1187,6 +1203,24 @@ uint32_t cs40l50_set_click_compensation_enable(cs40l50_t *driver, bool f0_enable
     return ret;
 }
 
+uint32_t cs40l50_set_broadcast_enable(cs40l50_t *driver, bool enable)
+{
+    uint32_t ret;
+    regmap_cp_config_t *cp = REGMAP_GET_CP(driver);
+
+    driver->config.broadcast = enable;
+
+    if (enable)
+        ret = regmap_write(cp, CS40L50_I2C_BROADCAST,
+                            CS40L50_I2C_BROADCAST_EN_MASK |
+                            CS40L50_I2C_BROADCAST_ADDR_DEFAULT);
+    else
+        ret = regmap_write(cp, CS40L50_I2C_BROADCAST,
+                            CS40L50_I2C_BROADCAST_ADDR_DEFAULT);
+
+    return ret;
+}
+
 uint32_t cs40l50_trigger_pwle(cs40l50_t *driver, rth_pwle_section_t **s)
 {
     int i;
@@ -1196,6 +1230,10 @@ uint32_t cs40l50_trigger_pwle(cs40l50_t *driver, rth_pwle_section_t **s)
     regmap_read(cp, CS40L50_VIBEGEN_OWT_BASE_XM , &addr);
     addr = addr & ~(0x800000);
     addr = CS40L50_OWT_WAVE_XM_TABLE + (addr * 4);
+
+    if (driver->config.broadcast)
+            cp = &broadcast_cp;
+
     ret = regmap_write(cp, addr, CS40L50_RTH_TYPE_PWLE);
     if (ret)
     {
@@ -1239,6 +1277,10 @@ uint32_t cs40l50_trigger_pwle_advanced(cs40l50_t *driver, rth_pwle_section_t **s
     regmap_read(cp, CS40L50_VIBEGEN_OWT_BASE_XM , &addr);
     addr = addr & ~(0x800000);
     addr = CS40L50_OWT_WAVE_XM_TABLE + (addr * 4);
+
+    if (driver->config.broadcast)
+            cp = &broadcast_cp;
+
     ret = regmap_write(cp, addr, CS40L50_RTH_TYPE_PWLE);
     if (ret)
     {
@@ -1347,6 +1389,9 @@ uint32_t cs40l50_trigger_pcm(cs40l50_t *driver, uint8_t *s, uint32_t num_section
     regmap_read(cp, CS40L50_VIBEGEN_OWT_BASE_XM, &addr);
     addr = addr & ~(0x800000);
     addr = CS40L50_OWT_WAVE_XM_TABLE + (addr * 4);
+
+    if (driver->config.broadcast)
+        cp = &broadcast_cp;
 
     ret = regmap_write(cp, addr, CS40L50_RTH_TYPE_PCM); //write the type of waveform
     if (ret)

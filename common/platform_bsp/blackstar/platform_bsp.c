@@ -4,7 +4,7 @@
  * @brief Implementation of the BSP for the Live Oak platform.
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2022-2023 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2022-2024 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -1027,6 +1027,27 @@ uint32_t bsp_i2c_read_repeated_start(uint32_t bsp_dev_id,
             }
 
             break;
+        case BSP_DUT_DEV_ID_I2C2:
+            bsp_i2c_transaction_complete = false;
+            bsp_i2c_transaction_error = false;
+            bsp_i2c_done_cb = cb;
+            bsp_i2c_done_cb_arg = cb_arg;
+            bsp_i2c_current_transaction_type = BSP_I2C_TRANSACTION_TYPE_READ_REPEATED_START;
+            bsp_i2c_read_buffer_ptr = read_buffer;
+            bsp_i2c_read_length = read_length;
+            bsp_i2c_read_address = 0x62;
+            HAL_I2C_Master_Seq_Transmit_IT(&i2c_drv_handle,
+                                           bsp_i2c_read_address,
+                                           write_buffer,
+                                           write_length,
+                                           I2C_FIRST_FRAME);
+
+            if (cb == NULL)
+            {
+                while (!bsp_i2c_transaction_complete);
+            }
+
+            break;
 
         default:
             break;
@@ -1073,7 +1094,49 @@ uint32_t bsp_i2c_write(uint32_t bsp_dev_id,
                 }
             }
             break;
+        case BSP_DUT_DEV_ID_I2C2:
+            bsp_i2c_transaction_complete = false;
+            bsp_i2c_transaction_error = false;
+            bsp_i2c_done_cb = cb;
+            bsp_i2c_done_cb_arg = cb_arg;
+            bsp_i2c_current_transaction_type = BSP_I2C_TRANSACTION_TYPE_WRITE;
+            HAL_I2C_Master_Seq_Transmit_IT(&i2c_drv_handle,
+                                           0x62,
+                                           write_buffer,
+                                           write_length,
+                                           I2C_FIRST_AND_LAST_FRAME);
 
+            if (cb == NULL)
+            {
+                while ((!bsp_i2c_transaction_complete) && (!bsp_i2c_transaction_error));
+                if (bsp_i2c_transaction_error)
+                {
+                    ret = BSP_STATUS_FAIL;
+                }
+            }
+            break;
+
+        case BSP_DUT_DEV_ID_BROADCAST:
+            bsp_i2c_transaction_complete = false;
+            bsp_i2c_transaction_error = false;
+            bsp_i2c_done_cb = cb;
+            bsp_i2c_done_cb_arg = cb_arg;
+            bsp_i2c_current_transaction_type = BSP_I2C_TRANSACTION_TYPE_WRITE;
+            HAL_I2C_Master_Seq_Transmit_IT(&i2c_drv_handle,
+                                           0x88,
+                                           write_buffer,
+                                           write_length,
+                                           I2C_FIRST_AND_LAST_FRAME);
+
+            if (cb == NULL)
+            {
+                while ((!bsp_i2c_transaction_complete) && (!bsp_i2c_transaction_error));
+                if (bsp_i2c_transaction_error)
+                {
+                    ret = BSP_STATUS_FAIL;
+                }
+            }
+            break;
         default:
             break;
     }
@@ -1108,7 +1171,41 @@ uint32_t bsp_i2c_db_write(uint32_t bsp_dev_id,
             }
 
             break;
+        case BSP_DUT_DEV_ID_I2C2:
+            bsp_i2c_transaction_complete = false;
+            bsp_i2c_done_cb = cb;
+            bsp_i2c_done_cb_arg = cb_arg;
+            bsp_i2c_read_address = 0x62;
+            bsp_i2c_write_length = write_length_1;
+            bsp_i2c_write_buffer_ptr = write_buffer_1;
+            bsp_i2c_current_transaction_type = BSP_I2C_TRANSACTION_TYPE_DB_WRITE;
 
+            HAL_I2C_Master_Seq_Transmit_IT(&i2c_drv_handle, bsp_i2c_read_address, write_buffer_0, write_length_0, I2C_FIRST_FRAME);
+
+            if (cb == NULL)
+            {
+                while (!bsp_i2c_transaction_complete);
+            }
+
+            break;
+
+        case BSP_DUT_DEV_ID_BROADCAST:
+            bsp_i2c_transaction_complete = false;
+            bsp_i2c_done_cb = cb;
+            bsp_i2c_done_cb_arg = cb_arg;
+            bsp_i2c_read_address = 0x88;
+            bsp_i2c_write_length = write_length_1;
+            bsp_i2c_write_buffer_ptr = write_buffer_1;
+            bsp_i2c_current_transaction_type = BSP_I2C_TRANSACTION_TYPE_DB_WRITE;
+
+            HAL_I2C_Master_Seq_Transmit_IT(&i2c_drv_handle, bsp_i2c_read_address, write_buffer_0, write_length_0, I2C_FIRST_FRAME);
+
+            if (cb == NULL)
+            {
+                while (!bsp_i2c_transaction_complete);
+            }
+
+            break;
         default:
             break;
     }
@@ -1156,6 +1253,13 @@ uint32_t bsp_i2c_reset(uint32_t bsp_dev_id, bool *was_i2c_busy)
                 HAL_I2C_Master_Abort_IT(&i2c_drv_handle, BSP_DUT_I2C_ADDRESS_8BIT);
                 break;
 
+            case BSP_DUT_DEV_ID_I2C2:
+                HAL_I2C_Master_Abort_IT(&i2c_drv_handle, BSP_DUT_I2C2_ADDRESS_8BIT);
+                break;
+
+            case BSP_DUT_DEV_ID_BROADCAST:
+                HAL_I2C_Master_Abort_IT(&i2c_drv_handle, BSP_DUT_I2C_BROADCAST_ADDRESS_8BIT);
+                break;
             default:
                 break;
         }

@@ -1,5 +1,5 @@
 #==========================================================================
-# (c) 2022-2023 Cirrus Logic, Inc.
+# (c) 2022-2024 Cirrus Logic, Inc.
 #--------------------------------------------------------------------------
 # Project : Templates for waveforms.c and .h files
 # File    : hwt_to_waveform_templates.py

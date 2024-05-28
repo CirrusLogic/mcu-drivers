@@ -1,5 +1,5 @@
 #==========================================================================
-# (c) 2022-2023 Cirrus Logic, Inc.
+# (c) 2022-2024 Cirrus Logic, Inc.
 #--------------------------------------------------------------------------
 # Project : Convert from HWT Files to C Header/Source
 # File    : hwt_to_waveform_converter.py

@@ -4,7 +4,7 @@
  * @brief The main function for CS35L42 System Test Harness
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2022-2023 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2022-2024 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -32,12 +32,13 @@
 /***********************************************************************************************************************
  * LOCAL LITERAL SUBSTITUTIONS
  **********************************************************************************************************************/
-#define APP_STATE_CALIBRATE    (1)
-#define APP_STATE_PLAY         (2)
-#define APP_STATE_PLAY_GAIN    (3)
-#define APP_STATE_STOP         (4)
-#define APP_STATE_HIBERNATE    (5)
-#define APP_STATE_WAKE         (6)
+#define APP_STATE_CALIBRATE               (1)
+#define APP_STATE_PLAY                    (2)
+#define APP_STATE_PLAY_GAIN               (3)
+#define APP_STATE_STOP                    (4)
+#define APP_STATE_HIBERNATE               (5)
+#define APP_STATE_WAKE                    (6)
+#define APP_STATE_PLAY_AFTER_WAKE         (7)
 
 #define AMP_CONTROL_FLAG_PB_PRESSED         (1 << 0)
 #define APP_FLAG_BSP_NOTIFICATION           (1 << 1)
@@ -190,7 +191,18 @@ static void AmpControlThread(void *argument)
                 if (flags & AMP_CONTROL_FLAG_PB_PRESSED)
                 {
                     bsp_dut_wake();
-                    app_audio_state = APP_STATE_CALIBRATE;
+                    app_audio_state++;
+                }
+                break;
+
+            case APP_STATE_PLAY_AFTER_WAKE:
+                if (flags & AMP_CONTROL_FLAG_PB_PRESSED)
+                {
+                    bsp_audio_stop(BSP_I2S_PORT_PRIMARY);
+                    bsp_audio_set_fs(BSP_AUDIO_FS_48000_HZ);
+                    bsp_audio_play(BSP_I2S_PORT_PRIMARY, BSP_PLAY_STEREO_1KHZ_20DBFS);
+                    bsp_dut_power_up();
+                    app_audio_state = APP_STATE_STOP;
                 }
                 break;
 

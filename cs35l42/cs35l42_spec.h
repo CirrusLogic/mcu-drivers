@@ -4,7 +4,7 @@
  * @brief Constants and Types from CS47L15 datasheet
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2022 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2022, 2024 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -110,6 +110,7 @@ extern "C" {
 /************************************************/
 /* Device Clocking and Sample Rate Control      */
 /************************************************/
+#define CS35L42_REFCLK_INPUT                              0x0002C04
 #define CS35L42_GLOBAL_SAMPLE_RATE                        0x0002C0C
 
 /************************************************/
@@ -121,7 +122,9 @@ extern "C" {
 /************************************************/
 /* ASP Data Interface                           */
 /************************************************/
+#define CS35L42_ASP_ENABLES1                              0x0004800
 #define CS35L42_ASP_CONTROL2                              0x0004808
+#define CS35L42_ASP_CONTROL3                              0x000480C
 #define CS35L42_ASP_DATA_CONTROL1                         0x0004830
 #define CS35L42_ASP_DATA_CONTROL5                         0x0004840
 

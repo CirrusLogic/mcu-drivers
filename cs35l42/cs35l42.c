@@ -4,7 +4,7 @@
  * @brief The CS35L42 Driver module
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2022 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2022, 2024 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -175,6 +175,9 @@ static const uint32_t cs35l42_hibernate_update_regs[CS35L42_POWER_SEQ_LENGTH] = 
     CS35L42_VBST_CTL_1,
     CS35L42_VBST_CTL_2,
     CS35L42_NG_CONFIG,
+    CS35L42_REFCLK_INPUT,
+    CS35L42_ASP_ENABLES1,
+    CS35L42_ASP_CONTROL3,
 };
 
 /**

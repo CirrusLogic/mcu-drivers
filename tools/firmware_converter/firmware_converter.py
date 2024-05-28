@@ -1,5 +1,5 @@
 #==========================================================================
-# (c) 2019-2023 Cirrus Logic, Inc.
+# (c) 2019-2024 Cirrus Logic, Inc.
 #--------------------------------------------------------------------------
 # Project : Convert from WMFW/WMDR ("BIN") Files to C Header/Source
 # File    : firmware_converter.py

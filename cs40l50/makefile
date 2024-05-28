@@ -30,7 +30,7 @@ include $(REPO_PATH)/common/common.mk
 # Assign paths and variables
 PART_NUM = cs40l50
 $(eval $(call assign_paths))
-PLATFORM_TARGETS = system_test freertos blackstar
+PLATFORM_TARGETS = system_test freertos blackstar blackstack
 VALID_TARGETS = unit_test $(PLATFORM_TARGETS)
 $(eval $(call eval_targets))
 $(eval $(call eval_optimization_level))
@@ -40,7 +40,11 @@ ifdef IS_NOT_UNIT_TEST
     ifeq ($(MAKECMDGOALS), blackstar)
         PLATFORM=blackstar
     else
-        PLATFORM=eestm32int
+        ifeq ($(MAKECMDGOALS), blackstack)
+            PLATFORM=blackstar
+        else
+            PLATFORM=eestm32int
+        endif
     endif
     include $(REPO_PATH)/common/platform_bsp/platform_bsp.mk
 endif
@@ -80,6 +84,17 @@ ifeq ($(MAKECMDGOALS), unit_test)
     C_SRCS += $(APP_PATH)/mock_bsp.c
 
     ADD_OBJ_RULES = add_unit_test_obj_rules
+else ifeq ($(MAKECMDGOALS), blackstack)
+    C_SRCS += $(DRIVER_PATH)/bsp/bsp_cs40l50_multi.c
+    C_SRCS += $(HALO_FIRMWARE_PATH)/cs40l50_fw_img.c
+
+    ifeq ($(MAKECMDGOALS), system_test)
+        C_SRCS += $(APP_PATH)/test_cs40l50.c
+    endif
+
+    INCLUDES += -I$(DRIVER_PATH)/bsp
+
+    ADD_OBJ_RULES = add_platform_obj_rules
 else ifdef IS_NOT_UNIT_TEST
     C_SRCS += $(DRIVER_PATH)/bsp/bsp_cs40l50.c
     C_SRCS += $(HALO_FIRMWARE_PATH)/cs40l50_fw_img.c

@@ -1,48 +1,34 @@
 Artifact Info:
-Artifact           : CS35L42 Alt-OS Driver: 4.20.0 - 43794ef15b97582c8878bbf9d5d6f88a7b926b76
+Artifact           : CS35L42 Alt-OS Driver: 4.21.0 - b3fdd5e2699cbcac52d21d0d8ae379052a329678
 Test Target MCU SDK: STM32Cube_FW_F4: 1.24.1
-Target toolchain   : GNU Arm Embedded Toolchain: arm-none-eabi-gcc (GNU Tools for Arm Embedded Processors 8-2019-q3-update) 8.3.1 20190703 (release) [gcc-8-branch revision 273027]
-Build system       : make: GNU Make 3.82
-OS                 : Linux: 3.10.0-1160.90.1.el7.x86_64
-Shell              : bash: GNU bash, version 4.2.46(2)-release (x86_64-redhat-linux-gnu)
-Host toolchain     : MinGW GCC: gcc (GCC) 4.8.5 20150623 (Red Hat 4.8.5-44)
-Build Job          : peart_a_alt_os_nightly: 506
-Git SHA            : 43794ef15b97582c8878bbf9d5d6f88a7b926b76
+Target toolchain   : GNU Arm Embedded Toolchain: arm-none-eabi-gcc (Arm GNU Toolchain 13.2.rel1 (Build arm-13.7)) 13.2.1 20231009
+Build system       : make: GNU Make 4.3
+OS                 : Linux: 5.14.0-362.24.1.el9_3.x86_64
+Shell              : bash: GNU bash, version 5.1.8(1)-release (x86_64-redhat-linux-gnu)
+Host toolchain     : MinGW GCC: gcc (GCC) 11.4.1 20230605 (Red Hat 11.4.1-2)
+Build Job          : peart_a_alt_os_nightly: 615
+Git SHA            : b3fdd5e2699cbcac52d21d0d8ae379052a329678
 
 System resources:
 
 Build Configuration 1:
 
 Artifact filename    : libcs35l42.a
-Driver TEXT          : 4916
+Driver TEXT          : 4868
 Driver BSS           : 0
 Driver DATA          : 120
-Driver Max Stack     : 224 (cs35l42_power -> cs35l42_hibernate -> regmap_write_array -> regmap_update_reg -> regmap_read -> uint32_t)
+Driver Max Stack     : 216 (cs35l42_power -> cs35l42_hibernate -> regmap_write_array -> regmap_update_reg -> regmap_read -> uint32_t)
 
 Artifact filename    : freertos.elf
-Driver TEXT          : 4362
+Driver TEXT          : 4322
 Driver BSS           : 1044
 Driver DATA          : 120
 
 Artifact filename    : cs35l42_cal_fw_img.o
-Driver TEXT          : 8168
+Driver TEXT          : 8816
 
 Artifact filename    : cs35l42_fw_img.o
-Driver TEXT          : 24328
+Driver TEXT          : 23056
 
 Compiler flags:
-    -mcpu=cortex-m4
-    -mthumb
-    -mfpu=fpv4-sp-d16
-    -mfloat-abi=hard
-    -march=armv7e-m+fp
-    -Os
-    -Werror
-    -Wall
-    -std=gnu11
-    -fno-diagnostics-show-caret
-    -fdata-sections
-    -ffunction-sections
-    -fstack-usage
-    -frecord-gcc-switches
 

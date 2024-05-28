@@ -42,8 +42,8 @@ ifdef IS_NOT_UNIT_TEST
 endif
 
 # Assign firmware and configuration script variables
-HALO_FIRMWARE_FILE = CS35L42_L43_Rev7.13.1.wmfw
-HALO_CAL_FIRMWARE_WMDR = Playback7.13.1_ProtectLite.bin
+HALO_FIRMWARE_FILE = CS35L42_L43_Rev7.16.2.wmfw
+HALO_CAL_FIRMWARE_WMDR = Playback7.16.2_ProtectLite.bin
 WISCE_SCRIPT = $(CONFIG_PATH)/wisce_init.txt
 
 # Assign toolchain and toolchain flags

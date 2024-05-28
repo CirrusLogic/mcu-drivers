@@ -4,7 +4,7 @@
  * @brief Functions and prototypes exported by the CS40L50 Driver module
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2022-2023 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2022-2024 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -282,6 +282,7 @@ typedef struct
     bool is_ext_bst;                    ///< Indicates whether the device is internal or external boost
     bool enable_mbox_irq;               ///< Enable IRQ for MBOX after device reset
     uint32_t dynamic_f0_threshold;      ///< imonRingPPThreshold
+    bool broadcast;                     ///< Broadcast I2C data and triggers
 } cs40l50_config_t;
 
 /**
@@ -698,6 +699,7 @@ uint32_t cs40l50_configure_gpio_trigger(cs40l50_t *driver, cs40l50_gpio_bank_t g
                                         uint8_t attenuation, bool ram, uint8_t plybck_index);
 
 uint32_t cs40l50_set_click_compensation_enable(cs40l50_t *driver, bool f0_enable, bool redc_enable);
+uint32_t cs40l50_set_broadcast_enable(cs40l50_t *driver, bool enable);
 uint32_t cs40l50_trigger_pwle(cs40l50_t *driver, rth_pwle_section_t **s);
 uint32_t cs40l50_trigger_pwle_advanced(cs40l50_t *driver, rth_pwle_section_t **s, uint8_t repeat, uint8_t num_sections);
 uint32_t cs40l50_trigger_pcm(cs40l50_t *driver, uint8_t *s, uint32_t num_sections, uint16_t buffer_size_samples, uint16_t f0, uint16_t redc);

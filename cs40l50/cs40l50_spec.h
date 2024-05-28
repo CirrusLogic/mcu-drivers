@@ -4,7 +4,7 @@
  * @brief Constants and Types from CS40L50 datasheet
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2022-2023 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2022-2024 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -106,6 +106,11 @@ extern "C" {
 /** @} */
 
 #define  IRQ1_STATUS_REG                                                    (0xE004)
+
+/* Broadcast */
+#define CS40L50_I2C_BROADCAST                                               (0x00000168)
+#define CS40L50_I2C_BROADCAST_EN_MASK                                       (1 << 15)
+#define CS40L50_I2C_BROADCAST_ADDR_DEFAULT                                  (0x00000088)
 
 /* State */
 

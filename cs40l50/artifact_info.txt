@@ -1,45 +1,31 @@
 Artifact Info:
-Artifact           : CS40L50 Alt-OS Driver: 4.20.0 - 43794ef15b97582c8878bbf9d5d6f88a7b926b76
+Artifact           : CS40L50 Alt-OS Driver: 4.21.0 - b3fdd5e2699cbcac52d21d0d8ae379052a329678
 Test Target MCU SDK: STM32Cube_FW_F4: 1.24.1
 Target toolchain   : GNU Arm Embedded Toolchain: arm-none-eabi-gcc (GNU Tools for Arm Embedded Processors 8-2019-q3-update) 8.3.1 20190703 (release) [gcc-8-branch revision 273027]
-Build system       : make: GNU Make 3.82
-OS                 : Linux: 3.10.0-1160.90.1.el7.x86_64
-Shell              : bash: GNU bash, version 4.2.46(2)-release (x86_64-redhat-linux-gnu)
-Host toolchain     : MinGW GCC: gcc (GCC) 4.8.5 20150623 (Red Hat 4.8.5-44)
-Build Job          : jamerson_h_alt_os_nightly: 359
-Git SHA            : 43794ef15b97582c8878bbf9d5d6f88a7b926b76
+Build system       : make: GNU Make 4.2.1
+OS                 : Windows: 10
+Shell              : MSYS2: msys2-runtime 3.0.7-6
+Host toolchain     : MinGW GCC: gcc (Rev1, Built by MSYS2 project) 9.2.0
+Build Job          : jamerson_h_alt_os_nightly: 481
+Git SHA            : b3fdd5e2699cbcac52d21d0d8ae379052a329678
 
 System resources:
 
 Build Configuration 1:
 
 Artifact filename    : libcs40l50.a
-Driver TEXT          : 5100
+Driver TEXT          : 5126
 Driver BSS           : 4
-Driver DATA          : 616
+Driver DATA          : 628
 Driver Max Stack     : 192 (cs40l50_process -> cs40l50_event_handler -> regmap_read -> GET_BYTE_FROM_WORD)
 
 Artifact filename    : freertos.elf
-Driver TEXT          : 4376
-Driver BSS           : 184
-Driver DATA          : 285
+Driver TEXT          : 4384
+Driver BSS           : 188
+Driver DATA          : 297
 
 Artifact filename    : cs40l50_fw_img.o
 Driver TEXT          : 772
 
 Compiler flags:
-    -mcpu=cortex-m4
-    -mthumb
-    -mfpu=fpv4-sp-d16
-    -mfloat-abi=hard
-    -march=armv7e-m+fp
-    -Os
-    -Werror
-    -Wall
-    -std=gnu11
-    -fno-diagnostics-show-caret
-    -fdata-sections
-    -ffunction-sections
-    -fstack-usage
-    -frecord-gcc-switches
 

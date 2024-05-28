@@ -4,7 +4,7 @@
  * @brief Implementation of the BSP for the cs40l50 platform.
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2022-2023 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2022-2024 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -37,6 +37,7 @@
  * LOCAL VARIABLES
  **********************************************************************************************************************/
 static cs40l50_t cs40l50_driver;
+static cs40l50_t cs40l50_driver_2;
 static fw_img_boot_state_t boot_state;
 static uint32_t current_halo_heartbeat = 0;
 
@@ -48,6 +49,17 @@ static cs40l50_bsp_config_t bsp_config =
     .notification_cb = &bsp_notification_callback,
     .notification_cb_arg = NULL,
     .cp_config.dev_id = BSP_DUT_DEV_ID,
+    .cp_config.bus_type = REGMAP_BUS_TYPE_I2C,
+    .cp_config.receive_max = 0, // No calls to regmap_read_block for the cs40l50 driver
+};
+
+static cs40l50_bsp_config_t bsp_config_2 =
+{
+    .reset_gpio_id = BSP_GPIO_ID_DUT_CDC_RESET,
+    .int_gpio_id = BSP_GPIO_ID_DUT_CDC_INT,
+    .notification_cb = &bsp_notification_callback,
+    .notification_cb_arg = NULL,
+    .cp_config.dev_id = BSP_DUT_DEV_ID_I2C2,
     .cp_config.bus_type = REGMAP_BUS_TYPE_I2C,
     .cp_config.receive_max = 0, // No calls to regmap_read_block for the cs40l50 driver
 };
@@ -87,6 +99,9 @@ uint32_t bsp_dut_initialize(void)
         haptic_config.dynamic_f0_threshold = 0x20C5;
 
         haptic_status = cs40l50_configure(&cs40l50_driver, &haptic_config);
+
+        haptic_config.bsp_config = bsp_config_2;
+        haptic_status = cs40l50_configure(&cs40l50_driver_2, &haptic_config);
     }
 
     if (haptic_status != CS40L50_STATUS_OK)
@@ -124,6 +139,13 @@ uint32_t bsp_dut_reset(void)
     uint32_t ret;
 
     ret = cs40l50_reset(&cs40l50_driver);
+
+    if (ret != CS40L50_STATUS_OK)
+    {
+        return BSP_STATUS_FAIL;
+    }
+
+    ret = cs40l50_reset(&cs40l50_driver_2);
 
     if (ret != CS40L50_STATUS_OK)
     {
@@ -348,6 +370,22 @@ uint32_t bsp_dut_set_click_compensation(bool f0_enable, bool redc_enable)
     uint32_t ret;
 
     ret = cs40l50_set_click_compensation_enable(&cs40l50_driver, f0_enable, redc_enable);
+
+    if (ret != CS40L50_STATUS_OK)
+    {
+        return BSP_STATUS_FAIL;
+    }
+
+    return BSP_STATUS_OK;
+}
+
+
+uint32_t bsp_dut_set_broadcast_en(bool enable)
+
+{
+    uint32_t ret;
+
+    ret = cs40l50_set_broadcast_enable(&cs40l50_driver, enable);
 
     if (ret != CS40L50_STATUS_OK)
     {

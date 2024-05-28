@@ -4,7 +4,7 @@
  * @brief Functions and prototypes exported by the Platform BSP module
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2021-2023 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2021-2024 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -45,6 +45,8 @@ extern "C" {
 #define BSP_DUT_DEV_ID_SPI2             (3)
 #define BSP_INTP_EXP_DEV_ID             (4)
 #define BSP_EEPROM_DEV_ID               (5)
+#define BSP_DUT_DEV_ID_I2C2             (6)
+#define BSP_DUT_DEV_ID_BROADCAST        (7)
 
 #define BSP_GPIO_ID_NULL                (0)
 #define BSP_GPIO_ID_DUT_CDC_RESET       (1)
@@ -99,6 +101,9 @@ extern "C" {
 #ifndef BSP_DUT_I2C_ADDRESS_8BIT
 #define BSP_DUT_I2C_ADDRESS_8BIT (0x60)
 #endif
+
+#define BSP_DUT_I2C2_ADDRESS_8BIT (0x62)
+#define BSP_DUT_I2C_BROADCAST_ADDRESS_8BIT (0x88)
 
 /* Commands available for AT25SL128A EEPROM on RevB interposer */
 #define BSP_EEPROM_OPCODE_WRITE_ENABLE              (0x06)
