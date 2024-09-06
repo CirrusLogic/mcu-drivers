@@ -365,6 +365,9 @@ uint32_t cs40l50_prevent_hibernate(cs40l50_t *driver)
     {
         return CS40L50_STATUS_FAIL;
     }
+
+    cs40l50_set_broadcast_enable(driver, driver->config.broadcast);
+
     return ret;
 }
 
@@ -1172,31 +1175,10 @@ uint32_t cs40l50_set_click_compensation_enable(cs40l50_t *driver, bool f0_enable
     }
 
     if (f0_enable)
-    {
         enable = CS40L50_COMPENSATION_ENABLE_F0_MASK;
 
-        ret = regmap_write(cp, CS40L50_F0_OTP_STORED, driver->config.cal_data.f0);
-        if (ret)
-        {
-            return ret;
-        }
-    }
-
     if (redc_enable)
-    {
-        uint32_t integer, fractional,redc_stored;
         enable |= CS40L50_COMPENSATION_ENABLE_REDC_MASK;
-
-        integer = (driver->config.cal_data.redc & (0xFF << 15)) >> 15;
-        fractional = (driver->config.cal_data.redc & 0x7FFF) * 4;
-        //redc_stored is converted from Q8.15 to (Q7.17 * 29/240)
-        redc_stored = ((((integer << 17) | fractional) * 29) / 240) & 0x00FFFFFF;
-        ret = regmap_write(cp, CS40L50_REDC_OTP_STORED, redc_stored);
-        if (ret)
-        {
-            return ret;
-        }
-    }
 
     ret = regmap_write(cp, CS40L50_VIBEGEN_COMPENSATION_ENABLE, (uint32_t) enable);
 

@@ -139,8 +139,10 @@ static const uint32_t cs35l42_dsp_io[] =
 {
     CS35L42_DSP1RX1_INPUT, 0x00000008, /* DSP input 1 is ASPRX1 */
     CS35L42_DSP1RX2_INPUT, 0x00000009, /* DSP input 2 is ASPRX2 */
-    CS35L42_DSP1RX5_INPUT, 0x00000019, /* DSP input 5 is imon */
-    CS35L42_DSP1RX6_INPUT, 0x00000018, /* DSP input 6 is vmon */
+    CS35L42_DSP1RX3_INPUT, 0x00000029, /* vbstmon */
+    CS35L42_DSP1RX4_INPUT, 0x00000019, /* imon */
+    CS35L42_DSP1RX5_INPUT, 0x00000018, /* DSP input 5 is vmon */
+    CS35L42_DSP1RX6_INPUT, 0x00000028, /* DSP input 6 is vpmon */
     CS35L42_DACPCM1_INPUT, 0x00000036, /* DSP 48kHz output */
 };
 
@@ -164,6 +166,10 @@ static const uint32_t cs35l42_hibernate_update_regs[CS35L42_POWER_SEQ_LENGTH] = 
     CS35L42_ASPTX4_INPUT,
     CS35L42_DSP1RX1_INPUT,
     CS35L42_DSP1RX2_INPUT,
+    CS35L42_DSP1RX3_INPUT,
+    CS35L42_DSP1RX4_INPUT,
+    CS35L42_DSP1RX5_INPUT,
+    CS35L42_DSP1RX6_INPUT,
     CS35L42_DACPCM1_INPUT,
     CS35L42_AMP_CTRL,
     CS35L42_AMP_GAIN,
@@ -1333,7 +1339,7 @@ uint32_t cs35l42_power(cs35l42_t *driver, uint32_t power_state)
  * Calibrate the HALO DSP Protection Algorithm
  *
  */
-uint32_t cs35l42_calibrate(cs35l42_t *driver, uint32_t ambient_temp_deg_c, uint32_t expected_redc)
+uint32_t cs35l42_calibrate(cs35l42_t *driver, uint32_t ambient_temp_deg_c)
 {
     uint32_t temp_reg_val;
     uint32_t orig_threshold;
@@ -1345,19 +1351,6 @@ uint32_t cs35l42_calibrate(cs35l42_t *driver, uint32_t ambient_temp_deg_c, uint3
     if (ret)
     {
         return ret;
-    }
-
-    if (expected_redc != CS35L42_CAL_IGNORE_EXPECTED_REDC) // Can ignore setting reference redc if value is CS35L42_CAL_IGNORE_EXPECTED_REDC
-    {
-        // Set expected ReDC value
-        ret = regmap_write_fw_control(cp,
-                                      driver->fw_info,
-                                      CS35L42_SYM_PROTECT_LITE_R_CALIB_0_R_REF,
-                                      expected_redc);
-        if (ret)
-        {
-            return ret;
-        }
     }
 
     ret = regmap_write_fw_control(cp, driver->fw_info, CS35L42_SYM_PROTECT_LITE_PROTECT_LITE_CTRL_PROTECT_LITE_ENABLE, 0);

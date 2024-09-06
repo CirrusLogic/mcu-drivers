@@ -5,7 +5,7 @@
  * @brief Master table of known firmware symbols for the CS35L42 Driver module
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2022 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2022, 2024 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -64,13 +64,12 @@ extern "C" {
 #define CS35L42_SYM_PROTECT_LITE_PROTECT_LITE_CTRL_CALIBRATION_ENABLE                                (0x06)
 #define CS35L42_SYM_PROTECT_LITE_CALIB_DIAG_VAR_ARRAY_CAL_AMBIENT_TEMPERATURE                        (0x07)
 #define CS35L42_SYM_PROTECT_LITE_PROTECT_PILOT_TONE_PEART_CMPST_0_SINEGENERATORSENSE_0_THRESHOLD     (0x08)
-#define CS35L42_SYM_PROTECT_LITE_R_CALIB_0_R_REF                                                     (0x09)
-#define CS35L42_SYM_PROTECT_LITE_R_CALIB_0_FIRST_RUN                                                 (0x0a)
-#define CS35L42_SYM_PROTECT_LITE_RE_CALIB_SELECTOR_CMPST_0_RECALIBSELECTOR_0_SEL_RE_CAL              (0x0b)
-#define CS35L42_SYM_PROTECT_LITE_VAR_ARRAY_IMPEDANCE_MEASURE_STATUS                                  (0x0c)
-#define CS35L42_SYM_PROTECT_LITE_VAR_ARRAY_MEASURED_IMPEDANCE_CALIBRATION                            (0x0d)
-#define CS35L42_SYM_PROTECT_LITE_VAR_ARRAY_INITIAL_CALI_IMPEDANCE                                    (0x0e)
-#define CS35L42_SYM_PROTECT_LITE_VAR_ARRAY_CHECK_SUM_CALIBRATION                                     (0x0f)
+#define CS35L42_SYM_PROTECT_LITE_R_CALIB_0_FIRST_RUN                                                 (0x09)
+#define CS35L42_SYM_PROTECT_LITE_RE_CALIB_SELECTOR_CMPST_0_RECALIBSELECTOR_0_SEL_RE_CAL              (0x0a)
+#define CS35L42_SYM_PROTECT_LITE_VAR_ARRAY_IMPEDANCE_MEASURE_STATUS                                  (0x0b)
+#define CS35L42_SYM_PROTECT_LITE_VAR_ARRAY_MEASURED_IMPEDANCE_CALIBRATION                            (0x0c)
+#define CS35L42_SYM_PROTECT_LITE_VAR_ARRAY_INITIAL_CALI_IMPEDANCE                                    (0x0d)
+#define CS35L42_SYM_PROTECT_LITE_VAR_ARRAY_CHECK_SUM_CALIBRATION                                     (0x0e)
 /** @} */
 
 /**********************************************************************************************************************/

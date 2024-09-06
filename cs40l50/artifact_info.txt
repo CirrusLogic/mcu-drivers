@@ -1,26 +1,26 @@
 Artifact Info:
-Artifact           : CS40L50 Alt-OS Driver: 4.21.0 - b3fdd5e2699cbcac52d21d0d8ae379052a329678
+Artifact           : CS40L50 Alt-OS Driver: 4.22.0 - 7631f4d6789568bd4d16eb83abb93d117b552df0
 Test Target MCU SDK: STM32Cube_FW_F4: 1.24.1
 Target toolchain   : GNU Arm Embedded Toolchain: arm-none-eabi-gcc (GNU Tools for Arm Embedded Processors 8-2019-q3-update) 8.3.1 20190703 (release) [gcc-8-branch revision 273027]
 Build system       : make: GNU Make 4.2.1
 OS                 : Windows: 10
 Shell              : MSYS2: msys2-runtime 3.0.7-6
 Host toolchain     : MinGW GCC: gcc (Rev1, Built by MSYS2 project) 9.2.0
-Build Job          : jamerson_h_alt_os_nightly: 481
-Git SHA            : b3fdd5e2699cbcac52d21d0d8ae379052a329678
+Build Job          : jamerson_h_alt_os_nightly: 586
+Git SHA            : 7631f4d6789568bd4d16eb83abb93d117b552df0
 
 System resources:
 
 Build Configuration 1:
 
 Artifact filename    : libcs40l50.a
-Driver TEXT          : 5126
+Driver TEXT          : 5074
 Driver BSS           : 4
 Driver DATA          : 628
 Driver Max Stack     : 192 (cs40l50_process -> cs40l50_event_handler -> regmap_read -> GET_BYTE_FROM_WORD)
 
 Artifact filename    : freertos.elf
-Driver TEXT          : 4384
+Driver TEXT          : 4430
 Driver BSS           : 188
 Driver DATA          : 297
 

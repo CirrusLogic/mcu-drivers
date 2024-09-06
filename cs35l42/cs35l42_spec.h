@@ -92,6 +92,20 @@ extern "C" {
 /* Digital I/O Pad Control                      */
 /************************************************/
 #define CS35L42_GPIO_PAD_CONTROL                          0x000242C
+#define CS35L42_GPIO_PAD_GP1_SHIFT                        16
+#define CS35L42_GPIO_PAD_GP2_SHIFT                        24
+#define CS35L42_GPIO_PAD_GP8_SHIFT                        28
+#define CS35L42_GP1_CTRL_GPIO                             1
+#define CS35L42_GP1_CTRL_SYNC                             2
+#define CS35L42_GP2_CTRL_GPIO                             1
+#define CS35L42_GP2_CTRL_INT_OPEN_DRAIN                   2
+#define CS35L42_GP2_CTRL_INT_ACTV_LOW                     4
+#define CS35L42_GP2_CTRL_INT_ACTV_HIGH                    5
+#define CS35L42_GP8_CTRL_INT_OPEN_DRAIN                   2
+#define CS35L42_GP8_CTRL_INT_ACTV_LOW                     4
+#define CS35L42_GP8_CTRL_INT_ACTV_HIGH                    5
+#define CS35L42_GP8_CTRL_ASP_DOUT                         6
+
 
 /************************************************/
 /* Hibernation Power Management                 */
@@ -138,6 +152,8 @@ extern "C" {
 #define CS35L42_ASPTX4_INPUT                              0x0004C2C
 #define CS35L42_DSP1RX1_INPUT                             0x0004C40
 #define CS35L42_DSP1RX2_INPUT                             0x0004C44
+#define CS35L42_DSP1RX3_INPUT                             0x0004C48
+#define CS35L42_DSP1RX4_INPUT                             0x0004C4C
 #define CS35L42_DSP1RX5_INPUT                             0x0004C50
 #define CS35L42_DSP1RX6_INPUT                             0x0004C54
 

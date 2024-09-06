@@ -4,7 +4,7 @@
  * @brief Functions and prototypes exported by the CS35L42 Driver module
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2022 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2022, 2024 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -425,7 +425,7 @@ uint32_t cs35l42_power(cs35l42_t *driver, uint32_t power_state);
  * @see cs35l42_calibration_t
  *
  */
-uint32_t cs35l42_calibrate(cs35l42_t *driver, uint32_t ambient_temp_deg_c, uint32_t expected_redc);
+uint32_t cs35l42_calibrate(cs35l42_t *driver, uint32_t ambient_temp_deg_c);
 
 /**********************************************************************************************************************/
 #ifdef __cplusplus

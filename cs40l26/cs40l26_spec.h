@@ -4,7 +4,7 @@
  * @brief Constants and Types from CS40L26 datasheet
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2021-2023 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2021-2024 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -39,6 +39,7 @@ extern "C" {
 #define CS40L26_GLOBAL_ENABLES_REG        (0x2014)
 
 #define CS40L26_REFCLK_INPUT_REG          (0x2C04)
+#define CS40L26_GLOBAL_SAMPLE_RATE        (0X2C0C)
 
 #define CS40L26_PLL_REFCLK_SEL_MASK       (0x7)
 #define CS40L26_PLL_REFCLK_FREQ_SHIFT     (5)
@@ -276,11 +277,27 @@ extern "C" {
 #define CS40L26_GPI_PMIC_MUTE_GPI_SHIFT                 (1)
 #define CS40L26_GPI_PMIC_MUTE_LEVEL_SHIFT               (3)
 
-/* A2H */
+/* A2H, ASP, and Noise Gate */
+#define CS40L26_BST_SOFT_RAMP                           (0x380C)
 #define CS40L26_ASP_ENABLES1                            (0x4800)
 #define CS40L26_ASP_CONTROL1                            (0x4804)
+#define CS40L26_ASP_CONTROL2                            (0x4808)
+#define CS40L26_ASP_CONTROL3                            (0x480C)
+#define CS40L26_ASP_TX_SLOT                             (0x4810)
+#define CS40L26_ASP_RX_SLOT                             (0x4820)
+#define CS40L26_ASP_TX_WL                               (0x4830)
+#define CS40L26_ASP_RX_WL                               (0x4840)
+#define CS40L26_DACPCM1_INPUT                           (0x4C00)
 #define CS40L26_DACPCM2_INPUT                           (0x4C08)
 #define CS40L26_ASPTX1_INPUT                            (0x4C20)
+#define CS40L26_ASPTX2_INPUT                            (0x4C24)
+#define CS40L26_ASPTX3_INPUT                            (0x4C28)
+#define CS40L26_ASPTX4_INPUT                            (0x4C2C)
+#define CS40L26_NGATE1_INPUT                            (0x4C60)
+#define CS40L26_NGATE2_INPUT                            (0x4C64)
+#define CS40L26_NGATE_CFG                               (0x12000)
+#define CS40L26_NGATE_CH1_CFG                           (0x12004)
+#define CS40L26_NGATE_CH2_CFG                           (0x12008)
 #define CS40L26_DATA_SRC_MASK                           (0x3F)
 #define CS40L26_DATA_SRC_DSP1TX1                        (0x32)
 #define CS40L26_DATA_SRC_VMON                           (0x18)

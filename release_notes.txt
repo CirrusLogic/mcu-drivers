@@ -3,6 +3,31 @@ Release Notes
 
 =============================================================================
 Summary:
+This is the release of Alt-OS Driver SDK v4.22.0
+Date: 2024/09/06
+
+Architectures/Compilers Used:
+GNU Arm Embedded Toolchain: arm-none-eabi-gcc -mcpu=cortex-m4
+
+New Features/Changes:
+Additional register defines for cs35l42 and cs40l26
+Updated firmware for cs35l42
+
+c48d03c SDK release 4.22.0: updated copyrights and fixed whitespaces
+cc55b0b cs40l50: Set broadcast at wake
+4fe6bd2 cs40l50: Move F0 and ReDC
+9bc0c5a cs35l42: Update firmware
+429d324 cs40l26: Addtitional register defines
+51bb155 cs35l42: Add GPIO register defs
+99631ee cs35l42: Fix DSP Inputs
+b9c30bd cs35l42: Remove expected ReDC
+
+
+Fixed Bugs:
+
+=============================================================================
+=============================================================================
+Summary:
 This is the release of Alt-OS Driver SDK v4.21.0
 Date: 2024/05/28
 

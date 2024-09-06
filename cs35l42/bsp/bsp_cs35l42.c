@@ -4,7 +4,7 @@
  * @brief Implementation of the BSP for the cs35l42 platform.
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2022-2023 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2022-2024 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -371,8 +371,7 @@ uint32_t bsp_dut_mute(bool is_mute)
 
 uint32_t bsp_dut_calibrate(void)
 {
-    // ReDC 11468 raw =~ 8.2 ohms. rdc_ohms = (rdc_raw / 2^13) * (12.3/2.1)
-    if (CS35L42_STATUS_OK == cs35l42_calibrate(&cs35l42_driver, 21, 11468))
+    if (CS35L42_STATUS_OK == cs35l42_calibrate(&cs35l42_driver, 21))
     {
         return BSP_STATUS_OK;
     }
