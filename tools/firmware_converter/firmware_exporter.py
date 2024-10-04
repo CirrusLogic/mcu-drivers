@@ -1,5 +1,5 @@
 #==========================================================================
-# (c) 2020, 2022 Cirrus Logic, Inc.
+# (c) 2020, 2022, 2024 Cirrus Logic, Inc.
 #--------------------------------------------------------------------------
 # Project : Abstract Base Class for exporters for firmware_converter
 # File    : firmware_exporter.py
@@ -41,10 +41,10 @@ class firmware_exporter(ABC):
         return
 
     @abstractmethod
-    def update_block_info(self, fw_block_total, coeff_block_totals): pass
+    def update_block_info(self, fw_block_total, coeff_block_totals, coeff_filenames): pass
 
     @abstractmethod
-    def add_control(self, algorithm_name, algorithm_id, control_name, address): pass
+    def add_control(self, algorithm_name, algorithm_id, control_name, address, length): pass
 
     @abstractmethod
     def add_metadata_text_line(self, line): pass
@@ -53,7 +53,7 @@ class firmware_exporter(ABC):
     def add_fw_block(self, address, data_bytes): pass
 
     @abstractmethod
-    def add_coeff_block(self, index, address, data_bytes): pass
+    def add_coeff_block(self, index, address, data_bytes, filename): pass
 
     @abstractmethod
     def add_bin_block(self, index, address, data_bytes): pass

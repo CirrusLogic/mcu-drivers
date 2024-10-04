@@ -1,5 +1,5 @@
 #==========================================================================
-# (c) 2020, 2022 Cirrus Logic, Inc.
+# (c) 2020, 2022, 2024 Cirrus Logic, Inc.
 #--------------------------------------------------------------------------
 # Project : Exporter for JSON file format
 # File    : json_exporter.py
@@ -55,16 +55,16 @@ class json_exporter(firmware_exporter):
 
         return
 
-    def update_block_info(self, fw_block_total, coeff_block_totals, bin_block_totals):
+    def update_block_info(self, fw_block_total, coeff_block_totals, bin_block_totals, coeff_filenames):
         return
 
-    def add_control(self, algorithm_name, algorithm_id, control_name, address):
-        if (algorithm_name not in self.fw_export['controls']):
-            self.fw_export['controls'][algorithm_name] = dict()
-            self.fw_export['controls'][algorithm_name]['id'] = hex(algorithm_id)
-            self.fw_export['controls'][algorithm_name]['controls'] = dict()
-
-        self.fw_export['controls'][algorithm_name]['controls'][control_name] = hex(address)
+    def add_control(self, algorithm_name, algorithm_id, control_name, address, length):
+        if ('struct' not in control_name):
+            if (algorithm_name not in self.fw_export['controls']):
+                self.fw_export['controls'][algorithm_name] = dict()
+                self.fw_export['controls'][algorithm_name]['id'] = hex(algorithm_id)
+                self.fw_export['controls'][algorithm_name]['controls'] = dict()
+            self.fw_export['controls'][algorithm_name]['controls'][control_name] = hex(address)
 
         return
 
@@ -75,7 +75,7 @@ class json_exporter(firmware_exporter):
     def add_fw_block(self, address, data_bytes):
         return
 
-    def add_coeff_block(self, index, address, data_bytes):
+    def add_coeff_block(self, index, address, data_bytes, filename):
         return
 
     def add_bin_block(self, index, address, data_bytes):

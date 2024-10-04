@@ -1,5 +1,5 @@
 #==========================================================================
-# (c) 2020-2022 Cirrus Logic, Inc.
+# (c) 2020-2022, 2024 Cirrus Logic, Inc.
 #--------------------------------------------------------------------------
 # Project : Templates for C Source and Header files
 # File    : fw_img_v1_templates.py
@@ -307,9 +307,9 @@ class fw_img_v1_file(firmware_exporter):
     def get_word_string(self, val):
         return self.get_bytes_string(val.to_bytes(4, byteorder='little'))
 
-    def update_block_info(self, fw_block_total, coeff_block_totals, bin_block_totals): pass
+    def update_block_info(self, fw_block_total, coeff_block_totals, bin_block_totals, coeff_filenames): pass
 
-    def add_control(self, algorithm_name, algorithm_id, control_name, address):
+    def add_control(self, algorithm_name, algorithm_id, control_name, address, length):
         if (not self.attributes['exclude_wmfw']):
             if self.algorithms.get(algorithm_name, None) is None:
                 self.algorithms[algorithm_name] = algorithm_id
@@ -321,7 +321,7 @@ class fw_img_v1_file(firmware_exporter):
             # Create entry into data block list
             self.fw_data_block_list.append((len(data_bytes), address, data_bytes))
 
-    def add_coeff_block(self, index, address, data_bytes):
+    def add_coeff_block(self, index, address, data_bytes, filename):
         self.includes_coeff = True
 
         # Create entry into data block list

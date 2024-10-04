@@ -224,10 +224,11 @@ class address_resolver:
             return 2
 
 class block_list:
-    def __init__(self, size_limit, address_resolver):
+    def __init__(self, size_limit, address_resolver, filename):
         self.size_limit = size_limit
         self.ar = address_resolver
         self.blocks = []
+        self.filename = os.path.basename(filename)
 
         return
 
@@ -256,7 +257,7 @@ class block_list:
 
 class fw_block_list(block_list):
     def __init__(self, data_blocks, size_limit, address_resolver):
-        block_list.__init__(self, size_limit, address_resolver)
+        block_list.__init__(self, size_limit, address_resolver, "")
 
         for block in data_blocks:
             temp_mem_region = get_memory_region_from_type(block.fields['type'])
@@ -268,8 +269,8 @@ class fw_block_list(block_list):
         return
 
 class coeff_block_list(block_list):
-    def __init__(self, data_blocks, size_limit, address_resolver, fw_id_block):
-        block_list.__init__(self, size_limit, address_resolver)
+    def __init__(self, data_blocks, size_limit, address_resolver, fw_id_block, filename):
+        block_list.__init__(self, size_limit, address_resolver, filename)
 
         for block in data_blocks:
             temp_mem_region = get_memory_region_from_type(block.fields['type'])
@@ -289,7 +290,7 @@ class coeff_block_list(block_list):
 
 class bin_block_list(block_list):
     def __init__(self, data_blocks, size_limit, address_resolver):
-        block_list.__init__(self, size_limit, address_resolver)
+        block_list.__init__(self, size_limit, address_resolver, "")
 
         for block in data_blocks:
             new_address = block.fields['address']
@@ -343,6 +344,7 @@ def get_args(args):
     parser.add_argument('--exclude-dummy', dest='exclude_dummy', action="store_true", help='Do not include symbol IDs ending in _DUMMY in the output symbol table C header. Only used when no --sym-input is specified.')
     parser.add_argument('--skip-command-print', dest='skip_command_print', action="store_true", default=False, help='Skip printing command')
     parser.add_argument('--output-directory', dest='output_directory', default=None, help="Output directory of files. By default uses current work dir")
+    parser.add_argument('--preserve-filename', dest='preserve_filename', action="store_true", default=False, help="Name coeff blocks according to the filename they originated in.")
 
     return parser.parse_args(args[1:])
 
@@ -521,7 +523,8 @@ def main(argv):
             coeff_data_block_list = coeff_block_list(wmdr.data_blocks,
                                                      args.block_size_limit,
                                                      res,
-                                                     wmfw.fw_id_block)
+                                                     wmfw.fw_id_block,
+                                                     wmdr.filename)
             coeff_data_block_list.rehash_blocks()
             coeff_data_block_lists.append(coeff_data_block_list)
     # Create bin data blocks - size according to 'block_size_limit'
@@ -572,13 +575,18 @@ def main(argv):
     # Update block info based on any WMDR present
     coeff_data_block_list_lengths = []
     bin_data_block_list_lengths = []
+    coeff_filenames = []
     if process_wmdr:
         for coeff_data_block_list in coeff_data_block_lists:
             coeff_data_block_list_lengths.append(len(coeff_data_block_list.blocks))
+            if (args.preserve_filename):
+                coeff_filenames.append(coeff_data_block_list.filename)
+            else:
+                coeff_filenames.append("{part_number_lc}")
     if process_bins:
         for bin_data_block_list in bin_data_block_lists:
             bin_data_block_list_lengths.append(len(bin_data_block_list.blocks))
-    f.update_block_info(len(fw_data_block_list.blocks), coeff_data_block_list_lengths, bin_data_block_list_lengths)
+    f.update_block_info(len(fw_data_block_list.blocks), coeff_data_block_list_lengths, bin_data_block_list_lengths, coeff_filenames)
 
     # Add controls
     # For each algorithm information data block
@@ -603,11 +611,14 @@ def main(argv):
             else:
                 control_name = coeff_desc.fields['full_coefficient_name'].replace(alg_block.fields['algorithm_name'], algorithm_name)
 
+            control_length = coeff_desc.fields['control_length']
+
             # Add control
             f.add_control(algorithm_name,
                           alg_block.fields['algorithm_id'],
                           control_name,
-                          temp_coeff_address)
+                          temp_coeff_address,
+                          control_length)
 
     # Add metadata text
     metadata_text_lines = []
@@ -651,7 +662,10 @@ def main(argv):
                 for byte_str in block[1]:
                     block_bytes.append(int.from_bytes(byte_str, 'little', signed=False))
 
-                f.add_coeff_block(coeff_block_list_count, block[0], block_bytes)
+                if (args.preserve_filename):
+                    f.add_coeff_block(coeff_block_list_count, block[0], block_bytes, coeff_data_block_list.filename)
+                else:
+                    f.add_coeff_block(coeff_block_list_count, block[0], block_bytes, "{part_number_lc}")
 
             coeff_block_list_count = coeff_block_list_count + 1
 

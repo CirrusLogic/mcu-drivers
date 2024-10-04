@@ -3,6 +3,23 @@ Release Notes
 
 =============================================================================
 Summary:
+This is the release of Alt-OS Driver SDK v4.22.1
+Date: 2024/10/04
+
+Architectures/Compilers Used:
+GNU Arm Embedded Toolchain: arm-none-eabi-gcc -mcpu=cortex-m4
+
+New Features/Changes:
+Firmware converter updates
+
+5208a00 SDK release 4.22.1: updated copyrights and fixed whitespaces
+2233039 firmware_converter: Omit structs from JSON
+7f515b4 firmware_converter: Preserve Filename option
+ffa25aa firmware_converter: Comment size of large controls
+
+=============================================================================
+=============================================================================
+Summary:
 This is the release of Alt-OS Driver SDK v4.22.0
 Date: 2024/09/06
 

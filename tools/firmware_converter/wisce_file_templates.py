@@ -1,5 +1,5 @@
 #==========================================================================
-# (c) 2020, 2022 Cirrus Logic, Inc.
+# (c) 2020, 2022, 2024 Cirrus Logic, Inc.
 #--------------------------------------------------------------------------
 # Project : Template for WISCE Script files
 # File    : wisce_file_templates.py
@@ -90,8 +90,8 @@ class wisce_script_file(firmware_exporter):
 
         return temp_data_str
 
-    def update_block_info(self, fw_block_total, coeff_block_totals, bin_block_totals): pass
-    def add_control(self, algorithm_name, algorithm_id, control_name, address): pass
+    def update_block_info(self, fw_block_total, coeff_block_totals, bin_block_totals, coeff_filenames): pass
+    def add_control(self, algorithm_name, algorithm_id, control_name, address, length): pass
 
     def add_data_block(self, address, data_bytes):
         # Create string for block data
@@ -106,7 +106,7 @@ class wisce_script_file(firmware_exporter):
     def add_fw_block(self, address, data_bytes):
         return self.add_data_block(address, data_bytes)
 
-    def add_coeff_block(self, index, address, data_bytes):
+    def add_coeff_block(self, index, address, data_bytes, filename):
         return self.add_data_block(address, data_bytes)
 
     def add_bin_block(self, index, address, data_bytes):

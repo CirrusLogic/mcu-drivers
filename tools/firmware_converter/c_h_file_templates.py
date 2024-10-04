@@ -1,5 +1,5 @@
 #==========================================================================
-# (c) 2020-2022 Cirrus Logic, Inc.
+# (c) 2020-2022, 2024 Cirrus Logic, Inc.
 #--------------------------------------------------------------------------
 # Project : Templates for C Source and Header files
 # File    : c_h_file_templates.py
@@ -167,7 +167,7 @@ header_file_template_coeff_strs = {
     'include_coeff_2': """/**
  * Coefficient {coeff_index} memory block metadata
  */
-extern const halo_boot_block_t {part_number_lc}_coeff_blocks_{coeff_index}[];
+extern const halo_boot_block_t {part_number_lc}_coeff_{coeff_index}_blocks[];
 """
 }
 
@@ -342,6 +342,7 @@ class header_file:
         self.terms['total_fw_blocks'] = ''
         self.terms['total_coeff_blocks'] = []
         self.terms['total_bin_blocks'] = []
+        self.terms['coeff_filenames'] = []
         self.terms['algorithm_defines'] = ''
         self.terms['control_defines'] = ''
         self.terms['include_coeff_0'] = ''
@@ -354,7 +355,7 @@ class header_file:
         self.exclude_dummy = exclude_dummy
         return
 
-    def update_block_info(self, fw_block_total, coeff_block_totals, bin_block_totals):
+    def update_block_info(self, fw_block_total, coeff_block_totals, bin_block_totals, coeff_filenames):
         self.terms['total_fw_blocks'] = str(fw_block_total)
         if (coeff_block_totals != None):
             self.includes_coeff = True
@@ -365,13 +366,16 @@ class header_file:
             self.includes_bin = True
             for bin_block_total in bin_block_totals:
                 self.terms['total_bin_blocks'].append(str(bin_block_total))
+            for coeff_filename in coeff_filenames:
+                coeff_filename = coeff_filename.replace('.bin', '')
+                self.terms['coeff_filenames'].append(str(coeff_filename))
 
         return
 
-    def add_control(self, algorithm_name, control_name, address):
+    def add_control(self, algorithm_name, control_name, address, length):
         if (self.algorithm_controls.get(algorithm_name, None) == None):
             self.algorithm_controls[algorithm_name] = []
-        self.algorithm_controls[algorithm_name].append((control_name, address))
+        self.algorithm_controls[algorithm_name].append((control_name, address, length))
         return
 
     def add_metadata_text_line(self, line):
@@ -399,6 +403,8 @@ class header_file:
                         continue
                     else:
                         temp_ctl_str = temp_ctl_str + "#define " + control[0].upper() + " 0x" + "{0:X}".format(control[1]) + "\n"
+                        if int(control[2]) > 4:
+                            temp_ctl_str = temp_ctl_str + "//" + control[0].upper() + " size: " + str(control[2]) + " bytes\n"
 
                 temp_ctl_str = temp_ctl_str + "\n\n"
 
@@ -423,6 +429,7 @@ class header_file:
 
                 include_coeff_2_str = include_coeff_2_str + header_file_template_coeff_strs['include_coeff_2']
                 include_coeff_2_str = include_coeff_2_str.replace("{coeff_index}", str(coeff_index))
+                include_coeff_2_str = include_coeff_2_str.replace("{part_number_lc}", self.terms['coeff_filenames'][coeff_index])
                 include_coeff_2_str = include_coeff_2_str + '\n'
 
                 coeff_index = coeff_index + 1
@@ -485,6 +492,7 @@ class source_file:
         self.total_bin_blocks = []
         self.terms['include_coeff_0'] = ''
         self.terms['coeff_block_arrays'] = []
+        self.terms['coeff_block_filenames'] = []
         self.terms['coeff_boot_block_entries'] = []
         self.terms['bin_block_arrays'] = []
         self.terms['bin_boot_block_entries'] = []
@@ -520,29 +528,37 @@ class source_file:
         self.total_fw_blocks = self.total_fw_blocks + 1
         return
 
-    def add_coeff_block(self, index, address, data_bytes):
+    def add_coeff_block(self, index, address, data_bytes, filename):
         self.includes_coeff = True
 
         # Create list elements if they do not exist
         if (len(self.terms['coeff_block_arrays']) < (index + 1)):
             self.terms['coeff_block_arrays'].append('')
+        if (len(self.terms['coeff_block_filenames']) < (index + 1)):
+            self.terms['coeff_block_filenames'].append('')
         if (len(self.terms['coeff_boot_block_entries']) < (index + 1)):
             self.terms['coeff_boot_block_entries'].append('')
         if (len(self.total_coeff_blocks) < (index + 1)):
             self.total_coeff_blocks.append(0)
 
+        temp_filename = filename
+        temp_filename = temp_filename.replace('.bin', '')
+
         # Create string for block data
         temp_str = source_file_template_coeff_block_str.replace('{block_index}', str(self.total_coeff_blocks[index]))
         temp_str = temp_str.replace('{block_bytes}', self.create_block_string(data_bytes))
         temp_str = temp_str.replace('{coeff_index}', str(index))
+        temp_str = temp_str.replace('{part_number_lc}', temp_filename);
 
         self.terms['coeff_block_arrays'][index] = self.terms['coeff_block_arrays'][index] + temp_str + '\n'
+        self.terms['coeff_block_filenames'][index] = temp_filename
 
         # Create string for boot block entry
         temp_str = source_file_template_coeff_boot_block_entry_str.replace('{block_index}', str(self.total_coeff_blocks[index]))
         temp_str = temp_str.replace('{block_address}', "0x" + "{0:0{1}X}".format(address, 8))
         temp_str = temp_str.replace('{block_size}', str(len(data_bytes)))
         temp_str = temp_str.replace('{coeff_index}', str(index))
+        temp_str = temp_str.replace('{part_number_lc}', temp_filename);
 
         self.terms['coeff_boot_block_entries'][index] = self.terms['coeff_boot_block_entries'][index] + temp_str + '\n'
 
@@ -589,6 +605,7 @@ class source_file:
                 temp_str = temp_str + source_file_template_coeff_strs['include_coeff_0'].replace('{coeff_index}', str(i))
                 temp_str = temp_str.replace('{coeff_block_arrays}', self.terms['coeff_block_arrays'][i])
                 temp_str = temp_str.replace('{coeff_boot_block_entries}', self.terms['coeff_boot_block_entries'][i])
+                temp_str = temp_str.replace('{part_number_lc}', self.terms['coeff_block_filenames'][i])
                 temp_str = temp_str + '\n'
             output_str = output_str.replace('{include_coeff_0}\n', temp_str)
         else:
@@ -624,11 +641,11 @@ class source_file_exporter(firmware_exporter):
 
         return
 
-    def update_block_info(self, fw_block_total, coeff_block_totals, bin_block_totals):
-        return self.hf.update_block_info(fw_block_total, coeff_block_totals, bin_block_totals)
+    def update_block_info(self, fw_block_total, coeff_block_totals, bin_block_totals, bin_filenames):
+        return self.hf.update_block_info(fw_block_total, coeff_block_totals, bin_block_totals, bin_filenames)
 
-    def add_control(self, algorithm_name, algorithm_id, control_name, address):
-        return self.hf.add_control(algorithm_name, control_name, address)
+    def add_control(self, algorithm_name, algorithm_id, control_name, address, length):
+        return self.hf.add_control(algorithm_name, control_name, address, length)
 
     def add_metadata_text_line(self, line):
         return self.hf.add_metadata_text_line(line)
@@ -636,8 +653,8 @@ class source_file_exporter(firmware_exporter):
     def add_fw_block(self, address, data_bytes):
         return self.cf.add_fw_block(address, data_bytes)
 
-    def add_coeff_block(self, index, address, data_bytes):
-        return self.cf.add_coeff_block(index, address, data_bytes)
+    def add_coeff_block(self, index, address, data_bytes, filename):
+        return self.cf.add_coeff_block(index, address, data_bytes, filename)
 
     def add_bin_block(self, index, address, data_bytes):
         return self.cf.add_bin_block(index, address, data_bytes)

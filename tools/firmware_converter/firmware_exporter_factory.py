@@ -1,5 +1,5 @@
 #==========================================================================
-# (c) 2020, 2022 Cirrus Logic, Inc.
+# (c) 2020, 2022, 2024 Cirrus Logic, Inc.
 #--------------------------------------------------------------------------
 # Project : Firmware Exporter Factory class
 # File    : firmware_exporter_factory.py
@@ -71,15 +71,15 @@ class firmware_exporter_factory(firmware_exporter):
 
         return
 
-    def update_block_info(self, fw_block_total, coeff_block_totals, bin_block_totals):
+    def update_block_info(self, fw_block_total, coeff_block_totals, bin_block_totals, coeff_filenames):
         for e in self.exporters:
-            e.update_block_info(fw_block_total, coeff_block_totals, bin_block_totals)
+            e.update_block_info(fw_block_total, coeff_block_totals, bin_block_totals, coeff_filenames)
 
         return
 
-    def add_control(self, algorithm_name, algorithm_id, control_name, address):
+    def add_control(self, algorithm_name, algorithm_id, control_name, address, length):
         for e in self.exporters:
-            e.add_control(algorithm_name, algorithm_id, control_name, address)
+            e.add_control(algorithm_name, algorithm_id, control_name, address, length)
 
         return
 
@@ -95,9 +95,9 @@ class firmware_exporter_factory(firmware_exporter):
 
         return
 
-    def add_coeff_block(self, index, address, data_bytes):
+    def add_coeff_block(self, index, address, data_bytes, filename):
         for e in self.exporters:
-            e.add_coeff_block(index, address, data_bytes)
+            e.add_coeff_block(index, address, data_bytes, filename)
 
         return
 
