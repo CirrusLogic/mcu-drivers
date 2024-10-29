@@ -51,6 +51,7 @@ extern "C" {
 
 #define CS40L26_PLL_CLK_SEL_BCLK          (0x0)
 #define CS40L26_PLL_REFCLK_DETECT_0       (0x2C28)
+#define CS40L26_FREERUN_FORCE             (0x2C14)
 
 #define CS40L26_PWRMGT_CTL                (0x2900)
 
@@ -124,6 +125,8 @@ extern "C" {
 
 #define CS40L26_PM_STDBY_TIMEOUT_LOWER_OFFSET   (16)
 #define CS40L26_PM_STDBY_TIMEOUT_UPPER_OFFSET   (20)
+#define CS40L26_HIBERNATE_TIMEOUT_TICKS         PM_PM_TIMER_TIMEOUT_TICKS + 0x10
+#define CS40L26_STANDBY_TIMEOUT_TICKS           PM_PM_TIMER_TIMEOUT_TICKS + 0x18
 #define CS40L26_PM_TIMEOUT_TICKS_LOWER_MASK   /* GENMASK(23, 0) */ (0xFFFFFF)
 #define CS40L26_PM_TIMEOUT_TICKS_UPPER_MASK   /* GENMASK(7, 0) */  (0xFF)
 #define CS40L26_PM_TIMEOUT_TICKS_UPPER_SHIFT    (24)
@@ -287,6 +290,7 @@ extern "C" {
 #define CS40L26_ASP_RX_SLOT                             (0x4820)
 #define CS40L26_ASP_TX_WL                               (0x4830)
 #define CS40L26_ASP_RX_WL                               (0x4840)
+#define CS40L25_ASP_LATENCY1                            (0x4850)
 #define CS40L26_DACPCM1_INPUT                           (0x4C00)
 #define CS40L26_DACPCM2_INPUT                           (0x4C08)
 #define CS40L26_ASPTX1_INPUT                            (0x4C20)

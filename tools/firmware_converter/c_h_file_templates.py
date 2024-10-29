@@ -425,6 +425,7 @@ class header_file:
                 include_coeff_1_str = include_coeff_1_str + header_file_template_coeff_strs['include_coeff_1']
                 include_coeff_1_str = include_coeff_1_str.replace("{coeff_index}", str(coeff_index))
                 include_coeff_1_str = include_coeff_1_str.replace('{total_coeff_blocks}', total)
+                include_coeff_1_str = include_coeff_1_str.replace("{part_number_lc}", self.terms['coeff_filenames'][coeff_index])
                 include_coeff_1_str = include_coeff_1_str + '\n'
 
                 include_coeff_2_str = include_coeff_2_str + header_file_template_coeff_strs['include_coeff_2']
