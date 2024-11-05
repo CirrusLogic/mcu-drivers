@@ -1,0 +1,4 @@
+name: cirrus-logic
+build:
+  cmake-ext: True
+  kconfig-ext: True
