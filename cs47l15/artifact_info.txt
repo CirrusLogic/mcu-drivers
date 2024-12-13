@@ -1,26 +1,26 @@
 Artifact Info:
-Artifact           : CS47L15 Alt-OS Driver: 4.22.2 - a712457e5e067d667151251905bd8a283fd2035b
+Artifact           : CS47L15 Alt-OS Driver: 4.23.0 - e6cc88cdb2a71f824743c8c373218cedf52df737
 Test Target MCU SDK: STM32Cube_FW_F4: 1.24.1
 Target toolchain   : GNU Arm Embedded Toolchain: arm-none-eabi-gcc (Arm GNU Toolchain 13.2.rel1 (Build arm-13.7)) 13.2.1 20231009
 Build system       : make: GNU Make 4.3
-OS                 : Linux: 5.14.0-427.40.1.el9_4.x86_64
+OS                 : Linux: 5.14.0-503.14.1.el9_5.x86_64
 Shell              : bash: GNU bash, version 5.1.8(1)-release (x86_64-redhat-linux-gnu)
 Host toolchain     : MinGW GCC: gcc (GCC) 11.4.1 20230605 (Red Hat 11.4.1-2)
-Build Job          : gaines_alt_os_nightly: 1195
-Git SHA            : a712457e5e067d667151251905bd8a283fd2035b
+Build Job          : gaines_alt_os_nightly: 1237
+Git SHA            : e6cc88cdb2a71f824743c8c373218cedf52df737
 
 System resources:
 
 Build Configuration 1:
 
 Artifact filename    : libcs47l15.a
-Driver TEXT          : 5768
+Driver TEXT          : 5736
 Driver BSS           : 0
 Driver DATA          : 56
-Driver Max Stack     : 224 (cs47l15_fll_config -> cs47l15_set_fll_refclk -> cs47l15_apply_config_fll -> cs47l15_write_fll -> cs47l15_update_reg -> regmap_update_reg -> regmap_read -> GET_BYTE_FROM_WORD)
+Driver Max Stack     : 216 (cs47l15_fll_config -> cs47l15_set_fll_refclk -> cs47l15_apply_config_fll -> cs47l15_write_fll -> cs47l15_update_reg -> regmap_update_reg -> regmap_read -> GET_BYTE_FROM_WORD)
 
 Artifact filename    : baremetal.elf
-Driver TEXT          : 5094
+Driver TEXT          : 5054
 Driver BSS           : 228
 Driver DATA          : 56
 
@@ -28,4 +28,18 @@ Artifact filename    : cs47l15_fw_img.o
 Driver TEXT          : 50644
 
 Compiler flags:
+    -mcpu=cortex-m4
+    -mthumb
+    -mfpu=fpv4-sp-d16
+    -mfloat-abi=hard
+    -march=armv7e-m+fp
+    -Os
+    -Werror
+    -Wall
+    -std=gnu11
+    -fno-diagnostics-show-caret
+    -fdata-sections
+    -ffunction-sections
+    -fstack-usage
+    -frecord-gcc-switches
 

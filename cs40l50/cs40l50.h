@@ -35,8 +35,15 @@ extern "C" {
 #include "fw_img.h"
 #include "cs40l50_syscfg_regs.h"
 #include "cs40l50_spec.h"
-#include "regmap.h"
 #include "rth_types.h"
+
+#ifdef CIRRUS_SDK
+#include "regmap.h"
+#endif
+
+#ifdef ZEPHYR_INCLUDE_KERNEL_H
+#include "cs40l50_bsp.h"
+#endif
 
 #include "sdk_version.h"
 
@@ -265,7 +272,12 @@ typedef struct
     uint32_t int_gpio_id;                               ///< Used to ID CS35L42 INT pin in bsp_driver_if calls
     cs40l50_notification_callback_t notification_cb;    ///< Notification callback registered for detected events
     void *notification_cb_arg;                          ///< Notification callback argument
+#ifdef CIRRUS_SDK
     regmap_cp_config_t cp_config;
+#endif
+#ifdef CIRRUS_ZEPHYR_SAMPLE
+    struct i2c_dt_spec *i2c;
+#endif
 } cs40l50_bsp_config_t;
 
 /**

@@ -24,14 +24,21 @@
  **********************************************************************************************************************/
 #include <stddef.h>
 #include "cs40l50.h"
-#include "bsp_driver_if.h"
 #include "string.h"
+
+#ifdef CIRRUS_SDK
+#include "bsp_driver_if.h"
+#endif
+
+#ifdef CIRRUS_ZEPHYR_SAMPLE
+#include "cs40l50_bsp.h"
+#endif
 
 /***********************************************************************************************************************
  * LOCAL LITERAL SUBSTITUTIONS
  **********************************************************************************************************************/
 
-#define UNUSED(x) (void)(x)
+//#define UNUSED(x) (void)(x)
 
 /**
  * Total attemps to wake part from hibernate
@@ -186,12 +193,20 @@ static uint32_t cs40l50_mbox_command_to_event_id_map[] =
     CS40L50_MBOX_COMMAND_RUNTIME_SHORT_DETECTED, CS40L50_EVENT_FLAG_RUNTIME_SHORT_DETECTED
 };
 
+
+#ifdef CIRRUS_SDK
 static regmap_cp_config_t broadcast_cp =
 {
     .dev_id = CS40L50_BROADCAST_DEVID,
     .bus_type = REGMAP_BUS_TYPE_I2C,
     .receive_max = 0,
 };
+#endif
+
+
+#ifdef CIRRUS_ZEPHYR_SAMPLE
+static void *broadcast_cp;
+#endif
 
 /***********************************************************************************************************************
  * LOCAL FUNCTIONS

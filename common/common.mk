@@ -20,7 +20,7 @@
 RM = rm -rf
 
 # Common variables
-CFLAGS =
+CFLAGS = -DCIRRUS_SDK
 ASM_FLAGS =
 LD_FLAGS =
 LDFLAGS =
