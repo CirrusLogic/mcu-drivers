@@ -5,7 +5,7 @@
 
 This sample application illustrates how to integrate the CS40L50 SDK driver on a new microcontroller platform using the Zephyr OS and ST Nucleo F401RE as an example.
 
-Please refer to https://github.cirrus.com/drhodes/mcu-drivers-devel/blob/13610dce4edcb62ad53efafae7ac416589166414/samples/ for instructions on building the Zephyr samples.
+Please refer to https://github.com/CirrusLogic/mcu-drivers/blob/7faad294f130f55ace18f95e3f3ed827589601cd/samples/ for instructions on building the Zephyr samples.
 
 ## Goals
 
@@ -65,13 +65,13 @@ The BSP links the Zephyr I2C operations to the CS40L50 SDK driver by creating th
 * cs40l50_write_acked_reg_dt
 
 These can then be substituted for the corrsponding operations in the SDK demo board BSP.
-https://github.cirrus.com/drhodes/mcu-drivers-devel/blob/13610dce4edcb62ad53efafae7ac416589166414/samples/haptics/cs40l50/src/cs40l50_bsp.h#L28-L35
+https://github.com/CirrusLogic/mcu-drivers/blob/7faad294f130f55ace18f95e3f3ed827589601cd/samples/haptics/cs40l50/src/cs40l50_bsp.h#L28-L35
 
 ## Timer
 
 The BSP implements a `set_timer` callback using Zephyr's `k_msleep`.
 
-https://github.cirrus.com/drhodes/mcu-drivers-devel/blob/13610dce4edcb62ad53efafae7ac416589166414/samples/haptics/cs40l50/src/cs40l50_bsp.c#L148-L152
+https://github.com/CirrusLogic/mcu-drivers/blob/7faad294f130f55ace18f95e3f3ed827589601cd/samples/haptics/cs40l50/src/cs40l50_bsp.c#L148-L152
 
 ## Instantiation
 
@@ -80,7 +80,7 @@ The entry point for the BSP/driver is the `cs40l50_init` function.
 
 The Zephyr init macros ensure that the BSP is allocated the data it needs (`cs40l50_bsp` and `cs40l50_config` structs), receives information about the I2C bus from devicetree (I2C_DT_SPEC_INST_GET), and starts in the function `cs40l50_init()`.
 
-https://github.cirrus.com/drhodes/mcu-drivers-devel/blob/13610dce4edcb62ad53efafae7ac416589166414/samples/haptics/cs40l50/src/cs40l50_bsp.c#L275-L292
+https://github.com/CirrusLogic/mcu-drivers/blob/7faad294f130f55ace18f95e3f3ed827589601cd/samples/haptics/cs40l50/src/cs40l50_bsp.c#L275-L292
 
 # Application
 
@@ -98,7 +98,7 @@ Initialization steps:
 * Check I2C bus ready
 * cs40l50_reset()
 
-https://github.cirrus.com/drhodes/mcu-drivers-devel/blob/13610dce4edcb62ad53efafae7ac416589166414/samples/haptics/cs40l50/src/cs40l50_bsp.c#L176-L197
+https://github.com/CirrusLogic/mcu-drivers/blob/7faad294f130f55ace18f95e3f3ed827589601cd/samples/haptics/cs40l50/src/cs40l50_bsp.c#L176-L197
 
 ## System events
 

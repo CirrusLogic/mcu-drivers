@@ -3,7 +3,7 @@ Release Notes
 
 =============================================================================
 Summary:
-This is the release of Alt-OS Driver SDK v4.23.1
+This is the release of Alt-OS Driver SDK v4.23.2
 Date: 2024/12/13
 
 Architectures/Compilers Used:
@@ -11,8 +11,6 @@ GNU Arm Embedded Toolchain: arm-none-eabi-gcc -mcpu=cortex-m4
 
 New Features/Changes:
 Zephyr sample applications for CS40L50
-
-Fixed Bugs:
 
 =============================================================================
 =============================================================================

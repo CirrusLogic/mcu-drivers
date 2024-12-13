@@ -6,7 +6,7 @@
 This is a simple application for bringup and hardware verification.
 It does not depend on any SDK source.
 
-Please refer to https://github.cirrus.com/drhodes/mcu-drivers-devel/tree/samples_wip_1120/samples/ for instructions on building the Zephyr samples.
+Please refer to https://github.com/CirrusLogic/mcu-drivers/blob/7faad294f130f55ace18f95e3f3ed827589601cd/samples/README.md for instructions on building the Zephyr samples.
 
 ## Goals
 
@@ -27,13 +27,13 @@ python  tools/wisce_script_converter/wisce_script_converter.py -c c_array -p cs4
 ```
 
 The array `cs40l50_syscfg_regs` and the array size `CS40L50_SYSCFG_REGS_TOTAL` are copied from the output files
-https://github.cirrus.com/drhodes/mcu-drivers-devel/blob/13610dce4edcb62ad53efafae7ac416589166414/samples/helloworld/cs40l50/src/main.c#L22-L48
+https://github.com/CirrusLogic/mcu-drivers/blob/7faad294f130f55ace18f95e3f3ed827589601cd/samples/helloworld/cs40l50/src/main.c#L22-L48
 
 # Hardware
 
 A CS40L50 device is connected to the STM32 F401RE I2C bus labelled "i2c1" in devicetree.
 The I2C bus is enabled in the devicetree overlay and the USART that shares the pins is disabled.
-https://github.cirrus.com/drhodes/mcu-drivers-devel/blob/13610dce4edcb62ad53efafae7ac416589166414/samples/helloworld/cs40l50/boards/nucleo_f401re.overlay#L1-L17
+https://github.com/CirrusLogic/mcu-drivers/blob/7faad294f130f55ace18f95e3f3ed827589601cd/samples/helloworld/cs40l50/boards/nucleo_f401re.overlay#L1-L17
 
 # Application
 
@@ -42,4 +42,4 @@ The application has three steps:
 * Check that the device ID can be read from address 0
 * Load syscfg registers
 
-https://github.cirrus.com/drhodes/mcu-drivers-devel/blob/13610dce4edcb62ad53efafae7ac416589166414/samples/helloworld/cs40l50/src/main.c#L57-L88
+https://github.com/CirrusLogic/mcu-drivers/blob/7faad294f130f55ace18f95e3f3ed827589601cd/samples/helloworld/cs40l50/src/main.c#L57-L88
