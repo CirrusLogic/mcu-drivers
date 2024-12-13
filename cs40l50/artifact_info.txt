@@ -1,13 +1,13 @@
 Artifact Info:
-Artifact           : CS40L50 Alt-OS Driver: 4.23.0 - e6cc88cdb2a71f824743c8c373218cedf52df737
+Artifact           : CS40L50 Alt-OS Driver: 4.23.1 - 00fdcd7b12ba8661176f7199ab0a52a9e0fcff6f
 Test Target MCU SDK: STM32Cube_FW_F4: 1.24.1
 Target toolchain   : GNU Arm Embedded Toolchain: arm-none-eabi-gcc (GNU Tools for Arm Embedded Processors 8-2019-q3-update) 8.3.1 20190703 (release) [gcc-8-branch revision 273027]
 Build system       : make: GNU Make 4.2.1
 OS                 : Windows: 10
 Shell              : MSYS2: msys2-runtime 3.0.7-6
 Host toolchain     : MinGW GCC: gcc (Rev1, Built by MSYS2 project) 9.2.0
-Build Job          : jamerson_h_alt_os_nightly: 691
-Git SHA            : e6cc88cdb2a71f824743c8c373218cedf52df737
+Build Job          : jamerson_h_alt_os_nightly: 693
+Git SHA            : 00fdcd7b12ba8661176f7199ab0a52a9e0fcff6f
 
 System resources:
 

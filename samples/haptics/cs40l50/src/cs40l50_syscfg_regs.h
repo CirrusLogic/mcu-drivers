@@ -1,7 +1,7 @@
 /**
- * @file sdk_version.h
+ * @file cs40l50_syscfg_regs.h
  *
- * @brief Alt-OS SDK version literals
+ * @brief Register values to be applied after CS40L50 Driver boot().
  *
  * @copyright
  * Copyright (c) Cirrus Logic 2024 All Rights Reserved, http://www.cirrus.com/
@@ -18,10 +18,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
+ * wisce_to_syscfg_reg_converter.py SDK version: 4.21.0 - internal
+ * Command:  ../../tools/wisce_script_converter/wisce_script_converter.py -c c_array -p cs40l50 -i /Users/drhodes/Documents/code/cross-compile/nfs-share/altos/driver/cs40l50/config/wisce_init.txt -o .
+ *
  */
 
-#ifndef SDK_VERSION_H
-#define SDK_VERSION_H
+#ifndef CS40L50_SYSCFG_REGS_H
+#define CS40L50_SYSCFG_REGS_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -30,35 +33,13 @@ extern "C" {
 /***********************************************************************************************************************
  * INCLUDES
  **********************************************************************************************************************/
+#include "stdint.h"
+//#include "regmap.h"
 
 /***********************************************************************************************************************
  * LITERALS & CONSTANTS
  **********************************************************************************************************************/
-
-/**
- * @defgroup SDK_VERSION_
- * @brief Defines for the release version of the SDK
- *
- * @details
- * Versions for the SDK are defined as:
- * - Major - The interface of the firmware or module has changed in a way that breaks backwards compatibility. This
- * means that the module will not work as before if the old interface is used.
- * - Minor - The interface of the firmware or module has changed, but not in a way that breaks backwards compatibility.
- * This means that the module will work as before if the old interface is used.
- * - Update - The function has changed without changing the interface, for instance for a bug fix.
- *
- * @{
- */
-#define SDK_VERSION_MAJOR       (4) ///< Release Major version
-#define SDK_VERSION_MINOR       (23) ///< Release Minor version
-#define SDK_VERSION_UPDATE      (1) ///< Release Update version
-#define SDK_GIT_SHA             ("00fdcd7b12ba8661176f7199ab0a52a9e0fcff6f") ///< Release Git SHA
-/** @} */
-
-
-/***********************************************************************************************************************
- * MACROS
- **********************************************************************************************************************/
+#define CS40L50_SYSCFG_REGS_TOTAL (44)
 
 /***********************************************************************************************************************
  * ENUMS, STRUCTS, UNIONS, TYPEDEFS
@@ -67,14 +48,11 @@ extern "C" {
 /***********************************************************************************************************************
  * GLOBAL VARIABLES
  **********************************************************************************************************************/
+extern uint32_t cs40l50_syscfg_regs[];
 
-/***********************************************************************************************************************
- * API FUNCTIONS
- **********************************************************************************************************************/
-
-/**********************************************************************************************************************/
 #ifdef __cplusplus
 }
 #endif
 
-#endif // SDK_VERSION_H
+#endif // CS40L50_SYSCFG_REGS_H
+

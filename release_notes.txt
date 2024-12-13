@@ -3,7 +3,7 @@ Release Notes
 
 =============================================================================
 Summary:
-This is the release of Alt-OS Driver SDK v4.23.0
+This is the release of Alt-OS Driver SDK v4.23.1
 Date: 2024/12/13
 
 Architectures/Compilers Used:
