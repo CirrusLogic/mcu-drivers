@@ -4,7 +4,7 @@
  * @brief Constants and Types from CS40L50 datasheet
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2022-2024 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2022-2025 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -86,8 +86,6 @@ extern "C" {
 #define CS40L50_DSP_VIRTUAL1_MBOX_1                                         (0x11020)
 #define CS40L50_CMD_INDEX_ROM_WAVE                                          (0x01800000)
 #define CS40L50_CMD_INDEX_RAM_WAVE                                          (0x01000000)
-
-#define FIRMWARE_CS40L50_HALO_STATE                                         (0x028021E0)
 
 #define CS40L50_F0_ESTIMATION_REDC                                          (0x02802F7C)
 #define CS40L50_F0_ESTIMATION_F0_EST                                        (0x02802F84)

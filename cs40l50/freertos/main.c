@@ -4,7 +4,7 @@
  * @brief The main function for CS40L50 System Test Harness
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2022-2023 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2022-2023, 2025 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -141,7 +141,7 @@ static void HapticControlThread(void *argument)
             case APP_STATE_RTH_PWLE:
                 if (flags & HAPTIC_CONTROL_FLAG_PB_PRESSED)
                 {
-                    bsp_dut_trigger_rth_pwle(false, pwle1, pwle_1_size, 0);
+                    bsp_dut_trigger_haptic(0, ROM_BANK);
                     app_state++;
                 }
                 break;
@@ -149,7 +149,7 @@ static void HapticControlThread(void *argument)
             case APP_STATE_RTH_PCM:
                 if (flags & HAPTIC_CONTROL_FLAG_PB_PRESSED)
                 {
-                    bsp_dut_trigger_rth_pcm(pcm_1_data, pcm_1_data_size, pcm_1_data_size, 0, 0);
+                    bsp_dut_trigger_haptic(0, ROM_BANK);
                     app_state++;
                 }
                 break;
@@ -157,11 +157,11 @@ static void HapticControlThread(void *argument)
             case APP_STATE_HIBERNATE:
                 if (flags & HAPTIC_CONTROL_FLAG_PB_PRESSED)
                 {
-                    bsp_dut_trigger_rth_pwle(false, pwle1, pwle_1_size, 0);
+                    bsp_dut_trigger_haptic(0, ROM_BANK);
                     bsp_dut_hibernate();
                     bsp_driver_if_g->set_timer(100, NULL, NULL);
                     bsp_dut_wake();
-                    bsp_dut_trigger_rth_pwle(false, pwle1, pwle_1_size, 0);
+                    bsp_dut_trigger_haptic(0, ROM_BANK);
                     app_state = APP_STATE_DYNAMIC_F0;
                 }
                 break;

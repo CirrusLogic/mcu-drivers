@@ -30,7 +30,7 @@ include $(REPO_PATH)/common/common.mk
 # Assign paths and variables
 PART_NUM = cs40l50
 $(eval $(call assign_paths))
-PLATFORM_TARGETS = system_test freertos blackstar blackstack
+PLATFORM_TARGETS = system_test freertos baremetal blackstar blackstack
 VALID_TARGETS = unit_test $(PLATFORM_TARGETS)
 $(eval $(call eval_targets))
 $(eval $(call eval_optimization_level))
@@ -50,8 +50,15 @@ ifdef IS_NOT_UNIT_TEST
 endif
 
 # Assign firmware and configuration script variables
-HALO_FIRMWARE_FILE = ROM
-#HALO_FIRMWARE_FILE = CS40L50_Rev3.4.5.wmfw
+#HALO_FIRMWARE_FILE = ROM
+ifeq ($(MAKECMDGOALS), baremetal)
+FIRMWARE_CONV_TARGET = export
+FIRMWARE_HEADER = ./cs40l50_firmware.h
+else
+FIRMWARE_CONV_TARGET = fw_img_v2
+FIRMWARE_HEADER = ./cs40l50_fw_img.h
+endif
+HALO_FIRMWARE_FILE = CS40L50_Rev3.4.8.wmfw
 HALO_FIRMWARE_WMDR = cs40l50_wt.bin
 WISCE_SCRIPT = $(CONFIG_PATH)/wisce_init.txt
 MISC_SCRIPTS = hwt_to_waveform_converter
@@ -68,10 +75,18 @@ ifdef IS_NOT_UNIT_TEST
 
 endif
 
+ifeq ($(MAKECMDGOALS), baremetal)
+    CFLAGS += -DCS40L50_BAREMETAL
+endif
+
 # Assign sources and includes for driver library
 DRIVER_SRCS = $(DRIVER_PATH)/cs40l50.c
 DRIVER_SRCS += $(CONFIG_PATH)/cs40l50_syscfg_regs.c
-DRIVER_SRCS += $(COMMON_PATH)/fw_img.c
+ifeq ($(MAKECMDGOALS), baremetal)
+
+else
+    DRIVER_SRCS += $(COMMON_PATH)/fw_img.c
+endif
 DRIVER_SRCS += $(COMMON_PATH)/regmap.c
 INCLUDES += -I$(HALO_FIRMWARE_PATH)
 DRIVER_SRCS += $(CONFIG_PATH)/waveforms.c
@@ -86,7 +101,7 @@ ifeq ($(MAKECMDGOALS), unit_test)
     ADD_OBJ_RULES = add_unit_test_obj_rules
 else ifeq ($(MAKECMDGOALS), blackstack)
     C_SRCS += $(DRIVER_PATH)/bsp/bsp_cs40l50_multi.c
-    C_SRCS += $(HALO_FIRMWARE_PATH)/cs40l50_fw_img.c
+    C_SRCS += $(HALO_FIRMWARE_PATH)/cs40l50_firmware.c
 
     ifeq ($(MAKECMDGOALS), system_test)
         C_SRCS += $(APP_PATH)/test_cs40l50.c
@@ -97,7 +112,12 @@ else ifeq ($(MAKECMDGOALS), blackstack)
     ADD_OBJ_RULES = add_platform_obj_rules
 else ifdef IS_NOT_UNIT_TEST
     C_SRCS += $(DRIVER_PATH)/bsp/bsp_cs40l50.c
-    C_SRCS += $(HALO_FIRMWARE_PATH)/cs40l50_fw_img.c
+
+    ifeq ($(MAKECMDGOALS), baremetal)
+        C_SRCS += $(HALO_FIRMWARE_PATH)/cs40l50_firmware.c
+    else
+        C_SRCS += $(HALO_FIRMWARE_PATH)/cs40l50_fw_img.c
+    endif
 
     ifeq ($(MAKECMDGOALS), system_test)
         C_SRCS += $(APP_PATH)/test_cs40l50.c
@@ -142,7 +162,8 @@ $(eval $(call add_wisce_script_rule,cs40l50))
 firmware_converter:
 	@echo -------------------------------------------------------------------------------
 	@echo GENERATING cs40l50_fw_img
-	cd $(HALO_FIRMWARE_PATH) && python3 ../../tools/firmware_converter/firmware_converter.py fw_img_v2 cs40l50 $(HALO_FIRMWARE_FILE) --wmdr $(HALO_FIRMWARE_WMDR)
+	cd $(HALO_FIRMWARE_PATH) && python3 ../../tools/firmware_converter/firmware_converter.py $(FIRMWARE_CONV_TARGET) cs40l50 $(HALO_FIRMWARE_FILE) --wmdr $(HALO_FIRMWARE_WMDR)
+	cd $(HALO_FIRMWARE_PATH) && sed -i '/#define  0x28021E0/d' $(FIRMWARE_HEADER)
 
 hwt_to_waveform_converter:
 	@echo -------------------------------------------------------------------------------
@@ -163,6 +184,7 @@ print_targets:
 	@echo
 	@echo Valid targets:
 	@echo       freertos
+	@echo       baremetal
 	@echo       system_test
 	@echo       unit_test
 	@echo       blackstar

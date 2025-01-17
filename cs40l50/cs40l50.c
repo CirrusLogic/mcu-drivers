@@ -4,7 +4,7 @@
  * @brief The CS40L50 Driver module
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2022-2024 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2022-2025 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -65,6 +65,8 @@
                                                CS40L50_EVENT_FLAG_RUNTIME_SHORT_DETECTED | \
                                                CS40L50_EVENT_FLAG_PERMANENT_SHORT_DETECTED)
 
+#ifndef CS40L50_BAREMETAL
+
 #define CS40L50_MBOX_COMMAND_HAPTIC_COMPLETE_MBOX           (0x01000000)
 #define CS40L50_MBOX_COMMAND_HAPTIC_COMPLETE_GPIO           (0x01000001)
 #define CS40L50_MBOX_COMMAND_HAPTIC_COMPLETE_I2S            (0x01000002)
@@ -75,6 +77,8 @@
 #define CS40L50_MBOX_COMMAND_AWAKE                          (0x02000002)
 #define CS40L50_MBOX_COMMAND_PERMANENT_SHORT_DETECTED       (0x0C000C1C)
 #define CS40L50_MBOX_COMMAND_RUNTIME_SHORT_DETECTED         (0x0C000C1D)
+
+#endif //CS40L50_BAREMETAL
 
 /**
  * Total entries in Dynamic F0 table
@@ -121,6 +125,7 @@ static const uint32_t cs40l50_b0_errata_external[] =
     0x02804388, 0x00FFFFFF,
 };
 
+#ifndef CS40L50_BAREMETAL
 cs40l50_pwle_t pwle_default =
 {
     .word1.wf_length = WF_LENGTH_DEFAULT,
@@ -193,6 +198,8 @@ static uint32_t cs40l50_mbox_command_to_event_id_map[] =
     CS40L50_MBOX_COMMAND_RUNTIME_SHORT_DETECTED, CS40L50_EVENT_FLAG_RUNTIME_SHORT_DETECTED
 };
 
+#endif //CS40L50_BAREMETAL
+
 
 #ifdef CIRRUS_SDK
 static regmap_cp_config_t broadcast_cp =
@@ -231,7 +238,7 @@ static uint32_t cs40l50_dsp_state_get(cs40l50_t *driver, uint8_t *state)
 
     if (driver->fw_info == NULL)
     {
-        ret = regmap_read(cp, FIRMWARE_CS40L50_HALO_STATE, &dsp_state);
+        ret = regmap_read(cp, 0x28021E0, &dsp_state);
     }
     else
     {
@@ -326,6 +333,7 @@ static uint32_t cs40l50_pm_state_transition(cs40l50_t *driver, uint8_t state)
  * @see bsp_callback_t
  *
  */
+#ifndef CS40L50_BAREMETAL
 static void cs40l50_irq_callback(uint32_t status, void *cb_arg)
 {
     cs40l50_t *d;
@@ -337,9 +345,9 @@ static void cs40l50_irq_callback(uint32_t status, void *cb_arg)
         // Switch driver mode to CS40L50_MODE_HANDLING_EVENTS
         d->mode = CS40L50_MODE_HANDLING_EVENTS;
     }
-
     return;
 }
+#endif //CS40L50_BAREMETAL
 
 uint32_t cs40l50_allow_hibernate(cs40l50_t *driver)
 {
@@ -399,6 +407,7 @@ uint32_t cs40l50_prevent_hibernate(cs40l50_t *driver)
  * @see CS40L50_EVENT_FLAG_
  *
  */
+#ifndef CS40L50_BAREMETAL
 static uint32_t cs40l50_irq_to_event_id(uint32_t irq_reg, uint32_t irq_statuses)
 {
     uint32_t temp_event_flag = 0;
@@ -505,6 +514,8 @@ static uint32_t cs40l50_process_mbox_queue(regmap_cp_config_t *cp)
 
     return event_flags;
 }
+#endif //CS40L50_BAREMETAL
+
 
 /**
  * Handle events indicated by the IRQ pin ALERTb
@@ -524,9 +535,11 @@ static uint32_t cs40l50_process_mbox_queue(regmap_cp_config_t *cp)
  * @see cs40l50_notification_callback_t
  *
  */
+#ifndef CS40L50_BAREMETAL
 static uint32_t cs40l50_event_handler(cs40l50_t *driver)
 {
     uint32_t ret = CS40L50_STATUS_OK;
+    return ret;
     uint32_t irq_statuses[CS40L50_IRQ1_REG_TOTAL];
     uint32_t irq_masks[CS40L50_IRQ1_REG_TOTAL];
     regmap_cp_config_t *cp = REGMAP_GET_CP(driver);
@@ -611,6 +624,7 @@ static uint32_t cs40l50_event_handler(cs40l50_t *driver)
     return CS40L50_STATUS_OK;
 }
 
+#endif //CS40L50_BAREMETAL
 /***********************************************************************************************************************
  * API FUNCTIONS
  **********************************************************************************************************************/
@@ -649,11 +663,11 @@ uint32_t cs40l50_configure(cs40l50_t *driver, cs40l50_config_t *config)
         (NULL != config))
     {
         driver->config = *config;
-
+#ifndef CS40L50_BAREMETAL
         ret = bsp_driver_if_g->register_gpio_cb(driver->config.bsp_config.int_gpio_id,
                                                 &cs40l50_irq_callback,
                                                 driver);
-
+#endif //CS40L50_BAREMETAL
         if (ret == BSP_STATUS_OK)
         {
             ret = CS40L50_STATUS_OK;
@@ -673,22 +687,26 @@ uint32_t cs40l50_process(cs40l50_t *driver)
     if (driver->mode == CS40L50_MODE_HANDLING_EVENTS)
     {
         // run through event handler
+#ifndef CS40L50_BAREMETAL
         if (CS40L50_STATUS_OK != cs40l50_event_handler(driver))
         {
             driver->event_flags |= CS40L50_EVENT_FLAG_STATE_ERROR;
         }
-
+#endif //CS40L50_BAREMETAL
         driver->mode = CS40L50_MODE_HANDLING_CONTROLS;
     }
 
     if (driver->event_flags)
     {
+
+#ifndef CS40L50_BAREMETAL
         if (driver->config.bsp_config.notification_cb != NULL)
         {
             driver->config.bsp_config.notification_cb(driver->event_flags,
                                                       driver->config.bsp_config.notification_cb_arg);
         }
 
+#endif //CS40L50_BAREMETAL
         driver->event_flags = 0;
     }
 
@@ -732,7 +750,7 @@ uint32_t cs40l50_reset(cs40l50_t *driver)
     }
 
     // Wait for (OTP + ROM) boot complete
-    ret = regmap_poll_reg(cp, FIRMWARE_CS40L50_HALO_STATE, 2, 10, 10);
+    ret = regmap_poll_reg(cp, 0x28021E0, 2, 10, 10);
     if (ret)
     {
         return ret;
@@ -1217,7 +1235,7 @@ uint32_t cs40l50_set_broadcast_enable(cs40l50_t *driver, bool enable)
 
     return ret;
 }
-
+#ifndef CS40L50_BAREMETAL
 uint32_t cs40l50_trigger_pwle(cs40l50_t *driver, rth_pwle_section_t **s)
 {
     int i;
@@ -1446,7 +1464,7 @@ uint32_t cs40l50_trigger_pcm(cs40l50_t *driver, uint8_t *s, uint32_t num_section
     }
     return ret;
 }
-
+#endif //CS40L50_BAREMETAL
 /*
  * Reads the contents of a single register/memory address
  *

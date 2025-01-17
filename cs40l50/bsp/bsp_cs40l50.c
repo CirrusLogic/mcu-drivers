@@ -4,7 +4,7 @@
  * @brief Implementation of the BSP for the cs40l50 platform.
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2022-2024 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2022-2025 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -27,7 +27,14 @@
 #include "platform_bsp.h"
 #include "cs40l50.h"
 #include "cs40l50_syscfg_regs.h"
+
+#ifndef CS40L50_BAREMETAL
 #include "cs40l50_fw_img.h"
+static fw_img_boot_state_t boot_state;
+static uint32_t current_halo_heartbeat = 0;
+#else
+#include "cs40l50_firmware.h"
+#endif
 
 /***********************************************************************************************************************
  * LOCAL LITERAL SUBSTITUTIONS
@@ -37,8 +44,6 @@
  * LOCAL VARIABLES
  **********************************************************************************************************************/
 static cs40l50_t cs40l50_driver;
-static fw_img_boot_state_t boot_state;
-static uint32_t current_halo_heartbeat = 0;
 
 
 static cs40l50_bsp_config_t bsp_config =
@@ -143,7 +148,9 @@ uint32_t bsp_dut_reset(void)
 
 uint32_t bsp_dut_boot(void)
 {
+
     uint32_t ret;
+#ifndef CS40L50_BAREMETAL
     const uint8_t *fw_img;
     const uint8_t *fw_img_end;
     uint32_t write_size;
@@ -273,7 +280,34 @@ uint32_t bsp_dut_boot(void)
     }
 
     current_halo_heartbeat = 0;
+#else
+    int i;
+    for (i = 0; i < cs40l50_total_fw_blocks; i++) {
+        ret = regmap_write_block((&cs40l50_driver.config.bsp_config.cp_config),
+                                 cs40l50_fw_blocks[i].address,
+                                 (uint8_t *)cs40l50_fw_blocks[i].bytes,
+                                 cs40l50_fw_blocks[i].block_size);
+        if (ret == CS40L50_STATUS_FAIL)
+        {
+            return BSP_STATUS_FAIL;
+        }
+    }
 
+
+    for (i = 0; i < cs40l50_total_coeff_blocks_0; i++) {
+        ret = regmap_write_block((&cs40l50_driver.config.bsp_config.cp_config),
+                                 cs40l50_coeff_0_blocks[i].address,
+                                 (uint8_t *)cs40l50_coeff_0_blocks[i].bytes,
+                                 cs40l50_coeff_0_blocks[i].block_size);
+        if (ret == CS40L50_STATUS_FAIL)
+        {
+            return BSP_STATUS_FAIL;
+        }
+    }
+
+    regmap_write((&cs40l50_driver.config.bsp_config.cp_config), CS40L50_DSP1_CCM_CORE_CONTROL, 0x00000281);
+
+#endif //CS40L50_BAREMETAL
     return ret;
 }
 
@@ -429,6 +463,7 @@ uint32_t bsp_dut_trigger_haptic(uint8_t waveform, cs40l50_wavetable_bank_t bank)
     return ret;
 }
 
+#ifndef CS40L50_BAREMETAL
 uint32_t bsp_dut_trigger_rth_pwle(bool is_simple, rth_pwle_section_t **pwle_data, uint8_t num_sections, uint8_t repeat)
 {
     uint32_t ret = BSP_STATUS_OK;
@@ -443,7 +478,6 @@ uint32_t bsp_dut_trigger_rth_pwle(bool is_simple, rth_pwle_section_t **pwle_data
 
     return ret;
 }
-
 uint32_t bsp_dut_trigger_rth_pcm(uint8_t *pcm_data, uint32_t num_sections, uint16_t buffer, uint16_t f0, uint16_t redc)
 {
     uint32_t ret = BSP_STATUS_OK;
@@ -452,6 +486,8 @@ uint32_t bsp_dut_trigger_rth_pcm(uint8_t *pcm_data, uint32_t num_sections, uint1
 
     return ret;
 }
+
+#endif //CS40L50_BAREMETAL
 
 uint32_t bsp_dut_dynamic_calibrate(uint8_t index)
 {
