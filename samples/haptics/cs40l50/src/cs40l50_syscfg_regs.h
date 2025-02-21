@@ -4,7 +4,7 @@
  * @brief Register values to be applied after CS40L50 Driver boot().
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2024 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2024-2025 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -39,7 +39,7 @@ extern "C" {
 /***********************************************************************************************************************
  * LITERALS & CONSTANTS
  **********************************************************************************************************************/
-#define CS40L50_SYSCFG_REGS_TOTAL (44)
+#define CS40L50_SYSCFG_REGS_TOTAL (34)
 
 /***********************************************************************************************************************
  * ENUMS, STRUCTS, UNIONS, TYPEDEFS

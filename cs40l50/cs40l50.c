@@ -89,6 +89,30 @@
 /***********************************************************************************************************************
  * LOCAL VARIABLES
  **********************************************************************************************************************/
+
+// See CS40L50_HAP1_Init_BoostMode.txt
+static const uint32_t cs40l50_internal_bst_cfg[] =
+{
+    0x2018, 0x00003321,
+    0x201C, 0x04000010,
+};
+
+// See CS40L50_HAP1_Errata_BoostMode.txt
+static const uint32_t cs40l50_b0_errata_internal[] =
+{
+    0x00000040, 0x00000055,
+    0x00000040, 0x000000AA,
+    0x3808, 0x40000001,
+    0x3810, 0x0001,
+    0x38EC, 0x0032,
+    0x00000040, 0x0,
+    0x280404c, 0x40020,
+    0x2804050, 0x1c0010,
+    0x2804054, 0x40038,
+    0x2804058, 0x02fa,
+    0x280405c, 0xffffff,
+};
+
 // See CS40L50_HAP2_Init_ExtVDDAmp.txt
 static const uint32_t cs40l50_external_bst_cfg[] =
 {
@@ -767,6 +791,19 @@ uint32_t cs40l50_reset(cs40l50_t *driver)
         }
         ret = regmap_write_array(cp, (uint32_t *) cs40l50_b0_errata_external,
                                  sizeof(cs40l50_b0_errata_external)/sizeof(uint32_t));
+        if (ret)
+        {
+            return ret;
+        }
+    } else {
+        ret = regmap_write_array(cp, (uint32_t *) cs40l50_internal_bst_cfg,
+                                 sizeof(cs40l50_internal_bst_cfg)/sizeof(uint32_t));
+        if (ret)
+        {
+          return ret;
+        }
+        ret = regmap_write_array(cp, (uint32_t *) cs40l50_b0_errata_internal,
+                                 sizeof(cs40l50_b0_errata_internal)/sizeof(uint32_t));
         if (ret)
         {
             return ret;

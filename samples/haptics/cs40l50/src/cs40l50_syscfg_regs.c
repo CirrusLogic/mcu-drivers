@@ -4,7 +4,7 @@
  * @brief Register values to be applied after CS40L50 Driver boot().
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2024 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2024-2025 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -29,6 +29,11 @@
  * GLOBAL VARIABLES
  **********************************************************************************************************************/
 
+/**
+ * Application-specific config
+ * Converted from cs40l50/config/wisce_init.txt
+ * Please consult Cirrus for config appropriate to your application
+ */
 uint32_t cs40l50_syscfg_regs[] =
 {
     0x0040, 0x0055,
@@ -41,11 +46,6 @@ uint32_t cs40l50_syscfg_regs[] =
     0x2034, 0x2000000,
     0x280279c, 0x0006,
     0x280285c, 0x0000,
-    0x280404c, 0x40020,
-    0x2804050, 0x1c0010,
-    0x2804054, 0x40038,
-    0x2804058, 0x02fa,
-    0x280405c, 0xffffff,
     0x280404c, 0x50020,
     0x2804050, 0x340200,
     0x2804054, 0x40020,

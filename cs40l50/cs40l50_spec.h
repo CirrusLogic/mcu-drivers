@@ -208,6 +208,13 @@ extern "C" {
 #define CS40L50_IRQ1_MASK_2                                                 (0x0000E094)
 #define CS40L50_IRQ1_MASK_2_DSP_VIRTUAL2_MBOX_WR_MASK1                      (1 << 21)
 
+#define CS40L50_GPIO_STATUS1                                                (0x0000F000)
+#define CS40L50_GPIO1_STS_BITMASK                                           (1)
+#define CS40L50_GPIO_CTRL1                                                  (0x0000F008)
+#define CS40L50_GPIO_CTRL1_DIR_BITMASK                                      (0x80000000)
+#define CS40L50_GPIO_CTRL1_FN_BITMASK                                       (0x00000007)
+#define CS40L50_GPIO_CTRL1_FN_INPUT_OUTPUT                                  (0x00000001)
+
 /** @} */
 
 /**********************************************************************************************************************/
