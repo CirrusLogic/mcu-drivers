@@ -3,6 +3,23 @@ Release Notes
 
 =============================================================================
 Summary:
+This is the release of Alt-OS Driver SDK v4.24.2
+Date: 2025/04/25
+
+Architectures/Compilers Used:
+GNU Arm Embedded Toolchain: arm-none-eabi-gcc -mcpu=cortex-m4
+
+New Features/Changes:
+
+Add RAM loading to cs40l50 Zephyr sample
+
+Fixed Bugs:
+
+Fix RAM loading for cs40l50
+
+=============================================================================
+=============================================================================
+Summary:
 This is the release of Alt-OS Driver SDK v4.24.1
 Date: 2025/02/21
 

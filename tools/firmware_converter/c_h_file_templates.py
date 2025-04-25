@@ -1,5 +1,5 @@
 #==========================================================================
-# (c) 2020-2022, 2024 Cirrus Logic, Inc.
+# (c) 2020-2022, 2024-2025 Cirrus Logic, Inc.
 #--------------------------------------------------------------------------
 # Project : Templates for C Source and Header files
 # File    : c_h_file_templates.py
@@ -400,6 +400,8 @@ class header_file:
                     if " " + control[0].upper() + " " in temp_ctl_str:
                         print("[WARNING] Duplicate symbol id skipped: " + control[0].upper() + " (" + hex(control[1]) + ")")
                     elif self.exclude_dummy and control[0].upper().endswith("DUMMY"):
+                        continue
+                    elif len(control[0]) == 0:
                         continue
                     else:
                         temp_ctl_str = temp_ctl_str + "#define " + control[0].upper() + " 0x" + "{0:X}".format(control[1]) + "\n"

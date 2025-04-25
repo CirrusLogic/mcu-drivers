@@ -33,6 +33,7 @@
 #define regmap_write_array cs40l50_write_array_dt
 #define regmap_poll_reg cs40l50_poll_reg_dt
 #define regmap_write_acked_reg cs40l50_write_acked_reg_dt
+#define regmap_write_blocks cs40l50_i2c_write_bulk_dt
 
 /***********************************************************************************************************************
  * LITERALS & CONSTANTS

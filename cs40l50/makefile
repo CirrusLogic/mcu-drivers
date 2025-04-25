@@ -163,7 +163,6 @@ firmware_converter:
 	@echo -------------------------------------------------------------------------------
 	@echo GENERATING cs40l50_fw_img
 	cd $(HALO_FIRMWARE_PATH) && python3 ../../tools/firmware_converter/firmware_converter.py $(FIRMWARE_CONV_TARGET) cs40l50 $(HALO_FIRMWARE_FILE) --wmdr $(HALO_FIRMWARE_WMDR)
-	cd $(HALO_FIRMWARE_PATH) && sed -i '/#define  0x28021E0/d' $(FIRMWARE_HEADER)
 
 hwt_to_waveform_converter:
 	@echo -------------------------------------------------------------------------------

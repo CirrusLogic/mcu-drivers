@@ -848,6 +848,14 @@ uint32_t cs40l50_boot(cs40l50_t *driver, fw_img_info_t *fw_info)
         // Wake up part via mailbox interaction and prevent hibernate
         cs40l50_pm_state_transition(driver, CS40L50_PM_STATE_PREVENT_HIBERNATE);
 
+        ret = regmap_write(cp, CS40L50_DSP_VIRTUAL1_MBOX_1, CS40L50_DSP_MBOX_CMD_SHUTDOWN);
+        if (ret)
+        {
+                return ret;
+        }
+
+        bsp_driver_if_g->set_timer(10, NULL, NULL);
+
         // Turn off DSP clock
         ret = regmap_write(cp, CS40L50_DSP1_CCM_CORE_CONTROL, 0x00000080);
         if (ret)

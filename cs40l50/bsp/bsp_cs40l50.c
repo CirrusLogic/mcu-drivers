@@ -87,7 +87,7 @@ uint32_t bsp_dut_initialize(void)
         haptic_config.syscfg_regs = cs40l50_syscfg_regs;
         haptic_config.syscfg_regs_total = CS40L50_SYSCFG_REGS_TOTAL;
 
-        haptic_config.is_ext_bst = false;
+        haptic_config.is_ext_bst = true;
 
         haptic_config.dynamic_f0_threshold = 0x20C5;
 

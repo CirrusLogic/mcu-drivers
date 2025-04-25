@@ -6,8 +6,11 @@
 
 #include "cs40l50_bsp.h"
 #include "cs40l50.h"
+#include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/drivers/i2c.h>
+
+#include "cs40l50_firmware.h"
 
 LOG_MODULE_REGISTER(cirrus_cs40l50);
 
@@ -145,6 +148,124 @@ int cs40l50_write_acked_reg_dt(const struct i2c_dt_spec *spec, const uint32_t re
     return -1;
 }
 
+int cs40l50_i2c_write_bulk_bus(const struct i2c_dt_spec *spec, const uint32_t reg_addr,
+    const uint8_t *buf, unsigned int num_bytes, uint16_t bus_addr)
+{
+    uint8_t addr_buf[4], *msg_buf;
+    int i, j = 4, ret = 0;
+
+    LOG_INF("cs40l50_i2c_write_bulk_bus: reg=%x size=%d\n", reg_addr, num_bytes);
+
+    msg_buf = k_malloc(num_bytes+4);
+    if (!msg_buf)
+        return -ENOMEM;
+
+    sys_put_be32(reg_addr, addr_buf);
+
+    for (i = 0; i < ARRAY_SIZE(addr_buf); i++) {
+        msg_buf[i] = addr_buf[i];
+    }
+
+    bytecpy(msg_buf+4, buf, num_bytes);
+
+    ret = i2c_write(spec->bus, msg_buf, 4 + num_bytes, bus_addr);
+
+    k_free(msg_buf);
+    return ret;
+}
+
+int cs40l50_i2c_write_bus(const struct i2c_dt_spec *spec, const uint32_t reg_addr,
+    uint32_t val, uint16_t bus_addr)
+{
+    uint8_t addr_buf[4], data_buf[4], *msg_buf;
+    int i, j = 4, ret = 0;
+
+    LOG_INF("cs40l50_i2c_write_bus: reg=%x\n", reg_addr);
+
+    msg_buf = k_malloc(8);
+    if (!msg_buf)
+        return -ENOMEM;
+
+    sys_put_be32(reg_addr, addr_buf);
+    sys_put_be32(val, data_buf);
+
+    bytecpy(msg_buf, addr_buf, 4);
+    bytecpy(msg_buf+4, data_buf, 4);
+
+    ret = i2c_write(spec->bus, msg_buf, 8, bus_addr);
+
+    k_free(msg_buf);
+    return ret;
+}
+
+int cs40l50_i2c_write_bulk_dt(const struct i2c_dt_spec *spec, const uint32_t reg_addr,
+    const uint8_t *buf, unsigned int num_bytes)
+{
+    uint8_t addr_buf[4], *msg_buf;
+    int i, j = 4, ret = 0;
+
+    LOG_INF("cs40l50_i2c_write_bulk_dt: reg=%x size=%d\n", reg_addr, num_bytes);
+
+    msg_buf = k_malloc(num_bytes+4);
+    if (!msg_buf)
+        return -ENOMEM;
+
+    sys_put_be32(reg_addr, addr_buf);
+
+    for (i = 0; i < ARRAY_SIZE(addr_buf); i++) {
+        msg_buf[i] = addr_buf[i];
+    }
+
+    bytecpy(msg_buf+4, buf, num_bytes);
+
+    ret = i2c_write_dt(spec, msg_buf, sizeof(msg_buf) + num_bytes);
+
+    k_free(msg_buf);
+    return ret;
+}
+
+static int cs40l50_write_fw_blocks(struct i2c_dt_spec *i2c, halo_boot_block_t *blocks, int num_blocks)
+{
+    int i, ret;
+    halo_boot_block_t block;
+    uint32_t *buffer, bytes, address;
+
+    for (i = 0; i < num_blocks; i++) {
+        block = blocks[i];
+        bytes = block.block_size;
+        address = block.address;
+        buffer = block.bytes;
+        ret = cs40l50_i2c_write_bulk_dt(i2c, address, buffer, bytes);
+        if (ret != 0)
+            return ret;
+        k_msleep(5);
+    }
+
+    return 0;
+}
+
+static int cs40l50_firmware_load(cs40l50_t *drv)
+{
+    int i, num_blocks, ret;
+    halo_boot_block_t *blocks;
+    struct i2c_dt_spec *i2c = drv->config.bsp_config.i2c;
+    uint32_t val1, val2, val3;
+
+    num_blocks = cs40l50_total_fw_blocks;
+    blocks = cs40l50_fw_blocks;
+    ret = cs40l50_write_fw_blocks(i2c, blocks, num_blocks);
+    if (ret != 0)
+        return ret;
+
+    num_blocks = cs40l50_wt_total_coeff_blocks_0;
+    blocks = cs40l50_wt_coeff_0_blocks;
+    ret = cs40l50_write_fw_blocks(i2c, blocks, num_blocks);
+    if (ret != 0)
+        return ret;
+
+    return 0;
+}
+
 static uint32_t cs40l50_set_timer(uint32_t duration_ms, bsp_callback_t cb, void *cb_arg)
 {
     k_msleep(duration_ms);
@@ -178,6 +299,7 @@ static int cs40l50_init(const struct device *dev)
     struct cs40l50_config *config = dev->config;
     struct cs40l50_bsp *data = dev->data;
     cs40l50_t *drv = &data->priv;
+    uint32_t val;
     int ret;
     LOG_INF("cs40l50_init\n");
 
@@ -198,20 +320,41 @@ static int cs40l50_init(const struct device *dev)
 
     k_msleep(1000);
 
+    regmap_read(&config->i2c, FIRMWARE_CS40L50_HALO_STATE, &val);
+    LOG_INF("cs40l50_init: HALO_STATE = %x\n", val);
+
     LOG_INF("cs40l50_calibrate\n");
     ret = cs40l50_calibrate(drv);
     if (ret < 0) {
         LOG_INF("cs40l50_calibrate error\n");
         return ret;
     }
-/*
+
     ret = cs40l50_boot(drv, NULL);
     if (ret < 0) {
         LOG_INF("cs40l50_boot error\n");
         return ret;
     }
-*/
+
+    LOG_INF("cs40l50_firmware_load\n");
+    ret = cs40l50_firmware_load(drv);
+    if (ret < 0) {
+        LOG_INF("cs40l50_firmware_load error\n");
+        return ret;
+    }
+
+    ret = regmap_write(&config->i2c, CS40L50_DSP1_CCM_CORE_CONTROL, 0x00000281);
+    if (ret < 0) {
+        LOG_INF("cs40l50_boot error\n");
+        return ret;
+    }
+
+
+    k_msleep(1000);
+
     /* to-do */
+    regmap_read(&config->i2c, FIRMWARE_CS40L50_HALO_STATE, &val);
+    LOG_INF("cs40l50_init: HALO_STATE = %x\n", val);
 
 //    config->irq_cfg_func();
 //    config->irq_enable_func();
@@ -230,7 +373,7 @@ static int haptics_cs40l50_start_output(const struct device *dev)
 
     LOG_INF("haptics_cs40l50_start_output, bank=%x, index=%x\n", data->hap_cfg.bank, data->hap_cfg.index);
 
-    cs40l50_trigger(&data->priv, data->hap_cfg.index, data->hap_cfg.bank);
+    cs40l50_trigger(&data->priv, data->hap_cfg.index, RAM_BANK);
 
     return 0;
 }

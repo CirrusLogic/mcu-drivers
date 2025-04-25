@@ -27,12 +27,12 @@ _Includes_
 * cs40l50/cs40l50_spec.h
 
 _Firmware_
-* cs40l50_fw_img.c
-* cs40l50_fw_img.h
+* cs40l50_firmware.c
+* cs40l50_firmware.h
 
 Firmware is generated using the firmware converter Python tool and a wavetable included in the SDK
 ```
-python ../../tools/firmware_converter/firmware_converter.py fw_img_v2 cs40l50 ROM --wmdr cs40l50_wt.bin
+python ../../../../tools/firmware_converter/firmware_converter.py export cs40l50 ../../../../cs40l50/fw/CS40L50_Rev3.4.8.wmfw --wmdr ../../../../cs40l50/fw/cs40l50_wt.bin --preserve-filename
 ```
 
 _Config_
@@ -81,6 +81,13 @@ The entry point for the BSP/driver is the `cs40l50_init` function.
 The Zephyr init macros ensure that the BSP is allocated the data it needs (`cs40l50_bsp` and `cs40l50_config` structs), receives information about the I2C bus from devicetree (I2C_DT_SPEC_INST_GET), and starts in the function `cs40l50_init()`.
 
 https://github.com/CirrusLogic/mcu-drivers/blob/7faad294f130f55ace18f95e3f3ed827589601cd/samples/haptics/cs40l50/src/cs40l50_bsp.c#L275-L292
+
+## Firmware Loading
+
+The BSP is responsible for loading the firmware. This is implemented in the `cs40l50_firmware_load` and `cs40l50_write_fw_blocks` functions.
+
+Before loading firmware, call `cs40l50_boot` with the `fw_img` param equal to `NULL` to disable the DSP.
+After loading the firmware, boot the DSP by calling `cs40l50_boot` with a firmware image parameter, or write to the DSP enable directly.
 
 # Application
 
