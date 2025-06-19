@@ -244,12 +244,41 @@ static int cs40l50_write_fw_blocks(struct i2c_dt_spec *i2c, halo_boot_block_t *b
     return 0;
 }
 
+static int cs40l50_gpi_get_level(cs40l50_t *drv, unsigned int gpio)
+{
+    uint32_t gpio_status, eint;
+    struct i2c_dt_spec *i2c = drv->config.bsp_config.i2c;
+
+    if (gpio > 13)
+        return -1;
+
+    regmap_read(i2c, CS40L50_GPIO_STATUS1, &gpio_status);
+
+    return ((gpio_status & (1 << (gpio - 1))) != 0);
+}
+
+enum cs40l50_tuning_set {
+    CS40L50_TUNING_SET_A,
+    CS40L50_TUNING_SET_B,
+};
+
+static unsigned int get_tuning_set(cs40l50_t *drv)
+{
+    struct i2c_dt_spec *i2c = drv->config.bsp_config.i2c;
+    int gpi_level;
+
+    gpi_level = cs40l50_gpi_get_level(drv, 1);
+    return gpi_level;
+}
+
 static int cs40l50_firmware_load(cs40l50_t *drv)
 {
     int i, num_blocks, ret;
     halo_boot_block_t *blocks;
     struct i2c_dt_spec *i2c = drv->config.bsp_config.i2c;
-    uint32_t val1, val2, val3;
+    uint32_t tuning_set;
+
+    tuning_set = get_tuning_set(drv);
 
     num_blocks = cs40l50_total_fw_blocks;
     blocks = cs40l50_fw_blocks;
@@ -257,13 +286,59 @@ static int cs40l50_firmware_load(cs40l50_t *drv)
     if (ret != 0)
         return ret;
 
-    num_blocks = cs40l50_wt_total_coeff_blocks_0;
-    blocks = cs40l50_wt_coeff_0_blocks;
-    ret = cs40l50_write_fw_blocks(i2c, blocks, num_blocks);
-    if (ret != 0)
-        return ret;
+    if (tuning_set == CS40L50_TUNING_SET_A) {
+        num_blocks = cs40l50_SVC_A_total_coeff_blocks_0;
+        blocks = cs40l50_SVC_A_coeff_0_blocks;
+        ret = cs40l50_write_fw_blocks(i2c, blocks, num_blocks);
+        if (ret != 0)
+            return ret;
+
+        num_blocks = cs40l50_WT_A_total_coeff_blocks_2;
+        blocks = cs40l50_WT_A_coeff_2_blocks;
+        ret = cs40l50_write_fw_blocks(i2c, blocks, num_blocks);
+        if (ret != 0)
+            return ret;
+
+        LOG_INF("Loaded tuning set A");
+    } else if (tuning_set == CS40L50_TUNING_SET_B) {
+        num_blocks = cs40l50_SVC_B_total_coeff_blocks_1;
+        blocks = cs40l50_SVC_A_coeff_0_blocks;
+        ret = cs40l50_write_fw_blocks(i2c, blocks, num_blocks);
+        if (ret != 0)
+            return ret;
+
+        num_blocks = cs40l50_WT_B_total_coeff_blocks_3;
+        blocks = cs40l50_WT_B_coeff_3_blocks;
+        ret = cs40l50_write_fw_blocks(i2c, blocks, num_blocks);
+        if (ret != 0)
+            return ret;
+
+        LOG_INF("Loaded tuning set B");
+    }
 
     return 0;
+}
+
+static int cs40l50_clear_gpio_triggers(cs40l50_t *drv)
+{
+    int i;
+    struct i2c_dt_spec *i2c = drv->config.bsp_config.i2c;
+
+    for (i = 0; i < 16; i++)
+        regmap_write(i2c, CS40L50_GPIO_HANDLERS_BASE + i*4, 0x1FF);
+
+    return 0;
+}
+
+static int cs40l50_setup_gpi(cs40l50_t *drv, unsigned int gpio)
+{
+    struct i2c_dt_spec *i2c = drv->config.bsp_config.i2c;
+
+    if (gpio > 13)
+        return -1;
+
+    regmap_write(i2c, CS40L50_GPIO_CTRL1 + (4 * (gpio - 1)),
+        CS40L50_GPIO_CTRL_DIR_BITMASK | CS40L50_GPIO_CTRL_FN_INPUT_OUTPUT);
 }
 
 static uint32_t cs40l50_set_timer(uint32_t duration_ms, bsp_callback_t cb, void *cb_arg)
@@ -336,6 +411,8 @@ static int cs40l50_init(const struct device *dev)
         return ret;
     }
 
+    cs40l50_setup_gpi(drv, 1);
+
     LOG_INF("cs40l50_firmware_load\n");
     ret = cs40l50_firmware_load(drv);
     if (ret < 0) {
@@ -349,6 +426,7 @@ static int cs40l50_init(const struct device *dev)
         return ret;
     }
 
+    cs40l50_clear_gpio_triggers(drv);
 
     k_msleep(1000);
 

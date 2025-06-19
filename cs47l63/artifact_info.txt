@@ -1,13 +1,13 @@
 Artifact Info:
-Artifact           : CS47L63 Alt-OS Driver: 4.24.2 - 13efce8883b6138d3a0f152fee4fc721c73d7f88
+Artifact           : CS47L63 Alt-OS Driver: 4.25.0 - d77e60013a24aa7e90744a10819c719a74189aa0
 Test Target MCU SDK: STM32Cube_FW_F4: 1.24.1
 Target toolchain   : GNU Arm Embedded Toolchain: arm-none-eabi-gcc (Arm GNU Toolchain 13.2.rel1 (Build arm-13.7)) 13.2.1 20231009
 Build system       : make: GNU Make 4.3
-OS                 : Linux: 5.14.0-503.35.1.el9_5.x86_64
+OS                 : Linux: 5.14.0-570.19.1.el9_6.x86_64
 Shell              : bash: GNU bash, version 5.1.8(1)-release (x86_64-redhat-linux-gnu)
 Host toolchain     : MinGW GCC: gcc (GCC) 11.5.0 20240719 (Red Hat 11.5.0-5)
-Build Job          : shelley_alt_os_nightly: 1323
-Git SHA            : 13efce8883b6138d3a0f152fee4fc721c73d7f88
+Build Job          : shelley_alt_os_nightly: 1382
+Git SHA            : d77e60013a24aa7e90744a10819c719a74189aa0
 
 System resources:
 

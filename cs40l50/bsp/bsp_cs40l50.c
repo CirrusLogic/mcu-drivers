@@ -146,6 +146,35 @@ uint32_t bsp_dut_reset(void)
     return BSP_STATUS_OK;
 }
 
+uint32_t bsp_dut_get_gpio_input_level(unsigned int gpio)
+{
+    uint32_t gpio_status;
+
+    if (gpio > 13)
+        return -1;
+
+    regmap_read(&cs40l50_driver.config.bsp_config.cp_config,
+        CS40L50_GPIO_STATUS1, &gpio_status);
+
+    return ((gpio_status & (1 << (gpio - 1))) != 0);
+}
+
+
+#ifdef CS40L50_BAREMETAL
+enum cs40l50_tuning_set {
+    CS40L50_TUNING_SET_A,
+    CS40L50_TUNING_SET_B,
+};
+
+static unsigned int bsp_get_tuning_set(void)
+{
+    int gpi_level;
+
+    gpi_level = bsp_dut_get_gpio_input_level(1);
+    return gpi_level;
+}
+#endif //CS40L50_BAREMETAL
+
 uint32_t bsp_dut_boot(void)
 {
 
@@ -281,6 +310,7 @@ uint32_t bsp_dut_boot(void)
 
     current_halo_heartbeat = 0;
 #else
+    unsigned int tuning_set;
     int i;
     for (i = 0; i < cs40l50_total_fw_blocks; i++) {
         ret = regmap_write_block((&cs40l50_driver.config.bsp_config.cp_config),
@@ -293,15 +323,51 @@ uint32_t bsp_dut_boot(void)
         }
     }
 
+    tuning_set = bsp_get_tuning_set();
 
-    for (i = 0; i < cs40l50_total_coeff_blocks_0; i++) {
-        ret = regmap_write_block((&cs40l50_driver.config.bsp_config.cp_config),
-                                 cs40l50_coeff_0_blocks[i].address,
-                                 (uint8_t *)cs40l50_coeff_0_blocks[i].bytes,
-                                 cs40l50_coeff_0_blocks[i].block_size);
-        if (ret == CS40L50_STATUS_FAIL)
-        {
-            return BSP_STATUS_FAIL;
+    if (tuning_set == CS40L50_TUNING_SET_A) {
+        for (i = 0; i < cs40l50_SVC_A_total_coeff_blocks_0; i++) {
+            ret = regmap_write_block((&cs40l50_driver.config.bsp_config.cp_config),
+                                    cs40l50_SVC_A_coeff_0_blocks[i].address,
+                                    (uint8_t *)cs40l50_SVC_A_coeff_0_blocks[i].bytes,
+                                    cs40l50_SVC_A_coeff_0_blocks[i].block_size);
+            if (ret == CS40L50_STATUS_FAIL)
+            {
+                return BSP_STATUS_FAIL;
+            }
+        }
+
+        for (i = 0; i < cs40l50_WT_A_total_coeff_blocks_2; i++) {
+            ret = regmap_write_block((&cs40l50_driver.config.bsp_config.cp_config),
+                                    cs40l50_WT_A_coeff_2_blocks[i].address,
+                                    (uint8_t *)cs40l50_WT_A_coeff_2_blocks[i].bytes,
+                                    cs40l50_WT_A_coeff_2_blocks[i].block_size);
+            if (ret == CS40L50_STATUS_FAIL)
+            {
+                return BSP_STATUS_FAIL;
+            }
+        }
+    } else if (tuning_set == CS40L50_TUNING_SET_B) {
+        for (i = 0; i < cs40l50_SVC_B_total_coeff_blocks_1; i++) {
+            ret = regmap_write_block((&cs40l50_driver.config.bsp_config.cp_config),
+                                    cs40l50_SVC_B_coeff_1_blocks[i].address,
+                                    (uint8_t *)cs40l50_SVC_B_coeff_1_blocks[i].bytes,
+                                    cs40l50_SVC_B_coeff_1_blocks[i].block_size);
+            if (ret == CS40L50_STATUS_FAIL)
+            {
+                return BSP_STATUS_FAIL;
+            }
+        }
+
+        for (i = 0; i < cs40l50_WT_B_total_coeff_blocks_3; i++) {
+            ret = regmap_write_block((&cs40l50_driver.config.bsp_config.cp_config),
+                                    cs40l50_WT_B_coeff_3_blocks[i].address,
+                                    (uint8_t *)cs40l50_WT_B_coeff_3_blocks[i].bytes,
+                                    cs40l50_WT_B_coeff_3_blocks[i].block_size);
+            if (ret == CS40L50_STATUS_FAIL)
+            {
+                return BSP_STATUS_FAIL;
+            }
         }
     }
 
@@ -442,6 +508,33 @@ uint32_t bsp_dut_dynamic_f0_set_enable(bool enable)
     ret = cs40l50_set_dynamic_f0(&cs40l50_driver, enable);
 
     return ret;
+}
+
+uint32_t bsp_dut_disable_gpio_triggers(void)
+{
+    int i, ret = 0;
+
+    for (i = 0; i < 16; i++) {
+        ret = regmap_write(&cs40l50_driver.config.bsp_config.cp_config,
+                CS40L50_GPIO_HANDLERS_BASE + i*4, 0x1FF);
+        if (ret != CS40L50_STATUS_OK)
+        {
+            return BSP_STATUS_FAIL;
+        }
+    }
+
+    return ret;
+}
+
+uint32_t bsp_dut_configure_gpio_input(unsigned int gpio)
+{
+
+    if (gpio > 13)
+        return -1;
+
+    return regmap_write(&cs40l50_driver.config.bsp_config.cp_config,
+        CS40L50_GPIO_CTRL1 + (4 * (gpio - 1)),
+        CS40L50_GPIO_CTRL_DIR_BITMASK | CS40L50_GPIO_CTRL_FN_INPUT_OUTPUT);
 }
 
 uint32_t bsp_dut_configure_gpio_trigger(cs40l50_gpio_bank_t gpio, bool rth,

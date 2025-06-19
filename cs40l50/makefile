@@ -54,12 +54,13 @@ endif
 ifeq ($(MAKECMDGOALS), baremetal)
 FIRMWARE_CONV_TARGET = export
 FIRMWARE_HEADER = ./cs40l50_firmware.h
+HALO_FIRMWARE_WMDR = cs40l50_SVC_A.bin cs40l50_SVC_B.bin cs40l50_WT_A.bin cs40l50_WT_B.bin --preserve-filename
 else
 FIRMWARE_CONV_TARGET = fw_img_v2
 FIRMWARE_HEADER = ./cs40l50_fw_img.h
-endif
-HALO_FIRMWARE_FILE = CS40L50_Rev3.4.8.wmfw
 HALO_FIRMWARE_WMDR = cs40l50_wt.bin
+endif
+HALO_FIRMWARE_FILE = CS40L50_Rev3.4.11.wmfw
 WISCE_SCRIPT = $(CONFIG_PATH)/wisce_init.txt
 MISC_SCRIPTS = hwt_to_waveform_converter
 

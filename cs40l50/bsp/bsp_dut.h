@@ -4,7 +4,7 @@
  * @brief Functions and prototypes exported by the BSP module for the cs35l56 platform.
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2022-2024 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2022-2025 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -64,6 +64,8 @@ uint32_t bsp_dut_hibernate(void);
 uint32_t bsp_dut_wake(void);
 uint32_t bsp_dut_set_click_compensation(bool f0_enable, bool redc_enable);
 uint32_t bsp_dut_set_broadcast_en(bool enable);
+uint32_t bsp_dut_configure_gpio_input(unsigned int gpio);
+uint32_t bsp_dut_disable_gpio_triggers(void);
 uint32_t bsp_dut_configure_gpio_trigger(cs40l50_gpio_bank_t gpio, bool rth,
                                         uint8_t attenuation, bool ram, uint8_t plybck_index);
 uint32_t bsp_dut_dynamic_f0_set_enable(bool enable);

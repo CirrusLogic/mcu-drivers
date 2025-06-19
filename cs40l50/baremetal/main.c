@@ -60,6 +60,10 @@ int main(void)
     bsp_set_ld2(BSP_LD2_MODE_ON, 0);
     bsp_dut_trigger_haptic(0, ROM_BANK);
 
+    bsp_dut_configure_gpio_input(1);
+    bsp_dut_boot();
+    bsp_dut_disable_gpio_triggers();
+
     while (1)
     {
 
