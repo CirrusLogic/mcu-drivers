@@ -1,5 +1,5 @@
 #==========================================================================
-# (c) 2019-2024 Cirrus Logic, Inc.
+# (c) 2019-2025 Cirrus Logic, Inc.
 #--------------------------------------------------------------------------
 # Project : Convert from WMFW/WMDR ("BIN") Files to C Header/Source
 # File    : firmware_converter.py
@@ -26,6 +26,7 @@
 #==========================================================================
 import os
 import sys
+import math
 repo_path = os.path.dirname(os.path.abspath(__file__)) + '/../..'
 sys.path.insert(1, (repo_path + '/tools/sdk_version'))
 from sdk_version import print_sdk_version
@@ -619,6 +620,15 @@ def main(argv):
                           control_name,
                           temp_coeff_address,
                           control_length)
+
+            # If this is the 'PM_*_SEQUENCE' control, add controls for each word
+            if ('PM' in algorithm_name and 'SEQUENCE' in coeff_desc.fields['coefficient_name']):
+                for index in range(1, math.floor(control_length/4) + 1):
+                    f.add_control(algorithm_name,
+                                  alg_block.fields['algorithm_id'],
+                                  control_name+str(index),
+                                  temp_coeff_address + 4*(index-1),
+                                  4)
 
     # Add metadata text
     metadata_text_lines = []

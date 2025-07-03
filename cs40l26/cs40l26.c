@@ -4,7 +4,7 @@
  * @brief The CS40L26 Driver module
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2021-2023 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2021-2023, 2025 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -113,42 +113,14 @@ static const uint32_t cs40l26_hibernate_patch[] =
     IRQ1_IRQ1_MASK_1_REG, 0xFFFFFFFF
 };
 
-static const uint32_t cs40l26_wseq_patch[] =
+static const uint32_t cs40l26_wseq_reg_list[] =
 {
     CS40L26_DSP1RX1_INPUT,
-    // Add refclk setting to Write Sequencer
-    0x04002C,
-    0x040670,
-    // Add non-default register values for ASP to WSEQ
-    0x040048,
-    0x040033,
-    0x000000,
-    0x480820,
-    0x200200,
-    0x000000,
-    0x480000,
-    0x01000F,
-    // Add DOUT setting to Write Sequencer
-    0x040000,
-    0x400055,
-    0x040000,
-    0x4000AA,
-    0x000000,
-    0x922810,
-    0x192D11,
-    0x040000,
-    0x4000CC,
-    0x040000,
-    0x400033,
-    // Add GPIO settings
+    CS40L26_REFCLK_INPUT_REG,
+    CS40L26_ASP_ENABLES1,
+    CS40L26_ASP_CONTROL1,
+    CS40L26_ASP_CONTROL2,
     CS40L26_GPIO_PAD_CONTROL,
-    CS40L26_SDIN_PAD_CONTROL,
-    CS40L26_LRCK_PAD_CONTROL,
-    CS40L26_GPIO1_CTRL1,
-    CS40L26_GPIO2_CTRL1,
-    CS40L26_GPIO3_CTRL1,
-    CS40L26_GPIO4_CTRL1,
-    0xFFFFFF
 };
 
 /***********************************************************************************************************************
@@ -541,7 +513,7 @@ static uint32_t cs40l26_wseq_write_to_dsp(cs40l26_t *driver)
         }
     }
     final_offset = driver->wseq_table[driver->wseq_num_entries].offset + driver->wseq_table[driver->wseq_num_entries].size;
-    regmap_write(cp, base_reg + (4 * final_offset), CS40L26_POWER_SEQ_OP_END << 24);
+    regmap_write(cp, base_reg + (4 * final_offset), CS40L26_POWER_SEQ_OP_END << 16);
     if (ret)
     {
         return ret;
@@ -751,7 +723,7 @@ static uint32_t cs40l26_allow_hibernate(cs40l26_t *driver)
         return ret;
     }
 
-    ret = regmap_write_array(cp,(uint32_t *) cs40l26_hibernate_patch, 3);
+    ret = regmap_write_array(cp,(uint32_t *) cs40l26_hibernate_patch, 6);
     if (ret)
     {
         return ret;
@@ -761,9 +733,9 @@ static uint32_t cs40l26_allow_hibernate(cs40l26_t *driver)
     {
         return ret;
     }
-    for(int i = 0; i < (sizeof(cs40l26_wseq_patch)/sizeof(uint32_t)); i++)
+    for(int i = 0; i < (sizeof(cs40l26_wseq_reg_list)/sizeof(uint32_t)); i++)
     {
-        ret = cs40l26_wseq_table_update(driver, cs40l26_wseq_patch[i], 0,
+        ret = cs40l26_wseq_table_update(driver, cs40l26_wseq_reg_list[i], 0,
                                         CS40L26_POWER_SEQ_OP_WRITE_REG_FULL, true);
         if (ret)
         {

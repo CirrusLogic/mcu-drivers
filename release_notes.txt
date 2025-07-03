@@ -3,6 +3,19 @@ Release Notes
 
 =============================================================================
 Summary:
+This is the release of Alt-OS Driver SDK v4.25.1
+Date: 2025/07/03
+
+Architectures/Compilers Used:
+GNU Arm Embedded Toolchain: arm-none-eabi-gcc -mcpu=cortex-m4
+
+New Features/Changes:
+158f5ca firmware_converter: Add symbols for PM sequence words
+365c139 cs40l26: fix wseq init table
+
+=============================================================================
+=============================================================================
+Summary:
 This is the release of Alt-OS Driver SDK v4.25.0
 Date: 2025/06/19
 
