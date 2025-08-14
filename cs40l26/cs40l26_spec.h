@@ -4,7 +4,7 @@
  * @brief Constants and Types from CS40L26 datasheet
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2021-2024 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2021-2025 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -253,6 +253,11 @@ extern "C" {
 
 #define CS40L26_MEM_RDY_MASK                            (1)
 #define CS40L26_MEM_RDY_SHIFT                           (1)
+
+/* Amplifier */
+#define CS40L26_DAC_MSM_CONFIG                          (0x7400)
+#define CS40L26_AMP_DRV_SLOPE_MASK                      (0x00FF0000)
+#define CS40L26_AMP_DRV_SLOPE_SHIFT                     (16)
 
 /* GPIO */
 #define CS40L26_GPIO_PAD_CONTROL                        (0x0000242C)
