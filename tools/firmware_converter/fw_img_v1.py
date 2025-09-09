@@ -340,7 +340,7 @@ class fw_img_parser:
             for line in f.readlines():
                 line_bytes = []
 
-                if ((not found_array_start) and ('[] = {' in line)):
+                if ((not found_array_start) and ('[] __attribute__((aligned(4))) = {' in line)):
                     found_array_start = True
                     continue
 

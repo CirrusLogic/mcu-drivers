@@ -1,5 +1,5 @@
 #==========================================================================
-# (c) 2020-2022, 2024 Cirrus Logic, Inc.
+# (c) 2020-2022, 2024-2025 Cirrus Logic, Inc.
 #--------------------------------------------------------------------------
 # Project : Templates for C Source and Header files
 # File    : fw_img_v1_templates.py
@@ -117,7 +117,7 @@ source_file_template_str = """/**
  * @{
  */
 
-const uint8_t {part_number_lc}_fw_img[] = {
+const uint8_t {part_number_lc}_fw_img[] __attribute__((aligned(4))) = {
 // Header
 {magic_number_1} // IMG_MAGIC_NUMBER_1
 {img_format_rev} // IMG_FORMAT_REV

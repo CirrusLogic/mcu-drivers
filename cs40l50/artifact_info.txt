@@ -1,26 +1,26 @@
 Artifact Info:
-Artifact           : CS40L50 Alt-OS Driver: 4.25.2 - b09a539995c58ed4520fe65255a864ca07dcb779
+Artifact           : CS40L50 Alt-OS Driver: 4.25.3 - 6e0c9d8b274ceb3e22946b9f5078571f705fd5aa
 Test Target MCU SDK: STM32Cube_FW_F4: 1.24.1
-Target toolchain   : GNU Arm Embedded Toolchain: arm-none-eabi-gcc (Arm GNU Toolchain 13.2.rel1 (Build arm-13.7)) 13.2.1 20231009
-Build system       : make: GNU Make 4.3
-OS                 : Linux: 5.14.0-570.30.1.el9_6.x86_64
-Shell              : bash: GNU bash, version 5.1.8(1)-release (x86_64-redhat-linux-gnu)
-Host toolchain     : MinGW GCC: gcc (GCC) 11.5.0 20240719 (Red Hat 11.5.0-5)
-Build Job          : jamerson_h_alt_os_nightly: 960
-Git SHA            : b09a539995c58ed4520fe65255a864ca07dcb779
+Target toolchain   : GNU Arm Embedded Toolchain: arm-none-eabi-gcc (GNU Tools for Arm Embedded Processors 8-2019-q3-update) 8.3.1 20190703 (release) [gcc-8-branch revision 273027]
+Build system       : make: GNU Make 4.2.1
+OS                 : Windows: 10
+Shell              : MSYS2: msys2-runtime 3.0.7-6
+Host toolchain     : MinGW GCC: gcc (Rev1, Built by MSYS2 project) 9.2.0
+Build Job          : jamerson_h_alt_os_nightly: 989
+Git SHA            : 6e0c9d8b274ceb3e22946b9f5078571f705fd5aa
 
 System resources:
 
 Build Configuration 1:
 
 Artifact filename    : libcs40l50.a
-Driver TEXT          : 3124
+Driver TEXT          : 3084
 Driver BSS           : 4
 Driver DATA          : 596
 Driver Max Stack     : 136 (cs40l50_power -> cs40l50_prevent_hibernate -> cs40l50_pm_state_transition -> regmap_write_acked_reg -> regmap_read -> GET_BYTE_FROM_WORD)
 
 Artifact filename    : baremetal.elf
-Driver TEXT          : 1592
+Driver TEXT          : 1552
 Driver BSS           : 88
 Driver DATA          : 188
 

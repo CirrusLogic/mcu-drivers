@@ -238,10 +238,12 @@ uint32_t bsp_dut_boot(void)
     }
 
     // malloc enough memory to hold the alg_id list, using the alg_id_list_size in the fw_img header
-    boot_state.fw_info.alg_id_list = (uint32_t *) malloc(boot_state.fw_info.header.alg_id_list_size * sizeof(uint32_t));
-    if (boot_state.fw_info.alg_id_list == NULL)
-    {
-        return BSP_STATUS_FAIL;
+    if (boot_state.fw_info.header.alg_id_list_size) {
+        boot_state.fw_info.alg_id_list = (uint32_t *) malloc(boot_state.fw_info.header.alg_id_list_size * sizeof(uint32_t));
+        if (boot_state.fw_info.alg_id_list == NULL)
+        {
+            return BSP_STATUS_FAIL;
+        }
     }
 
     // Finally malloc enough memory to hold the largest data block in the fw_img being processed.
