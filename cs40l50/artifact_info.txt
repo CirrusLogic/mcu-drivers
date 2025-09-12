@@ -1,20 +1,20 @@
 Artifact Info:
-Artifact           : CS40L50 Alt-OS Driver: 4.25.3 - 6e0c9d8b274ceb3e22946b9f5078571f705fd5aa
+Artifact           : CS40L50 Alt-OS Driver: 4.26.0 - a01495381159a4ca574bb5c1df43efc9e7514d6b
 Test Target MCU SDK: STM32Cube_FW_F4: 1.24.1
 Target toolchain   : GNU Arm Embedded Toolchain: arm-none-eabi-gcc (GNU Tools for Arm Embedded Processors 8-2019-q3-update) 8.3.1 20190703 (release) [gcc-8-branch revision 273027]
 Build system       : make: GNU Make 4.2.1
 OS                 : Windows: 10
 Shell              : MSYS2: msys2-runtime 3.0.7-6
 Host toolchain     : MinGW GCC: gcc (Rev1, Built by MSYS2 project) 9.2.0
-Build Job          : jamerson_h_alt_os_nightly: 989
-Git SHA            : 6e0c9d8b274ceb3e22946b9f5078571f705fd5aa
+Build Job          : jamerson_h_alt_os_nightly: 993
+Git SHA            : a01495381159a4ca574bb5c1df43efc9e7514d6b
 
 System resources:
 
 Build Configuration 1:
 
 Artifact filename    : libcs40l50.a
-Driver TEXT          : 3084
+Driver TEXT          : 3216
 Driver BSS           : 4
 Driver DATA          : 596
 Driver Max Stack     : 136 (cs40l50_power -> cs40l50_prevent_hibernate -> cs40l50_pm_state_transition -> regmap_write_acked_reg -> regmap_read -> GET_BYTE_FROM_WORD)
@@ -25,7 +25,7 @@ Driver BSS           : 88
 Driver DATA          : 188
 
 Artifact filename    : cs40l50_firmware.o
-Driver TEXT          : 14828
+Driver TEXT          : 23412
 
 Compiler flags:
 

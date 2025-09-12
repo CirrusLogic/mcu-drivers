@@ -969,6 +969,70 @@ uint32_t cs40l50_power(cs40l50_t *driver, uint32_t power_state)
 }
 
 /**
+ * Run Diagnostics
+ *
+ */
+uint32_t cs40l50_diagnostics(cs40l50_t *driver)
+{
+    uint32_t mbox_rd_ptr_value, data;
+    uint32_t mbox_rd_ptr_addr;
+    uint32_t ret = CS40L50_STATUS_OK;
+    regmap_cp_config_t *cp = REGMAP_GET_CP(driver);
+
+    mbox_rd_ptr_addr = CS40L50_MAILBOX_QUEUE_BASE + CS40L50_MAILBOX_QUEUE_RD_OFFSET;
+
+    ret = regmap_read(cp, (CS40L50_MAILBOX_QUEUE_BASE + CS40L50_MAILBOX_QUEUE_WT_OFFSET), &data);
+    if (ret)
+    {
+        return ret;
+    }
+
+    ret = regmap_write(cp, mbox_rd_ptr_addr, data);
+    if (ret)
+    {
+        return ret;
+    }
+
+    mbox_rd_ptr_value = data;
+
+    ret = regmap_write(cp, CS40L50_DSP_VIRTUAL1_MBOX_1, CS40L50_DSP_MBOX_RUN_DIAG);
+    if (ret)
+    {
+        return ret;
+    }
+
+    ret = regmap_poll_reg(cp, mbox_rd_ptr_value, CS40L50_DSP_MBOX_DIAG_START, 10, 1);
+    if (ret)
+    {
+        return ret;
+    }
+
+    mbox_rd_ptr_value += 4;
+
+    ret = regmap_write(cp, mbox_rd_ptr_addr, mbox_rd_ptr_value);
+    if (ret)
+    {
+        return ret;
+    }
+
+    ret = regmap_poll_reg(cp, mbox_rd_ptr_value, CS40L50_DSP_MBOX_DIAG_DONE, 30, 1);
+    if (ret)
+    {
+        return ret;
+    }
+
+    mbox_rd_ptr_value += 4;
+
+    ret = regmap_write(cp, mbox_rd_ptr_addr, mbox_rd_ptr_value);
+    if (ret)
+    {
+        return ret;
+    }
+
+    return CS40L50_STATUS_OK;
+}
+
+/**
  * Calibrate the HALO Core DSP Protection Algorithm
  *
  */

@@ -328,44 +328,44 @@ uint32_t bsp_dut_boot(void)
     tuning_set = bsp_get_tuning_set();
 
     if (tuning_set == CS40L50_TUNING_SET_A) {
-        for (i = 0; i < cs40l50_SVC_A_total_coeff_blocks_0; i++) {
+        for (i = 0; i < cs40l50_SVC_A_total_coeff_blocks; i++) {
             ret = regmap_write_block((&cs40l50_driver.config.bsp_config.cp_config),
-                                    cs40l50_SVC_A_coeff_0_blocks[i].address,
-                                    (uint8_t *)cs40l50_SVC_A_coeff_0_blocks[i].bytes,
-                                    cs40l50_SVC_A_coeff_0_blocks[i].block_size);
+                                    cs40l50_SVC_A_coeff_blocks[i].address,
+                                    (uint8_t *)cs40l50_SVC_A_coeff_blocks[i].bytes,
+                                    cs40l50_SVC_A_coeff_blocks[i].block_size);
             if (ret == CS40L50_STATUS_FAIL)
             {
                 return BSP_STATUS_FAIL;
             }
         }
 
-        for (i = 0; i < cs40l50_WT_A_total_coeff_blocks_2; i++) {
+        for (i = 0; i < cs40l50_WT_A_total_coeff_blocks; i++) {
             ret = regmap_write_block((&cs40l50_driver.config.bsp_config.cp_config),
-                                    cs40l50_WT_A_coeff_2_blocks[i].address,
-                                    (uint8_t *)cs40l50_WT_A_coeff_2_blocks[i].bytes,
-                                    cs40l50_WT_A_coeff_2_blocks[i].block_size);
+                                    cs40l50_WT_A_coeff_blocks[i].address,
+                                    (uint8_t *)cs40l50_WT_A_coeff_blocks[i].bytes,
+                                    cs40l50_WT_A_coeff_blocks[i].block_size);
             if (ret == CS40L50_STATUS_FAIL)
             {
                 return BSP_STATUS_FAIL;
             }
         }
     } else if (tuning_set == CS40L50_TUNING_SET_B) {
-        for (i = 0; i < cs40l50_SVC_B_total_coeff_blocks_1; i++) {
+        for (i = 0; i < cs40l50_SVC_B_total_coeff_blocks; i++) {
             ret = regmap_write_block((&cs40l50_driver.config.bsp_config.cp_config),
-                                    cs40l50_SVC_B_coeff_1_blocks[i].address,
-                                    (uint8_t *)cs40l50_SVC_B_coeff_1_blocks[i].bytes,
-                                    cs40l50_SVC_B_coeff_1_blocks[i].block_size);
+                                    cs40l50_SVC_B_coeff_blocks[i].address,
+                                    (uint8_t *)cs40l50_SVC_B_coeff_blocks[i].bytes,
+                                    cs40l50_SVC_B_coeff_blocks[i].block_size);
             if (ret == CS40L50_STATUS_FAIL)
             {
                 return BSP_STATUS_FAIL;
             }
         }
 
-        for (i = 0; i < cs40l50_WT_B_total_coeff_blocks_3; i++) {
+        for (i = 0; i < cs40l50_WT_B_total_coeff_blocks; i++) {
             ret = regmap_write_block((&cs40l50_driver.config.bsp_config.cp_config),
-                                    cs40l50_WT_B_coeff_3_blocks[i].address,
-                                    (uint8_t *)cs40l50_WT_B_coeff_3_blocks[i].bytes,
-                                    cs40l50_WT_B_coeff_3_blocks[i].block_size);
+                                    cs40l50_WT_B_coeff_blocks[i].address,
+                                    (uint8_t *)cs40l50_WT_B_coeff_blocks[i].bytes,
+                                    cs40l50_WT_B_coeff_blocks[i].block_size);
             if (ret == CS40L50_STATUS_FAIL)
             {
                 return BSP_STATUS_FAIL;

@@ -162,12 +162,12 @@ header_file_template_coeff_strs = {
     'include_coeff_1': """/**
  * Total blocks of {part_number_uc} Coefficient {coeff_index} data
  */
-#define {part_number_lc}_total_coeff_blocks_{coeff_index} ({total_coeff_blocks})
+#define {part_number_lc}_total_coeff_blocks{coeff_index} ({total_coeff_blocks})
 """,
     'include_coeff_2': """/**
  * Coefficient {coeff_index} memory block metadata
  */
-extern const halo_boot_block_t {part_number_lc}_coeff_{coeff_index}_blocks[];
+extern const halo_boot_block_t {part_number_lc}_coeff{coeff_index}_blocks[];
 """
 }
 
@@ -263,7 +263,7 @@ source_file_template_fw_boot_block_entry_str = """    {
 
 source_file_template_coeff_strs = {
     'include_coeff_0': """/**
- * @defgroup {part_number_uc}_COEFFICIENT_{coeff_index}_MEMORY_BLOCKS
+ * @defgroup {part_number_uc}_COEFFICIENT{coeff_index}_MEMORY_BLOCKS
  * @brief Coefficient {coeff_index} memory blocks
  * @details
  * Trailing zero bytes may be appended to fill output words
@@ -275,13 +275,13 @@ source_file_template_coeff_strs = {
 /**
  * Coefficient {coeff_index} memory block metadata
  */
-const halo_boot_block_t {part_number_lc}_coeff_{coeff_index}_blocks[] = {
+const halo_boot_block_t {part_number_lc}_coeff{coeff_index}_blocks[] = {
 {coeff_boot_block_entries}
 };
 """
 }
 
-source_file_template_coeff_block_str = """const uint8_t {part_number_lc}_coeff_{coeff_index}_block_{block_index}[] = {
+source_file_template_coeff_block_str = """const uint8_t {part_number_lc}_coeff{coeff_index}_block_{block_index}[] = {
 {block_bytes}
 };
 """
@@ -289,7 +289,7 @@ source_file_template_coeff_block_str = """const uint8_t {part_number_lc}_coeff_{
 source_file_template_coeff_boot_block_entry_str = """    {
         .address = {block_address},
         .block_size = {block_size},
-        .bytes = {part_number_lc}_coeff_{coeff_index}_block_{block_index}
+        .bytes = {part_number_lc}_coeff{coeff_index}_block_{block_index}
     },"""
 
 source_file_template_bin_strs = {
@@ -425,13 +425,19 @@ class header_file:
             include_coeff_2_str = ''
             for total in self.terms['total_coeff_blocks']:
                 include_coeff_1_str = include_coeff_1_str + header_file_template_coeff_strs['include_coeff_1']
-                include_coeff_1_str = include_coeff_1_str.replace("{coeff_index}", str(coeff_index))
+                if (self.terms['coeff_filenames'][coeff_index] == '{part_number_lc}'):
+                    include_coeff_1_str = include_coeff_1_str.replace("{coeff_index}", '_' + str(coeff_index))
+                else:
+                    include_coeff_1_str = include_coeff_1_str.replace("{coeff_index}", '')
                 include_coeff_1_str = include_coeff_1_str.replace('{total_coeff_blocks}', total)
                 include_coeff_1_str = include_coeff_1_str.replace("{part_number_lc}", self.terms['coeff_filenames'][coeff_index])
                 include_coeff_1_str = include_coeff_1_str + '\n'
 
                 include_coeff_2_str = include_coeff_2_str + header_file_template_coeff_strs['include_coeff_2']
-                include_coeff_2_str = include_coeff_2_str.replace("{coeff_index}", str(coeff_index))
+                if (self.terms['coeff_filenames'][coeff_index] == '{part_number_lc}'):
+                    include_coeff_2_str = include_coeff_2_str.replace("{coeff_index}", '_' + str(coeff_index))
+                else:
+                    include_coeff_2_str = include_coeff_2_str.replace("{coeff_index}", "")
                 include_coeff_2_str = include_coeff_2_str.replace("{part_number_lc}", self.terms['coeff_filenames'][coeff_index])
                 include_coeff_2_str = include_coeff_2_str + '\n'
 
@@ -550,7 +556,10 @@ class source_file:
         # Create string for block data
         temp_str = source_file_template_coeff_block_str.replace('{block_index}', str(self.total_coeff_blocks[index]))
         temp_str = temp_str.replace('{block_bytes}', self.create_block_string(data_bytes))
-        temp_str = temp_str.replace('{coeff_index}', str(index))
+        if (temp_filename == '{part_number_lc}'):
+            temp_str = temp_str.replace('{coeff_index}', '_' + str(index))
+        else:
+            temp_str = temp_str.replace('{coeff_index}', '');
         temp_str = temp_str.replace('{part_number_lc}', temp_filename);
 
         self.terms['coeff_block_arrays'][index] = self.terms['coeff_block_arrays'][index] + temp_str + '\n'
@@ -560,7 +569,10 @@ class source_file:
         temp_str = source_file_template_coeff_boot_block_entry_str.replace('{block_index}', str(self.total_coeff_blocks[index]))
         temp_str = temp_str.replace('{block_address}', "0x" + "{0:0{1}X}".format(address, 8))
         temp_str = temp_str.replace('{block_size}', str(len(data_bytes)))
-        temp_str = temp_str.replace('{coeff_index}', str(index))
+        if (temp_filename == '{part_number_lc}'):
+            temp_str = temp_str.replace('{coeff_index}', '_' + str(index))
+        else:
+            temp_str = temp_str.replace('{coeff_index}', '');
         temp_str = temp_str.replace('{part_number_lc}', temp_filename);
 
         self.terms['coeff_boot_block_entries'][index] = self.terms['coeff_boot_block_entries'][index] + temp_str + '\n'
@@ -605,7 +617,10 @@ class source_file:
         if (self.includes_coeff):
             temp_str = ''
             for i in range(0, len(self.terms['coeff_block_arrays'])):
-                temp_str = temp_str + source_file_template_coeff_strs['include_coeff_0'].replace('{coeff_index}', str(i))
+                if (self.terms['coeff_block_filenames'][i] == '{part_number_lc}'):
+                    temp_str = temp_str + source_file_template_coeff_strs['include_coeff_0'].replace('{coeff_index}', '_' + str(i))
+                else:
+                    temp_str = temp_str + source_file_template_coeff_strs['include_coeff_0'].replace('{coeff_index}', '')
                 temp_str = temp_str.replace('{coeff_block_arrays}', self.terms['coeff_block_arrays'][i])
                 temp_str = temp_str.replace('{coeff_boot_block_entries}', self.terms['coeff_boot_block_entries'][i])
                 temp_str = temp_str.replace('{part_number_lc}', self.terms['coeff_block_filenames'][i])

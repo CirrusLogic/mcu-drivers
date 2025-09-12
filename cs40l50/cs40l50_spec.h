@@ -170,6 +170,9 @@ extern "C" {
 #define CS40L50_DSP_MBOX_REDC_EST_DONE                                      (0x7000022)
 #define CS40L50_DSP_MBOX_F0_EST_START                                       (0x7000011)
 #define CS40L50_DSP_MBOX_F0_EST_DONE                                        (0x7000021)
+#define CS40L50_DSP_MBOX_RUN_DIAG                                           (0x300000C)
+#define CS40L50_DSP_MBOX_DIAG_START                                         (0x3000000)
+#define CS40L50_DSP_MBOX_DIAG_DONE                                          (0x3000001)
 /* OWT/RTH */
 #define  CS40L50_VIBEGEN_OWT_BASE_XM                                        (0x02805C34)
 #define  CS40L50_OWT_WAVE_XM_TABLE                                          (0x02805C48)
