@@ -1,13 +1,13 @@
 Artifact Info:
-Artifact           : CS40L25 Alt-OS Driver: 4.26.0 - a01495381159a4ca574bb5c1df43efc9e7514d6b
+Artifact           : CS40L25 Alt-OS Driver: 4.26.2 - 6df2ea914681a9b4f378df85406afaf1162b5752
 Test Target MCU SDK: STM32Cube_FW_F4: 1.24.1
 Target toolchain   : GNU Arm Embedded Toolchain: arm-none-eabi-gcc (Arm GNU Toolchain 13.2.rel1 (Build arm-13.7)) 13.2.1 20231009
 Build system       : make: GNU Make 4.3
-OS                 : Linux: 5.14.0-570.37.1.el9_6.x86_64
+OS                 : Linux: 5.14.0-570.46.1.el9_6.x86_64
 Shell              : bash: GNU bash, version 5.1.8(1)-release (x86_64-redhat-linux-gnu)
 Host toolchain     : MinGW GCC: gcc (GCC) 11.5.0 20240719 (Red Hat 11.5.0-5)
-Build Job          : princeh_alt_os_nightly: 1891
-Git SHA            : a01495381159a4ca574bb5c1df43efc9e7514d6b
+Build Job          : princeh_alt_os_nightly: 1908
+Git SHA            : 6df2ea914681a9b4f378df85406afaf1162b5752
 
 System resources:
 

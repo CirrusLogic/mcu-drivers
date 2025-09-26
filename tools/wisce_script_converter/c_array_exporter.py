@@ -1,5 +1,5 @@
 # ==========================================================================
-# (c) 2020-2021 Cirrus Logic, Inc.
+# (c) 2020-2021, 2025 Cirrus Logic, Inc.
 # --------------------------------------------------------------------------
 # Project : Class for exporting to C Array
 # File    : c_array_exporter.py
@@ -70,6 +70,7 @@ extern "C" {
  * LITERALS & CONSTANTS
  **********************************************************************************************************************/
 #define {filename_prefix_uc}_SYSCFG_REGS_TOTAL ({syscfg_regs_total})
+{sym_length_define}
 
 /***********************************************************************************************************************
  * ENUMS, STRUCTS, UNIONS, TYPEDEFS
@@ -79,6 +80,7 @@ extern "C" {
  * GLOBAL VARIABLES
  **********************************************************************************************************************/
 extern uint32_t {filename_prefix_lc}_syscfg_regs[];
+{sym_extern_decl}
 
 #ifdef __cplusplus
 }
@@ -121,10 +123,15 @@ source_file_template_str = """/**
 
 {syscfg_regs_list}
 
+{syscfg_syms_list}
+
 """
 
 source_file_template_syscfg_reg_title_entry_str = """uint32_t {filename_prefix_lc}_syscfg_regs[] =\n"""
+source_file_template_syscfg_sym_title_entry_str = """uint32_t {filename_prefix_lc}_syscfg_syms[] =\n"""
 source_file_template_syscfg_reg_list_entry_str = """    {array}{comma}{comment}"""
+header_file_template_sym_length_define_str = """#define {filename_prefix_uc}_SYSCFG_SYMS_TOTAL ({syscfg_syms_total})"""
+header_file_template_sym_extern_decl_str = """extern uint32_t {filename_prefix_lc}_syscfg_syms[];"""
 
 # ==========================================================================
 # CLASSES
@@ -134,6 +141,7 @@ class c_array_exporter(wisce_script_exporter):
         wisce_script_exporter.__init__(self, attributes)
         self.transaction_list = []
         self.transaction_list_length = 0
+        self.sym_list_length = 0
         self.terms = dict()
         self.terms['part_number_lc'] = self.attributes['part_number_str'].lower()
         self.terms['part_number_uc'] = self.attributes['part_number_str'].upper()
@@ -183,7 +191,10 @@ class c_array_exporter(wisce_script_exporter):
         else:
             temp_str = source_file_template_syscfg_reg_title_entry_str
             temp_str += "{\n"
+            temp_sym_str = source_file_template_syscfg_sym_title_entry_str
+            temp_sym_str += "{\n"
             block_write_warning_flag = False
+            has_syms = False
             for t in self.transaction_list:
                 if isinstance(t, str):
                     if self.include_comments:
@@ -191,8 +202,20 @@ class c_array_exporter(wisce_script_exporter):
                     continue
 
                 temp_str = temp_str.replace('{comma}', ',')
+                temp_sym_str = temp_sym_str.replace('{comma}', ',')
 
-                if "{part_number_uc}_SYM_" in t.params[0]:
+                if "{part_number_uc}_SYM_" in t.params:
+                    temp_sym_str += source_file_template_syscfg_reg_list_entry_str
+                    temp_sym_str = temp_sym_str.replace('{array}', t.params)
+                    has_syms = True
+                    if (self.include_comments and (t.comment is not None)):
+                        if not t.comment.endswith('\n'):
+                            temp_sym_str = temp_sym_str.replace('{comment}', ' // ' + t.comment + '\n')
+                        else:
+                            temp_sym_str = temp_sym_str.replace('{comment}', ' // ' + t.comment)
+                    else:
+                        temp_sym_str = temp_sym_str.replace('{comment}', '\n')
+                    self.sym_list_length += 2
                     continue
                 temp_str += source_file_template_syscfg_reg_list_entry_str
                 if t.cmd == 'write':
@@ -224,14 +247,28 @@ class c_array_exporter(wisce_script_exporter):
                     temp_str = temp_str.replace('{comment}', '\n')
             temp_str = temp_str.replace('{comma}', '')# remove last comma
             temp_str += "};\n"
+            temp_sym_str = temp_sym_str.replace('{comma}', '')# remove last comma
+            temp_sym_str += "};\n"
             output_str = output_str.replace('{syscfg_regs_list}', temp_str)
+            if (has_syms):
+                output_str = output_str.replace('{syscfg_syms_list}', temp_sym_str)
+            else:
+                output_str = output_str.replace('{syscfg_syms_list}', "")
+
+        output_str = output_str.replace('{syscfg_regs_total}', str(self.transaction_list_length - self.sym_list_length))
+        if (self.sym_list_length > 0):
+            output_str = output_str.replace('{sym_length_define}', header_file_template_sym_length_define_str)
+            output_str = output_str.replace('{syscfg_syms_total}', str(self.sym_list_length))
+            output_str = output_str.replace('{sym_extern_decl}', header_file_template_sym_extern_decl_str)
+        else:
+            output_str = output_str.replace('{sym_length_define}', "")
+            output_str = output_str.replace('{sym_extern_decl}', "")
 
         output_str = output_str.replace('{part_number_lc}', self.terms['part_number_lc'])
         output_str = output_str.replace('{part_number_uc}', self.terms['part_number_uc'])
         output_str = output_str.replace('{filename_prefix_lc}', self.terms['filename_prefix_lc'])
         output_str = output_str.replace('{filename_prefix_uc}', self.terms['filename_prefix_uc'])
         output_str = output_str.replace('{space}', "    ")
-        output_str = output_str.replace('{syscfg_regs_total}', str(self.transaction_list_length))
         output_str = output_str.replace('\n\n\n', '\n\n')
         output_str = output_str.replace('{space}', "    ")
         return output_str
@@ -239,15 +276,15 @@ class c_array_exporter(wisce_script_exporter):
     def to_file(self):
         results_str = "Exported to:\n"
 
-        temp_filename = self.output_path + '/' + self.terms['filename_prefix_lc'] + "_syscfg_regs.h"
-        f = open(temp_filename, 'w')
-        f.write(self.to_string(True))
-        f.close()
-        results_str += temp_filename + '\n'
-
         temp_filename = self.output_path + '/' + self.terms['filename_prefix_lc'] + "_syscfg_regs.c"
         f = open(temp_filename, 'w')
         f.write(self.to_string(False))
+        f.close()
+        results_str += temp_filename + '\n'
+
+        temp_filename = self.output_path + '/' + self.terms['filename_prefix_lc'] + "_syscfg_regs.h"
+        f = open(temp_filename, 'w')
+        f.write(self.to_string(True))
         f.close()
         results_str += temp_filename + '\n'
 
