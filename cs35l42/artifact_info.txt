@@ -1,26 +1,26 @@
 Artifact Info:
-Artifact           : CS35L42 Alt-OS Driver: 4.26.2 - 6df2ea914681a9b4f378df85406afaf1162b5752
+Artifact           : CS35L42 Alt-OS Driver: 4.27.2 - d201cdaf89044f25be78a00605a197f376226234
 Test Target MCU SDK: STM32Cube_FW_F4: 1.24.1
 Target toolchain   : GNU Arm Embedded Toolchain: arm-none-eabi-gcc (Arm GNU Toolchain 13.2.rel1 (Build arm-13.7)) 13.2.1 20231009
 Build system       : make: GNU Make 4.3
-OS                 : Linux: 5.14.0-570.46.1.el9_6.x86_64
+OS                 : Linux: 5.14.0-570.55.1.el9_6.x86_64
 Shell              : bash: GNU bash, version 5.1.8(1)-release (x86_64-redhat-linux-gnu)
 Host toolchain     : MinGW GCC: gcc (GCC) 11.5.0 20240719 (Red Hat 11.5.0-5)
-Build Job          : peart_a_alt_os_nightly: 1129
-Git SHA            : 6df2ea914681a9b4f378df85406afaf1162b5752
+Build Job          : peart_a_alt_os_nightly: 1175
+Git SHA            : d201cdaf89044f25be78a00605a197f376226234
 
 System resources:
 
 Build Configuration 1:
 
 Artifact filename    : libcs35l42.a
-Driver TEXT          : 4848
+Driver TEXT          : 4896
 Driver BSS           : 0
 Driver DATA          : 120
-Driver Max Stack     : 216 (cs35l42_power -> cs35l42_hibernate -> regmap_write_array -> regmap_update_reg -> regmap_read -> uint32_t)
+Driver Max Stack     : 224 (cs35l42_power -> cs35l42_hibernate -> regmap_write_array -> regmap_update_reg -> regmap_read -> uint32_t)
 
 Artifact filename    : freertos.elf
-Driver TEXT          : 4302
+Driver TEXT          : 4342
 Driver BSS           : 1044
 Driver DATA          : 120
 
@@ -31,4 +31,18 @@ Artifact filename    : cs35l42_fw_img.o
 Driver TEXT          : 25512
 
 Compiler flags:
+    -mcpu=cortex-m4
+    -mthumb
+    -mfpu=fpv4-sp-d16
+    -mfloat-abi=hard
+    -march=armv7e-m+fp
+    -Os
+    -Werror
+    -Wall
+    -std=gnu11
+    -fno-diagnostics-show-caret
+    -fdata-sections
+    -ffunction-sections
+    -fstack-usage
+    -frecord-gcc-switches
 

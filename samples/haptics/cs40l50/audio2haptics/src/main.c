@@ -30,16 +30,17 @@ int main(void)
         const struct device *dev1 = DEVICE_DT_GET(DT_NODELABEL(haptic1));
         const struct device *uart = DEVICE_DT_GET(DT_NODELABEL(usart2));
         struct cs40l50_haptic_source_config hap_cfg = {
-                .index = 23,
-                .bank = 0, //ROM
+                .index = CS40L50_HAPTIC_ROM_CLICK_14_VCM,
+                .bank = ROM_BANK,
         };
+        cs40l50_set_haptic_cfg(dev1, &hap_cfg);
 
         if (!dev1) {
                 LOG_ERR("CS40L50 device not found");
                 return -ENODEV;
         } else if (!device_is_ready(dev1)) {
                 LOG_ERR("CS40L50 device %s is not ready", dev1->name);
-                //return -EIO;
+                return -EIO;
         } else {
                 LOG_INF("Found CS40L50 device %s", dev1->name);
         }

@@ -1,0 +1,319 @@
+/**
+ * @file cs40l5x_spec.h
+ *
+ * @brief Constants and Types from CS40L5X datasheet
+ *
+ * @copyright
+ * Copyright (c) Cirrus Logic 2025 All Rights Reserved, http://www.cirrus.com/
+ *
+ * Licensed under the Apache License, Version 2.0 (the License); you may
+ * not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an AS IS BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ */
+
+#ifndef CS40L5X_SPEC_H
+#define CS40L5X_SPEC_H
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+/***********************************************************************************************************************
+ * INCLUDES
+ **********************************************************************************************************************/
+#include <stdint.h>
+
+/***********************************************************************************************************************
+ * GENERIC ENUMS, STRUCTS, UNIONS, TYPEDEFS
+ **********************************************************************************************************************/
+
+/***********************************************************************************************************************
+ * LITERALS, CONSTANTS, MACROS, ENUMS, STRUCTS, UNIONS, TYPEDEFS
+ **********************************************************************************************************************/
+/**
+ * @defgroup CS40L5X_DATASHEET
+ * @brief All stuff from the datasheet
+ *
+ * @{
+ */
+
+/**
+ * @defgroup SECTION_3_CHAR_AND_SPEC
+ * @brief Characteristics and Specifications from datasheet
+ *
+ * @{
+ */
+#define CS40L5X_T_BST_PUP_MS                                                (1)
+#define CS40L5X_T_RLPW_MS                                                   (2)
+#define CS40L5X_T_IRS_MS                                                    (1)
+/** @} */
+
+/**
+ * @defgroup SECTION_7_1_SW_RESET
+ * @brief Register descriptions from datasheet
+ *
+ * @{
+ */
+#define CS40L5X_SW_RESET_DEVID_REG                                          (0x0)
+#define CS40L5X_SW_RESET_REVID_REG                                          (0x4)
+#define CS40L5X_REVID_B0                                                    (0xB0)
+/** @} */
+
+
+/**
+ * @defgroup SECTION_7_2_CTRL_KEYS
+ * @brief Register descriptions from datasheet
+ *
+ * @{
+ */
+#define CS40L5X_CTRL_KEYS_TEST_KEY_CTRL_REG                                 (0x40)
+
+#define CS40L5X_TEST_KEY_CTRL_UNLOCK_1                                      (0x00000055)
+#define CS40L5X_TEST_KEY_CTRL_UNLOCK_2                                      (0x000000AA)
+#define CS40L5X_TEST_KEY_CTRL_LOCK_1                                        (0x000000CC)
+#define CS40L5X_TEST_KEY_CTRL_LOCK_2                                        (0x00000033)
+/** @} */
+
+#define CS40L5X_DSP_VIRTUAL1_MBOX_1                                         (0x11020)
+#define CS40L5X_CMD_INDEX_ROM_WAVE                                          (0x01800000)
+#define CS40L5X_CMD_INDEX_RAM_WAVE                                          (0x01000000)
+
+#define CS40L5X_F0_ESTIMATION_REDC                                          (0x02802F7C)
+#define CS40L5X_F0_ESTIMATION_F0_EST                                        (0x02802F84)
+
+#define CS40L5X_F0_OTP_STORED                                               (0x02805C00)
+#define CS40L5X_REDC_OTP_STORED                                             (0x02805C04)
+#define CS40L5X_VIBEGEN_COMPENSATION_ENABLE                                 (0x02805C30)
+
+#define CS40L5X_SVC_RE_EST_STATUS                                           (0x03401110)
+
+
+#define CS40L5X_DSP1_CCM_CORE_CONTROL                                       (0x02BC1000)
+#define CS40L5X_FIRMWARE_CALL_RAM_INIT                                      (0x028021DC)
+#define CS40L5X_PWRMGT_CTL                                                  (0x00002900)
+
+/** @} */
+
+#define  IRQ1_STATUS_REG                                                    (0xE004)
+
+/* Broadcast */
+#define CS40L5X_I2C_BROADCAST                                               (0x00000168)
+#define CS40L5X_I2C_BROADCAST_EN_MASK                                       (1 << 15)
+#define CS40L5X_I2C_BROADCAST_ADDR_DEFAULT                                  (0x00000088)
+
+/* State */
+
+#define CS40L5X_STATE_HIBERNATE                                             (0)
+#define CS40L5X_STATE_SHUTDOWN                                              (1)
+#define CS40L5X_STATE_STANDBY                                               (2)
+#define CS40L5X_STATE_ACTIVE                                                (3)
+#define CS40L5X_STATE_WAKE                                                  (4)
+
+#define CS40L5X_PWLE_ENTRY_START                                            (0)
+
+/* DSP State */
+
+#define CS40L5X_DSP_STATE_HIBERNATE                                         (0)
+#define CS40L5X_DSP_STATE_SHUTDOWN                                          (1)
+#define CS40L5X_DSP_STATE_STANDBY                                           (2)
+#define CS40L5X_DSP_STATE_ACTIVE                                            (3)
+#define CS40L5X_DSP_STATE_UNKNOWN                                           (4)
+
+/* PM State */
+#define CS40L5X_PM_STATE_HIBERNATE                                          (0)
+#define CS40L5X_PM_STATE_WAKEUP                                             (1)
+#define CS40L5X_PM_STATE_PREVENT_HIBERNATE                                  (2)
+#define CS40L5X_PM_STATE_ALLOW_HIBERNATE                                    (3)
+#define CS40L5X_PM_STATE_SHUTDOWN                                           (4)
+
+#define CS40L5X_PM_TIMEOUT_MS_MAX                                           (10000)
+#define CS40L5X_PM_TICKS_MS_DIV                                             (32)
+#define CS40L5X_PM_TIMEOUT_TICKS_UPPER_SHIFT                                (24)
+#define CS40L5X_PM_TIMEOUT_TICKS_UPPER_MASK                                 (0x00FFFFFF)
+#define CS40L5X_PM_TIMEOUT_TICKS_LOWER_MASK                                 (0xFFFFFFFF)
+#define CS40L5X_PM_TIMER_TIMEOUT_TICKS_3_L                                  (0x02804300)
+
+#define CS40L5X_DSP_STATE_MASK                                              (0xFF)
+
+/*Dynamic F0*/
+#define CS40L5X_DYNAMIC_F0_ENABLED                                          (0x02802F8C)
+#define CS40L5X_DYNAMIC_F0_THRESHOLD                                        (0x02802F90)
+#define CS40L5X_DYNAMIC_F0_TABLE                                            (0x02802FA0)
+
+/* DSP mailbox controls */
+#define CS40L5X_DSP_MBOX_RESET                                              (0x0)
+#define CS40L5X_DSP_MBOX_CMD_HIBER                                          (0x02000001)
+#define CS40L5X_DSP_MBOX_CMD_WAKEUP                                         (0x02000002)
+#define CS40L5X_DSP_MBOX_CMD_PREVENT_HIBER                                  (0x02000003)
+#define CS40L5X_DSP_MBOX_CMD_ALLOW_HIBER                                    (0x02000004)
+#define CS40L5X_DSP_MBOX_CMD_SHUTDOWN                                       (0x02000005)
+#define CS40L5X_DSP_MBOX_CMD_START_I2S                                      (0x03000002)
+#define CS40L5X_DSP_MBOX_CMD_STOP_I2S                                       (0x03000003)
+#define CS40L5X_DSP_MBOX_PM_CMD_BASE                                        CS40L5X_DSP_MBOX_CMD_HIBER
+
+#define CS40L5X_DSP_BYTES_PER_WORD                                          (4)
+#define CS40L5X_MAILBOX_QUEUE_BASE                                          (0x028042C0)
+#define CS40L5X_MAILBOX_QUEUE_LEN_OFFSET                                    (4)
+#define CS40L5X_MAILBOX_QUEUE_WT_OFFSET                                     (8)
+#define CS40L5X_MAILBOX_QUEUE_RD_OFFSET                                     (12)
+
+#define CS40L5X_DSP_MBOX_HAPTIC_TRIGGER_I2S                                 (0x1000012)
+#define CS40L5X_DSP_MBOX_F0_EST                                             (0x7000001)
+#define CS40L5X_DSP_MBOX_REDC_EST                                           (0x7000002)
+#define CS40L5X_DSP_MBOX_REDC_EST_START                                     (0x7000012)
+#define CS40L5X_DSP_MBOX_REDC_EST_DONE                                      (0x7000022)
+#define CS40L5X_DSP_MBOX_F0_EST_START                                       (0x7000011)
+#define CS40L5X_DSP_MBOX_F0_EST_DONE                                        (0x7000021)
+#define CS40L5X_DSP_MBOX_RUN_DIAG                                           (0x300000C)
+#define CS40L5X_DSP_MBOX_DIAG_START                                         (0x3000000)
+#define CS40L5X_DSP_MBOX_DIAG_DONE                                          (0x3000001)
+/* OWT/RTH */
+#define  CS40L5X_VIBEGEN_OWT_BASE_XM                                        (0x02805C34)
+#define  CS40L5X_OWT_WAVE_XM_TABLE                                          (0x02805C48)
+#define  CS40L5X_OWT_PUSH                                                   (0x03000008)
+#define  CS40L5X_TRIGGER_RTH                                                (0x01400000)
+#define  CS40L5X_MAX_PWLE_SECTIONS                                          (126)
+#define  CS40L5X_SLOT0_MAX_PWLE_SECTIONS                                    (61)
+#define  CS40l5X_SLOT1_MAX_PWLE_SECTIONS                                    (65)
+/*GPIO trigger configuration*/
+#define CS40L5X_GPIO_HANDLERS_BASE                                          (0x02804140)
+#define CS40L5X_GPIO_HANDLERS_ENTRY_LENGTH_BYTES                            (4)
+
+#define CS40L5X_IRQ1_IRQ1_STATUS                                            (0x0000E004)
+
+#define CS40L5X_IRQ1_INT_1                                                  (0x0000E010)
+#define IRQ1_INT_1_AMP_SHORT_ERR_INT1_BITMASK                               (1 << 31)
+
+#define CS40L5X_IRQ1_INT_2                                                  (0x0000E014)
+
+#define CS40L5X_IRQ1_INT_8                                                  (0x0000E02C)
+#define IRQ1_INT_8_TEMP_ERR_INT1_BITMASK                                    (1 << 31)
+
+#define CS40L5X_IRQ1_INT_9                                                  (0x0000E030)
+#define IRQ1_INT_9_BST_ILIMIT_ERR_INT1_BITMASK                              (1 << 8)
+#define IRQ1_INT_9_BST_SHORT_ERR_INT1_BITMASK                               (1 << 7)
+#define IRQ1_INT_9_BST_UVP_ERR_INT1_BITMASK                                 (1 << 6)
+
+#define CS40L5X_IRQ1_INT_10                                                 (0x0000E034)
+#define IRQ1_INT_10_UVLO_VDDBATT_ERR_INT1_BITMASK                           (1 << 16)
+
+#define CS40L5X_IRQ1_IRQ1_MASK_1                                            (0x0000E090)
+
+#define CS40L5X_MSM_ERROR_RELEASE                                           (0x00002034)
+#define CS40L5X_MSM_ERROR_RELEASE_GLOBAL_ERR_RELEASE_BITMASK                (1 << 11)
+
+#define CS40L5X_IRQ1_MASK_2                                                 (0x0000E094)
+#define CS40L5X_IRQ1_MASK_2_DSP_VIRTUAL2_MBOX_WR_MASK1                      (1 << 21)
+
+#define CS40L5X_GPIO1_RISE_EINT_BITMASK                                     (1)
+#define CS40L5X_GPIO1_FALL_EINT_BITMASK                                     (1 << 1)
+#define CS40L5X_GPIO2_RISE_EINT_BITMASK                                     (1 << 2)
+#define CS40L5X_GPIO2_FALL_EINT_BITMASK                                     (1 << 3)
+#define CS40L5X_GPIO3_RISE_EINT_BITMASK                                     (1 << 4)
+#define CS40L5X_GPIO3_FALL_EINT_BITMASK                                     (1 << 5)
+#define CS40L5X_GPIO4_RISE_EINT_BITMASK                                     (1 << 6)
+#define CS40L5X_GPIO4_FALL_EINT_BITMASK                                     (1 << 7)
+#define CS40L5X_GPIO5_RISE_EINT_BITMASK                                     (1 << 8)
+#define CS40L5X_GPIO5_FALL_EINT_BITMASK                                     (1 << 9)
+#define CS40L5X_GPIO6_RISE_EINT_BITMASK                                     (1 << 10)
+#define CS40L5X_GPIO6_FALL_EINT_BITMASK                                     (1 << 11)
+#define CS40L5X_GPIO7_RISE_EINT_BITMASK                                     (1 << 12)
+#define CS40L5X_GPIO7_FALL_EINT_BITMASK                                     (1 << 13)
+#define CS40L5X_GPIO8_RISE_EINT_BITMASK                                     (1 << 14)
+#define CS40L5X_GPIO8_FALL_EINT_BITMASK                                     (1 << 15)
+#define CS40L5X_GPIO9_RISE_EINT_BITMASK                                     (1 << 16)
+#define CS40L5X_GPIO9_FALL_EINT_BITMASK                                     (1 << 17)
+#define CS40L5X_GPIO10_RISE_EINT_BITMASK                                    (1 << 18)
+#define CS40L5X_GPIO10_FALL_EINT_BITMASK                                    (1 << 19)
+#define CS40L5X_GPIO11_RISE_EINT_BITMASK                                    (1 << 20)
+#define CS40L5X_GPIO11_FALL_EINT_BITMASK                                    (1 << 21)
+#define CS40L5X_GPIO12_RISE_EINT_BITMASK                                    (1 << 22)
+#define CS40L5X_GPIO12_FALL_EINT_BITMASK                                    (1 << 23)
+#define CS40L5X_GPIO13_RISE_EINT_BITMASK                                    (1 << 24)
+#define CS40L5X_GPIO13_FALL_EINT_BITMASK                                    (1 << 25)
+
+#define CS40L5X_GPIO_STATUS1                                                (0x0000F000)
+#define CS40L5X_GPIO1_STS_BITMASK                                           (1)
+#define CS40L5X_GPIO2_STS_BITMASK                                           (1 << 1)
+#define CS40L5X_GPIO3_STS_BITMASK                                           (1 << 2)
+#define CS40L5X_GPIO4_STS_BITMASK                                           (1 << 3)
+#define CS40L5X_GPIO5_STS_BITMASK                                           (1 << 4)
+#define CS40L5X_GPIO6_STS_BITMASK                                           (1 << 5)
+#define CS40L5X_GPIO7_STS_BITMASK                                           (1 << 6)
+#define CS40L5X_GPIO8_STS_BITMASK                                           (1 << 7)
+#define CS40L5X_GPIO9_STS_BITMASK                                           (1 << 8)
+#define CS40L5X_GPIO10_STS_BITMASK                                          (1 << 9)
+#define CS40L5X_GPIO11_STS_BITMASK                                          (1 << 10)
+#define CS40L5X_GPIO12_STS_BITMASK                                          (1 << 11)
+#define CS40L5X_GPIO13_STS_BITMASK                                          (1 << 12)
+
+#define CS40L5X_GPIO_CTRL1                                                  (0x0000F008)
+#define CS40L5X_GPIO_CTRL2                                                  (0x0000F00C)
+#define CS40L5X_GPIO_CTRL3                                                  (0x0000F010)
+#define CS40L5X_GPIO_CTRL4                                                  (0x0000F014)
+#define CS40L5X_GPIO_CTRL5                                                  (0x0000F018)
+#define CS40L5X_GPIO_CTRL6                                                  (0x0000F01C)
+#define CS40L5X_GPIO_CTRL7                                                  (0x0000F020)
+#define CS40L5X_GPIO_CTRL8                                                  (0x0000F024)
+#define CS40L5X_GPIO_CTRL9                                                  (0x0000F028)
+#define CS40L5X_GPIO_CTRL10                                                 (0x0000F02C)
+#define CS40L5X_GPIO_CTRL11                                                 (0x0000F030)
+#define CS40L5X_GPIO_CTRL12                                                 (0x0000F034)
+#define CS40L5X_GPIO_CTRL13                                                 (0x0000F038)
+
+#define CS40L5X_GPIO_CTRL_DIR_BITMASK                                      (0x80000000)
+#define CS40L5X_GPIO_CTRL_FN_BITMASK                                       (0x00000007)
+#define CS40L5X_GPIO_CTRL_FN_INPUT_OUTPUT                                  (0x00000001)
+#define CS40L5X_GPIO_CTRL_FN_IRQ1                                          (0x00000003)
+
+#define CS40L5X_BLOCK_ENABLES2                                              (0x0000201C)
+#define CS40L5X_BLOCK_ENABLES2_ASP_EN_MASK                                  (1 << 27)
+#define CS40L5X_BLOCK_ENABLES2_OTW_EN_MASK                                  (1 << 26)
+#define CS40L5X_BLOCK_ENABLES2_CLASSH_EN_MASK                               (1 << 4)
+
+#define CS40L5X_ASP1_ENABLES                                                (0x00004800)
+#define CS40L5X_ASP1_ENABLES_RX_SHIFT                                       (16)
+#define CS40L5X_ASP1_ENABLES_TX_SHIFT                                       (0)
+
+#define CS40L5X_ASP1_CTRL_1                                                 (0x00004804)
+#define CS40L5X_ASP1_CTRL_2                                                 (0x00004808)
+#define CS40L5X_ASP1_CTRL_2_ASP1_FMT_BCLK_MASK                              (0x2 << 8)
+#define CS40L5X_ASP1_CTRL_RX_WIDTH_OFFSET                                   (24)
+#define CS40L5X_ASP1_CTRL_TX_WIDTH_OFFSET                                   (16)
+
+#define CS40L5X_FIRMWARE_REFCLK_SRC                                         (0x00015000)
+#define CS40L5X_FIRMWARE_REFCLK_SRC_PLL_DIV32                               (0x4)
+
+#define CS40L5X_FIRMWARE_PLL_REFCLK_FREQ                                    (0x00002C04)
+#define CS40L5X_FIRMWARE_PLL_REFCLK_FREQ_OFFSET                             (5)
+
+#define CS40L5X_FIRMWARE_PLL_OPEN_LOOP_MASK                                 (1 << 11)
+
+
+#define CS40L5X_DACPCM1_INPUT                                               (0x00004C00)
+#define CS40L5X_DACPCM1_INPUT_DSP1_CH1                                      (0x32)
+
+#define CS40L5X_ASP1TX1_INPUT                                               (0x00004C20)
+#define CS40L5X_ASP1TX2_INPUT                                               (0x00004C24)
+#define CS40L5X_ASP1TX3_INPUT                                               (0x00004C28)
+#define CS40L5X_ASP1TX4_INPUT                                               (0x00004C2C)
+
+#define CS40L5X_FIRMWARE_PLL_REFCLK_EN_MASK                                 (1 << 4)
+
+/** @} */
+
+/**********************************************************************************************************************/
+#ifdef __cplusplus
+}
+#endif
+
+#endif // CS40L5X_SPEC_H

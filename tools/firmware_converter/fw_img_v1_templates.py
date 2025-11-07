@@ -385,6 +385,8 @@ class fw_img_v1_file(firmware_exporter):
                         print("[WARNING] Duplicate symbol id skipped: " + str(temp_ctl_str) + " (" + hex(control_id) + ")")
                     elif self.terms['exclude_dummy'] and temp_ctl_str.endswith("DUMMY"):
                         continue
+                    elif (len(control[0]) is 0):
+                        continue
                     else:
                         if ((symbol_id_list is None) or
                             ((symbol_id_list is not None) and (temp_ctl_str in symbol_id_list))):

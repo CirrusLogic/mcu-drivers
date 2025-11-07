@@ -718,6 +718,7 @@ uint32_t cs40l50_trigger_pwle_advanced(cs40l50_t *driver, rth_pwle_section_t **s
 uint32_t cs40l50_trigger_pcm(cs40l50_t *driver, uint8_t *s, uint32_t num_sections, uint16_t buffer_size_samples, uint16_t f0, uint16_t redc);
 uint32_t cs40l50_set_dynamic_f0(cs40l50_t *driver, bool enable);
 uint32_t cs40l50_get_dynamic_f0(cs40l50_t *driver, cs40l50_df0_table_entry_t *f0_entry);
+uint32_t cs40l50_set_asp_enable(cs40l50_t *driver, bool enable, uint32_t freq);
 
 /*
  * Reads the contents of a single register/memory address

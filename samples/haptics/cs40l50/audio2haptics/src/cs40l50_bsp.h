@@ -1,4 +1,4 @@
-/*
+    /*
  * Copyright (c) 2024 Cirrus Logic, Inc.
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -459,6 +459,11 @@ struct cs40l50_haptic_source_config {
     int bank;
 };
 
+struct cs40l50_bsp {
+    cs40l50_t priv;
+    struct cs40l50_haptic_source_config hap_cfg;
+};
+
 extern bsp_driver_if_t *bsp_driver_if_g;
 
 int cs40l50_i2c_write_reg_dt(const struct i2c_dt_spec *spec, const uint32_t reg_addr,
@@ -472,5 +477,5 @@ int cs40l50_poll_reg_dt(const struct i2c_dt_spec *spec, const uint32_t reg_addr,
                    uint32_t value, uint32_t tries, uint32_t delay);
 int cs40l50_write_acked_reg_dt(const struct i2c_dt_spec *spec, const uint32_t reg_addr,
                                 uint32_t val, uint32_t acked_val,  uint8_t tries,  uint32_t delay);
-
+int cs40l50_set_haptic_cfg(const struct device *dev, struct cs40l50_haptic_source_config* hap_cfg);
 #endif

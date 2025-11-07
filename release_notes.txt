@@ -3,6 +3,26 @@ Release Notes
 
 =============================================================================
 Summary:
+This is the release of Alt-OS Driver SDK v4.27.2
+Date: 2025/11/07
+
+Architectures/Compilers Used:
+GNU Arm Embedded Toolchain: arm-none-eabi-gcc -mcpu=cortex-m4
+
+New Features/Changes:
+ASP streaming for CS40l50
+Improved diagnostics measurement for CS40L50
+ASP Streaming and Diagnostics Zephyr sample apps
+Support for CS40L5x automotive Jamerson variants
+Separate baremetal BSPs for CS40L50 and CS40L5x
+Ability to blacklist coefficient data from conversion by algorithm name
+
+Fixed Bugs:
+Prevent unnamed symbols from being created during fw_img_v2 conversion
+
+=============================================================================
+=============================================================================
+Summary:
 This is the release of Alt-OS Driver SDK v4.26.2
 Date: 2025/09/26
 

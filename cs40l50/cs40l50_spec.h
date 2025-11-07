@@ -35,6 +35,19 @@ extern "C" {
 /***********************************************************************************************************************
  * GENERIC ENUMS, STRUCTS, UNIONS, TYPEDEFS
  **********************************************************************************************************************/
+#define MAX_DIAGNOSTIC_MSG_LEN 32
+struct cs40l50_diagnostic_flag_encoding {
+    uint32_t value;
+    char msg[MAX_DIAGNOSTIC_MSG_LEN];
+};
+
+/**
+ * Generic Value-to-Code Encoding Data Structure
+ */
+struct cs40l50_register_encoding {
+    uint32_t value; ///< Real-world value needing to be encoded
+    uint8_t code;   ///< Code corresponding to value
+};
 
 /***********************************************************************************************************************
  * LITERALS, CONSTANTS, MACROS, ENUMS, STRUCTS, UNIONS, TYPEDEFS
@@ -68,6 +81,25 @@ extern "C" {
 #define CS40L50_REVID_B0                                                    (0xB0)
 /** @} */
 
+/**
+ * Encoding for CCM register REFCLK_INPUT field PLL_REFCLK_FREQ
+ *
+ * Encodes from raw PLL input reference clock frequency in Hertz to bitfield code.
+ *
+ * @see REFCLK_INPUT
+ * @see Section 7.11.1
+ *
+ */
+#define CS40L50_NUM_VALD_PLL_REFCLKS 34
+extern const struct cs40l50_register_encoding cs40l50_pll_refclk[CS40L50_NUM_VALD_PLL_REFCLKS];
+
+/**
+ * Encoding for Diagnostic Flags
+ *
+ * Encodes from raw flag bitfield to readable diagnostic string.
+ * */
+#define NUM_DIAGNOSTIC_FLAGS 19
+extern const struct cs40l50_diagnostic_flag_encoding cs40l50_diag_flags[NUM_DIAGNOSTIC_FLAGS];
 
 /**
  * @defgroup SECTION_7_2_CTRL_KEYS
@@ -156,6 +188,8 @@ extern "C" {
 #define CS40L50_DSP_MBOX_CMD_PREVENT_HIBER                                  (0x02000003)
 #define CS40L50_DSP_MBOX_CMD_ALLOW_HIBER                                    (0x02000004)
 #define CS40L50_DSP_MBOX_CMD_SHUTDOWN                                       (0x02000005)
+#define CS40L50_DSP_MBOX_CMD_START_I2S                                      (0x03000002)
+#define CS40L50_DSP_MBOX_CMD_STOP_I2S                                       (0x03000003)
 #define CS40L50_DSP_MBOX_PM_CMD_BASE                                        CS40L50_DSP_MBOX_CMD_HIBER
 
 #define CS40L50_DSP_BYTES_PER_WORD                                          (4)
@@ -164,6 +198,7 @@ extern "C" {
 #define CS40L50_MAILBOX_QUEUE_WT_OFFSET                                     (8)
 #define CS40L50_MAILBOX_QUEUE_RD_OFFSET                                     (12)
 
+#define CS40L50_DSP_MBOX_HAPTIC_TRIGGER_I2S                                 (0x1000012)
 #define CS40L50_DSP_MBOX_F0_EST                                             (0x7000001)
 #define CS40L50_DSP_MBOX_REDC_EST                                           (0x7000002)
 #define CS40L50_DSP_MBOX_REDC_EST_START                                     (0x7000012)
@@ -267,10 +302,65 @@ extern "C" {
 #define CS40L50_GPIO_CTRL12                                                 (0x0000F034)
 #define CS40L50_GPIO_CTRL13                                                 (0x0000F038)
 
-#define CS40L50_GPIO_CTRL_DIR_BITMASK                                      (0x80000000)
-#define CS40L50_GPIO_CTRL_FN_BITMASK                                       (0x00000007)
-#define CS40L50_GPIO_CTRL_FN_INPUT_OUTPUT                                  (0x00000001)
-#define CS40L50_GPIO_CTRL_FN_IRQ1                                          (0x00000003)
+#define CS40L50_GPIO_CTRL_DIR_BITMASK                                       (0x80000000)
+#define CS40L50_GPIO_CTRL_FN_BITMASK                                        (0x00000007)
+#define CS40L50_GPIO_CTRL_FN_INPUT_OUTPUT                                   (0x00000001)
+#define CS40L50_GPIO_CTRL_FN_IRQ1                                           (0x00000003)
+
+#define CS40L50_BLOCK_ENABLES2                                              (0x0000201C)
+#define CS40L50_BLOCK_ENABLES2_ASP_EN_MASK                                  (1 << 27)
+#define CS40L50_BLOCK_ENABLES2_OTW_EN_MASK                                  (1 << 26)
+#define CS40L50_BLOCK_ENABLES2_CLASSH_EN_MASK                               (1 << 4)
+
+#define CS40L50_ASP1_ENABLES                                                (0x00004800)
+#define CS40L50_ASP1_ENABLES_RX_SHIFT                                       (16)
+#define CS40L50_ASP1_ENABLES_TX_SHIFT                                       (0)
+
+#define CS40L50_ASP1_CTRL_1                                                 (0x00004804)
+#define CS40L50_ASP1_CTRL_2                                                 (0x00004808)
+#define CS40L50_ASP1_CTRL_2_ASP1_FMT_BCLK_MASK                              (0x2 << 8)
+#define CS40L50_ASP1_CTRL_RX_WIDTH_OFFSET                                   (24)
+#define CS40L50_ASP1_CTRL_TX_WIDTH_OFFSET                                   (16)
+
+#define CS40L50_FIRMWARE_REFCLK_SRC                                         (0x00015000)
+#define CS40L50_FIRMWARE_REFCLK_SRC_PLL_DIV32                               (0x4)
+
+#define CS40L50_FIRMWARE_PLL_REFCLK_FREQ                                    (0x00002C04)
+#define CS40L50_FIRMWARE_PLL_REFCLK_FREQ_OFFSET                             (5)
+
+#define CS40L50_FIRMWARE_PLL_OPEN_LOOP_MASK                                 (1 << 11)
+
+
+#define CS40L50_DACPCM1_INPUT                                               (0x00004C00)
+#define CS40L50_DACPCM1_INPUT_DSP1_CH1                                      (0x32)
+
+#define CS40L50_ASP1TX1_INPUT                                               (0x00004C20)
+#define CS40L50_ASP1TX2_INPUT                                               (0x00004C24)
+#define CS40L50_ASP1TX3_INPUT                                               (0x00004C28)
+#define CS40L50_ASP1TX4_INPUT                                               (0x00004C2C)
+
+#define CS40L50_FIRMWARE_PLL_REFCLK_EN_MASK                                 (1 << 4)
+
+/* Diagnostics Error Flag Masks */
+#define CS40L50_DIAG_AMP_SHORT_CIRCUIT                                      (1)
+#define CS40L50_DIAG_AMP_OPEN_CIRCUIT                                       (1 << 1)
+#define CS40L50_DIAG_BOOST_SHORT_CIRCUIT                                    (1 << 2)
+#define CS40L50_DIAG_VDD_AMP_LOW                                            (1 << 3)
+#define CS40L50_DIAG_VDD_AMP_HI                                             (1 << 4)
+#define CS40L50_DIAG_VDD_B_LOW                                              (1 << 5)
+#define CS40L50_DIAG_VDD_B_HI                                               (1 << 6)
+#define CS40L50_DIAG_ReDC_LOW                                               (1 << 7)
+#define CS40L50_DIAG_ReDC_HI                                                (1 << 8)
+#define CS40L50_DIAG_LE_LOW                                                 (1 << 9)
+#define CS40L50_DIAG_LE_HI                                                  (1 << 10)
+#define CS40L50_DIAG_F0_LOW                                                 (1 << 11)
+#define CS40L50_DIAG_F0_HI                                                  (1 << 12)
+#define CS40L50_DIAG_Q_LOW                                                  (1 << 13)
+#define CS40L50_DIAG_Q_HI                                                   (1 << 14)
+#define CS40L50_DIAG_bEMF_LOW                                               (1 << 15)
+#define CS40L50_DIAG_bEMF_HI                                                (1 << 16)
+#define CS40L50_DIAG_Zres_LOW                                               (1 << 17)
+#define CS40L50_DIAG_Zres_HI                                                (1 << 18)
 
 /** @} */
 

@@ -33,11 +33,6 @@ struct cs40l50_config {
     void (*irq_disable_func)(void);
 };
 
-struct cs40l50_bsp {
-    cs40l50_t priv;
-    struct cs40l50_haptic_source_config hap_cfg;
-};
-
 int cs40l50_i2c_write_reg_dt(const struct i2c_dt_spec *spec, const uint32_t reg_addr,
                     const uint32_t value)
 {
@@ -234,6 +229,14 @@ int cs40l50_i2c_write_bulk_dt(const struct i2c_dt_spec *spec, const uint32_t reg
     k_free(msg_buf);
     return ret;
 }
+
+int cs40l50_set_haptic_cfg(const struct device *dev, struct cs40l50_haptic_source_config* hap_cfg)
+{
+    struct cs40l50_bsp* data = dev->data;
+    data->hap_cfg = *hap_cfg;
+    return 0;
+}
+
 
 static int cs40l50_write_fw_blocks(struct i2c_dt_spec *i2c, halo_boot_block_t *blocks, int num_blocks)
 {
@@ -445,6 +448,10 @@ static int cs40l50_init(const struct device *dev)
     regmap_read(&config->i2c, FIRMWARE_CS40L50_HALO_STATE, &val);
     LOG_INF("cs40l50_init: HALO_STATE = %x\n", val);
 
+    LOG_INF("cs40l50_init: Enable ASP");
+    ret = cs40l50_set_asp_enable(drv, true, 0);
+    LOG_INF("cs40l50_init: ASP retval: %d", ret);
+
 //    config->irq_cfg_func();
 //    config->irq_enable_func();
 
@@ -458,11 +465,11 @@ static int haptics_cs40l50_stop_output(const struct device *dev)
 
 static int haptics_cs40l50_start_output(const struct device *dev)
 {
-    struct cs40l50_bsp *data = dev->data;
+    struct cs40l50_bsp *data = (struct cs40l50_bsp*)dev->data;
 
     LOG_INF("haptics_cs40l50_start_output, bank=%x, index=%x\n", data->hap_cfg.bank, data->hap_cfg.index);
 
-    cs40l50_trigger(&data->priv, data->hap_cfg.index, RAM_BANK);
+    cs40l50_trigger(&data->priv, data->hap_cfg.index, data->hap_cfg.bank);
 
     return 0;
 }

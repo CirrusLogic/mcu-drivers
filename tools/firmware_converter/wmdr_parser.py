@@ -1,5 +1,5 @@
 #==========================================================================
-# (c) 2019 Cirrus Logic, Inc.
+# (c) 2019, 2025 Cirrus Logic, Inc.
 #--------------------------------------------------------------------------
 # Project : Parser for WMFW files
 # File    : wmfw_parser.py
@@ -238,8 +238,9 @@ class wmdr_absolute_addressing_data_block(wmdr_block):
 
 class wmdr_parser:
 
-    def __init__(self, filename):
+    def __init__(self, filename, algids_blacklist):
         self.filename = filename
+        self.algids_blacklist = algids_blacklist
         self.user_defined_name_block = None
         self.metadata_block = None
         self.coefficient_value_data_blocks = []
@@ -259,9 +260,11 @@ class wmdr_parser:
         # Get blocks
         while (not f.tell() == os.fstat(f.fileno()).st_size):
             temp_block_type = file_int_peek(f, 4)
+            temp_alg_id = file_int_peek(f, 8)
             # Here, unlike in WMFW files, there is mixing of 2-byte block types and 1-byte block types, so
             # block type is in 2-bytes
             temp_block_type = bytes_from_word(temp_block_type, 2, 2)
+            temp_alg_id = bytes_from_word(temp_alg_id, 4, 4)
             if (temp_block_type == (user_defined_name_text_block_type << 8)):
                 self.user_defined_name_block = wmdr_user_defined_name_block(f)
                 self.user_defined_name_block.parse(f)
@@ -279,6 +282,10 @@ class wmdr_parser:
 
                 self.data_blocks.append(new_block)
                 self.data_blocks[-1].parse(f)
+
+                if (temp_alg_id in self.algids_blacklist):
+                    print("Found blacklisted alg ID " + hex(temp_alg_id))
+                    del self.data_blocks[-1]
 
         return
 

@@ -219,6 +219,66 @@ static uint32_t cs40l50_mbox_command_to_event_id_map[] =
 
 #endif //CS40L50_BAREMETAL
 
+const struct cs40l50_register_encoding cs40l50_pll_refclk[CS40L50_NUM_VALD_PLL_REFCLKS] =
+{
+    { 128000,   0x0C },
+    { 256000,   0x0F },
+    { 384000,   0x11 },
+    { 512000,   0x12 },
+    { 768000,   0x15 },
+    { 1024000,  0x17 },
+    { 1411200,  0x19 },
+    { 1500000,  0x1A },
+    { 1536000,  0x1B },
+    { 2000000,  0x1C },
+    { 2048000,  0x1D },
+    { 2400000,  0x1E },
+    { 2822400,  0x1F },
+    { 3000000,  0x20 },
+    { 3072000,  0x21 },
+    { 4000000,  0x23 },
+    { 4096000,  0x24 },
+    { 4800000,  0x25 },
+    { 5644800,  0x26 },
+    { 6000000,  0x27 },
+    { 6144000,  0x28 },
+    { 6250000,  0x29 },
+    { 6400000,  0x2A },
+    { 7526400,  0x2D },
+    { 8000000,  0x2E },
+    { 8192000,  0x2F },
+    { 9600000,  0x30 },
+    { 11289600, 0x31 },
+    { 12000000, 0x32 },
+    { 12288000, 0x33 },
+    { 13500000, 0x37 },
+    { 19200000, 0x38 },
+    { 22579200, 0x39 },
+    { 24576000, 0x3B }
+};
+
+const struct cs40l50_diagnostic_flag_encoding cs40l50_diag_flags[NUM_DIAGNOSTIC_FLAGS] =
+{
+    {CS40L50_DIAG_AMP_SHORT_CIRCUIT, "AMP_SHORT_CIRCUIT"},
+    {CS40L50_DIAG_AMP_OPEN_CIRCUIT, "AMP_OPEN_CIRCUIT"},
+    {CS40L50_DIAG_BOOST_SHORT_CIRCUIT, "BOOST_SHORT_CIRCUIT"},
+    {CS40L50_DIAG_VDD_AMP_LOW, "VDD_AMP_LOW"},
+    {CS40L50_DIAG_VDD_AMP_HI, "VDD_AMP_HI"},
+    {CS40L50_DIAG_VDD_B_LOW, "VDD_B_LOW"},
+    {CS40L50_DIAG_VDD_B_HI, "VDD_B_HI"},
+    {CS40L50_DIAG_ReDC_LOW, "ReDC_LOW"},
+    {CS40L50_DIAG_ReDC_HI, "ReDC_HI"},
+    {CS40L50_DIAG_LE_LOW, "LE_LOW"},
+    {CS40L50_DIAG_LE_HI, "LE_HI"},
+    {CS40L50_DIAG_F0_LOW, "F0_LOW"},
+    {CS40L50_DIAG_F0_HI, "F0_HI"},
+    {CS40L50_DIAG_Q_LOW, "Q_LOW"},
+    {CS40L50_DIAG_Q_HI, "Q_HI"},
+    {CS40L50_DIAG_bEMF_LOW, "bEMF_LOW"},
+    {CS40L50_DIAG_bEMF_HI, "bEMF_HI"},
+    {CS40L50_DIAG_Zres_LOW, "Zres_LOW"},
+    {CS40L50_DIAG_Zres_HI, "Zres_HI"}
+};
 
 #ifdef CIRRUS_SDK
 static regmap_cp_config_t broadcast_cp =
@@ -1339,6 +1399,126 @@ uint32_t cs40l50_set_broadcast_enable(cs40l50_t *driver, bool enable)
 
     return ret;
 }
+
+/**
+ * Enable/Disable Audio Streaming Port
+ *
+ */
+uint32_t cs40l50_set_asp_enable(cs40l50_t *driver, bool enable, uint32_t freq)
+{
+    uint32_t ret;
+    uint8_t pll_refclk_val;
+    regmap_cp_config_t *cp = REGMAP_GET_CP(driver);
+
+    if (!enable) {
+        // Disable I2C Config
+        ret = regmap_write(cp, CS40L50_BLOCK_ENABLES2,
+                   CS40L50_BLOCK_ENABLES2_OTW_EN_MASK |
+                       CS40L50_BLOCK_ENABLES2_CLASSH_EN_MASK);
+        if (ret) {
+            return ret;
+        }
+        ret = regmap_write(cp, CS40L50_ASP1_ENABLES, 0);
+        if (ret) {
+            return ret;
+        }
+    } else {
+        // Check for valid freq
+        int i;
+        for (i = 0; i < CS40L50_NUM_VALD_PLL_REFCLKS; i++) {
+            if (freq == cs40l50_pll_refclk[i].value) {
+                pll_refclk_val = cs40l50_pll_refclk[i].code;
+                break;
+            }
+        }
+        if (i == CS40L50_NUM_VALD_PLL_REFCLKS) {
+            return CS40L50_STATUS_FAIL;
+        }
+        // Configure for I2S at given frequency
+        ret = regmap_write(cp, CS40L50_ASP1_CTRL_1, pll_refclk_val);
+        if (ret) {
+            return ret;
+        }
+        ret = regmap_write(cp, CS40L50_ASP1_CTRL_2,
+                   (0x20 << CS40L50_ASP1_CTRL_RX_WIDTH_OFFSET) |
+                       (0x20 << CS40L50_ASP1_CTRL_TX_WIDTH_OFFSET) |
+                       CS40L50_ASP1_CTRL_2_ASP1_FMT_BCLK_MASK);
+        if (ret) {
+            return ret;
+        }
+        ret = regmap_write(cp, CS40L50_BLOCK_ENABLES2,
+                   CS40L50_BLOCK_ENABLES2_ASP_EN_MASK |
+                       CS40L50_BLOCK_ENABLES2_OTW_EN_MASK |
+                       CS40L50_BLOCK_ENABLES2_CLASSH_EN_MASK);
+        if (ret) {
+            return ret;
+        }
+        ret = regmap_write(cp, CS40L50_ASP1_ENABLES,
+                   (0x1 << CS40L50_ASP1_ENABLES_RX_SHIFT) |
+                       (0x1 << CS40L50_ASP1_ENABLES_TX_SHIFT));
+        if (ret) {
+            return ret;
+        }
+        ret = regmap_write(cp, CS40L50_FIRMWARE_REFCLK_SRC,
+                   CS40L50_FIRMWARE_REFCLK_SRC_PLL_DIV32);
+        if (ret) {
+            return ret;
+        }
+
+        // PLL_OPEN_LOOP must clear before changing REFCLK FREQ
+        ret = regmap_update_reg(cp, CS40L50_FIRMWARE_PLL_REFCLK_FREQ, 0,
+                    CS40L50_FIRMWARE_PLL_OPEN_LOOP_MASK);
+        if (ret) {
+            return ret;
+        }
+        ret = regmap_update_reg(
+            cp, CS40L50_FIRMWARE_PLL_REFCLK_FREQ, 0,
+            (pll_refclk_val << CS40L50_FIRMWARE_PLL_REFCLK_FREQ_OFFSET) |
+                CS40L50_FIRMWARE_PLL_REFCLK_EN_MASK);
+        if (ret) {
+            return ret;
+        }
+        ret = regmap_update_reg(cp, CS40L50_FIRMWARE_PLL_REFCLK_FREQ,
+                    CS40L50_FIRMWARE_PLL_OPEN_LOOP_MASK, 0);
+        if (ret) {
+            return ret;
+        }
+
+        // Configure GPIO PINs for I2S
+        ret = regmap_update_reg(cp, CS40L50_GPIO_CTRL3, CS40L50_GPIO_CTRL_FN_INPUT_OUTPUT,
+                    0);
+        if (ret) {
+            return ret;
+        }
+        ret = regmap_update_reg(cp, CS40L50_GPIO_CTRL4, CS40L50_GPIO_CTRL_FN_INPUT_OUTPUT,
+                    0);
+        if (ret) {
+            return ret;
+        }
+        ret = regmap_update_reg(cp, CS40L50_GPIO_CTRL5, CS40L50_GPIO_CTRL_FN_INPUT_OUTPUT,
+                    0);
+        if (ret) {
+            return ret;
+        }
+        ret = regmap_update_reg(cp, CS40L50_GPIO_CTRL6, CS40L50_GPIO_CTRL_FN_INPUT_OUTPUT,
+                    0);
+        if (ret) {
+            return ret;
+        }
+
+        // Handle Mixer + Mailbox Command for DSP
+        ret = regmap_write(cp, CS40L50_DACPCM1_INPUT, CS40L50_DACPCM1_INPUT_DSP1_CH1);
+        if (ret) {
+            return ret;
+        }
+        ret = regmap_write(cp, CS40L50_DSP_VIRTUAL1_MBOX_1, CS40L50_DSP_MBOX_CMD_START_I2S);
+        if (ret) {
+            return ret;
+        }
+    }
+    return CS40L50_STATUS_OK;
+}
+
 #ifndef CS40L50_BAREMETAL
 uint32_t cs40l50_trigger_pwle(cs40l50_t *driver, rth_pwle_section_t **s)
 {

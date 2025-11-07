@@ -1,10 +1,10 @@
 /**
- * @file cs40l50_syscfg_regs.h
+ * @file main.c
  *
- * @brief Register values to be applied after CS40L50 Driver boot().
+ * @brief The main function for CS40L5X System Test Harness
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2024-2025 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2025 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -18,41 +18,62 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * wisce_to_syscfg_reg_converter.py SDK version: 4.21.0 - internal
- * Command:  ../../tools/wisce_script_converter/wisce_script_converter.py -c c_array -p cs40l50 -i /Users/drhodes/Documents/code/cross-compile/nfs-share/altos/driver/cs40l50/config/wisce_init.txt -o .
- *
  */
-
-#ifndef CS40L50_SYSCFG_REGS_H
-#define CS40L50_SYSCFG_REGS_H
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /***********************************************************************************************************************
  * INCLUDES
  **********************************************************************************************************************/
-#include "stdint.h"
-//#include "regmap.h"
+#include "platform_bsp.h"
+#include <stddef.h>
+#include <stdlib.h>
 
 /***********************************************************************************************************************
- * LITERALS & CONSTANTS
+ * LOCAL FUNCTIONS
  **********************************************************************************************************************/
-#define CS40L50_SYSCFG_REGS_TOTAL (34)
+void app_bsp_callback(uint32_t status, void *arg)
+{
+    if (status == BSP_STATUS_FAIL)
+    {
+        exit(1);
+    }
 
-/***********************************************************************************************************************
- * ENUMS, STRUCTS, UNIONS, TYPEDEFS
- **********************************************************************************************************************/
-
-/***********************************************************************************************************************
- * GLOBAL VARIABLES
- **********************************************************************************************************************/
-extern uint32_t cs40l50_syscfg_regs[];
-
-#ifdef __cplusplus
+    return;
 }
-#endif
 
-#endif // CS40L50_SYSCFG_REGS_H
+/***********************************************************************************************************************
+ * API FUNCTIONS
+ **********************************************************************************************************************/
 
+/**
+ * @brief The Main Entry Point from __main
+ *  By this time, the RAM RW-Data section has been initialized by the ARM-provided __main function.
+ *
+ * @return N/A (does not return)
+ */
+int main(void)
+{
+    int ret_val = 0;
+
+    bsp_initialize(app_bsp_callback, NULL);
+    bsp_dut_initialize();
+    bsp_dut_reset();
+
+    bsp_set_ld2(BSP_LD2_MODE_ON, 0);
+    bsp_dut_trigger_haptic(0, ROM_BANK);
+
+    bsp_dut_boot();
+
+    while (1)
+    {
+
+        if (bsp_was_pb_pressed(BSP_PB_ID_USER))
+        {
+            bsp_dut_trigger_haptic(0, ROM_BANK);
+        }
+
+        bsp_sleep();
+    }
+
+    exit(1);
+
+    return ret_val;
+}

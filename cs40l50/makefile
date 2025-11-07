@@ -112,12 +112,13 @@ else ifeq ($(MAKECMDGOALS), blackstack)
 
     ADD_OBJ_RULES = add_platform_obj_rules
 else ifdef IS_NOT_UNIT_TEST
-    C_SRCS += $(DRIVER_PATH)/bsp/bsp_cs40l50.c
 
     ifeq ($(MAKECMDGOALS), baremetal)
         C_SRCS += $(HALO_FIRMWARE_PATH)/cs40l50_firmware.c
+        C_SRCS += $(DRIVER_PATH)/bsp/bsp_cs40l50_baremetal.c
     else
         C_SRCS += $(HALO_FIRMWARE_PATH)/cs40l50_fw_img.c
+        C_SRCS += $(DRIVER_PATH)/bsp/bsp_cs40l50.c
     endif
 
     ifeq ($(MAKECMDGOALS), system_test)

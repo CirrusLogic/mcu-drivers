@@ -60,6 +60,9 @@ supported_part_numbers = ['cs35l41',
                           'cs40l26m',
                           'cs35l56',
                           'cs40l50',
+                          'cs40l51',
+                          'cs40l52',
+                          'cs40l53',
                           'cs47l24_dsp2',
                           'cs47l24_dsp3']
 
@@ -79,7 +82,10 @@ supported_mem_maps = {
             'cs40l26',
             'cs40l26m',
             'cs35l56',
-            'cs40l50'
+            'cs40l50',
+            'cs40l51',
+            'cs40l52',
+            'cs40l53'
         ],
         'xm': {
             'u24': (0x2800000, 0x2bfffff),
@@ -317,7 +323,7 @@ def get_args(args):
                           '--revision-check', '--sym-partition', '--no-sym-table',
                           '--exclude-dummy', '--skip-command-print', '--output-directory']
 
-    rom_allowed_options = ['--wmdr', '--wmdr-only', '--exclude-wmfw', '--binary', '--binary-output']
+    rom_allowed_options = ['--wmdr', '--wmdr-only', '--exclude-wmfw', '--binary', '--binary-output', '--output-directory']
 
     """Parse arguments"""
     parser = argparse.ArgumentParser(description='Parse command line arguments')
@@ -346,6 +352,7 @@ def get_args(args):
     parser.add_argument('--skip-command-print', dest='skip_command_print', action="store_true", default=False, help='Skip printing command')
     parser.add_argument('--output-directory', dest='output_directory', default=None, help="Output directory of files. By default uses current work dir")
     parser.add_argument('--preserve-filename', dest='preserve_filename', action="store_true", default=False, help="Name coeff blocks according to the filename they originated in.")
+    parser.add_argument('--alg-name-blacklist', dest='alg_name_blacklist', type=str, nargs='*', default=None, help='Algorithm Names that should be stripped from the .bin file conversion and not included in the results')
 
     return parser.parse_args(args[1:])
 
@@ -474,10 +481,21 @@ def main(argv):
         wmfw = wmfw_parser(args.wmfw)
     wmfw.parse()
 
+
+    if (args.alg_name_blacklist is not None):
+        algids_blacklist = []
+        for alg_block in wmfw.get_algorithm_information_data_blocks():
+            if alg_block.fields['algorithm_name'] in args.alg_name_blacklist:
+                print("Found alg id " + hex(alg_block.fields['algorithm_id']) + " matching blacklisted alg " + alg_block.fields['algorithm_name'])
+                algids_blacklist.append(alg_block.fields['algorithm_id'])
+
     wmdrs = []
     if (process_wmdr):
         for wmdr_filename in args.wmdrs:
-            wmdr = wmdr_parser(wmdr_filename)
+            if (args.alg_name_blacklist is None):
+                wmdr = wmdr_parser(wmdr_filename, [])
+            else:
+                wmdr = wmdr_parser(wmdr_filename, algids_blacklist)
             wmdr.parse()
             wmdrs.append(wmdr)
     bins = []
