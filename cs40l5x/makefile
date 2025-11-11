@@ -32,17 +32,29 @@ PART_NUM = cs40l5x
 BUILD_VARIANT := CS40L51
 BUILD_NUM_UPPER = $(shell echo "$(BUILD_VARIANT)" | tr '[:lower:]' '[:upper:]')
 BUILD_NUM_LOWER = $(shell echo "$(BUILD_VARIANT)" | tr '[:upper:]' '[:lower:]')
+SED_GNU = $(shell sed --version)
+ifeq ($(SED_GNU),)
+	# Mac/BSD
+	SED_FLAGS=-i ''
+else
+	# GNU
+	SED_FLAGS=-i
+endif
 
 $(eval $(call assign_paths))
-PLATFORM_TARGETS = system_test freertos baremetal
+PLATFORM_TARGETS = system_test freertos baremetal blackstar
 VALID_TARGETS = unit_test $(PLATFORM_TARGETS)
 $(eval $(call eval_targets))
 $(eval $(call eval_optimization_level))
 
 # Include platform_bsp.mk
 ifdef IS_NOT_UNIT_TEST
-    PLATFORM=eestm32int
-    include $(REPO_PATH)/common/platform_bsp/platform_bsp.mk
+    ifeq ($(MAKECMDGOALS), blackstar)
+        PLATFORM=blackstar
+    else
+	    PLATFORM=eestm32int
+	endif
+	include $(REPO_PATH)/common/platform_bsp/platform_bsp.mk
 endif
 
 # Assign firmware and configuration script variables
@@ -152,10 +164,10 @@ firmware_converter:
 	@echo -------------------------------------------------------------------------------
 	@echo GENERATING $(BUILD_NUM_LOWER)_img
 	cd $(HALO_FIRMWARE_PATH) && python3 ../../tools/firmware_converter/firmware_converter.py $(FIRMWARE_CONV_TARGET) $(BUILD_NUM_LOWER) $(HALO_FIRMWARE_FILE) --wmdr $(HALO_FIRMWARE_WMDR) \
-    && sed -i 's/cs40l5._firmware/$(BUILD_NUM_LOWER)_firmware/g' $(DRIVER_PATH)/bsp/$(BSP_NAME).c \
-    && sed -i 's/cs40l5._total_fw_blocks/$(BUILD_NUM_LOWER)_total_fw_blocks/g' $(DRIVER_PATH)/bsp/$(BSP_NAME).c \
-    && sed -i 's/cs40l5._fw_blocks/$(BUILD_NUM_LOWER)_fw_blocks/g' $(DRIVER_PATH)/bsp/$(BSP_NAME).c \
-    && sed -i 's/cs40l5._fw_img/$(BUILD_NUM_LOWER)_fw_img/g' $(DRIVER_PATH)/bsp/$(BSP_NAME).c
+    && sed $(SED_FLAGS) 's/cs40l5._firmware/$(BUILD_NUM_LOWER)_firmware/g' $(DRIVER_PATH)/bsp/$(BSP_NAME).c \
+    && sed $(SED_FLAGS) 's/cs40l5._total_fw_blocks/$(BUILD_NUM_LOWER)_total_fw_blocks/g' $(DRIVER_PATH)/bsp/$(BSP_NAME).c \
+    && sed $(SED_FLAGS) 's/cs40l5._fw_blocks/$(BUILD_NUM_LOWER)_fw_blocks/g' $(DRIVER_PATH)/bsp/$(BSP_NAME).c \
+    && sed $(SED_FLAGS) 's/cs40l5._fw_img/$(BUILD_NUM_LOWER)_fw_img/g' $(DRIVER_PATH)/bsp/$(BSP_NAME).c
 
 
 hwt_to_waveform_converter:
