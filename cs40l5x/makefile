@@ -32,14 +32,6 @@ PART_NUM = cs40l5x
 BUILD_VARIANT := CS40L51
 BUILD_NUM_UPPER = $(shell echo "$(BUILD_VARIANT)" | tr '[:lower:]' '[:upper:]')
 BUILD_NUM_LOWER = $(shell echo "$(BUILD_VARIANT)" | tr '[:upper:]' '[:lower:]')
-SED_GNU = $(shell sed --version)
-ifeq ($(SED_GNU),)
-	# Mac/BSD
-	SED_FLAGS=-i ''
-else
-	# GNU
-	SED_FLAGS=-i
-endif
 
 $(eval $(call assign_paths))
 PLATFORM_TARGETS = system_test freertos baremetal blackstar
@@ -90,6 +82,8 @@ endif
 ifeq ($(MAKECMDGOALS), baremetal)
     CFLAGS += -DCS40L5X_BAREMETAL
 endif
+
+CFLAGS += -DCS40L5X_FIRMWARE_$(BUILD_NUM_UPPER)
 
 # Assign sources and includes for driver library
 DRIVER_SRCS = $(DRIVER_PATH)/cs40l5x.c
@@ -163,12 +157,7 @@ $(eval $(call add_wisce_script_rule,cs40l5x))
 firmware_converter:
 	@echo -------------------------------------------------------------------------------
 	@echo GENERATING $(BUILD_NUM_LOWER)_img
-	cd $(HALO_FIRMWARE_PATH) && python3 ../../tools/firmware_converter/firmware_converter.py $(FIRMWARE_CONV_TARGET) $(BUILD_NUM_LOWER) $(HALO_FIRMWARE_FILE) --wmdr $(HALO_FIRMWARE_WMDR) \
-    && sed $(SED_FLAGS) 's/cs40l5._firmware/$(BUILD_NUM_LOWER)_firmware/g' $(DRIVER_PATH)/bsp/$(BSP_NAME).c \
-    && sed $(SED_FLAGS) 's/cs40l5._total_fw_blocks/$(BUILD_NUM_LOWER)_total_fw_blocks/g' $(DRIVER_PATH)/bsp/$(BSP_NAME).c \
-    && sed $(SED_FLAGS) 's/cs40l5._fw_blocks/$(BUILD_NUM_LOWER)_fw_blocks/g' $(DRIVER_PATH)/bsp/$(BSP_NAME).c \
-    && sed $(SED_FLAGS) 's/cs40l5._fw_img/$(BUILD_NUM_LOWER)_fw_img/g' $(DRIVER_PATH)/bsp/$(BSP_NAME).c
-
+	cd $(HALO_FIRMWARE_PATH) && python3 ../../tools/firmware_converter/firmware_converter.py $(FIRMWARE_CONV_TARGET) $(BUILD_NUM_LOWER) $(HALO_FIRMWARE_FILE) --wmdr $(HALO_FIRMWARE_WMDR)
 
 hwt_to_waveform_converter:
 	@echo -------------------------------------------------------------------------------

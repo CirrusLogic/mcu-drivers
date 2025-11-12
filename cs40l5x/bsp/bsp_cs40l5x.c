@@ -28,13 +28,21 @@
 #include "cs40l5x.h"
 #include "cs40l5x_syscfg_regs.h"
 
-#ifndef CS40L5X_BAREMETAL
+#ifdef CS40L5X_FIRMWARE_CS40L51
+#include "cs40l51_fw_img.h"
+#define cs40l5x_fw_img cs40l51_fw_img
+#endif
+#ifdef CS40L5X_FIRMWARE_CS40L52
 #include "cs40l52_fw_img.h"
+#define cs40l5x_fw_img cs40l52_fw_img
+#endif
+#ifdef CS40L5X_FIRMWARE_CS40L53
+#include "cs40l53_fw_img.h"
+#define cs40l5x_fw_img cs40l53_fw_img
+#endif
+
 static fw_img_boot_state_t boot_state;
 static uint32_t current_halo_heartbeat = 0;
-#else
-#include "cs40l52_firmware.h"
-#endif
 
 /***********************************************************************************************************************
  * LOCAL LITERAL SUBSTITUTIONS
@@ -167,8 +175,8 @@ uint32_t bsp_dut_boot(void)
     const uint8_t *fw_img_end;
     uint32_t write_size;
 
-    fw_img = cs40l52_fw_img;
-    fw_img_end = cs40l52_fw_img + FW_IMG_SIZE(cs40l52_fw_img);
+    fw_img = cs40l5x_fw_img;
+    fw_img_end = cs40l5x_fw_img + FW_IMG_SIZE(cs40l5x_fw_img);
 
     // Free anything malloc'ed in previous boots
     if (boot_state.fw_info.sym_table)

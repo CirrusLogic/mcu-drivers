@@ -3,6 +3,19 @@ Release Notes
 
 =============================================================================
 Summary:
+This is the release of Alt-OS Driver SDK v4.27.5
+Date: 2025/11/12
+
+Architectures/Compilers Used:
+GNU Arm Embedded Toolchain: arm-none-eabi-gcc -mcpu=cortex-m4
+
+Fixed Bugs:
+Fix visibility for *_baremetal BSP files
+STMCubeIDE build fixes
+
+=============================================================================
+=============================================================================
+Summary:
 This is the release of Alt-OS Driver SDK v4.27.4
 Date: 2025/11/11
 
