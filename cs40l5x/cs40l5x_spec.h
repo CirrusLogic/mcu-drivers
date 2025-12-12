@@ -36,6 +36,21 @@ extern "C" {
  * GENERIC ENUMS, STRUCTS, UNIONS, TYPEDEFS
  **********************************************************************************************************************/
 
+#define MAX_DIAGNOSTIC_MSG_LEN 32
+struct cs40l5x_diagnostic_flag_encoding {
+    uint32_t value;
+    char msg[MAX_DIAGNOSTIC_MSG_LEN];
+};
+
+/**
+ * Generic Value-to-Code Encoding Data Structure
+ */
+struct cs40l5x_register_encoding
+{
+    uint32_t value; ///< Real-world value needing to be encoded
+    uint8_t code;   ///< Code corresponding to value
+};
+
 /***********************************************************************************************************************
  * LITERALS, CONSTANTS, MACROS, ENUMS, STRUCTS, UNIONS, TYPEDEFS
  **********************************************************************************************************************/
@@ -68,6 +83,25 @@ extern "C" {
 #define CS40L5X_REVID_B0                                                    (0xB0)
 /** @} */
 
+/**
+ * Encoding for CCM register REFCLK_INPUT field PLL_REFCLK_FREQ
+ *
+ * Encodes from raw PLL input reference clock frequency in Hertz to bitfield code.
+ *
+ * @see REFCLK_INPUT
+ * @see Section 7.11.1
+ *
+ */
+#define CS40L5X_NUM_VALD_PLL_REFCLKS 34
+extern const struct cs40l5x_register_encoding cs40l5x_pll_refclk[CS40L5X_NUM_VALD_PLL_REFCLKS];
+
+/**
+ * Encoding for Diagnostic Flags
+ *
+ * Encodes from raw flag bitfield to readable diagnostic string.
+ * */
+#define NUM_DIAGNOSTIC_FLAGS 19
+extern const struct cs40l5x_diagnostic_flag_encoding cs40l5x_diag_flags[NUM_DIAGNOSTIC_FLAGS];
 
 /**
  * @defgroup SECTION_7_2_CTRL_KEYS
@@ -165,6 +199,11 @@ extern "C" {
 #define CS40L5X_MAILBOX_QUEUE_LEN_OFFSET                                    (4)
 #define CS40L5X_MAILBOX_QUEUE_WT_OFFSET                                     (8)
 #define CS40L5X_MAILBOX_QUEUE_RD_OFFSET                                     (12)
+
+#define CS40L5X_MBOX_RD_MASK                                                (0x1F)
+#define CS40L5X_MBOX_RD_SIZE                                                (0x1C)
+#define CS40L5X_MBOX_DIAG_MSG_DELAY_MS                                      (10)
+#define CS40L5X_MBOX_DIAG_MSG_ATTEMPTS                                      (255)
 
 #define CS40L5X_DSP_MBOX_HAPTIC_TRIGGER_I2S                                 (0x1000012)
 #define CS40L5X_DSP_MBOX_F0_EST                                             (0x7000001)
@@ -308,6 +347,27 @@ extern "C" {
 #define CS40L5X_ASP1TX4_INPUT                                               (0x00004C2C)
 
 #define CS40L5X_FIRMWARE_PLL_REFCLK_EN_MASK                                 (1 << 4)
+
+/* Diagnostics Error Flag Masks */
+#define CS40L5X_DIAG_AMP_SHORT_CIRCUIT                                      (1)
+#define CS40L5X_DIAG_AMP_OPEN_CIRCUIT                                       (1 << 1)
+#define CS40L5X_DIAG_BOOST_SHORT_CIRCUIT                                    (1 << 2)
+#define CS40L5X_DIAG_VDD_AMP_LOW                                            (1 << 3)
+#define CS40L5X_DIAG_VDD_AMP_HI                                             (1 << 4)
+#define CS40L5X_DIAG_VDD_B_LOW                                              (1 << 5)
+#define CS40L5X_DIAG_VDD_B_HI                                               (1 << 6)
+#define CS40L5X_DIAG_ReDC_LOW                                               (1 << 7)
+#define CS40L5X_DIAG_ReDC_HI                                                (1 << 8)
+#define CS40L5X_DIAG_LE_LOW                                                 (1 << 9)
+#define CS40L5X_DIAG_LE_HI                                                  (1 << 10)
+#define CS40L5X_DIAG_F0_LOW                                                 (1 << 11)
+#define CS40L5X_DIAG_F0_HI                                                  (1 << 12)
+#define CS40L5X_DIAG_Q_LOW                                                  (1 << 13)
+#define CS40L5X_DIAG_Q_HI                                                   (1 << 14)
+#define CS40L5X_DIAG_bEMF_LOW                                               (1 << 15)
+#define CS40L5X_DIAG_bEMF_HI                                                (1 << 16)
+#define CS40L5X_DIAG_Zres_LOW                                               (1 << 17)
+#define CS40L5X_DIAG_Zres_HI                                                (1 << 18)
 
 /** @} */
 

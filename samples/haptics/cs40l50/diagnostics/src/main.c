@@ -33,28 +33,28 @@ LOG_MODULE_REGISTER(main);
 static const struct gpio_dt_spec button = GPIO_DT_SPEC_GET_OR(SW0_NODE, gpios,
                                   {0});
 static struct gpio_callback button_cb_data;
+const struct gpio_dt_spec reset = GPIO_DT_SPEC_GET(DT_NODELABEL(haptic1), reset_gpios);
 
 int main(void)
 {
         int ret;
         //Initialize button
 
-    if (!gpio_is_ready_dt(&button)) {
-        printk("Error: button device %s is not ready\n",
-               button.port->name);
-        return 0;
-    }
+        if (!gpio_is_ready_dt(&button)) {
+                printk("Error: button device %s is not ready\n",
+                button.port->name);
+                return 0;
+        }
 
-    ret = gpio_pin_configure_dt(&button, GPIO_INPUT);
-    if (ret != 0) {
-        printk("Error %d: failed to configure %s pin %d\n",
-               ret, button.port->name, button.pin);
-        return 0;
-    }
+        ret = gpio_pin_configure_dt(&button, GPIO_INPUT);
+        if (ret != 0) {
+                printk("Error %d: failed to configure %s pin %d\n",
+                ret, button.port->name, button.pin);
+                return 0;
+        }
 
         char in_char;
         const struct device *dev1 = DEVICE_DT_GET(DT_NODELABEL(haptic1));
-        const struct device *uart = DEVICE_DT_GET(DT_NODELABEL(usart2));
         struct cs40l50_haptic_source_config hap_cfg = {
                 .index = CS40L50_HAPTIC_ROM_CLICK_14_VCM,
                 .bank = ROM_BANK,
@@ -71,7 +71,6 @@ int main(void)
                 LOG_INF("Found CS40L50 device %s", dev1->name);
         }
 
-
         while (1) {
                 if (gpio_pin_get_dt(&button)) {
                         // Set error flag to omit VDD amp low, VDD amp high, ReDC low, and ReDC high errors with sample_mask
@@ -79,6 +78,12 @@ int main(void)
                         uint32_t sample_mask = CS40L50_DIAG_VDD_AMP_HI | CS40L50_DIAG_VDD_B_HI | CS40L50_DIAG_ReDC_HI | CS40L50_DIAG_LE_HI;
                         bool diagnostics_err = false;
                         uint32_t diagnostics_data;
+
+#ifdef TEST_DIAGNOSTICS_EXTREMES
+                        //Test low or high extremes of diagnostics test values
+                        bool low_extreme_test = true;
+                        haptics_cs40l50_test_diagnostics(dev1, low_extreme_test);
+#endif //TEST_DIAGNOSTICS_EXTREMES
                         ret = haptics_cs40l50_diagnostics(dev1, &diagnostics_data, sample_mask, &diagnostics_err);
                         if (ret)
                         {

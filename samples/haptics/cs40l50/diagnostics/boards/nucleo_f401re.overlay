@@ -26,10 +26,11 @@
         status = "okay";
         clock-frequency = <I2C_BITRATE_STANDARD>;
 	pinctrl-0 = <&i2c1_scl_pb6 &i2c1_sda_pb7>;
-        
+
         haptic1: cs40l50@34 {
                 compatible = "cirrus,cs40l50";
                 reg = <0x34>;
+                reset-gpios = <&gpioa 6 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>;
                 status = "okay";
         };
 };

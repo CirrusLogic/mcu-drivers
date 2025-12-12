@@ -1,13 +1,13 @@
 Artifact Info:
-Artifact           : CS35L42 Alt-OS Driver: 4.27.5 - f652df585dafe82569baf72881cebe9d978f3ffd
+Artifact           : CS35L42 Alt-OS Driver: 4.27.7 - 958b0f8d88e89b73aa7a32875dec813fc5bf970e
 Test Target MCU SDK: STM32Cube_FW_F4: 1.24.1
 Target toolchain   : GNU Arm Embedded Toolchain: arm-none-eabi-gcc (Arm GNU Toolchain 13.2.rel1 (Build arm-13.7)) 13.2.1 20231009
 Build system       : make: GNU Make 4.3
-OS                 : Linux: 5.14.0-570.55.1.el9_6.x86_64
+OS                 : Linux: 5.14.0-611.9.1.el9_7.x86_64
 Shell              : bash: GNU bash, version 5.1.8(1)-release (x86_64-redhat-linux-gnu)
 Host toolchain     : MinGW GCC: gcc (GCC) 11.5.0 20240719 (Red Hat 11.5.0-5)
-Build Job          : peart_a_alt_os_nightly: 1183
-Git SHA            : f652df585dafe82569baf72881cebe9d978f3ffd
+Build Job          : peart_a_alt_os_nightly: 1221
+Git SHA            : 958b0f8d88e89b73aa7a32875dec813fc5bf970e
 
 System resources:
 

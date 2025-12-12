@@ -53,9 +53,8 @@ BSP Goals
 
 # Application
 
-Application Goals
-* Link BSP functions to system events
-* Perform Diagnostics on button1 press, printing detected diagnostic errors
+
+This application performs diagnostics on button1 press, printing detected diagnostic errors as well as the masked diagnostics flag result. The CS40L50 diagnostics algorithm will check that data is within given given boundaries for each test in diagnostics. This functionality can be checked by defining `TEST_DIAGNOSTICS_EXTREMES` in `cs40l50_bsp.h`. This will enable a call to function `haptics_cs40l50_test_diagnostics(dev1, low_extreme_test)` before the diagnostic function in the main loop of the sample application. Here the lower boundaries can be checked by setting `low_extreme_test = true` and the high boundaries can be checked by setting `low_extreme_test = false`.
 
 ## Init
 
@@ -65,15 +64,8 @@ In main.c the application can check that the devicetree instantiation completed 
 
 Initialization steps:
 * Populate `cs40l50_t` with I2C handle and syscfg registers
+* Toggle GPIOA 6 (system reset) to reset the Lochnagar
 * Check I2C bus ready
 * cs40l50_reset()
 
 https://github.com/CirrusLogic/mcu-drivers/blob/7faad294f130f55ace18f95e3f3ed827589601cd/samples/haptics/cs40l50/src/cs40l50_bsp.c#L176-L197
-
-## System events
-
-The system uses a built-in Zephyr Haptic API.
-
-The BSP implements these callbacks:
-* haptics_cs40l50_start_output
-* haptics_cs40l50_stop_output

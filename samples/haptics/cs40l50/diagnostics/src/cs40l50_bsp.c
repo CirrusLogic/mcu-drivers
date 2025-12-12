@@ -25,7 +25,6 @@ LOG_MODULE_REGISTER(cirrus_cs40l50);
 
 struct cs40l50_config {
     struct i2c_dt_spec i2c;
-    struct gpio_dt_spec reset_gpio;
     void (*irq_cfg_func)(void);
     void (*irq_enable_func)(void);
     void (*irq_disable_func)(void);
@@ -337,13 +336,13 @@ static uint32_t cs40l50_set_timer(uint32_t duration_ms, bsp_callback_t cb, void 
     return 0;
 }
 
-static uint32_t cs40l50_register_gpio_cb(uint32_t gpio_id, bsp_callback_t cb, void *cb_arg)
+static uint32_t cs40l50_register_gpio_cb(struct gpio_dt_spec *gpio, bsp_callback_t cb, void *cb_arg)
 {
     //TODO
     return 0;
 }
 
-static uint32_t cs40l50_set_gpio(uint32_t gpio_id, uint8_t gpio_state)
+static uint32_t cs40l50_set_gpio(const struct gpio_dt_spec *gpio, uint8_t gpio_state)
 {
     //TODO
     return 0;
@@ -373,6 +372,27 @@ static int cs40l50_init(const struct device *dev)
     drv->config.syscfg_regs_total = CS40L50_SYSCFG_REGS_TOTAL;
     drv->config.is_ext_bst = true;
 
+    static const struct gpio_dt_spec reset = GPIO_DT_SPEC_GET(DT_NODELABEL(haptic1), reset_gpios);
+
+    if (!gpio_is_ready_dt(&reset)) {
+        LOG_INF("cs40l50 reset pin GPIO port is not ready.\n");
+        return 0;
+    }
+
+    ret = gpio_pin_configure_dt(&reset, GPIO_OUTPUT_INACTIVE);
+    if (ret != 0) {
+        LOG_INF("cs40l50 configuring reset pin failed: %d\n", ret);
+        return 0;
+    }
+
+    drv->config.bsp_config.reset_gpio_id = &reset;
+    // Activate RESET for at least T_RLPW (1ms)
+    gpio_pin_set_dt(&reset, BSP_GPIO_ACTIVE);
+    k_msleep(2);
+    // Wait for Lochnagar to boot
+    gpio_pin_set_dt(&reset, BSP_GPIO_INACTIVE);
+    k_msleep(2500);
+
     if (!i2c_is_ready_dt(&config->i2c)) {
         LOG_INF("cs40l50 no I2C\n");
         return -ENODEV;
@@ -382,8 +402,6 @@ static int cs40l50_init(const struct device *dev)
     if (ret < 0) {
         return ret;
     }
-
-    k_msleep(1000);
 
     regmap_read(&config->i2c, FIRMWARE_CS40L50_HALO_STATE, &val);
     LOG_INF("cs40l50_init: HALO_STATE = %x\n", val);
@@ -464,6 +482,7 @@ int haptics_cs40l50_diagnostics(const struct device *dev, uint32_t* diag_data, u
     struct cs40l50_config *config = (struct cs40l50_config*)dev->config;
     struct cs40l50_bsp *data = dev->data;
     cs40l50_t *drv = &data->priv;
+
     ret = cs40l50_diagnostics(drv);
     if(ret)
     {
@@ -474,6 +493,7 @@ int haptics_cs40l50_diagnostics(const struct device *dev, uint32_t* diag_data, u
     {
         return ret;
     }
+
     haptics_cs40l50_decode_diagnostics(*diag_data);
     if(*diag_data & ~mask)
     {
@@ -486,6 +506,109 @@ int haptics_cs40l50_diagnostics(const struct device *dev, uint32_t* diag_data, u
     return BSP_STATUS_OK;
 }
 
+#ifdef TEST_DIAGNOSTICS_EXTREMES
+int haptics_cs40l50_test_diagnostics(const struct device *dev, bool low)
+{
+    uint32_t ret;
+    struct cs40l50_config *config = (struct cs40l50_config*)dev->config;
+    struct cs40l50_bsp *data = dev->data;
+    cs40l50_t *drv = &data->priv;
+
+    if(low)
+    {
+        LOG_INF("\nTest \"too low\" flags...");
+
+        ret = regmap_write(&config->i2c, DIAGNOSTICS_VDD_AMP_MIN, 4514);
+        if(ret)
+        {
+            return ret;
+        }
+        ret = regmap_write(&config->i2c, DIAGNOSTICS_VDD_B_MIN, 4514);
+        if(ret)
+        {
+            return ret;
+        }
+        ret = regmap_write(&config->i2c, DIAGNOSTICS_REDC_MIN, 0x7fffff);
+        if(ret)
+        {
+            return ret;
+        }
+        ret = regmap_write(&config->i2c, DIAGNOSTICS_LE_MIN, 0x7fffff);
+        if(ret)
+        {
+            return ret;
+        }
+        ret = regmap_write(&config->i2c, DIAGNOSTICS_F0_MIN, 0x7fffff);
+        if(ret)
+        {
+            return ret;
+        }
+        ret = regmap_write(&config->i2c, DIAGNOSTICS_Q_MIN, 0x7fffff);
+        if(ret)
+        {
+            return ret;
+        }
+        ret = regmap_write(&config->i2c, DIAGNOSTICS_BEMF_MIN, 0x7fffff);
+        if(ret)
+        {
+            return ret;
+        }
+        ret = regmap_write(&config->i2c, DIAGNOSTICS_ZRES_MIN, 0x7fffff);
+        if(ret)
+        {
+            return ret;
+        }
+    }
+    else
+    {
+        LOG_INF("\n\nTest \"too high\" flags...");
+
+        ret = regmap_write(&config->i2c, DIAGNOSTICS_VDD_AMP_MAX, 0x0);
+        if(ret)
+        {
+            return ret;
+        }
+        ret = regmap_write(&config->i2c, DIAGNOSTICS_VDD_B_MAX, 0x0);
+        if(ret)
+        {
+            return ret;
+        }
+        ret = regmap_write(&config->i2c, DIAGNOSTICS_REDC_MAX, 0x0);
+        if(ret)
+        {
+            return ret;
+        }
+        ret = regmap_write(&config->i2c, DIAGNOSTICS_LE_MAX, 0x0);
+        if(ret)
+        {
+            return ret;
+        }
+        ret = regmap_write(&config->i2c, DIAGNOSTICS_F0_MAX, 0x0);
+        if(ret)
+        {
+            return ret;
+        }
+        ret = regmap_write(&config->i2c, DIAGNOSTICS_Q_MAX, 0x0);
+        if(ret)
+        {
+            return ret;
+        }
+        ret = regmap_write(&config->i2c, DIAGNOSTICS_BEMF_MAX, 0x0);
+        if(ret)
+        {
+            return ret;
+        }
+        ret = regmap_write(&config->i2c, DIAGNOSTICS_ZRES_MAX, 0x0);
+        if(ret)
+        {
+            return ret;
+        }
+
+        return BSP_STATUS_OK;
+    }
+}
+#endif //TEST_DIAGNOSTICS_EXTREMES
+
 static const struct haptics_driver_api cs40l50_driver_api = {
     .start_output = &haptics_cs40l50_start_output,
     .stop_output = &haptics_cs40l50_stop_output,
@@ -495,22 +618,21 @@ static void cs40l50_isr(void *arg)
 {
 }
 
-#define CS40L50_INIT(inst)                                                                         \
-                                                                                                   \
-                                                                                                   \
-    static const struct cs40l50_config cs40l50_config_##inst = {                               \
-        .i2c = I2C_DT_SPEC_INST_GET(inst),                                                 \
-    };                                                                                         \
-                                                                                                   \
-    static struct cs40l50_bsp cs40l50_bsp_data_##inst = {                                         \
-                                                                                                   \
-    };                                                                                         \
-                                                                                                   \
-    PM_DEVICE_DT_INST_DEFINE(inst, cs40l50_pm_action);                                         \
-                                                                                                   \
-    DEVICE_DT_INST_DEFINE(inst, &cs40l50_init, NULL, &cs40l50_bsp_data_##inst,                     \
-                  &cs40l50_config_##inst, POST_KERNEL, CONFIG_HAPTICS_INIT_PRIORITY,   \
-                  &cs40l50_driver_api);
+#define CS40L50_INIT(inst)                                                                   \
+                                                                                             \
+    static const struct cs40l50_config cs40l50_config_##inst = {                             \
+        .i2c = I2C_DT_SPEC_INST_GET(inst),                                                   \
+    };                                                                                       \
+                                                                                             \
+    static struct cs40l50_bsp cs40l50_bsp_data_##inst = {                                    \
+                                                                                             \
+    };                                                                                       \
+                                                                                             \
+    PM_DEVICE_DT_INST_DEFINE(inst, cs40l50_pm_action);                                       \
+                                                                                             \
+    DEVICE_DT_INST_DEFINE(inst, &cs40l50_init, NULL, &cs40l50_bsp_data_##inst,               \
+                          &cs40l50_config_##inst, POST_KERNEL, CONFIG_HAPTICS_INIT_PRIORITY, \
+                          &cs40l50_driver_api);
 
 DT_INST_FOREACH_STATUS_OKAY(CS40L50_INIT)
 

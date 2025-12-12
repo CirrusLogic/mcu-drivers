@@ -1,31 +1,45 @@
 Artifact Info:
-Artifact           : CS40L50 Alt-OS Driver: 4.27.5 - f652df585dafe82569baf72881cebe9d978f3ffd
+Artifact           : CS40L50 Alt-OS Driver: 4.27.7 - 958b0f8d88e89b73aa7a32875dec813fc5bf970e
 Test Target MCU SDK: STM32Cube_FW_F4: 1.24.1
 Target toolchain   : GNU Arm Embedded Toolchain: arm-none-eabi-gcc (GNU Tools for Arm Embedded Processors 8-2019-q3-update) 8.3.1 20190703 (release) [gcc-8-branch revision 273027]
 Build system       : make: GNU Make 4.2.1
 OS                 : Windows: 10
 Shell              : MSYS2: msys2-runtime 3.0.7-6
 Host toolchain     : MinGW GCC: gcc (Rev1, Built by MSYS2 project) 9.2.0
-Build Job          : jamerson_h_alt_os_nightly: 1066
-Git SHA            : f652df585dafe82569baf72881cebe9d978f3ffd
+Build Job          : jamerson_h_alt_os_nightly: 1101
+Git SHA            : 958b0f8d88e89b73aa7a32875dec813fc5bf970e
 
 System resources:
 
 Build Configuration 1:
 
 Artifact filename    : libcs40l50.a
-Driver TEXT          : 6094
+Driver TEXT          : 6074
 Driver BSS           : 4
 Driver DATA          : 628
 Driver Max Stack     : 136 (cs40l50_power -> cs40l50_prevent_hibernate -> cs40l50_pm_state_transition -> regmap_write_acked_reg -> regmap_read -> GET_BYTE_FROM_WORD)
 
 Artifact filename    : freertos.elf
-Driver TEXT          : 3032
+Driver TEXT          : 3046
 Driver BSS           : 188
 Driver DATA          : 188
 
 Artifact filename    : cs40l50_fw_img.o
-Driver TEXT          : 25504
+Driver TEXT          : 26232
 
 Compiler flags:
+    -mcpu=cortex-m4
+    -mthumb
+    -mfpu=fpv4-sp-d16
+    -mfloat-abi=hard
+    -march=armv7e-m+fp
+    -Os
+    -Werror
+    -Wall
+    -std=gnu11
+    -fno-diagnostics-show-caret
+    -fdata-sections
+    -ffunction-sections
+    -fstack-usage
+    -frecord-gcc-switches
 

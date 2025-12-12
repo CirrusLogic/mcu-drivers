@@ -198,6 +198,11 @@ extern const struct cs40l50_diagnostic_flag_encoding cs40l50_diag_flags[NUM_DIAG
 #define CS40L50_MAILBOX_QUEUE_WT_OFFSET                                     (8)
 #define CS40L50_MAILBOX_QUEUE_RD_OFFSET                                     (12)
 
+#define CS40L50_MBOX_RD_MASK                                                (0x1F)
+#define CS40L50_MBOX_RD_SIZE                                                (0x1C)
+#define CS40L50_MBOX_DIAG_MSG_DELAY_MS                                      (10)
+#define CS40L50_MBOX_DIAG_MSG_ATTEMPTS                                      (255)
+
 #define CS40L50_DSP_MBOX_HAPTIC_TRIGGER_I2S                                 (0x1000012)
 #define CS40L50_DSP_MBOX_F0_EST                                             (0x7000001)
 #define CS40L50_DSP_MBOX_REDC_EST                                           (0x7000002)

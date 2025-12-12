@@ -35,6 +35,9 @@
 #define regmap_write_acked_reg cs40l50_write_acked_reg_dt
 #define regmap_write_blocks cs40l50_i2c_write_bulk_dt
 
+//Enable or disable range testing of maximum and minimum diagnostic flags
+//#define TEST_DIAGNOSTICS_EXTREMES
+
 /***********************************************************************************************************************
  * LITERALS & CONSTANTS
  **********************************************************************************************************************/
@@ -71,6 +74,7 @@
  *
  */
 #define BSP_GPIO_LOW                (0)
+#define BSP_GPIO_INACTIVE           (0)
 
 /**
  * Value to indicate driving a GPIO high
@@ -79,6 +83,7 @@
  *
  */
 #define BSP_GPIO_HIGH               (1)
+#define BSP_GPIO_ACTIVE             (1)
 
 /**
  * Value to indicate enabling or disabling a supply
@@ -157,7 +162,7 @@ typedef struct
      * @see BSP_GPIO_LOW BSP_GPIO_HIGH
      *
      */
-    uint32_t (*set_gpio)(uint32_t gpio_id, uint8_t gpio_state);
+    uint32_t (*set_gpio)(const struct gpio_dt_spec * gpio_id, uint8_t gpio_state);
 
     /**
      * Enable or disable a supply
@@ -190,7 +195,7 @@ typedef struct
      * - BSP_STATUS_OK          otherwise
      *
      */
-    uint32_t (*register_gpio_cb)(uint32_t gpio_id, bsp_callback_t cb, void *cb_arg);
+    uint32_t (*register_gpio_cb)(const struct gpio_dt_spec *gpio, bsp_callback_t cb, void *cb_arg);
 
     /**
      * Set a timer to expire
@@ -464,6 +469,7 @@ struct cs40l50_bsp {
     struct cs40l50_haptic_source_config hap_cfg;
 };
 
+extern const struct gpio_dt_spec reset;
 extern bsp_driver_if_t *bsp_driver_if_g;
 
 int cs40l50_i2c_write_reg_dt(const struct i2c_dt_spec *spec, const uint32_t reg_addr,
@@ -494,7 +500,9 @@ int cs40l50_set_haptic_cfg(const struct device *dev, struct cs40l50_haptic_sourc
  * - BSP_STATUS_FAIL            if failure is detected during diagnostic function execution
  * - BSP_STATUS_OK              otherwise
  */
-int haptics_cs40l50_diagnostics(const struct device *dev, uint32_t* diag_data, uint32_t mask, bool* mask_flag);
-//Temp function to set min/max LRA_check vals such that diagnostic errs are triggered for testing
-int haptics_cs40l50_test_diagnostics(const struct device *dev, bool low);
+int haptics_cs40l50_diagnostics(const struct device *dev, uint32_t *diag_data, uint32_t mask, bool *mask_flag);
+    #ifdef TEST_DIAGNOSTICS_EXTREMES
+    // Function to set min/max LRA_check vals such that diagnostic errors are triggered for testing
+    int haptics_cs40l50_test_diagnostics(const struct device *dev, bool low);
+    #endif //TEST_DIAGNOSTICS_EXTREMES
 #endif

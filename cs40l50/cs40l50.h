@@ -268,15 +268,18 @@ typedef struct
  */
 typedef struct
 {
-    uint32_t reset_gpio_id;                             ///< Used to ID CS35L42 Reset pin in bsp_driver_if calls
-    uint32_t int_gpio_id;                               ///< Used to ID CS35L42 INT pin in bsp_driver_if calls
+#ifdef CIRRUS_ZEPHYR_SAMPLE
+    struct i2c_dt_spec *i2c;
+    const struct gpio_dt_spec *reset_gpio_id;           ///< Used to interact with CS40L50 Reset pin in zephyr bsp
+    const struct gpio_dt_spec *int_gpio_id;             ///< Used to interact with CS40L50 INT pin in zephyr bsp
+#else
+    uint32_t reset_gpio_id;                             ///< Used to ID CS40L50 Reset pin in bsp_driver_if calls
+    uint32_t int_gpio_id;                               ///< Used to ID CS40L50 INT pin in bsp_driver_if calls
+#endif
     cs40l50_notification_callback_t notification_cb;    ///< Notification callback registered for detected events
     void *notification_cb_arg;                          ///< Notification callback argument
 #ifdef CIRRUS_SDK
     regmap_cp_config_t cp_config;
-#endif
-#ifdef CIRRUS_ZEPHYR_SAMPLE
-    struct i2c_dt_spec *i2c;
 #endif
 } cs40l50_bsp_config_t;
 

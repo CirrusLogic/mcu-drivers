@@ -63,7 +63,7 @@ HALO_FIRMWARE_WMDR = cs40l5x_wt.bin
 BSP_NAME = bsp_cs40l5x
 endif
 
-HALO_FIRMWARE_FILE = $(BUILD_NUM_UPPER)_Rev3.4.16.wmfw
+HALO_FIRMWARE_FILE = $(BUILD_NUM_UPPER)_Rev4.0.3.wmfw
 WISCE_SCRIPT = $(CONFIG_PATH)/wisce_init.txt
 MISC_SCRIPTS = hwt_to_waveform_converter
 

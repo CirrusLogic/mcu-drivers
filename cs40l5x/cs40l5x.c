@@ -219,6 +219,65 @@ static uint32_t cs40l5x_mbox_command_to_event_id_map[] =
 
 #endif //CS40L5X_BAREMETAL
 
+const struct cs40l5x_register_encoding cs40l5x_pll_refclk[CS40L5X_NUM_VALD_PLL_REFCLKS] = {
+    { 128000,   0x0C },
+    { 256000,   0x0F },
+    { 384000,   0x11 },
+    { 512000,   0x12 },
+    { 768000,   0x15 },
+    { 1024000,  0x17 },
+    { 1411200,  0x19 },
+    { 1500000,  0x1A },
+    { 1536000,  0x1B },
+    { 2000000,  0x1C },
+    { 2048000,  0x1D },
+    { 2400000,  0x1E },
+    { 2822400,  0x1F },
+    { 3000000,  0x20 },
+    { 3072000,  0x21 },
+    { 4000000,  0x23 },
+    { 4096000,  0x24 },
+    { 4800000,  0x25 },
+    { 5644800,  0x26 },
+    { 6000000,  0x27 },
+    { 6144000,  0x28 },
+    { 6250000,  0x29 },
+    { 6400000,  0x2A },
+    { 7526400,  0x2D },
+    { 8000000,  0x2E },
+    { 8192000,  0x2F },
+    { 9600000,  0x30 },
+    { 11289600, 0x31 },
+    { 12000000, 0x32 },
+    { 12288000, 0x33 },
+    { 13500000, 0x37 },
+    { 19200000, 0x38 },
+    { 22579200, 0x39 },
+    { 24576000, 0x3B }
+};
+
+const struct cs40l5x_diagnostic_flag_encoding cs40l5x_diag_flags[NUM_DIAGNOSTIC_FLAGS] =
+{
+    {CS40L5X_DIAG_AMP_SHORT_CIRCUIT, "AMP_SHORT_CIRCUIT"},
+    {CS40L5X_DIAG_AMP_OPEN_CIRCUIT, "AMP_OPEN_CIRCUIT"},
+    {CS40L5X_DIAG_BOOST_SHORT_CIRCUIT, "BOOST_SHORT_CIRCUIT"},
+    {CS40L5X_DIAG_VDD_AMP_LOW, "VDD_AMP_LOW"},
+    {CS40L5X_DIAG_VDD_AMP_HI, "VDD_AMP_HI"},
+    {CS40L5X_DIAG_VDD_B_LOW, "VDD_B_LOW"},
+    {CS40L5X_DIAG_VDD_B_HI, "VDD_B_HI"},
+    {CS40L5X_DIAG_ReDC_LOW, "ReDC_LOW"},
+    {CS40L5X_DIAG_ReDC_HI, "ReDC_HI"},
+    {CS40L5X_DIAG_LE_LOW, "LE_LOW"},
+    {CS40L5X_DIAG_LE_HI, "LE_HI"},
+    {CS40L5X_DIAG_F0_LOW, "F0_LOW"},
+    {CS40L5X_DIAG_F0_HI, "F0_HI"},
+    {CS40L5X_DIAG_Q_LOW, "Q_LOW"},
+    {CS40L5X_DIAG_Q_HI, "Q_HI"},
+    {CS40L5X_DIAG_bEMF_LOW, "bEMF_LOW"},
+    {CS40L5X_DIAG_bEMF_HI, "bEMF_HI"},
+    {CS40L5X_DIAG_Zres_LOW, "Zres_LOW"},
+    {CS40L5X_DIAG_Zres_HI, "Zres_HI"}
+};
 
 #ifdef CIRRUS_SDK
 static regmap_cp_config_t broadcast_cp =
@@ -1001,7 +1060,22 @@ uint32_t cs40l5x_diagnostics(cs40l5x_t *driver)
         return ret;
     }
 
-    ret = regmap_poll_reg(cp, mbox_rd_ptr_value, CS40L5X_DSP_MBOX_DIAG_START, 10, 1);
+    ret = regmap_poll_reg(cp, mbox_rd_ptr_value, CS40L5X_DSP_MBOX_DIAG_START, CS40L5X_MBOX_DIAG_MSG_ATTEMPTS, CS40L5X_MBOX_DIAG_MSG_DELAY_MS);
+    if (ret)
+    {
+        return ret;
+    }
+
+    mbox_rd_ptr_value = (mbox_rd_ptr_value & ~CS40L5X_MBOX_RD_MASK) | ((mbox_rd_ptr_value & CS40L5X_MBOX_RD_MASK) % CS40L5X_MBOX_RD_SIZE);
+    mbox_rd_ptr_value += 4;
+
+    ret = regmap_write(cp, mbox_rd_ptr_addr, mbox_rd_ptr_value);
+    if (ret)
+    {
+        return ret;
+    }
+
+    ret = regmap_poll_reg(cp, mbox_rd_ptr_value, CS40L5X_DSP_MBOX_DIAG_DONE, CS40L5X_MBOX_DIAG_MSG_ATTEMPTS, CS40L5X_MBOX_DIAG_MSG_DELAY_MS);
     if (ret)
     {
         return ret;
@@ -1014,21 +1088,6 @@ uint32_t cs40l5x_diagnostics(cs40l5x_t *driver)
     {
         return ret;
     }
-
-    ret = regmap_poll_reg(cp, mbox_rd_ptr_value, CS40L5X_DSP_MBOX_DIAG_DONE, 30, 1);
-    if (ret)
-    {
-        return ret;
-    }
-
-    mbox_rd_ptr_value += 4;
-
-    ret = regmap_write(cp, mbox_rd_ptr_addr, mbox_rd_ptr_value);
-    if (ret)
-    {
-        return ret;
-    }
-
     return CS40L5X_STATUS_OK;
 }
 
@@ -1348,10 +1407,11 @@ uint32_t cs40l5x_set_broadcast_enable(cs40l5x_t *driver, bool enable)
 uint32_t cs40l5x_set_asp_enable(cs40l5x_t *driver, bool enable, uint32_t freq)
 {
     uint32_t ret;
+    uint8_t pll_refclk_val;
     regmap_cp_config_t *cp = REGMAP_GET_CP(driver);
 
     if (!enable) {
-        //Disable I2C Config
+        // Disable I2C Config
         ret = regmap_write(cp, CS40L5X_BLOCK_ENABLES2,
                    CS40L5X_BLOCK_ENABLES2_OTW_EN_MASK |
                        CS40L5X_BLOCK_ENABLES2_CLASSH_EN_MASK);
@@ -1363,8 +1423,19 @@ uint32_t cs40l5x_set_asp_enable(cs40l5x_t *driver, bool enable, uint32_t freq)
             return ret;
         }
     } else {
-        //Configure for I2S at given frequency
-        ret = regmap_write(cp, CS40L5X_ASP1_CTRL_1, 0x21);
+        // Check for valid freq
+        int i;
+        for (i = 0; i < CS40L5X_NUM_VALD_PLL_REFCLKS; i++) {
+            if (freq == cs40l5x_pll_refclk[i].value) {
+                pll_refclk_val = cs40l5x_pll_refclk[i].code;
+                break;
+            }
+        }
+        if (i == CS40L5X_NUM_VALD_PLL_REFCLKS) {
+            return CS40L5X_STATUS_FAIL;
+        }
+        // Configure for I2S at given frequency
+        ret = regmap_write(cp, CS40L5X_ASP1_CTRL_1, pll_refclk_val);
         if (ret) {
             return ret;
         }
@@ -1400,9 +1471,10 @@ uint32_t cs40l5x_set_asp_enable(cs40l5x_t *driver, bool enable, uint32_t freq)
         if (ret) {
             return ret;
         }
-        ret = regmap_update_reg(cp, CS40L5X_FIRMWARE_PLL_REFCLK_FREQ, 0,
-                    (0x21 << CS40L5X_FIRMWARE_PLL_REFCLK_FREQ_OFFSET) |
-                        CS40L5X_FIRMWARE_PLL_REFCLK_EN_MASK);
+        ret = regmap_update_reg(
+            cp, CS40L5X_FIRMWARE_PLL_REFCLK_FREQ, 0,
+            (pll_refclk_val << CS40L5X_FIRMWARE_PLL_REFCLK_FREQ_OFFSET) |
+                CS40L5X_FIRMWARE_PLL_REFCLK_EN_MASK);
         if (ret) {
             return ret;
         }
@@ -1412,7 +1484,7 @@ uint32_t cs40l5x_set_asp_enable(cs40l5x_t *driver, bool enable, uint32_t freq)
             return ret;
         }
 
-        //Configure GPIO PINs for I2S
+        // Configure GPIO PINs for I2S
         ret = regmap_update_reg(cp, CS40L5X_GPIO_CTRL3, CS40L5X_GPIO_CTRL_FN_INPUT_OUTPUT,
                     0);
         if (ret) {
@@ -1434,7 +1506,7 @@ uint32_t cs40l5x_set_asp_enable(cs40l5x_t *driver, bool enable, uint32_t freq)
             return ret;
         }
 
-        //Handle Mixer + Mailbox Command for DSP
+        // Handle Mixer + Mailbox Command for DSP
         ret = regmap_write(cp, CS40L5X_DACPCM1_INPUT, CS40L5X_DACPCM1_INPUT_DSP1_CH1);
         if (ret) {
             return ret;

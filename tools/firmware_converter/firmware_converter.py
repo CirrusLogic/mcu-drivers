@@ -673,14 +673,19 @@ def main(argv):
         f.add_metadata_text_line(line)
 
     # Add FW Blocks
+    total_fw_size = 0
     for block in fw_data_block_list.blocks:
         block_bytes = []
         for byte_str in block[1]:
             block_bytes.append(int.from_bytes(byte_str, 'little', signed=False))
 
         f.add_fw_block(block[0], block_bytes)
+        total_fw_size += len(block_bytes)
+    if (args.command == 'export'):
+        print(f"Total FW Size: {total_fw_size} bytes")
 
     # Add Coeff Blocks
+    total_coeff_size = 0
     if (process_wmdr):
         coeff_block_list_count = 0
         for coeff_data_block_list in coeff_data_block_lists:
@@ -695,7 +700,11 @@ def main(argv):
                 else:
                     f.add_coeff_block(coeff_block_list_count, block[0], block_bytes, "{part_number_lc}")
 
+                total_coeff_size += len(block_bytes)
+
             coeff_block_list_count = coeff_block_list_count + 1
+    if (args.command == 'export'):
+        print(f"Total Coeff Size: {total_coeff_size} bytes")
 
     # Add BIN Blocks
     if (process_bins):

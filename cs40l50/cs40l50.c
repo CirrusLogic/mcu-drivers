@@ -1061,7 +1061,22 @@ uint32_t cs40l50_diagnostics(cs40l50_t *driver)
         return ret;
     }
 
-    ret = regmap_poll_reg(cp, mbox_rd_ptr_value, CS40L50_DSP_MBOX_DIAG_START, 10, 1);
+    ret = regmap_poll_reg(cp, mbox_rd_ptr_value, CS40L50_DSP_MBOX_DIAG_START, CS40L50_MBOX_DIAG_MSG_ATTEMPTS, CS40L50_MBOX_DIAG_MSG_DELAY_MS);
+    if (ret)
+    {
+        return ret;
+    }
+
+    mbox_rd_ptr_value = (mbox_rd_ptr_value & ~CS40L50_MBOX_RD_MASK) | ((mbox_rd_ptr_value & CS40L50_MBOX_RD_MASK) % CS40L50_MBOX_RD_SIZE);
+    mbox_rd_ptr_value += 4;
+
+    ret = regmap_write(cp, mbox_rd_ptr_addr, mbox_rd_ptr_value);
+    if (ret)
+    {
+        return ret;
+    }
+
+    ret = regmap_poll_reg(cp, mbox_rd_ptr_value, CS40L50_DSP_MBOX_DIAG_DONE, CS40L50_MBOX_DIAG_MSG_ATTEMPTS, CS40L50_MBOX_DIAG_MSG_DELAY_MS);
     if (ret)
     {
         return ret;
@@ -1074,21 +1089,6 @@ uint32_t cs40l50_diagnostics(cs40l50_t *driver)
     {
         return ret;
     }
-
-    ret = regmap_poll_reg(cp, mbox_rd_ptr_value, CS40L50_DSP_MBOX_DIAG_DONE, 30, 1);
-    if (ret)
-    {
-        return ret;
-    }
-
-    mbox_rd_ptr_value += 4;
-
-    ret = regmap_write(cp, mbox_rd_ptr_addr, mbox_rd_ptr_value);
-    if (ret)
-    {
-        return ret;
-    }
-
     return CS40L50_STATUS_OK;
 }
 
