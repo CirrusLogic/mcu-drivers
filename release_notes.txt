@@ -3,6 +3,23 @@ Release Notes
 
 =============================================================================
 Summary:
+This is the release of Alt-OS Driver SDK v4.28.3
+Date: 2026/01/23
+
+Architectures/Compilers Used:
+GNU Arm Embedded Toolchain: arm-none-eabi-gcc -mcpu=cortex-m4
+
+New Features/Changes:
+
+Add OWT API into CS40L50 Driver
+Add Host Initiated Haptics zephyr sample project
+Update makefile to call "python" instead of "python3"
+Clean up copyright headers in zephyr projects
+Align reset line in zephyr sample applciation with other sdk examples
+
+=============================================================================
+=============================================================================
+Summary:
 This is the release of Alt-OS Driver SDK v4.27.7
 Date: 2025/12/12
 

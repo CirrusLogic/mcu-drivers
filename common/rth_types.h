@@ -4,7 +4,7 @@
  * @brief Contains the typedefs related to the RTH APIs
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2022 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2022, 2026 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -42,6 +42,14 @@ typedef struct
     bool chirp;
     bool half_cycles;
 } rth_pwle_section_t;
+
+typedef struct
+{
+   rth_pwle_section_t** sections;
+   uint16_t num_sections;
+   uint32_t length_us;
+   const char* name;
+} rth_pwle_t;
 
 #ifdef __cplusplus
 }

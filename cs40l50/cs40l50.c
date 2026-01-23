@@ -4,7 +4,7 @@
  * @brief The CS40L50 Driver module
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2022-2025 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2022-2026 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -145,6 +145,40 @@ static const uint32_t cs40l50_b0_errata_external[] =
 };
 
 #ifndef CS40L50_BAREMETAL
+cs40l50_owt_header_t owt_header_default =
+{
+    .word1.buzz_or_click = BUZZ_OR_CLICK_DEFAULT,
+    .word1.fs = FS_DEFAULT,
+    .word1.dynamic_f0 = DYNAMIC_F0_DEFAULT,
+    .word1.metadata = METADATA_DEFAULT,
+    .word1.DVL = DVL_DEFAULT,
+    .word1.LF0T = LF0T_DEFAULT,
+    .word1.waveform_type = WAVEFORM_TYPE_DEFAULT,
+    .word2.offset = OFFSET_DEFAULT,
+    .word3.data_length = DATA_LENGTH_DEFAULT
+};
+
+cs40l50_owt_composite_header_t composite_header_default =
+{
+    .word1.waveform_length = WF_LENGTH_DEFAULT,
+    .word2.repeats = REPEATS_DEFAULT,
+    .word2.num_waveforms = NUM_WAVEFORMS_DEFAULT,
+};
+
+cs40l50_owt_composite_section_t composite_section_default =
+{
+    .word1.nested_repeats = NESTED_REPEAT_DEFAULT,
+    .word1.waveform_idx = WAVEFORM_IDX_DEFAULT,
+    .word1.amplitude = AMPLITUDE_DEFAULT,
+    .word2.delay = DELAY_DEFAULT,
+    .word2.owt_subwave = OWT_SUBWAVE_DEFAULT,
+    .word2.rom_subwave = ROM_SUBWAVE_DEFAULT,
+    .word2.duration_present = DURATION_PRESENT_DEFAULT,
+    .word3.duration = DURATION_DEFAULT
+};
+
+
+
 cs40l50_pwle_t pwle_default =
 {
     .word1.wf_length = WF_LENGTH_DEFAULT,
@@ -1520,6 +1554,11 @@ uint32_t cs40l50_set_asp_enable(cs40l50_t *driver, bool enable, uint32_t freq)
 }
 
 #ifndef CS40L50_BAREMETAL
+
+/**
+ * Trigger a basic (single section) PWLE effect through the OWT
+ *
+ */
 uint32_t cs40l50_trigger_pwle(cs40l50_t *driver, rth_pwle_section_t **s)
 {
     int i;
@@ -1567,6 +1606,10 @@ uint32_t cs40l50_trigger_pwle(cs40l50_t *driver, rth_pwle_section_t **s)
     return ret;
 }
 
+/**
+ * Trigger an advanced (multi section) PWLE effect through the OWT
+ *
+ */
 uint32_t cs40l50_trigger_pwle_advanced(cs40l50_t *driver, rth_pwle_section_t **s, uint8_t repeat, uint8_t num_sections)
 {
     uint32_t ret, addr;
@@ -1575,8 +1618,7 @@ uint32_t cs40l50_trigger_pwle_advanced(cs40l50_t *driver, rth_pwle_section_t **s
 
     regmap_read(cp, CS40L50_VIBEGEN_OWT_BASE_XM , &addr);
     addr = addr & ~(0x800000);
-    addr = CS40L50_OWT_WAVE_XM_TABLE + (addr * 4);
-
+    addr = CS40L50_OWT_WAVE_XM_TABLE + (addr * CS40L50_DSP_BYTES_PER_WORD);
     if (driver->config.broadcast)
             cp = &broadcast_cp;
 
@@ -1585,7 +1627,19 @@ uint32_t cs40l50_trigger_pwle_advanced(cs40l50_t *driver, rth_pwle_section_t **s
     {
         return ret;
     }
-    addr += 0xC;
+    addr += CS40L50_DSP_BYTES_PER_WORD;
+    ret = regmap_write(cp, addr, OFFSET_DEFAULT);
+    if (ret)
+    {
+        return ret;
+    }
+    addr += CS40L50_DSP_BYTES_PER_WORD;
+    ret = regmap_write(cp, addr, PWLE_HEADER_SIZE + PWLE_SECTION_SIZE * num_sections);
+    if (ret)
+    {
+        return ret;
+    }
+    addr += CS40L50_DSP_BYTES_PER_WORD;
 
     pwle_default.word2.repeat    = repeat;
     pwle_default.word2.pwls_ms4  = (num_sections & 0xF0) >> 4;
@@ -1610,7 +1664,7 @@ uint32_t cs40l50_trigger_pwle_advanced(cs40l50_t *driver, rth_pwle_section_t **s
         {
             return ret;
         }
-        addr += 0x4;
+        addr += CS40L50_DSP_BYTES_PER_WORD;
     }
     for (i = 2; i < num_sections; i++)
     {
@@ -1626,7 +1680,7 @@ uint32_t cs40l50_trigger_pwle_advanced(cs40l50_t *driver, rth_pwle_section_t **s
         {
             return ret;
         }
-        addr += 0x4;
+        addr += CS40L50_DSP_BYTES_PER_WORD;
         uint32_t data = (pwle_short_default.words[0]&0xF) << 20;
         data |= (pwle_short_default.words[1]) >> 4;
         ret = regmap_write(cp, addr, data);
@@ -1642,6 +1696,14 @@ uint32_t cs40l50_trigger_pwle_advanced(cs40l50_t *driver, rth_pwle_section_t **s
         }
     }
 
+    ret = regmap_write(cp, CS40L50_DSP_VIRTUAL1_MBOX_1, CS40L50_DSP_MBOX_OWT_PUSH);
+    if(ret)
+    {
+        return ret;
+    }
+
+    bsp_driver_if_g->set_timer(50, NULL, NULL);
+
     ret = regmap_write(cp, CS40L50_DSP_VIRTUAL1_MBOX_1, CS40L50_TRIGGER_RTH);
     if (ret)
     {
@@ -1649,6 +1711,202 @@ uint32_t cs40l50_trigger_pwle_advanced(cs40l50_t *driver, rth_pwle_section_t **s
     }
 
     return ret;
+}
+
+/**
+ * Write the header section of a composite waveform to the OWT
+ *
+ */
+uint32_t cs40l50_write_owt_composite_header(cs40l50_t *driver, uint8_t num_waveforms, uint8_t repeats)
+{
+    uint32_t ret, addr;
+    int i;
+    regmap_cp_config_t *cp = REGMAP_GET_CP(driver);
+    driver->config.bsp_config.owt_data_len = 0;
+    regmap_read(cp, CS40L50_VIBEGEN_OWT_NEXT_XM, &addr);
+    addr = addr & ~(0x800000);
+    addr = CS40L50_OWT_WAVE_XM_TABLE + (addr * CS40L50_DSP_BYTES_PER_WORD);
+
+    owt_header_default.word1.waveform_type = CS40L50_RTH_TYPE_COMPOSITE;
+    owt_header_default.word2.offset = OFFSET_DEFAULT; // Composite waveforms use subwave metadata, so offset can be left as default
+    owt_header_default.word3.data_length = 0;         // Update this after going through all sections
+    for (i = 0; i < OWT_HEADER_SIZE; i++)
+    {
+        ret = regmap_write(cp, addr, owt_header_default.words[i]);
+        if (ret)
+        {
+            return ret;
+        }
+        addr += CS40L50_DSP_BYTES_PER_WORD;
+    }
+
+    composite_header_default.word1.waveform_length = WF_LENGTH_DEFAULT;
+    composite_header_default.word2.num_waveforms = num_waveforms;
+    composite_header_default.word2.repeats = repeats;
+    for (i = 0; i < COMPOSITE_HEADER_SIZE; i++)
+    {
+        ret = regmap_write(cp, addr, composite_header_default.words[i]);
+        if (ret)
+        {
+            return ret;
+        }
+        addr += CS40L50_DSP_BYTES_PER_WORD;
+    }
+    driver->config.bsp_config.owt_data_len += COMPOSITE_HEADER_SIZE;
+    driver->config.bsp_config.owt_addr = addr;
+    return CS40L50_STATUS_OK;
+}
+
+/**
+ * Write a single section of a composite waveform to the OWT
+ *
+ */
+uint32_t cs40l50_write_owt_composite_section(cs40l50_t *driver,
+                                             uint8_t nested_repeats,
+                                             uint8_t waveform_idx,
+                                             uint8_t amplitude,
+                                             uint16_t delay,
+                                             uint8_t owt_subwave,
+                                             uint8_t rom_subwave,
+                                             uint8_t duration_present,
+                                             uint32_t duration)
+{
+    uint32_t ret, addr;
+    regmap_cp_config_t *cp = REGMAP_GET_CP(driver);
+
+    addr = driver->config.bsp_config.owt_addr;
+    composite_section_default.word1.nested_repeats = nested_repeats;
+    composite_section_default.word1.waveform_idx = waveform_idx;
+    composite_section_default.word1.amplitude = amplitude;
+    composite_section_default.word2.delay = delay;
+    composite_section_default.word2.owt_subwave = owt_subwave;
+    composite_section_default.word2.rom_subwave = rom_subwave;
+    composite_section_default.word2.duration_present = duration_present;
+    composite_section_default.word3.duration = duration;
+
+    // Composite size is dependent on presence of duration section
+    if (composite_section_default.word2.duration_present)
+    {
+        for (int i = 0; i < COMPOSITE_SECTION_SIZE; i++)
+        {
+            ret = regmap_write(cp, addr, composite_section_default.words[i]);
+            if (ret)
+            {
+                return ret;
+            }
+            addr += CS40L50_DSP_BYTES_PER_WORD;
+        }
+        driver->config.bsp_config.owt_data_len += COMPOSITE_SECTION_SIZE;
+    }
+    else
+    {
+        for (int i = 0; i < COMPOSITE_SECTION_SIZE - 1; i++)
+        {
+            ret = regmap_write(cp, addr, composite_section_default.words[i]);
+            if (ret)
+            {
+                return ret;
+            }
+            addr += CS40L50_DSP_BYTES_PER_WORD;
+        }
+        driver->config.bsp_config.owt_data_len += (COMPOSITE_SECTION_SIZE - 1);
+    }
+    driver->config.bsp_config.owt_addr = addr;
+    return CS40L50_STATUS_OK;
+}
+
+/**
+ * Finalize the number of sections in a composite and push the waveform to the OWT
+ *
+ */
+uint32_t cs40l50_push_owt_composite(cs40l50_t *driver)
+{
+    uint32_t addr, ret;
+    regmap_cp_config_t *cp = REGMAP_GET_CP(driver);
+
+    // Write data length now that we have counts of sections with and without duration sections
+    regmap_read(cp, CS40L50_VIBEGEN_OWT_NEXT_XM, &addr);
+    addr = addr & ~(0x800000);
+    addr = CS40L50_OWT_WAVE_XM_TABLE + (addr * CS40L50_DSP_BYTES_PER_WORD);
+    addr += CS40L50_DSP_BYTES_PER_WORD * 2; // data length is stored at 3rd word of composite waveform header
+    ret = regmap_write(cp, addr, driver->config.bsp_config.owt_data_len);
+    if (ret)
+    {
+        return ret;
+    }
+    ret = regmap_write(cp, CS40L50_DSP_VIRTUAL1_MBOX_1, CS40L50_DSP_MBOX_OWT_PUSH);
+    if (ret)
+    {
+        return ret;
+    }
+    return CS40L50_STATUS_OK;
+}
+
+/**
+ * Create a composite waveform in the OWT with a single subwave section
+ *
+ */
+uint32_t cs40l50_write_owt_composite_one_section(cs40l50_t *driver,
+                                                 uint8_t nested_repeats,
+                                                 uint8_t waveform_idx,
+                                                 uint8_t amplitude,
+                                                 uint16_t delay,
+                                                 uint8_t owt_subwave,
+                                                 uint8_t rom_subwave)
+{
+    const uint8_t duration_present = 0;
+    const uint8_t num_waveforms = 1;
+    const uint32_t duration = 0;
+    const uint8_t repeats = 0;
+
+    uint32_t ret;
+
+    ret = cs40l50_write_owt_composite_header(driver, num_waveforms, repeats);
+    if (ret)
+    {
+        return ret;
+    }
+    ret = cs40l50_write_owt_composite_section(driver, nested_repeats, waveform_idx, amplitude, delay, owt_subwave, rom_subwave, duration_present, duration);
+    if (ret)
+    {
+        return ret;
+    }
+    ret = cs40l50_push_owt_composite(driver);
+    if (ret)
+    {
+        return ret;
+    }
+    return CS40L50_STATUS_OK;
+}
+
+/**
+ * Trigger an effect at an index in the OWT
+ *
+ */
+uint32_t cs40l50_trigger_owt(cs40l50_t *driver, uint32_t idx)
+{
+    uint32_t ret;
+    regmap_cp_config_t *cp = REGMAP_GET_CP(driver);
+
+    ret = regmap_write(cp, CS40L50_DSP_VIRTUAL1_MBOX_1, CS40L50_TRIGGER_RTH | idx);
+    if(ret)
+    {
+        return ret;
+    }
+    return 0;
+}
+
+uint32_t cs40l50_delete_owt(cs40l50_t *driver, uint32_t idx)
+{
+    uint32_t ret;
+    regmap_cp_config_t *cp = REGMAP_GET_CP(driver);
+
+    ret = regmap_write(cp, CS40L50_DSP_VIRTUAL1_MBOX_1, CS40L50_DELETE_OWT | idx);
+    if(ret)
+    {
+        return ret;
+    }
+    return 0;
 }
 
 uint32_t cs40l50_pack_pcm_data(regmap_cp_config_t *cp, int index, uint32_t *word, uint8_t data, uint32_t *addr)

@@ -1,5 +1,5 @@
 #==========================================================================
-# (c) 2022-2024 Cirrus Logic, Inc.
+# (c) 2022-2024, 2026 Cirrus Logic, Inc.
 #--------------------------------------------------------------------------
 # Project : Convert from HWT Files to C Header/Source
 # File    : hwt_to_waveform_converter.py
@@ -31,7 +31,7 @@ sys.path.insert(1, (repo_path + '/tools/sdk_version'))
 from sdk_version import print_sdk_version
 import argparse
 import json
-from hwt_to_waveform_templates import pwle_section, pwle_section_list, pcm_header, pcm_data
+from hwt_to_waveform_templates import pwle_section, pwle_section_list, pwle_name_list, pcm_header, pcm_data
 
 #==========================================================================
 # CONSTANTS/GLOBALS
@@ -147,11 +147,20 @@ def main(argv):
                 psec = pwle_section(pwle_num, sec_num, i["Time"]["Value"], i["Level"]["Value"], i["Frequency"]["Value"], str(i["ChirpMode"]["Value"]), str(i["Time"]["HalfCycles"]))
                 pwle_str = pwle_str + str(psec) + '\n'
                 sec_num += 1
-            plist = pwle_section_list(pwle_num, entry["Body"]["NumberOfSections"]["Value"])
+            if(entry["Body"]["Length"]["HasLengthBeenCalculated"]):
+                if("BrakingTimeInSeconds" in entry["MetaData"] and entry["MetaData"]["BrakingTimeInSeconds"] is not None):
+                    lenInSeconds = entry["Body"]["LengthInSeconds"] + entry["MetaData"]["BrakingTimeInSeconds"]
+                elif("LengthInSeconds" in entry["Body"]):
+                    lenInSeconds = entry["Body"]["LengthInSeconds"]
+                else:
+                    lenInSeconds = 0
+            else:
+                lenInSeconds = 0
+            plist = pwle_section_list(pwle_num, entry["Body"]["NumberOfSections"]["Value"], int(lenInSeconds*1e6), entry["Body"]["Name"])
             pwle_str = pwle_str + str(plist)
             file_output_str += pwle_str
             file_h_output_str += 'extern rth_pwle_section_t *pwle' + str(pwle_num) + '[];\n'
-            file_h_output_str += 'extern uint32_t pwle_' + str(pwle_num) + '_size;\n\n'
+            file_h_output_str += 'extern const uint32_t pwle_' + str(pwle_num) + '_size;\n\n'
             pwle_num += 1
         else:
             pcm_str = ''
@@ -161,8 +170,18 @@ def main(argv):
             file_h_output_str += 'extern uint16_t pcm_' + str(pcm_num) + '_f0;\n'
             file_h_output_str += 'extern uint16_t pcm_' + str(pcm_num) + '_redc;\n'
             file_h_output_str += 'extern uint8_t pcm_' + str(pcm_num)+ '_data[];\n'
-            file_h_output_str += 'extern uint32_t pcm_' + str(pcm_num) + '_data_size;\n\n'
+            file_h_output_str += 'extern const uint32_t pcm_' + str(pcm_num) + '_data_size;\n\n'
             pcm_num += 1
+
+    if(pwle_num != 1):
+        file_h_output_str += 'extern const uint32_t pwleCount;\n'
+        file_h_output_str += 'extern rth_pwle_t *pwleList[];\n'
+        file_output_str += f"uint32_t const pwleCount = {pwle_num-1};"
+        file_output_str += f'\nrth_pwle_t *pwleList[{pwle_num-1}] =\n{{'
+        for i in range(1, pwle_num):
+            file_output_str += f"\n\t&pwle_{i},"
+        file_output_str += "\n};\n"
+
     fwave_c.write(file_output_str)
     fwave_h.write(file_h_output_str)
 

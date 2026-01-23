@@ -14,7 +14,6 @@
  * limitations under the License.
  *
  */
-
 #ifndef CS40L50_BSP_H
 #define CS40L50_BSP_H
 
@@ -34,8 +33,10 @@
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/sys/util.h>
+#include "waveforms.h"
 
-#include "cs40l50.h"
+#include "waveforms.h"
+#include "cs40l50_firmware.h"
 
 #define regmap_cp_config_t struct i2c_dt_spec
 #define REGMAP_GET_CP(x) x->config.bsp_config.i2c
@@ -83,6 +84,7 @@
  *
  */
 #define BSP_GPIO_LOW                (0)
+#define BSP_GPIO_INACTIVE           (0)
 
 /**
  * Value to indicate driving a GPIO high
@@ -91,6 +93,7 @@
  *
  */
 #define BSP_GPIO_HIGH               (1)
+#define BSP_GPIO_ACTIVE             (1)
 
 /**
  * Value to indicate enabling or disabling a supply
@@ -476,6 +479,18 @@ struct cs40l50_bsp {
     struct cs40l50_haptic_source_config hap_cfg;
 };
 
+struct cs40l50_owt_section_params{
+    uint8_t nested_repeats;
+    uint8_t waveform_idx;
+    uint8_t amplitude;
+    uint16_t delay;
+    uint8_t owt_subwave;
+    uint8_t rom_subwave;
+    uint8_t duration_present;
+    uint32_t duration;
+};
+
+extern const struct gpio_dt_spec reset;
 extern bsp_driver_if_t *bsp_driver_if_g;
 
 int cs40l50_i2c_write_reg_dt(const struct i2c_dt_spec *spec, const uint32_t reg_addr,
@@ -491,4 +506,13 @@ int cs40l50_write_acked_reg_dt(const struct i2c_dt_spec *spec, const uint32_t re
                                 uint32_t val, uint32_t acked_val,  uint8_t tries,  uint32_t delay);
 int cs40l50_set_haptic_cfg(const struct device *dev, struct cs40l50_haptic_source_config* hap_cfg);
 
+//Functions to write to owt with N sections
+int haptics_cs40l50_write_owt_header(const struct device *dev, uint8_t num_waveforms, uint8_t repeats);
+int haptics_cs40l50_write_owt_section(const struct device *dev, struct cs40l50_owt_section_params section);
+int haptics_cs40l50_push_owt(const struct device *dev);
+int haptics_cs40l50_write_owt_composite_one_section(const struct device *dev, struct cs40l50_owt_section_params section);
+
+int haptics_cs40l50_trigger_owt(const struct device *dev, int owt_idx);
+int haptics_cs40l50_delete_owt(const struct device *dev, int owt_idx);
+int cs40l50_get_num_owt_wf(const struct device *dev, uint32_t* num);
 #endif

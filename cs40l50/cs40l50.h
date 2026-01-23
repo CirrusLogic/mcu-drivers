@@ -4,7 +4,7 @@
  * @brief Functions and prototypes exported by the CS40L50 Driver module
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2022-2025 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2022-2026 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -124,42 +124,73 @@ extern "C" {
 /**
  *  Minimum firmware version that will be accepted by the boot function
  */
-#define CS40L50_MIN_FW_VERSION     (0x30405)
-#define CS40L50_WT_ONLY            (0x12345)
+#define CS40L50_MIN_FW_VERSION         (0x30405)
+#define CS40L50_WT_ONLY                (0x12345)
 
 /**
  * Default values for different open wavetable fields
  */
-#define WF_LENGTH_DEFAULT            (0x3FFFFF)
-#define PWLS_MS4                     (0)
-#define WAIT_TIME_DEFAULT            (0)
-#define REPEAT_DEFAULT               (0)
-#define LEVEL_MS4                    (0)
-#define TIME_DEFAULT                 (0)
-#define PWLS_LS4                     (0)
-#define EXT_FREQ_DEFAULT             (1)
-#define AMP_REG_DEFAULT              (0)
-#define BRAKING_DEFAULT              (0)
-#define CHIRP_DEFAULT                (0)
-#define FREQ_DEFAULT                 (0)
-#define LEVEL_LS8                    (0)
-#define VB_TAR_MS12                  (0)
-#define VB_TAR_LS4                   (0)
-#define LEVEL_DEFAULT                (0)
-#define LEVEL_MS8_DEFAULT            (0)
-#define LEVEL_LS4_DEFAULT            (0)
+#define OWT_HEADER_SIZE                (3)
+#define PWLE_HEADER_SIZE               (3)
+#define PWLE_SECTION_SIZE              (2)
+#define COMPOSITE_HEADER_SIZE          (2)
+#define COMPOSITE_SECTION_SIZE         (3)
 
-#define PWLE_API_ENABLE              (0)
+#define BUZZ_OR_CLICK_DEFAULT          (0)
+#define FS_DEFAULT                     (0)
+#define DYNAMIC_F0_DEFAULT             (0)
+#define METADATA_DEFAULT               (0)
+#define DVL_DEFAULT                    (0)
+#define LF0T_DEFAULT                   (0)
+#define WAVEFORM_TYPE_DEFAULT          (0x8)
+#define OFFSET_DEFAULT                 (0x3)
+#define DATA_LENGTH_DEFAULT            (0x5)
 
-#define WAV_LENGTH_DEFAULT           (0)
-#define DATA_LENGTH_DEFAULT          (0)
-#define F0_DEFAULT                   (0)
-#define SCALED_REDC_DEFAULT          (0)
+#define WF_LENGTH_DEFAULT              (0x3FFFFF)
+#define PWLS_MS4                       (0)
+#define WAIT_TIME_DEFAULT              (0)
+#define REPEAT_DEFAULT                 (0)
+#define LEVEL_MS4                      (0)
+#define TIME_DEFAULT                   (0)
+#define PWLS_LS4                       (0)
+#define EXT_FREQ_DEFAULT               (1)
+#define AMP_REG_DEFAULT                (0)
+#define BRAKING_DEFAULT                (0)
+#define HALF_CYCLE_DEFAULT BRAKING_DEFAULT
+#define CHIRP_DEFAULT                  (0)
+#define FREQ_DEFAULT                   (0)
+#define LEVEL_LS8                      (0)
+#define VB_TAR_MS12                    (0)
+#define VB_TAR_LS4                     (0)
+#define LEVEL_DEFAULT                  (0)
+#define LEVEL_MS8_DEFAULT              (0)
+#define LEVEL_LS4_DEFAULT              (0)
+#define REPEATS_DEFAULT                (0)
+#define NUM_WAVEFORMS_DEFAULT          (0)
 
-#define CS40L50_PLAY_RTH             (0)
+#define NESTED_REPEAT_DEFAULT          (0)
+#define WAVEFORM_IDX_DEFAULT           (0)
+#define AMPLITUDE_DEFAULT              (100)
+#define DELAY_DEFAULT                  (0)
+#define OWT_SUBWAVE_DEFAULT            (0)
+#define ROM_SUBWAVE_DEFAULT            (0)
+#define DURATION_PRESENT_DEFAULT       (0)
+#define DURATION_DEFAULT               (0)
 
-#define CS40L50_RTH_TYPE_PCM         (0x8)
-#define CS40L50_RTH_TYPE_PWLE        (12)
+#define OFFSET_DEFAULT                 (0x3)
+
+#define PWLE_API_ENABLE                (0)
+
+#define WAV_LENGTH_DEFAULT             (0)
+#define F0_DEFAULT                     (0)
+#define SCALED_REDC_DEFAULT            (0)
+
+#define CS40L50_PLAY_RTH               (0)
+
+#define CS40L50_RTH_TYPE_PCM           (0x8)
+#define CS40L50_RTH_TYPE_COMPOSITE     (0xa)
+#define CS40L50_RTH_TYPE_PWLE          (0xc)
+#define CS40L50_OWT_NO_METADATA_OFFSET (0x3)
 
 /**
  * @defgroup CS40L50_EVENT_FLAG_
@@ -268,6 +299,8 @@ typedef struct
  */
 typedef struct
 {
+    uint32_t owt_addr;                                  ///< Used to preserve OWT write address in composite writes with multiple sections
+    uint32_t owt_data_len;                              ///< Used to increment OWT data size (in words)in composite writes with multiple sections
 #ifdef CIRRUS_ZEPHYR_SAMPLE
     struct i2c_dt_spec *i2c;
     const struct gpio_dt_spec *reset_gpio_id;           ///< Used to interact with CS40L50 Reset pin in zephyr bsp
@@ -321,6 +354,161 @@ typedef struct
 
     uint32_t event_flags;                       ///< Most recent event_flags reported to BSP Notification callback
 } cs40l50_t;
+
+/**
+ * OWT Data Structures
+ *
+ * This section contains structs to map out data format required for loading PCM, PWLE, and Composite Waveforms in the OWT.
+ * All entries regardless of waveform type use a 3 word OWT Header loaded into the OWT preceding the waveform specific header and data.
+ *
+ */
+
+ typedef union
+{
+    uint32_t word1;
+    struct
+    {
+        uint8_t waveform_type               : 8;
+        uint8_t unused0                     : 8;
+        uint8_t LF0T                        : 1;
+        uint8_t DVL                         : 1;
+        uint8_t metadata                    : 1;
+        uint8_t unused1                     : 1;
+        uint8_t dynamic_f0                  : 1;
+        uint8_t fs                          : 2;
+        uint8_t buzz_or_click               : 1;
+        uint8_t reserved                    : 8;
+    };
+} cs40l50_owt_header_word1_t;
+
+typedef union
+{
+    uint32_t word2;
+    struct
+    {
+        uint32_t offset                     : 24;
+        uint8_t reserved                    : 8;
+    };
+} cs40l50_owt_header_word2_t;
+
+typedef union
+{
+    uint32_t word3;
+    struct
+    {
+        uint32_t data_length                : 24;
+        uint8_t reserved                    : 8;
+    };
+} cs40l50_owt_header_word3_t;
+
+typedef union
+{
+    uint32_t words[OWT_HEADER_SIZE];
+    struct
+    {
+        cs40l50_owt_header_word1_t word1;
+        cs40l50_owt_header_word2_t word2;
+        cs40l50_owt_header_word3_t word3;
+    };
+} cs40l50_owt_header_t;
+
+
+typedef struct
+{
+    union
+    {
+        uint32_t word;
+        struct
+        {
+            uint32_t waveform_length            : 24;
+            uint8_t reserved                    : 8;
+        };
+    };
+} cs40l50_owt_composite_header_word1_t;
+
+typedef struct
+{
+    union
+    {
+        uint32_t word;
+        struct
+        {
+            uint8_t repeats                     : 8;
+            uint8_t num_waveforms               : 8;
+            uint8_t not_used                    : 8;
+            uint8_t reserved                    : 8;
+        };
+    };
+} cs40l50_owt_composite_header_word2_t;
+
+typedef union
+{
+    uint32_t words[COMPOSITE_HEADER_SIZE];
+    struct
+    {
+        cs40l50_owt_composite_header_word1_t word1;
+        cs40l50_owt_composite_header_word2_t word2;
+    };
+} cs40l50_owt_composite_header_t;
+
+
+typedef struct
+{
+    union
+    {
+        uint32_t word;
+        struct
+        {
+            uint8_t nested_repeats              : 8;
+            uint8_t waveform_idx                : 8;
+            uint8_t amplitude                   : 8;
+            uint8_t reserved                    : 8;
+        };
+    };
+} cs40l50_owt_composite_section_word1_t;
+
+typedef struct
+{
+    union
+    {
+        uint32_t word;
+        struct
+        {
+            uint16_t delay                      : 16;
+            uint8_t not_used                    : 5;
+            uint8_t owt_subwave                 : 1;
+            uint8_t rom_subwave                 : 1;
+            uint8_t duration_present            : 1;
+            uint8_t reserved                    : 8;
+        };
+    };
+} cs40l50_owt_composite_section_word2_t;
+
+typedef struct
+{
+    union
+    {
+        uint32_t word;
+        struct
+        {
+            uint32_t duration                   : 24;
+            uint8_t reserved                    : 8;
+        };
+    };
+} cs40l50_owt_composite_section_word3_t;
+
+typedef union
+{
+    uint32_t words[COMPOSITE_SECTION_SIZE];
+    struct
+    {
+        cs40l50_owt_composite_section_word1_t word1;
+        cs40l50_owt_composite_section_word2_t word2;
+        cs40l50_owt_composite_section_word3_t word3;
+    };
+} cs40l50_owt_composite_section_t;
+
+/* OLD PWLE entry types */
 
 typedef struct
 {
@@ -719,9 +907,103 @@ uint32_t cs40l50_set_broadcast_enable(cs40l50_t *driver, bool enable);
 uint32_t cs40l50_trigger_pwle(cs40l50_t *driver, rth_pwle_section_t **s);
 uint32_t cs40l50_trigger_pwle_advanced(cs40l50_t *driver, rth_pwle_section_t **s, uint8_t repeat, uint8_t num_sections);
 uint32_t cs40l50_trigger_pcm(cs40l50_t *driver, uint8_t *s, uint32_t num_sections, uint16_t buffer_size_samples, uint16_t f0, uint16_t redc);
+uint32_t cs40l50_trigger_owt(cs40l50_t *driver, uint32_t idx);
+uint32_t cs40l50_delete_owt(cs40l50_t *driver, uint32_t idx);
 uint32_t cs40l50_set_dynamic_f0(cs40l50_t *driver, bool enable);
 uint32_t cs40l50_get_dynamic_f0(cs40l50_t *driver, cs40l50_df0_table_entry_t *f0_entry);
 uint32_t cs40l50_set_asp_enable(cs40l50_t *driver, bool enable, uint32_t freq);
+
+/**
+ * Write Composite Waveform header to Open Wave Table
+ *
+ * This will construct and write composite waveform header basic on the required parameter as input arguments.
+ * This header will be written to the next available index within the OWT, then update bsp_config.owt_addr with
+ * the written address.
+ *
+ * @param [in] driver               Pointer to the driver state
+ * @param [in] num_waveforms        Number of subwaveforms contained within the composite waveform
+ * @param [in] repeats              Number of times the overall composite waveform is repeated
+ *
+ * @return
+ * - CS40L50_STATUS_FAIL        if any control port transaction fails
+ * - CS40L50_STATUS_OK          otherwise
+ *
+ */
+uint32_t cs40l50_write_owt_composite_header(cs40l50_t *driver, uint8_t num_waveforms, uint8_t repeats);
+
+/**
+ * Write Composite Waveform section to Open Wave Table
+ *
+ * This will construct and write a single composite subwaveform based on the given input parameters.
+ * This single composite section will be written at bsp_config.owt_addr, then bsp_config.owt_addr will
+ * be incremented  by the size of the section to allow for multiple section writes within a single composite waveform.
+ *
+ * @param [in] driver               Pointer to the driver state
+ * @param [in] nested_repeats       Number of repeats of this subwave in the composite waveform
+ * @param [in] waveform_idx         Index of the subwave in its respective wavetable (ROM, RAM, or OWT)
+ * @param [in] amplitude            Amplitude of the subwave as a percentage (100 being no scaling)
+ * @param [in] delay                Delay in milliseconds before the next subwave begins
+ * @param [in] owt_subwave          1 if subwave is in OWT, 0 otherwise
+ * @param [in] rom_subwave          1 if subwave is in ROM, 0 otherwise
+ * @param [in] duration_present     1 if duration field is present, 0 otherwise
+ * @param [in] duration             Duration of the subwaveform, if this field is not present the subwaveform plays until it's natural termination
+ *
+ * @return
+ * - CS40L50_STATUS_FAIL        if any control port transaction fails
+ * - CS40L50_STATUS_OK          otherwise
+ *
+ */
+uint32_t cs40l50_write_owt_composite_section(cs40l50_t *driver,
+                                             uint8_t nested_repeats,
+                                             uint8_t waveform_idx,
+                                             uint8_t amplitude,
+                                             uint16_t delay,
+                                             uint8_t owt_subwave,
+                                             uint8_t rom_subwave,
+                                             uint8_t duration_present,
+                                             uint32_t duration);
+
+/**
+ * Push Composite Waveform to Open Wave Table
+ *
+ * This writes the composite waveform size to the composite's header based on how many sections were written to OWT for this composite,
+ * then pushes the complete composite waveform to the OWT using the corresponding mailbox command.
+ *
+ * @param [in] driver               Pointer to the driver state
+ *
+ * @return
+ * - CS40L50_STATUS_FAIL        if any control port transaction fails
+ * - CS40L50_STATUS_OK          otherwise
+ *
+ */
+uint32_t cs40l50_push_owt_composite(cs40l50_t *driver);
+
+/**
+ * Special case of adding a composite to OWT containing only one subwave
+ *
+ * This function writes the composite header, section, and pushes the composite waveform to the OWT
+ *
+ * @param [in] driver               Pointer to the driver state
+ * @param [in] nested_repeats       Number of repeats of this subwave in the composite waveform
+ * @param [in] waveform_idx         Index of the subwave in its respective wavetable (ROM, RAM, or OWT)
+ * @param [in] amplitude            Amplitude of the subwave as a percentage (100 being no scaling)
+ * @param [in] delay                Delay in milliseconds before the next subwave begins
+ * @param [in] owt_subwave          1 if subwave is in OWT, 0 otherwise
+ * @param [in] rom_subwave          1 if subwave is in ROM, 0 otherwise
+ *
+ * @return
+ * - CS40L50_STATUS_FAIL        if any control port transaction fails
+ * - CS40L50_STATUS_OK          otherwise
+ *
+ */
+
+uint32_t cs40l50_write_owt_composite_one_section(cs40l50_t *driver,
+                                                 uint8_t nested_repeats,
+                                                 uint8_t waveform_idx,
+                                                 uint8_t amplitude,
+                                                 uint16_t delay,
+                                                 uint8_t owt_subwave,
+                                                 uint8_t rom_subwave);
 
 /*
  * Reads the contents of a single register/memory address

@@ -157,12 +157,12 @@ $(eval $(call add_wisce_script_rule,cs40l5x))
 firmware_converter:
 	@echo -------------------------------------------------------------------------------
 	@echo GENERATING $(BUILD_NUM_LOWER)_img
-	cd $(HALO_FIRMWARE_PATH) && python3 ../../tools/firmware_converter/firmware_converter.py $(FIRMWARE_CONV_TARGET) $(BUILD_NUM_LOWER) $(HALO_FIRMWARE_FILE) --wmdr $(HALO_FIRMWARE_WMDR)
+	cd $(HALO_FIRMWARE_PATH) && python ../../tools/firmware_converter/firmware_converter.py $(FIRMWARE_CONV_TARGET) $(BUILD_NUM_LOWER) $(HALO_FIRMWARE_FILE) --wmdr $(HALO_FIRMWARE_WMDR)
 
 hwt_to_waveform_converter:
 	@echo -------------------------------------------------------------------------------
 	@echo GENERATING waveforms
-	cd $(DRIVER_PATH) && python3 ../tools/hwt_to_waveform/hwt_to_waveform_converter.py cs40l50 config/waveforms.hwt --output-directory $(CONFIG_PATH)
+	cd $(DRIVER_PATH) && python ../tools/hwt_to_waveform/hwt_to_waveform_converter.py cs40l50 config/waveforms.hwt --output-directory $(CONFIG_PATH)
 
 # Compilation rules
 $(eval $(call $(ADD_OBJ_RULES), $(OBJS)))

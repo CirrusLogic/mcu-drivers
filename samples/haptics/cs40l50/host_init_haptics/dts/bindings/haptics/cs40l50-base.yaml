@@ -1,0 +1,14 @@
+# Copyright (c) 2025 Cirrus Logic, Inc.
+# SPDX-License-Identifier: Apache-2.0
+
+description: CS40L50 Haptic Driver
+
+compatible: "cirrus,cs40l50"
+
+include: ["i2c-device.yaml"]
+
+properties:
+  reset-gpios:
+    type: phandle-array
+    required: true
+    description: Host GPIO pin mapped to CS40L50 reset pin.

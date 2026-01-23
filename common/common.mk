@@ -164,7 +164,7 @@ $(eval CREATE_SYSCFG_REGS_TARGET=wisce_to_syscfg_reg_converter)
 wisce_to_syscfg_reg_converter:
 	@echo -------------------------------------------------------------------------------
 	@echo GENERATING $(1)_syscfg_regs
-	cd $(CONFIG_PATH) && python3 ../../tools/wisce_script_converter/wisce_script_converter.py -c c_array -p $(1) -i $(WISCE_SCRIPT) -o .
+	cd $(CONFIG_PATH) && python ../../tools/wisce_script_converter/wisce_script_converter.py -c c_array -p $(1) -i $(WISCE_SCRIPT) -o .
 endef
 
 define add_create_syscfg_regs_rule

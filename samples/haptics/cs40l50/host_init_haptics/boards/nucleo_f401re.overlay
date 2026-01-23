@@ -6,11 +6,27 @@
 
 #include <zephyr/dt-bindings/i2c/i2c.h>
 
+/ {
+        aliases {
+                sw0 = &button0;
+        };
+
+        buttons {
+                compatible = "gpio-keys";
+
+                button0: button_0 {
+                        label = "User button";
+                        gpios = <&gpioc 13 GPIO_ACTIVE_LOW>;
+                        zephyr,code = <INPUT_KEY_0>;
+                };
+        };
+};
+
 &i2c1 {
         status = "okay";
         clock-frequency = <I2C_BITRATE_STANDARD>;
 	pinctrl-0 = <&i2c1_scl_pb6 &i2c1_sda_pb7>;
-
+        
         haptic1: cs40l50@34 {
                 compatible = "cirrus,cs40l50";
                 reg = <0x34>;

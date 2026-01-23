@@ -1,5 +1,5 @@
 #==========================================================================
-# (c) 2022-2024 Cirrus Logic, Inc.
+# (c) 2022-2024, 2026 Cirrus Logic, Inc.
 #--------------------------------------------------------------------------
 # Project : Templates for waveforms.c and .h files
 # File    : hwt_to_waveform_templates.py
@@ -41,16 +41,28 @@ pwle_section_template_str = """static rth_pwle_section_t pwle_{pwle_num}_section
 
 pwle_list_section_template_str = """&pwle_{pwle_num}_section{section_num}"""
 
-pwle_section_list_template_str = """rth_pwle_section_t *pwle{pwle_num}[{num_sections}] =
+pwle_section_list_template_str = """rth_pwle_section_t *pwle{pwle_num}_sections[{num_sections}] =
 {
     {pwle_sections}
 };
 
-uint32_t pwle_{pwle_num}_size = {num_sections};
+static rth_pwle_t pwle_{pwle_num} =
+{
+    .sections = pwle{pwle_num}_sections,
+    .num_sections = {num_sections},
+    .length_us = {length_us},
+    .name = "{name}"
+};
 """
 pcm_f0_redc_template = """
 uint16_t pcm_{pcm_num}_f0 = {f0};
 uint16_t pcm_{pcm_num}_redc = {redc};
+"""
+
+pwle_names_list_template_str = """const char *pwleNames[] =
+{
+    {effect_names}
+};
 """
 
 pcm_data_template = """
@@ -59,7 +71,7 @@ uint8_t pcm_{pcm_num}_data[{num_samples}] =
     {data_samples}
 };
 
-uint32_t pcm_{pcm_num}_data_size = {num_samples};
+const uint32_t pcm_{pcm_num}_data_size = {num_samples};
 """
 redc_factors = {
     "cs40l26": 128/5.857,
@@ -189,16 +201,20 @@ class pwle_section:
         return output_str
 
 class pwle_section_list:
-    def __init__(self, pwle_num, num_sections):
+    def __init__(self, pwle_num, num_sections, length_us, name):
         self.template_str = pwle_section_list_template_str
         self.output_str = ''
         self.pwle_num = str(pwle_num)
         self.num_sections = num_sections
+        self.length_us = length_us
+        self.name = name
 
     def __str__(self):
         output_str = self.template_str
         output_str = output_str.replace('{pwle_num}', self.pwle_num)
         output_str = output_str.replace('{num_sections}', str(self.num_sections))
+        output_str = output_str.replace('{length_us}', str(self.length_us))
+        output_str = output_str.replace('{name}', str(self.name))
         list_str = ''
         for i in range(1, int(self.num_sections)+1):
             line = ''
@@ -209,6 +225,17 @@ class pwle_section_list:
             if i != int(self.num_sections):
                 list_str = list_str + ',' + '\n' + '    '
         output_str = output_str.replace('{pwle_sections}', list_str)
+        return output_str
+
+class pwle_name_list:
+    def __init__(self, effect_names):
+        self.template_str = pwle_names_list_template_str
+        self.output_str = ''
+        self.names_arr = effect_names
+    def __str__(self):
+        output_str = self.template_str
+        c_names_arr = ',\n    '.join([f'"{name}"' for name in self.names_arr])
+        output_str = output_str.replace('{effect_names}', c_names_arr)
         return output_str
 
 class pcm_header:

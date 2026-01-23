@@ -4,7 +4,7 @@
  * @brief Constants and Types from CS40L50 datasheet
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2022-2025 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2022-2026 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -192,6 +192,9 @@ extern const struct cs40l50_diagnostic_flag_encoding cs40l50_diag_flags[NUM_DIAG
 #define CS40L50_DSP_MBOX_CMD_STOP_I2S                                       (0x03000003)
 #define CS40L50_DSP_MBOX_PM_CMD_BASE                                        CS40L50_DSP_MBOX_CMD_HIBER
 
+#define CS40L50_DSP_MBOX_OWT_PUSH                                           (0x03000008)
+#define CS40L50_DSP_MBOX_OWT_RESET                                          (0x03000009)
+
 #define CS40L50_DSP_BYTES_PER_WORD                                          (4)
 #define CS40L50_MAILBOX_QUEUE_BASE                                          (0x028042C0)
 #define CS40L50_MAILBOX_QUEUE_LEN_OFFSET                                    (4)
@@ -215,9 +218,11 @@ extern const struct cs40l50_diagnostic_flag_encoding cs40l50_diag_flags[NUM_DIAG
 #define CS40L50_DSP_MBOX_DIAG_DONE                                          (0x3000001)
 /* OWT/RTH */
 #define  CS40L50_VIBEGEN_OWT_BASE_XM                                        (0x02805C34)
+#define  CS40L50_VIBEGEN_OWT_NEXT_XM                                        (0x02805C3C)
 #define  CS40L50_OWT_WAVE_XM_TABLE                                          (0x02805C48)
 #define  CS40L50_OWT_PUSH                                                   (0x03000008)
 #define  CS40L50_TRIGGER_RTH                                                (0x01400000)
+#define  CS40L50_DELETE_OWT                                                 (0x0D000000)
 #define  CS40L50_MAX_PWLE_SECTIONS                                          (126)
 #define  CS40L50_SLOT0_MAX_PWLE_SECTIONS                                    (61)
 #define  CS40l50_SLOT1_MAX_PWLE_SECTIONS                                    (65)

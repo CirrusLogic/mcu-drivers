@@ -1,5 +1,5 @@
 /*
- * Copyright (c) Cirrus Logic 2022-2026 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2026 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -20,8 +20,6 @@
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/drivers/i2c.h>
-
-#include "cs40l50_firmware.h"
 
 LOG_MODULE_REGISTER(cirrus_cs40l50);
 
@@ -158,7 +156,7 @@ int cs40l50_i2c_write_bulk_bus(const struct i2c_dt_spec *spec, const uint32_t re
     const uint8_t *buf, unsigned int num_bytes, uint16_t bus_addr)
 {
     uint8_t addr_buf[4], *msg_buf;
-    int i, j = 4, ret = 0;
+    int i = 4, ret = 0;
 
     LOG_INF("cs40l50_i2c_write_bulk_bus: reg=%x size=%d\n", reg_addr, num_bytes);
 
@@ -184,7 +182,7 @@ int cs40l50_i2c_write_bus(const struct i2c_dt_spec *spec, const uint32_t reg_add
     uint32_t val, uint16_t bus_addr)
 {
     uint8_t addr_buf[4], data_buf[4], *msg_buf;
-    int i, j = 4, ret = 0;
+    int ret = 0;
 
     LOG_INF("cs40l50_i2c_write_bus: reg=%x\n", reg_addr);
 
@@ -208,7 +206,7 @@ int cs40l50_i2c_write_bulk_dt(const struct i2c_dt_spec *spec, const uint32_t reg
     const uint8_t *buf, unsigned int num_bytes)
 {
     uint8_t addr_buf[4], *msg_buf;
-    int i, j = 4, ret = 0;
+    int i = 4, ret = 0;
 
     LOG_INF("cs40l50_i2c_write_bulk_dt: reg=%x size=%d\n", reg_addr, num_bytes);
 
@@ -237,18 +235,18 @@ int cs40l50_set_haptic_cfg(const struct device *dev, struct cs40l50_haptic_sourc
     return 0;
 }
 
-
 static int cs40l50_write_fw_blocks(struct i2c_dt_spec *i2c, halo_boot_block_t *blocks, int num_blocks)
 {
     int i, ret;
     halo_boot_block_t block;
-    uint32_t *buffer, bytes, address;
+    uint32_t bytes, address;
+    uint8_t* buffer;
 
     for (i = 0; i < num_blocks; i++) {
         block = blocks[i];
         bytes = block.block_size;
         address = block.address;
-        buffer = block.bytes;
+        buffer = (uint8_t*)block.bytes;
         ret = cs40l50_i2c_write_bulk_dt(i2c, address, buffer, bytes);
         if (ret != 0)
             return ret;
@@ -260,7 +258,7 @@ static int cs40l50_write_fw_blocks(struct i2c_dt_spec *i2c, halo_boot_block_t *b
 
 static int cs40l50_gpi_get_level(cs40l50_t *drv, unsigned int gpio)
 {
-    uint32_t gpio_status, eint;
+    uint32_t gpio_status;
     struct i2c_dt_spec *i2c = drv->config.bsp_config.i2c;
 
     if (gpio > 13)
@@ -278,7 +276,7 @@ enum cs40l50_tuning_set {
 
 static unsigned int get_tuning_set(cs40l50_t *drv)
 {
-    struct i2c_dt_spec *i2c = drv->config.bsp_config.i2c;
+    //struct i2c_dt_spec *i2c = drv->config.bsp_config.i2c;
     int gpi_level;
 
     gpi_level = cs40l50_gpi_get_level(drv, 1);
@@ -287,7 +285,7 @@ static unsigned int get_tuning_set(cs40l50_t *drv)
 
 static int cs40l50_firmware_load(cs40l50_t *drv)
 {
-    int i, num_blocks, ret;
+    int num_blocks, ret;
     halo_boot_block_t *blocks;
     struct i2c_dt_spec *i2c = drv->config.bsp_config.i2c;
     uint32_t tuning_set;
@@ -295,41 +293,24 @@ static int cs40l50_firmware_load(cs40l50_t *drv)
     tuning_set = get_tuning_set(drv);
 
     num_blocks = cs40l50_total_fw_blocks;
-    blocks = cs40l50_fw_blocks;
+    blocks = (halo_boot_block_t*)cs40l50_fw_blocks;
     ret = cs40l50_write_fw_blocks(i2c, blocks, num_blocks);
     if (ret != 0)
         return ret;
 
-    if (tuning_set == CS40L50_TUNING_SET_A) {
-        num_blocks = cs40l50_SVC_A_total_coeff_blocks_0;
-        blocks = cs40l50_SVC_A_coeff_0_blocks;
-        ret = cs40l50_write_fw_blocks(i2c, blocks, num_blocks);
-        if (ret != 0)
-            return ret;
+    num_blocks = cs40l50_total_coeff_blocks_0;
+    blocks = (halo_boot_block_t*)cs40l50_coeff_0_blocks;
+    ret = cs40l50_write_fw_blocks(i2c, blocks, num_blocks);
+    if (ret != 0)
+        return ret;
 
-        num_blocks = cs40l50_WT_A_total_coeff_blocks_2;
-        blocks = cs40l50_WT_A_coeff_2_blocks;
-        ret = cs40l50_write_fw_blocks(i2c, blocks, num_blocks);
-        if (ret != 0)
-            return ret;
+    num_blocks = cs40l50_total_coeff_blocks_1;
+    blocks = (halo_boot_block_t*)cs40l50_coeff_1_blocks;
+    ret = cs40l50_write_fw_blocks(i2c, blocks, num_blocks);
+    if (ret != 0)
+        return ret;
 
-        LOG_INF("Loaded tuning set A");
-    } else if (tuning_set == CS40L50_TUNING_SET_B) {
-        num_blocks = cs40l50_SVC_B_total_coeff_blocks_1;
-        blocks = cs40l50_SVC_A_coeff_0_blocks;
-        ret = cs40l50_write_fw_blocks(i2c, blocks, num_blocks);
-        if (ret != 0)
-            return ret;
-
-        num_blocks = cs40l50_WT_B_total_coeff_blocks_3;
-        blocks = cs40l50_WT_B_coeff_3_blocks;
-        ret = cs40l50_write_fw_blocks(i2c, blocks, num_blocks);
-        if (ret != 0)
-            return ret;
-
-        LOG_INF("Loaded tuning set B");
-    }
-
+    LOG_INF("Loaded wavetable");
     return 0;
 }
 
@@ -353,6 +334,7 @@ static int cs40l50_setup_gpi(cs40l50_t *drv, unsigned int gpio)
 
     regmap_write(i2c, CS40L50_GPIO_CTRL1 + (4 * (gpio - 1)),
         CS40L50_GPIO_CTRL_DIR_BITMASK | CS40L50_GPIO_CTRL_FN_INPUT_OUTPUT);
+    return 0;
 }
 
 static uint32_t cs40l50_set_timer(uint32_t duration_ms, bsp_callback_t cb, void *cb_arg)
@@ -382,10 +364,21 @@ bsp_driver_if_t cs40l50_bsp_driver_if = {
 bsp_driver_if_t *bsp_driver_if_g = &cs40l50_bsp_driver_if;
 
 /* ===================================================================================== */
+static int cs40l50_reset_owt(cs40l50_t *drv)
+{
+    uint32_t ret;
+    struct i2c_dt_spec *i2c = drv->config.bsp_config.i2c;
+    ret = regmap_write(i2c, CS40L50_DSP_VIRTUAL1_MBOX_1, CS40L50_DSP_MBOX_OWT_RESET);
+    if(ret)
+    {
+        return ret;
+    }
+    return BSP_STATUS_OK;
+}
 
 static int cs40l50_init(const struct device *dev)
 {
-    struct cs40l50_config *config = dev->config;
+    struct cs40l50_config *config = (struct cs40l50_config*)dev->config;
     struct cs40l50_bsp *data = dev->data;
     cs40l50_t *drv = &data->priv;
     uint32_t val;
@@ -410,6 +403,14 @@ static int cs40l50_init(const struct device *dev)
         return 0;
     }
 
+    drv->config.bsp_config.reset_gpio_id = &reset;
+    // Activate RESET for at least T_RLPW (1ms)
+    gpio_pin_set_dt(&reset, BSP_GPIO_ACTIVE);
+    k_msleep(2);
+    // Wait for Lochnagar to boot
+    gpio_pin_set_dt(&reset, BSP_GPIO_INACTIVE);
+    k_msleep(2500);
+
     if (!i2c_is_ready_dt(&config->i2c)) {
         LOG_INF("cs40l50 no I2C\n");
         return -ENODEV;
@@ -420,9 +421,7 @@ static int cs40l50_init(const struct device *dev)
         return ret;
     }
 
-    k_msleep(1000);
-
-    regmap_read(&config->i2c, FIRMWARE_CS40L50_HALO_STATE, &val);
+    regmap_read(&config->i2c, FIRMWARE_CS40L5X_HALO_STATE, &val);
     LOG_INF("cs40l50_init: HALO_STATE = %x\n", val);
 
     LOG_INF("cs40l50_calibrate\n");
@@ -454,16 +453,13 @@ static int cs40l50_init(const struct device *dev)
     }
 
     cs40l50_clear_gpio_triggers(drv);
+    cs40l50_reset_owt(drv);
 
     k_msleep(1000);
 
     /* to-do */
-    regmap_read(&config->i2c, FIRMWARE_CS40L50_HALO_STATE, &val);
+    regmap_read(&config->i2c, FIRMWARE_CS40L5X_HALO_STATE, &val);
     LOG_INF("cs40l50_init: HALO_STATE = %x\n", val);
-
-    LOG_INF("cs40l50_init: Enable ASP");
-    ret = cs40l50_set_asp_enable(drv, true, 0);
-    LOG_INF("cs40l50_init: ASP retval: %d", ret);
 
 //    config->irq_cfg_func();
 //    config->irq_enable_func();
@@ -479,12 +475,115 @@ static int haptics_cs40l50_stop_output(const struct device *dev)
 static int haptics_cs40l50_start_output(const struct device *dev)
 {
     struct cs40l50_bsp *data = (struct cs40l50_bsp*)dev->data;
-
     LOG_INF("haptics_cs40l50_start_output, bank=%x, index=%x\n", data->hap_cfg.bank, data->hap_cfg.index);
 
     cs40l50_trigger(&data->priv, data->hap_cfg.index, data->hap_cfg.bank);
 
     return 0;
+}
+
+int haptics_cs40l50_trigger_owt(const struct device *dev, int owt_idx)
+{
+    struct cs40l50_bsp *data = dev->data;
+    cs40l50_t *drv = &data->priv;
+    uint32_t ret;
+
+    ret = cs40l50_trigger_owt(drv, owt_idx);
+    if(ret)
+    {
+        LOG_ERR("Error playing out owt waveform");
+        return ret;
+    }
+    return BSP_STATUS_OK;
+}
+
+int haptics_cs40l50_delete_owt(const struct device *dev, int owt_idx)
+{
+    struct cs40l50_bsp *data = dev->data;
+    cs40l50_t *drv = &data->priv;
+    uint32_t ret;
+
+    ret = cs40l50_delete_owt(drv, owt_idx);
+    if(ret)
+    {
+        LOG_ERR("Error deleting owt waveform");
+        return ret;
+    }
+    return BSP_STATUS_OK;
+}
+
+int haptics_cs40l50_write_owt_header(const struct device *dev, uint8_t num_waveforms, uint8_t repeats)
+{
+    struct cs40l50_bsp *data = dev->data;
+    cs40l50_t *drv = &data->priv;
+    uint32_t ret;
+
+    ret = cs40l50_write_owt_composite_header(drv, num_waveforms, repeats);
+    if(ret)
+    {
+        LOG_ERR("Error writing owt header");
+        return ret;
+    }
+    return BSP_STATUS_OK;
+}
+
+int haptics_cs40l50_write_owt_section(const struct device *dev, struct cs40l50_owt_section_params section)
+{
+    struct cs40l50_bsp *data = dev->data;
+    cs40l50_t *drv = &data->priv;
+    uint32_t ret;
+
+    ret = cs40l50_write_owt_composite_section(drv,
+                                              section.nested_repeats,
+                                              section.waveform_idx,
+                                              section.amplitude,
+                                              section.delay,
+                                              section.owt_subwave,
+                                              section.rom_subwave,
+                                              section.duration_present,
+                                              section.duration);
+    if(ret)
+    {
+        LOG_ERR("Error writing owt section");
+        return ret;
+    }
+    return BSP_STATUS_OK;
+}
+
+int haptics_cs40l50_push_owt(const struct device *dev)
+{
+    struct cs40l50_bsp *data = dev->data;
+    cs40l50_t *drv = &data->priv;
+    uint32_t ret;
+
+    ret = cs40l50_push_owt_composite(drv);
+    if(ret)
+    {
+        LOG_ERR("Error pushing owt waveform");
+        return ret;
+    }
+    return BSP_STATUS_OK;
+}
+
+int haptics_cs40l50_write_owt_composite_one_section(const struct device *dev, struct cs40l50_owt_section_params section)
+{
+    uint32_t ret;
+    struct cs40l50_bsp *data = dev->data;
+    cs40l50_t *drv = &data->priv;
+
+    ret = cs40l50_write_owt_composite_one_section(drv,
+                                                 section.nested_repeats,
+                                                 section.waveform_idx,
+                                                 section.amplitude,
+                                                 section.delay,
+                                                 section.owt_subwave,
+                                                 section.rom_subwave);
+    if(ret)
+    {
+        LOG_ERR("Error writing owt waveform");
+        return ret;
+    }
+    return ret;
 }
 
 static const struct haptics_driver_api cs40l50_driver_api = {
@@ -496,22 +595,27 @@ static void cs40l50_isr(void *arg)
 {
 }
 
-#define CS40L50_INIT(inst)                                                                         \
-                                                                                                   \
-                                                                                                   \
-    static const struct cs40l50_config cs40l50_config_##inst = {                               \
-        .i2c = I2C_DT_SPEC_INST_GET(inst),                                                 \
-    };                                                                                         \
-                                                                                                   \
-    static struct cs40l50_bsp cs40l50_bsp_data_##inst = {                                         \
-                                                                                                   \
-    };                                                                                         \
-                                                                                                   \
-    PM_DEVICE_DT_INST_DEFINE(inst, cs40l50_pm_action);                                         \
-                                                                                                   \
-    DEVICE_DT_INST_DEFINE(inst, &cs40l50_init, NULL, &cs40l50_bsp_data_##inst,                     \
-                  &cs40l50_config_##inst, POST_KERNEL, CONFIG_HAPTICS_INIT_PRIORITY,   \
-                  &cs40l50_driver_api);
+int cs40l50_get_num_owt_wf(const struct device *dev, uint32_t* num)
+{
+    struct cs40l50_config *config = (struct cs40l50_config*)dev->config;
+    return regmap_read(&config->i2c, VIBEGEN_OWT_NUM_OF_WAVES_XM, num);
+}
+
+#define CS40L50_INIT(inst)                                                                   \
+                                                                                             \
+    static const struct cs40l50_config cs40l50_config_##inst = {                             \
+        .i2c = I2C_DT_SPEC_INST_GET(inst),                                                   \
+    };                                                                                       \
+                                                                                             \
+    static struct cs40l50_bsp cs40l50_bsp_data_##inst = {                                    \
+                                                                                             \
+    };                                                                                       \
+                                                                                             \
+    PM_DEVICE_DT_INST_DEFINE(inst, cs40l50_pm_action);                                       \
+                                                                                             \
+    DEVICE_DT_INST_DEFINE(inst, &cs40l50_init, NULL, &cs40l50_bsp_data_##inst,               \
+                          &cs40l50_config_##inst, POST_KERNEL, CONFIG_HAPTICS_INIT_PRIORITY, \
+                          &cs40l50_driver_api);
 
 DT_INST_FOREACH_STATUS_OKAY(CS40L50_INIT)
 
