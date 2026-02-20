@@ -586,6 +586,46 @@ int haptics_cs40l50_write_owt_composite_one_section(const struct device *dev, st
     return ret;
 }
 
+int haptics_cs40l50_get_SVC_tone_length(const struct device *dev, uint32_t* length)
+{
+    struct cs40l50_config *config = (struct cs40l50_config*)dev->config;
+    struct cs40l50_bsp *data = dev->data;
+    cs40l50_t *drv = &data->priv;
+    uint32_t val, ret;
+    uint32_t length_samples = 0;
+    ret = regmap_read(&config->i2c, SVC_INIT_PH_PILOT_HI_START_SMP, &val);
+    if(ret)
+    {
+        return ret;
+    }
+    length_samples += val;
+
+    ret = regmap_read(&config->i2c, SVC_INIT_PH_OFST_CAL_START_SMP, &val);
+    if(ret)
+    {
+        return ret;
+    }
+    length_samples += val;
+
+    ret = regmap_read(&config->i2c, SVC_INIT_PH_OFST_CAL_NSMP, &val);
+    if(ret)
+    {
+        return ret;
+    }
+    length_samples += val;
+
+    ret = regmap_read(&config->i2c, SVC_INIT_PH_OFST_STL_NSMP, &val);
+    if(ret)
+    {
+        return ret;
+    }
+    length_samples += val;
+
+    //Ouput tone length in us
+    *length = (length_samples * 1000) / (CS40L50_SVC_FS / 1000);
+    return BSP_STATUS_OK;
+}
+
 static const struct haptics_driver_api cs40l50_driver_api = {
     .start_output = &haptics_cs40l50_start_output,
     .stop_output = &haptics_cs40l50_stop_output,

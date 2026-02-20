@@ -64,6 +64,7 @@
                                                CS40L50_EVENT_FLAG_BST_ERROR | \
                                                CS40L50_EVENT_FLAG_RUNTIME_SHORT_DETECTED | \
                                                CS40L50_EVENT_FLAG_PERMANENT_SHORT_DETECTED)
+#define CS40L50_EVENT_INIT_WAKE (CS40L50_EVENT_FLAG_INIT_COMPLETE | CS40L50_EVENT_FLAG_AWAKE)
 
 #ifndef CS40L50_BAREMETAL
 
@@ -230,6 +231,7 @@ cs40l50_pwle_short_section_t pwle_short_default =
 static const uint32_t cs40l50_irq_to_event_flag_map[] =
 {
     CS40L50_IRQ1_INT_1, IRQ1_INT_1_AMP_SHORT_ERR_INT1_BITMASK,  CS40L50_EVENT_FLAG_AMP_ERROR,
+    CS40L50_IRQ1_INT_4, IRQ1_INT_4_OTP_BOOT_DONE_INT1_BITMASK, CS40L50_EVENT_FLAG_OTP_BOOT_DONE,
     CS40L50_IRQ1_INT_8, IRQ1_INT_8_TEMP_ERR_INT1_BITMASK,  CS40L50_EVENT_FLAG_TEMP_ERROR,
     CS40L50_IRQ1_INT_9, IRQ1_INT_9_BST_ILIMIT_ERR_INT1_BITMASK, CS40L50_EVENT_FLAG_BST_ERROR,
     CS40L50_IRQ1_INT_9, IRQ1_INT_9_BST_SHORT_ERR_INT1_BITMASK, CS40L50_EVENT_FLAG_BST_ERROR,
@@ -527,10 +529,10 @@ static uint32_t cs40l50_irq_to_event_id(uint32_t irq_reg, uint32_t irq_statuses)
 
     for (uint8_t i = 0; i < (sizeof(cs40l50_irq_to_event_flag_map)/sizeof(uint32_t)); i += 3)
     {
-        if ((cs40l50_irq_to_event_flag_map[i % 3] == irq_reg) &&
-            (cs40l50_irq_to_event_flag_map[(i % 3) + 1] & irq_statuses))
+        if ((cs40l50_irq_to_event_flag_map[i] == irq_reg) &&
+            (cs40l50_irq_to_event_flag_map[(i) + 1] & irq_statuses))
         {
-            temp_event_flag |= cs40l50_irq_to_event_flag_map[(i % 3) + 2];
+            temp_event_flag |= cs40l50_irq_to_event_flag_map[(i) + 2];
         }
     }
 
@@ -734,6 +736,24 @@ static uint32_t cs40l50_event_handler(cs40l50_t *driver)
         }
     }
 
+    if (driver->event_flags & CS40L50_EVENT_FLAG_OTP_BOOT_DONE)
+    {
+        // Wait 10ms and check mailbox again for init/wake
+        bsp_driver_if_g->set_timer(10, NULL, NULL);
+        driver->event_flags |= cs40l50_process_mbox_queue(cp);
+        if (driver->event_flags & CS40L50_EVENT_INIT_WAKE)
+        {
+            ret = regmap_write(cp, CS40L50_IRQ1_INT_4, IRQ1_INT_4_OTP_BOOT_DONE_INT1_BITMASK);
+            if (ret)
+            {
+                return ret;
+            }
+        } else {
+            //timer expired without init/wake
+            cs40l50_reset(driver);
+        }
+    }
+
     return CS40L50_STATUS_OK;
 }
 
@@ -917,6 +937,16 @@ uint32_t cs40l50_reset(cs40l50_t *driver)
                                 CS40L50_IRQ1_MASK_2_DSP_VIRTUAL2_MBOX_WR_MASK1,
                                 CS40L50_IRQ1_MASK_2_DSP_VIRTUAL2_MBOX_WR_MASK1);
     }
+    if (ret)
+    {
+        return ret;
+    }
+
+    //Unmask OTP boot done
+    ret = regmap_update_reg(cp,
+                            CS40L50_IRQ1_MASK_4,
+                            CS40L50_IRQ1_MASK_4_OTP_BOOT_DONE_MASK1,
+                            0);
 
     return ret;
 }
@@ -1859,19 +1889,49 @@ uint32_t cs40l50_write_owt_composite_one_section(cs40l50_t *driver,
     const uint32_t duration = 0;
     const uint8_t repeats = 0;
 
-    uint32_t ret;
+    uint32_t ret, addr;
+    int i;
 
-    ret = cs40l50_write_owt_composite_header(driver, num_waveforms, repeats);
-    if (ret)
+    regmap_cp_config_t *cp = REGMAP_GET_CP(driver);
+    driver->config.bsp_config.owt_data_len = 0;
+    regmap_read(cp, CS40L50_VIBEGEN_OWT_NEXT_XM, &addr);
+    addr = addr & ~(0x800000);
+    addr = CS40L50_OWT_WAVE_XM_TABLE + (addr * CS40L50_DSP_BYTES_PER_WORD);
+
+    owt_header_default.word1.waveform_type = CS40L50_RTH_TYPE_COMPOSITE;
+    owt_header_default.word2.offset = OFFSET_DEFAULT; // Composite waveforms use subwave metadata, so offset can be left as default
+    owt_header_default.word3.data_length = COMPOSITE_ONE_SECTION_DATA_LENGTH;
+    for (i = 0; i < OWT_HEADER_SIZE; i++)
     {
-        return ret;
+        ret = regmap_write(cp, addr, owt_header_default.words[i]);
+        if (ret)
+        {
+            return ret;
+        }
+        addr += CS40L50_DSP_BYTES_PER_WORD;
     }
+
+    composite_header_default.word1.waveform_length = WF_LENGTH_DEFAULT;
+    composite_header_default.word2.num_waveforms = num_waveforms;
+    composite_header_default.word2.repeats = repeats;
+    for (i = 0; i < COMPOSITE_HEADER_SIZE; i++)
+    {
+        ret = regmap_write(cp, addr, composite_header_default.words[i]);
+        if (ret)
+        {
+            return ret;
+        }
+        addr += CS40L50_DSP_BYTES_PER_WORD;
+    }
+    driver->config.bsp_config.owt_data_len += COMPOSITE_HEADER_SIZE;
+    driver->config.bsp_config.owt_addr = addr;
+
     ret = cs40l50_write_owt_composite_section(driver, nested_repeats, waveform_idx, amplitude, delay, owt_subwave, rom_subwave, duration_present, duration);
     if (ret)
     {
         return ret;
     }
-    ret = cs40l50_push_owt_composite(driver);
+    ret = regmap_write(cp, CS40L50_DSP_VIRTUAL1_MBOX_1, CS40L50_DSP_MBOX_OWT_PUSH);
     if (ret)
     {
         return ret;

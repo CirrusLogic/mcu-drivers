@@ -3,6 +3,26 @@ Release Notes
 
 =============================================================================
 Summary:
+This is the release of Alt-OS Driver SDK v4.29.0
+Date: 2026/02/20
+
+Architectures/Compilers Used:
+GNU Arm Embedded Toolchain: arm-none-eabi-gcc -mcpu=cortex-m4
+
+New Features/Changes:
+
+Add CS35L56 MCU driver and sample application
+Add DSP State/Error check function to CS40L5X driver and baremetal app
+
+Fixed Bugs:
+
+Fix IRQ to event mapping in CS40L50 Driver
+Change CS40L50 host initiated haptics app to account for SVC tone length
+Reduce redundant I2C transactions in CS40L50 host initiated haptics app
+
+=============================================================================
+=============================================================================
+Summary:
 This is the release of Alt-OS Driver SDK v4.28.3
 Date: 2026/01/23
 

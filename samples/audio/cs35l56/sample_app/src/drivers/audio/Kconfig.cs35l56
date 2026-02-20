@@ -1,0 +1,9 @@
+# Copyright 2024 Cirrus Logic, Inc.
+# SPDX-License-Identifier: Apache-2.0
+
+config AUDIO_CS35L56
+	bool "CS35L56 Audio Driver"
+	default y
+	select I2C
+	help
+	  Enable I2C-based driver for the Cirrus CS35L56 Audio Driver.

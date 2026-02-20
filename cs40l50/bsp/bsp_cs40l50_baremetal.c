@@ -4,7 +4,7 @@
  * @brief Implementation of the BSP for the cs40l50 platform.
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2025 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2025-2026 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -150,6 +150,9 @@ uint32_t bsp_dut_boot(void)
 {
     uint32_t ret;
     int i;
+
+    cs40l50_boot(&cs40l50_driver, NULL);
+
     for (i = 0; i < cs40l50_total_fw_blocks; i++) {
         ret = regmap_write_block((&cs40l50_driver.config.bsp_config.cp_config),
                                  cs40l50_fw_blocks[i].address,

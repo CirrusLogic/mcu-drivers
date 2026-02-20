@@ -96,8 +96,12 @@ static int cmd_list_wt(const struct shell *sh, size_t argc, char **argv)
     printf("\n---Wavetable Waveform List---\n");
     for(int i = 1; i < pwleCount; i++)
     {
-        uint32_t length_ms = pwleList[i]->length_us / 1000;
-        uint32_t length_ms_dec = (pwleList[i]->length_us % 1000) / 10;
+        uint32_t length_svc_us = 0;
+        haptics_cs40l50_get_SVC_tone_length(cs40l50, &length_svc_us);
+        uint32_t length_svc_ms = length_svc_us / 1000;
+        uint32_t length_svc_ms_dec = (length_svc_us % 1000) / 10;
+        uint32_t length_ms = pwleList[i]->length_us / 1000 + length_svc_ms;
+        uint32_t length_ms_dec = (pwleList[i]->length_us % 1000) / 10 + length_svc_ms_dec;
         printf("Name : \"%s\", Duration : %d.%02d ms\n", pwleList[i]->name, length_ms, length_ms_dec);
     }
     return 0;

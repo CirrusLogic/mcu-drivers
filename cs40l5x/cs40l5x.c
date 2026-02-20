@@ -4,7 +4,7 @@
  * @brief The CS40L5X Driver module
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2025 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2025-2026 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -1778,6 +1778,26 @@ uint32_t cs40l5x_write_reg(cs40l5x_t *driver, uint32_t addr, uint32_t val)
 
     ret = regmap_write(cp, addr, val);
     if (ret)
+    {
+        return CS40L5X_STATUS_FAIL;
+    }
+
+    return CS40L5X_STATUS_OK;
+}
+
+uint32_t cs40l5x_check_error(cs40l5x_t *driver)
+{
+    uint32_t state;
+    regmap_cp_config_t *cp = REGMAP_GET_CP(driver);
+
+    regmap_read(cp, CS40L5X_FIRMWARE_HALO_STATE , &state);
+    if(state != CS40L5X_HALO_STATE_RUNNING)
+    {
+        return CS40L5X_STATUS_FAIL;
+    }
+
+    regmap_read(cp, CS40L5X_IRQ1_INT_18, &state);
+    if(state & IRQ1_INT_18_GLOBAL_ERR_INT1_BITMASK)
     {
         return CS40L5X_STATUS_FAIL;
     }

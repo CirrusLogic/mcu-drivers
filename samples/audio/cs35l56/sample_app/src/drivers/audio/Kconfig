@@ -1,0 +1,24 @@
+# Copyright 2024 Cirrus Logic, Inc.
+#
+# SPDX-License-Identifier: Apache-2.0
+
+menuconfig AUDIO
+	bool "Audio drivers"
+	help
+	  Enable audio driver configuration.
+
+if AUDIO
+
+module = AUDIO
+module-str = audio
+source "subsys/logging/Kconfig.template.log_config"
+
+config AUDIO_INIT_PRIORITY
+	int "Audio driver init priority"
+	default 90
+	help
+	  Audio driver initialization priority.
+
+rsource "Kconfig.cs35l56"
+
+endif # AUDIO

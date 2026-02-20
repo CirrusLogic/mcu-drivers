@@ -127,7 +127,7 @@ extern const struct cs40l50_diagnostic_flag_encoding cs40l50_diag_flags[NUM_DIAG
 #define CS40L50_VIBEGEN_COMPENSATION_ENABLE                                 (0x02805C30)
 
 #define CS40L50_SVC_RE_EST_STATUS                                           (0x03401110)
-
+#define CS40L50_SVC_FS                                                      (48000)
 
 #define CS40L50_DSP1_CCM_CORE_CONTROL                                       (0x02BC1000)
 #define CS40L50_FIRMWARE_CALL_RAM_INIT                                      (0x028021DC)
@@ -237,6 +237,9 @@ extern const struct cs40l50_diagnostic_flag_encoding cs40l50_diag_flags[NUM_DIAG
 
 #define CS40L50_IRQ1_INT_2                                                  (0x0000E014)
 
+#define CS40L50_IRQ1_INT_4                                                  (0x0000E01C)
+#define IRQ1_INT_4_OTP_BOOT_DONE_INT1_BITMASK                               (1 << 1)
+
 #define CS40L50_IRQ1_INT_8                                                  (0x0000E02C)
 #define IRQ1_INT_8_TEMP_ERR_INT1_BITMASK                                    (1 << 31)
 
@@ -255,6 +258,9 @@ extern const struct cs40l50_diagnostic_flag_encoding cs40l50_diag_flags[NUM_DIAG
 
 #define CS40L50_IRQ1_MASK_2                                                 (0x0000E094)
 #define CS40L50_IRQ1_MASK_2_DSP_VIRTUAL2_MBOX_WR_MASK1                      (1 << 21)
+
+#define CS40L50_IRQ1_MASK_4                                                 (0x0000E09C)
+#define CS40L50_IRQ1_MASK_4_OTP_BOOT_DONE_MASK1                             (1 << 1)
 
 #define CS40L50_GPIO1_RISE_EINT_BITMASK                                     (1)
 #define CS40L50_GPIO1_FALL_EINT_BITMASK                                     (1 << 1)

@@ -4,7 +4,7 @@
  * @brief Implementation of the BSP for the cs40l5x platform.
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2025 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2025-2026 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -158,6 +158,9 @@ uint32_t bsp_dut_boot(void)
 {
     uint32_t ret;
     int i;
+
+    cs40l5x_boot(&cs40l5x_driver, NULL);
+
     for (i = 0; i < cs40l5x_total_fw_blocks; i++) {
         ret = regmap_write_block((&cs40l5x_driver.config.bsp_config.cp_config),
                                  cs40l5x_fw_blocks[i].address,
@@ -220,4 +223,13 @@ uint32_t bsp_dut_trigger_haptic(uint8_t waveform, cs40l5x_wavetable_bank_t bank)
     ret = cs40l5x_trigger(&cs40l5x_driver, waveform, bank);
 
     return ret;
+}
+
+uint32_t bsp_dut_check_error(void)
+{
+    if(cs40l5x_check_error(&cs40l5x_driver))
+    {
+        return BSP_STATUS_FAIL;
+    }
+    return BSP_STATUS_OK;
 }

@@ -515,4 +515,24 @@ int haptics_cs40l50_write_owt_composite_one_section(const struct device *dev, st
 int haptics_cs40l50_trigger_owt(const struct device *dev, int owt_idx);
 int haptics_cs40l50_delete_owt(const struct device *dev, int owt_idx);
 int cs40l50_get_num_owt_wf(const struct device *dev, uint32_t* num);
+
+
+/*
+ * Calculates and returns the length of the SVC pilot tone in us
+ *
+ * This function will calculate the total length of the SVC pilot tone by reading back
+ * tone section data from SVC_INIT_PH_PILOT_HI_START_SMP, SVC_INIT_PH_OFST_CAL_START_SMP,
+ * SVC_INIT_PH_OFST_CAL_NSMP, SVC_INIT_PH_OFST_STL_NSMP, and converting this to milliseconds
+ * given the current sample rate.
+ *
+ * @param [in] dev           Pointer to the driver state
+ * @param [in, out] length   Pointer to uint32_t length value to be returned in us
+ *
+ * @return
+ * - CS40L50_STATUS_FAIL if:
+ *      - Control port activity fails
+ * - otherwise, returns CS40L50_STATUS_OK
+ *
+ */
+int haptics_cs40l50_get_SVC_tone_length(const struct device *dev, uint32_t* length);
 #endif

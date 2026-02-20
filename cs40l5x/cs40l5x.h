@@ -4,7 +4,7 @@
  * @brief Functions and prototypes exported by the CS40L5X Driver module
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2025 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2025-2026 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -722,6 +722,7 @@ uint32_t cs40l5x_trigger_pcm(cs40l5x_t *driver, uint8_t *s, uint32_t num_section
 uint32_t cs40l5x_set_dynamic_f0(cs40l5x_t *driver, bool enable);
 uint32_t cs40l5x_get_dynamic_f0(cs40l5x_t *driver, cs40l5x_df0_table_entry_t *f0_entry);
 uint32_t cs40l5x_set_asp_enable(cs40l5x_t *driver, bool enable, uint32_t freq);
+uint32_t cs40l5x_check_error(cs40l5x_t *driver);
 
 /*
  * Reads the contents of a single register/memory address

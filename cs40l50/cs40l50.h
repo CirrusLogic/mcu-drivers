@@ -130,11 +130,12 @@ extern "C" {
 /**
  * Default values for different open wavetable fields
  */
-#define OWT_HEADER_SIZE                (3)
-#define PWLE_HEADER_SIZE               (3)
-#define PWLE_SECTION_SIZE              (2)
-#define COMPOSITE_HEADER_SIZE          (2)
-#define COMPOSITE_SECTION_SIZE         (3)
+#define OWT_HEADER_SIZE                           (3)
+#define PWLE_HEADER_SIZE                          (3)
+#define PWLE_SECTION_SIZE                         (2)
+#define COMPOSITE_HEADER_SIZE                     (2)
+#define COMPOSITE_SECTION_SIZE                    (3)
+#define COMPOSITE_ONE_SECTION_DATA_LENGTH         (6)
 
 #define BUZZ_OR_CLICK_DEFAULT          (0)
 #define FS_DEFAULT                     (0)
@@ -212,6 +213,7 @@ extern "C" {
 #define CS40L50_EVENT_FLAG_HAPTIC_TRIGGER_MBOX          (1 << 16)
 #define CS40L50_EVENT_FLAG_HAPTIC_COMPLETE_I2S          (1 << 15)
 #define CS40L50_EVENT_FLAG_HAPTIC_TRIGGER_I2S           (1 << 14)
+#define CS40L50_EVENT_FLAG_OTP_BOOT_DONE                (1 << 3)
 #define CS40L50_EVENT_FLAG_AMP_ERROR                    (1 << 2)
 #define CS40L50_EVENT_FLAG_TEMP_ERROR                   (1 << 1)
 #define CS40L50_EVENT_FLAG_BST_ERROR                    (1 << 0)

@@ -1,0 +1,11 @@
+description: CS35L56 Audio Driver
+
+compatible: "cirrus,cs35l56"
+
+include: ["i2c-device.yaml"]
+
+properties:
+  reset-gpios:
+    required: true
+    type: phandle-array
+    description: Host GPIO pin mapped to CS35L56 reset pin.

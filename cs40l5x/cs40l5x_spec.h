@@ -4,7 +4,7 @@
  * @brief Constants and Types from CS40L5X datasheet
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2025 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2025-2026 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -154,8 +154,13 @@ extern const struct cs40l5x_diagnostic_flag_encoding cs40l5x_diag_flags[NUM_DIAG
 
 #define CS40L5X_PWLE_ENTRY_START                                            (0)
 
-/* DSP State */
+/* HALO State*/
+#define CS40L5X_FIRMWARE_HALO_STATE                                         (0x028021E0)
+#define CS40L5X_HALO_STATE_PREBOOT                                           (0)
+#define CS40L5X_HALO_STATE_BOOT_IN_PROGRESS                                  (1)
+#define CS40L5X_HALO_STATE_RUNNING                                           (2)
 
+/* DSP State */
 #define CS40L5X_DSP_STATE_HIBERNATE                                         (0)
 #define CS40L5X_DSP_STATE_SHUTDOWN                                          (1)
 #define CS40L5X_DSP_STATE_STANDBY                                           (2)
@@ -244,6 +249,9 @@ extern const struct cs40l5x_diagnostic_flag_encoding cs40l5x_diag_flags[NUM_DIAG
 
 #define CS40L5X_IRQ1_INT_10                                                 (0x0000E034)
 #define IRQ1_INT_10_UVLO_VDDBATT_ERR_INT1_BITMASK                           (1 << 16)
+
+#define CS40L5X_IRQ1_INT_18                                                 (0x0000E054)
+#define IRQ1_INT_18_GLOBAL_ERR_INT1_BITMASK                                 (1 << 15)
 
 #define CS40L5X_IRQ1_IRQ1_MASK_1                                            (0x0000E090)
 
