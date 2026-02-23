@@ -183,7 +183,16 @@ uint32_t bsp_dut_boot(void)
         }
     }
 
-    regmap_write((&cs40l5x_driver.config.bsp_config.cp_config), CS40L5X_DSP1_CCM_CORE_CONTROL, 0x00000281);
+    regmap_write((&cs40l5x_driver.config.bsp_config.cp_config), CS40L5X_DSP1_CCM_CORE_CONTROL,
+        0x00000281);
+
+    // Wait for (OTP + ROM) boot complete
+    ret = regmap_poll_reg((&cs40l5x_driver.config.bsp_config.cp_config),
+            CS40L5X_FIRMWARE_HALO_STATE, CS40L5X_HALO_STATE_RUNNING, 10,
+            CS40L5X_BOOT_TIMEMOUT_MS);
+    if (ret == CS40L5X_STATUS_FAIL) {
+        return BSP_STATUS_FAIL;
+    }
 
     return ret;
 }

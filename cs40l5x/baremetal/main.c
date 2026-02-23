@@ -68,6 +68,7 @@ int main(void)
         {
             bsp_set_ld2(BSP_LD2_MODE_OFF, 0);
             bsp_dut_reset();
+            bsp_dut_boot();
             bsp_set_ld2(BSP_LD2_MODE_ON, 0);
         }
         if (bsp_was_pb_pressed(BSP_PB_ID_USER))

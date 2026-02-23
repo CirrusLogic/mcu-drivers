@@ -119,6 +119,8 @@ extern "C" {
  */
 #define CS40L5X_POLL_ACK_CTRL_MS                (1)     ///< Delay in ms between polling for ACKed memory writes
 #define CS40L5X_POLL_ACK_CTRL_MAX               (100)   ///< Maximum number of times to poll for ACKed memory writes
+#define CS40L5X_BOOT_TIMEMOUT_MS                                                                   \
+    (10) ///< Maximum delay in ms between attempts reading back successful DSP boot
 /** @} */
 
 /**

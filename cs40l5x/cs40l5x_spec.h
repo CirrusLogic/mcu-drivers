@@ -155,7 +155,7 @@ extern const struct cs40l5x_diagnostic_flag_encoding cs40l5x_diag_flags[NUM_DIAG
 #define CS40L5X_PWLE_ENTRY_START                                            (0)
 
 /* HALO State*/
-#define CS40L5X_FIRMWARE_HALO_STATE                                         (0x028021E0)
+#define CS40L5X_FIRMWARE_HALO_STATE                                          (0x028021E0)
 #define CS40L5X_HALO_STATE_PREBOOT                                           (0)
 #define CS40L5X_HALO_STATE_BOOT_IN_PROGRESS                                  (1)
 #define CS40L5X_HALO_STATE_RUNNING                                           (2)

@@ -3,6 +3,19 @@ Release Notes
 
 =============================================================================
 Summary:
+This is the release of Alt-OS Driver SDK v4.29.1
+Date: 2026/02/23
+
+Architectures/Compilers Used:
+GNU Arm Embedded Toolchain: arm-none-eabi-gcc -mcpu=cortex-m4
+
+Fixed Bugs:
+
+Force CS40L5X boot to wait for HALO_RUNNING
+
+=============================================================================
+=============================================================================
+Summary:
 This is the release of Alt-OS Driver SDK v4.29.0
 Date: 2026/02/20
 
