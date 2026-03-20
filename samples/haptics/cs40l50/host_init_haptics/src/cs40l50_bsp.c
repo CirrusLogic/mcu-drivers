@@ -343,13 +343,13 @@ static uint32_t cs40l50_set_timer(uint32_t duration_ms, bsp_callback_t cb, void 
     return 0;
 }
 
-static uint32_t cs40l50_register_gpio_cb(uint32_t gpio_id, bsp_callback_t cb, void *cb_arg)
+static uint32_t cs40l50_register_gpio_cb(const struct gpio_dt_spec* gpio_id, bsp_callback_t cb, void *cb_arg)
 {
     //TODO
     return 0;
 }
 
-static uint32_t cs40l50_set_gpio(uint32_t gpio_id, uint8_t gpio_state)
+static uint32_t cs40l50_set_gpio(const struct gpio_dt_spec* gpio_id, uint8_t gpio_state)
 {
     //TODO
     return 0;
@@ -589,8 +589,6 @@ int haptics_cs40l50_write_owt_composite_one_section(const struct device *dev, st
 int haptics_cs40l50_get_SVC_tone_length(const struct device *dev, uint32_t* length)
 {
     struct cs40l50_config *config = (struct cs40l50_config*)dev->config;
-    struct cs40l50_bsp *data = dev->data;
-    cs40l50_t *drv = &data->priv;
     uint32_t val, ret;
     uint32_t length_samples = 0;
     ret = regmap_read(&config->i2c, SVC_INIT_PH_PILOT_HI_START_SMP, &val);
@@ -631,9 +629,9 @@ static const struct haptics_driver_api cs40l50_driver_api = {
     .stop_output = &haptics_cs40l50_stop_output,
 };
 
-static void cs40l50_isr(void *arg)
-{
-}
+// static void cs40l50_isr(void *arg)
+// {
+// }
 
 int cs40l50_get_num_owt_wf(const struct device *dev, uint32_t* num)
 {

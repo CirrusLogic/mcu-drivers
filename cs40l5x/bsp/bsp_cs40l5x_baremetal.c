@@ -152,11 +152,21 @@ uint32_t bsp_dut_reset(void)
     return BSP_STATUS_OK;
 }
 
+uint32_t bsp_dut_process()
+{
+    uint32_t ret;
+    ret = cs40l5x_process(&cs40l5x_driver);
 
+    if (ret != CS40L5X_STATUS_OK)
+    {
+        return BSP_STATUS_FAIL;
+    }
+    return BSP_STATUS_OK;
+}
 
 uint32_t bsp_dut_boot(void)
 {
-    uint32_t ret;
+    uint32_t ret = BSP_STATUS_OK;
     int i;
 
     cs40l5x_boot(&cs40l5x_driver, NULL);

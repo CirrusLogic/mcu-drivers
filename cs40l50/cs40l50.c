@@ -1382,7 +1382,7 @@ uint32_t cs40l50_trigger(cs40l50_t *driver, uint32_t index, cs40l50_wavetable_ba
     regmap_cp_config_t *cp = REGMAP_GET_CP(driver);
 
     if (driver->config.broadcast)
-        cp = &broadcast_cp;
+        cp = (regmap_cp_config_t*)&broadcast_cp;
 
     switch (bank)
     {
@@ -1600,7 +1600,7 @@ uint32_t cs40l50_trigger_pwle(cs40l50_t *driver, rth_pwle_section_t **s)
     addr = CS40L50_OWT_WAVE_XM_TABLE + (addr * 4);
 
     if (driver->config.broadcast)
-            cp = &broadcast_cp;
+            cp = (regmap_cp_config_t*)&broadcast_cp;
 
     ret = regmap_write(cp, addr, CS40L50_RTH_TYPE_PWLE);
     if (ret)
@@ -1650,7 +1650,7 @@ uint32_t cs40l50_trigger_pwle_advanced(cs40l50_t *driver, rth_pwle_section_t **s
     addr = addr & ~(0x800000);
     addr = CS40L50_OWT_WAVE_XM_TABLE + (addr * CS40L50_DSP_BYTES_PER_WORD);
     if (driver->config.broadcast)
-            cp = &broadcast_cp;
+            cp = (regmap_cp_config_t*)&broadcast_cp;
 
     ret = regmap_write(cp, addr, CS40L50_RTH_TYPE_PWLE);
     if (ret)
@@ -2008,7 +2008,7 @@ uint32_t cs40l50_trigger_pcm(cs40l50_t *driver, uint8_t *s, uint32_t num_section
     addr = CS40L50_OWT_WAVE_XM_TABLE + (addr * 4);
 
     if (driver->config.broadcast)
-        cp = &broadcast_cp;
+        cp = (regmap_cp_config_t*)&broadcast_cp;
 
     ret = regmap_write(cp, addr, CS40L50_RTH_TYPE_PCM); //write the type of waveform
     if (ret)

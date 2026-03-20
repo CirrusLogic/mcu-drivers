@@ -129,7 +129,7 @@ extern const struct cs40l5x_diagnostic_flag_encoding cs40l5x_diag_flags[NUM_DIAG
 #define CS40L5X_VIBEGEN_COMPENSATION_ENABLE                                 (0x02805C30)
 
 #define CS40L5X_SVC_RE_EST_STATUS                                           (0x03401110)
-
+#define CS40L5X_SVC_FS                                                      (48000)
 
 #define CS40L5X_DSP1_CCM_CORE_CONTROL                                       (0x02BC1000)
 #define CS40L5X_FIRMWARE_CALL_RAM_INIT                                      (0x028021DC)
@@ -199,6 +199,9 @@ extern const struct cs40l5x_diagnostic_flag_encoding cs40l5x_diag_flags[NUM_DIAG
 #define CS40L5X_DSP_MBOX_CMD_STOP_I2S                                       (0x03000003)
 #define CS40L5X_DSP_MBOX_PM_CMD_BASE                                        CS40L5X_DSP_MBOX_CMD_HIBER
 
+#define CS40L5X_DSP_MBOX_OWT_PUSH                                           (0x03000008)
+#define CS40L5X_DSP_MBOX_OWT_RESET                                          (0x03000009)
+
 #define CS40L5X_DSP_BYTES_PER_WORD                                          (4)
 #define CS40L5X_MAILBOX_QUEUE_BASE                                          (0x028042C0)
 #define CS40L5X_MAILBOX_QUEUE_LEN_OFFSET                                    (4)
@@ -222,9 +225,11 @@ extern const struct cs40l5x_diagnostic_flag_encoding cs40l5x_diag_flags[NUM_DIAG
 #define CS40L5X_DSP_MBOX_DIAG_DONE                                          (0x3000001)
 /* OWT/RTH */
 #define  CS40L5X_VIBEGEN_OWT_BASE_XM                                        (0x02805C34)
+#define  CS40L5X_VIBEGEN_OWT_NEXT_XM                                        (0x02805C3C)
 #define  CS40L5X_OWT_WAVE_XM_TABLE                                          (0x02805C48)
 #define  CS40L5X_OWT_PUSH                                                   (0x03000008)
 #define  CS40L5X_TRIGGER_RTH                                                (0x01400000)
+#define  CS40L5X_DELETE_OWT                                                 (0x0D000000)
 #define  CS40L5X_MAX_PWLE_SECTIONS                                          (126)
 #define  CS40L5X_SLOT0_MAX_PWLE_SECTIONS                                    (61)
 #define  CS40l5X_SLOT1_MAX_PWLE_SECTIONS                                    (65)
@@ -235,23 +240,26 @@ extern const struct cs40l5x_diagnostic_flag_encoding cs40l5x_diag_flags[NUM_DIAG
 #define CS40L5X_IRQ1_IRQ1_STATUS                                            (0x0000E004)
 
 #define CS40L5X_IRQ1_INT_1                                                  (0x0000E010)
-#define IRQ1_INT_1_AMP_SHORT_ERR_INT1_BITMASK                               (1 << 31)
+#define IRQ1_INT_1_AMP_SHORT_ERR_INT1_BITMASK                               (1U << 31)
 
 #define CS40L5X_IRQ1_INT_2                                                  (0x0000E014)
 
+#define CS40L5X_IRQ1_INT_4                                                  (0x0000E01C)
+#define IRQ1_INT_4_OTP_BOOT_DONE_INT1_BITMASK                               (1U << 1)
+
 #define CS40L5X_IRQ1_INT_8                                                  (0x0000E02C)
-#define IRQ1_INT_8_TEMP_ERR_INT1_BITMASK                                    (1 << 31)
+#define IRQ1_INT_8_TEMP_ERR_INT1_BITMASK                                    (1U << 31)
 
 #define CS40L5X_IRQ1_INT_9                                                  (0x0000E030)
-#define IRQ1_INT_9_BST_ILIMIT_ERR_INT1_BITMASK                              (1 << 8)
-#define IRQ1_INT_9_BST_SHORT_ERR_INT1_BITMASK                               (1 << 7)
-#define IRQ1_INT_9_BST_UVP_ERR_INT1_BITMASK                                 (1 << 6)
+#define IRQ1_INT_9_BST_ILIMIT_ERR_INT1_BITMASK                              (1U << 8)
+#define IRQ1_INT_9_BST_SHORT_ERR_INT1_BITMASK                               (1U << 7)
+#define IRQ1_INT_9_BST_UVP_ERR_INT1_BITMASK                                 (1U << 6)
 
 #define CS40L5X_IRQ1_INT_10                                                 (0x0000E034)
-#define IRQ1_INT_10_UVLO_VDDBATT_ERR_INT1_BITMASK                           (1 << 16)
+#define IRQ1_INT_10_UVLO_VDDBATT_ERR_INT1_BITMASK                           (1U << 16)
 
 #define CS40L5X_IRQ1_INT_18                                                 (0x0000E054)
-#define IRQ1_INT_18_GLOBAL_ERR_INT1_BITMASK                                 (1 << 15)
+#define IRQ1_INT_18_GLOBAL_ERR_INT1_BITMASK                                 (1U << 15)
 
 #define CS40L5X_IRQ1_IRQ1_MASK_1                                            (0x0000E090)
 
@@ -260,6 +268,9 @@ extern const struct cs40l5x_diagnostic_flag_encoding cs40l5x_diag_flags[NUM_DIAG
 
 #define CS40L5X_IRQ1_MASK_2                                                 (0x0000E094)
 #define CS40L5X_IRQ1_MASK_2_DSP_VIRTUAL2_MBOX_WR_MASK1                      (1 << 21)
+
+#define CS40L5X_IRQ1_MASK_18                                                (0x0000E0D4)
+#define CS40L5X_IRQ1_MASK_18_GLOBAL_ERR_MASK1                               (1 << 15)
 
 #define CS40L5X_GPIO1_RISE_EINT_BITMASK                                     (1)
 #define CS40L5X_GPIO1_FALL_EINT_BITMASK                                     (1 << 1)

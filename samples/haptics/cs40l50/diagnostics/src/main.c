@@ -43,7 +43,6 @@ LOG_MODULE_REGISTER(main);
 #endif
 static const struct gpio_dt_spec button = GPIO_DT_SPEC_GET_OR(SW0_NODE, gpios,
                                   {0});
-static struct gpio_callback button_cb_data;
 const struct gpio_dt_spec reset = GPIO_DT_SPEC_GET(DT_NODELABEL(haptic1), reset_gpios);
 
 int main(void)
@@ -64,7 +63,6 @@ int main(void)
                 return 0;
         }
 
-        char in_char;
         const struct device *dev1 = DEVICE_DT_GET(DT_NODELABEL(haptic1));
         struct cs40l50_haptic_source_config hap_cfg = {
                 .index = CS40L50_HAPTIC_ROM_CLICK_14_VCM,

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) Cirrus Logic 2025 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2025-2026 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -336,13 +336,13 @@ static uint32_t cs40l50_set_timer(uint32_t duration_ms, bsp_callback_t cb, void 
     return 0;
 }
 
-static uint32_t cs40l50_register_gpio_cb(struct gpio_dt_spec *gpio, bsp_callback_t cb, void *cb_arg)
+static uint32_t cs40l50_register_gpio_cb(const struct gpio_dt_spec* gpio, bsp_callback_t cb, void *cb_arg)
 {
     //TODO
     return 0;
 }
 
-static uint32_t cs40l50_set_gpio(const struct gpio_dt_spec *gpio, uint8_t gpio_state)
+static uint32_t cs40l50_set_gpio(const struct gpio_dt_spec* gpio, uint8_t gpio_state)
 {
     //TODO
     return 0;
@@ -614,9 +614,9 @@ static const struct haptics_driver_api cs40l50_driver_api = {
     .stop_output = &haptics_cs40l50_stop_output,
 };
 
-static void cs40l50_isr(void *arg)
-{
-}
+// static void cs40l50_isr(void *arg)
+// {
+// }
 
 #define CS40L50_INIT(inst)                                                                   \
                                                                                              \

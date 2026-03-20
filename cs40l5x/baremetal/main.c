@@ -64,18 +64,23 @@ int main(void)
 
     while (1)
     {
-        if(bsp_dut_check_error())
-        {
-            bsp_set_ld2(BSP_LD2_MODE_OFF, 0);
-            bsp_dut_reset();
-            bsp_dut_boot();
-            bsp_set_ld2(BSP_LD2_MODE_ON, 0);
-        }
+        //Process errors using polling
+        // if(bsp_dut_check_error())
+        // {
+        //     bsp_set_ld2(BSP_LD2_MODE_OFF, 0);
+        //     bsp_dut_reset();
+        //     bsp_dut_boot();
+        //     bsp_set_ld2(BSP_LD2_MODE_ON, 0);
+        // }
+
+        //Process errors using interrupts
+        bsp_dut_process();
+
         if (bsp_was_pb_pressed(BSP_PB_ID_USER))
         {
             bsp_dut_trigger_haptic(0, ROM_BANK);
         }
-        bsp_sleep();
+        bsp_set_timer(10, NULL, NULL);
     }
 
     exit(1);

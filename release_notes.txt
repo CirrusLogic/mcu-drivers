@@ -3,6 +3,26 @@ Release Notes
 
 =============================================================================
 Summary:
+This is the release of Alt-OS Driver SDK v4.29.3
+Date: 2026/03/20
+
+Architectures/Compilers Used:
+GNU Arm Embedded Toolchain: arm-none-eabi-gcc -mcpu=cortex-m4
+
+New Features/Changes:
+
+Add interrupt error handling example to CS40L5X baremetal project
+Add OWT API to CS40L5X driver
+Create CS40L5X Host Initiated Haptics sample application
+Improve zephyr sample application documentation
+
+Fixed Bugs:
+
+Fix Zephyr build warnings in various sample apps
+
+=============================================================================
+=============================================================================
+Summary:
 This is the release of Alt-OS Driver SDK v4.29.1
 Date: 2026/02/23
 

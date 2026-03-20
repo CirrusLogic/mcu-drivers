@@ -29,7 +29,7 @@
 #include <sys/_stdint.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include <string.h>
+#include <strings.h>
 #include <ctype.h>
 
 #define LOG_LEVEL 4

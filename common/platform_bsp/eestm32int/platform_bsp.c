@@ -4,7 +4,7 @@
  * @brief Implementation of the BSP for the HW ID0 platform.
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2021-2023 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2021-2023, 2026 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -159,11 +159,11 @@
 #define BSP_DUT_INT_CLK_ENABLE                  __HAL_RCC_GPIOA_CLK_ENABLE
 #define BSP_DUT_INT_CLK_DISABLE                 __HAL_RCC_GPIOA_CLK_DISABLE
 #ifndef CONFIG_L25B
-#define BSP_DUT_CDC_INT_PIN                     GPIO_PIN_0
-#define BSP_DUT_CDC_INT_GPIO_PORT               GPIOA
+#define BSP_DUT_CDC_INT_PIN                     GPIO_PIN_4
+#define BSP_DUT_CDC_INT_GPIO_PORT               GPIOB
 #else
-#define BSP_DUT_CDC_INT_PIN                     GPIO_PIN_11
-#define BSP_DUT_CDC_INT_GPIO_PORT               GPIOC
+#define BSP_DUT_CDC_INT_PIN                     GPIO_PIN_4
+#define BSP_DUT_CDC_INT_GPIO_PORT               GPIOB
 #endif
 #define BSP_DUT_DSP_INT_PIN                     GPIO_PIN_10
 #define BSP_DUT_DSP_INT_GPIO_PORT               GPIOA
@@ -2576,11 +2576,6 @@ uint32_t bsp_initialize(bsp_app_callback_t cb, void *cb_arg)
     UART_Init();
     bsp_audio_set_fs(BSP_AUDIO_FS_48000_HZ);
 
-    // Toggle LN2 Reset
-    HAL_GPIO_WritePin(BSP_LN2_RESET_GPIO_PORT, BSP_LN2_RESET_PIN, GPIO_PIN_RESET);
-    bsp_set_timer(5, NULL, NULL);
-    HAL_GPIO_WritePin(BSP_LN2_RESET_GPIO_PORT, BSP_LN2_RESET_PIN, GPIO_PIN_SET);
-    bsp_set_timer(5000, NULL, NULL);
     // Bypass LN2 FPGA
     uint32_t temp_buffer = __builtin_bswap32(0x00EE0000);
     bsp_i2c_write(BSP_LN2_DEV_ID, (uint8_t *)&temp_buffer, 4, NULL, NULL);

@@ -64,8 +64,7 @@
                                                CS40L5X_EVENT_FLAG_BST_ERROR | \
                                                CS40L5X_EVENT_FLAG_RUNTIME_SHORT_DETECTED | \
                                                CS40L5X_EVENT_FLAG_PERMANENT_SHORT_DETECTED)
-
-#ifndef CS40L5X_BAREMETAL
+#define CS40L5X_EVENT_INIT_WAKE (CS40L5X_EVENT_FLAG_INIT_COMPLETE | CS40L5X_EVENT_FLAG_AWAKE)
 
 #define CS40L5X_MBOX_COMMAND_HAPTIC_COMPLETE_MBOX           (0x01000000)
 #define CS40L5X_MBOX_COMMAND_HAPTIC_COMPLETE_GPIO           (0x01000001)
@@ -77,8 +76,6 @@
 #define CS40L5X_MBOX_COMMAND_AWAKE                          (0x02000002)
 #define CS40L5X_MBOX_COMMAND_PERMANENT_SHORT_DETECTED       (0x0C000C1C)
 #define CS40L5X_MBOX_COMMAND_RUNTIME_SHORT_DETECTED         (0x0C000C1D)
-
-#endif //CS40L5X_BAREMETAL
 
 /**
  * Total entries in Dynamic F0 table
@@ -145,6 +142,39 @@ static const uint32_t cs40l5x_b0_errata_external[] =
 };
 
 #ifndef CS40L5X_BAREMETAL
+cs40l5x_owt_header_t owt_header_default =
+{
+    .word1.buzz_or_click = BUZZ_OR_CLICK_DEFAULT,
+    .word1.fs = FS_DEFAULT,
+    .word1.dynamic_f0 = DYNAMIC_F0_DEFAULT,
+    .word1.metadata = METADATA_DEFAULT,
+    .word1.DVL = DVL_DEFAULT,
+    .word1.LF0T = LF0T_DEFAULT,
+    .word1.waveform_type = WAVEFORM_TYPE_DEFAULT,
+    .word2.offset = OFFSET_DEFAULT,
+    .word3.data_length = DATA_LENGTH_DEFAULT
+};
+
+cs40l5x_owt_composite_header_t composite_header_default =
+{
+    .word1.waveform_length = WF_LENGTH_DEFAULT,
+    .word2.repeats = REPEATS_DEFAULT,
+    .word2.num_waveforms = NUM_WAVEFORMS_DEFAULT,
+};
+
+cs40l5x_owt_composite_section_t composite_section_default =
+{
+    .word1.nested_repeats = NESTED_REPEAT_DEFAULT,
+    .word1.waveform_idx = WAVEFORM_IDX_DEFAULT,
+    .word1.amplitude = AMPLITUDE_DEFAULT,
+    .word2.delay = DELAY_DEFAULT,
+    .word2.owt_subwave = OWT_SUBWAVE_DEFAULT,
+    .word2.rom_subwave = ROM_SUBWAVE_DEFAULT,
+    .word2.duration_present = DURATION_PRESENT_DEFAULT,
+    .word3.duration = DURATION_DEFAULT
+};
+
+
 cs40l5x_pwle_t pwle_default =
 {
     .word1.wf_length = WF_LENGTH_DEFAULT,
@@ -182,6 +212,8 @@ cs40l5x_pwle_short_section_t pwle_short_default =
     .word2.ext_freq  = EXT_FREQ_DEFAULT
 };
 
+#endif //CS40L5X_BAREMETAL
+
 /**
  * Mapping of CS40L5X IRQ Flag to Event Flag
  *
@@ -196,6 +228,7 @@ cs40l5x_pwle_short_section_t pwle_short_default =
 static const uint32_t cs40l5x_irq_to_event_flag_map[] =
 {
     CS40L5X_IRQ1_INT_1, IRQ1_INT_1_AMP_SHORT_ERR_INT1_BITMASK,  CS40L5X_EVENT_FLAG_AMP_ERROR,
+    CS40L5X_IRQ1_INT_4, IRQ1_INT_4_OTP_BOOT_DONE_INT1_BITMASK, CS40L5X_EVENT_FLAG_OTP_BOOT_DONE,
     CS40L5X_IRQ1_INT_8, IRQ1_INT_8_TEMP_ERR_INT1_BITMASK,  CS40L5X_EVENT_FLAG_TEMP_ERROR,
     CS40L5X_IRQ1_INT_9, IRQ1_INT_9_BST_ILIMIT_ERR_INT1_BITMASK, CS40L5X_EVENT_FLAG_BST_ERROR,
     CS40L5X_IRQ1_INT_9, IRQ1_INT_9_BST_SHORT_ERR_INT1_BITMASK, CS40L5X_EVENT_FLAG_BST_ERROR,
@@ -217,7 +250,7 @@ static uint32_t cs40l5x_mbox_command_to_event_id_map[] =
     CS40L5X_MBOX_COMMAND_RUNTIME_SHORT_DETECTED, CS40L5X_EVENT_FLAG_RUNTIME_SHORT_DETECTED
 };
 
-#endif //CS40L5X_BAREMETAL
+#ifndef CS40L5X_BAREMETAL
 
 const struct cs40l5x_register_encoding cs40l5x_pll_refclk[CS40L5X_NUM_VALD_PLL_REFCLKS] = {
     { 128000,   0x0C },
@@ -279,6 +312,7 @@ const struct cs40l5x_diagnostic_flag_encoding cs40l5x_diag_flags[NUM_DIAGNOSTIC_
     {CS40L5X_DIAG_Zres_HI, "Zres_HI"}
 };
 
+#endif //CS40L5X_BAREMETAL
 #ifdef CIRRUS_SDK
 static regmap_cp_config_t broadcast_cp =
 {
@@ -411,7 +445,7 @@ static uint32_t cs40l5x_pm_state_transition(cs40l5x_t *driver, uint8_t state)
  * @see bsp_callback_t
  *
  */
-#ifndef CS40L5X_BAREMETAL
+
 static void cs40l5x_irq_callback(uint32_t status, void *cb_arg)
 {
     cs40l5x_t *d;
@@ -425,18 +459,12 @@ static void cs40l5x_irq_callback(uint32_t status, void *cb_arg)
     }
     return;
 }
-#endif //CS40L5X_BAREMETAL
 
 uint32_t cs40l5x_allow_hibernate(cs40l5x_t *driver)
 {
     uint32_t ret = CS40L5X_STATUS_FAIL;
 
     ret = cs40l5x_pm_state_transition(driver, CS40L5X_PM_STATE_ALLOW_HIBERNATE);
-    if (ret)
-    {
-        return ret;
-    }
-
     return ret;
 }
 
@@ -485,17 +513,17 @@ uint32_t cs40l5x_prevent_hibernate(cs40l5x_t *driver)
  * @see CS40L5X_EVENT_FLAG_
  *
  */
-#ifndef CS40L5X_BAREMETAL
+
 static uint32_t cs40l5x_irq_to_event_id(uint32_t irq_reg, uint32_t irq_statuses)
 {
     uint32_t temp_event_flag = 0;
 
     for (uint8_t i = 0; i < (sizeof(cs40l5x_irq_to_event_flag_map)/sizeof(uint32_t)); i += 3)
     {
-        if ((cs40l5x_irq_to_event_flag_map[i % 3] == irq_reg) &&
-            (cs40l5x_irq_to_event_flag_map[(i % 3) + 1] & irq_statuses))
+        if ((cs40l5x_irq_to_event_flag_map[i] == irq_reg) &&
+            (cs40l5x_irq_to_event_flag_map[(i) + 1] & irq_statuses))
         {
-            temp_event_flag |= cs40l5x_irq_to_event_flag_map[(i % 3) + 2];
+            temp_event_flag |= cs40l5x_irq_to_event_flag_map[(i) + 2];
         }
     }
 
@@ -592,8 +620,6 @@ static uint32_t cs40l5x_process_mbox_queue(regmap_cp_config_t *cp)
 
     return event_flags;
 }
-#endif //CS40L5X_BAREMETAL
-
 
 /**
  * Handle events indicated by the IRQ pin ALERTb
@@ -613,16 +639,13 @@ static uint32_t cs40l5x_process_mbox_queue(regmap_cp_config_t *cp)
  * @see cs40l5x_notification_callback_t
  *
  */
-#ifndef CS40L5X_BAREMETAL
 static uint32_t cs40l5x_event_handler(cs40l5x_t *driver)
 {
     uint32_t ret = CS40L5X_STATUS_OK;
-    return ret;
     uint32_t irq_statuses[CS40L5X_IRQ1_REG_TOTAL];
     uint32_t irq_masks[CS40L5X_IRQ1_REG_TOTAL];
     regmap_cp_config_t *cp = REGMAP_GET_CP(driver);
     bool process_mbox_queue = false;
-
     // Read IRQ1_STATUS
     ret = regmap_read(cp, CS40L5X_IRQ1_IRQ1_STATUS, &(irq_statuses[0]));
     if (ret)
@@ -697,12 +720,30 @@ static uint32_t cs40l5x_event_handler(cs40l5x_t *driver)
         {
             return ret;
         }
+        cs40l5x_reset(driver);
+    }
+
+    if (driver->event_flags & CS40L5X_EVENT_FLAG_OTP_BOOT_DONE)
+    {
+        // Wait 10ms and check mailbox again for init/wake
+        bsp_driver_if_g->set_timer(10, NULL, NULL);
+        driver->event_flags |= cs40l5x_process_mbox_queue(cp);
+        if (driver->event_flags & CS40L5X_EVENT_INIT_WAKE)
+        {
+            ret = regmap_write(cp, CS40L5X_IRQ1_INT_4, IRQ1_INT_4_OTP_BOOT_DONE_INT1_BITMASK);
+            if (ret)
+            {
+                return ret;
+            }
+        } else {
+            //timer expired without init/wake
+            cs40l5x_reset(driver);
+        }
     }
 
     return CS40L5X_STATUS_OK;
 }
 
-#endif //CS40L5X_BAREMETAL
 /***********************************************************************************************************************
  * API FUNCTIONS
  **********************************************************************************************************************/
@@ -741,11 +782,9 @@ uint32_t cs40l5x_configure(cs40l5x_t *driver, cs40l5x_config_t *config)
         (NULL != config))
     {
         driver->config = *config;
-#ifndef CS40L5X_BAREMETAL
-        ret = bsp_driver_if_g->register_gpio_cb(driver->config.bsp_config.int_gpio_id,
+        ret = bsp_driver_if_g->register_gpio_cb((uint32_t)driver->config.bsp_config.int_gpio_id,
                                                 &cs40l5x_irq_callback,
                                                 driver);
-#endif //CS40L5X_BAREMETAL
         if (ret == BSP_STATUS_OK)
         {
             ret = CS40L5X_STATUS_OK;
@@ -764,16 +803,13 @@ uint32_t cs40l5x_process(cs40l5x_t *driver)
     // check for driver mode
     if (driver->mode == CS40L5X_MODE_HANDLING_EVENTS)
     {
+        driver->mode = CS40L5X_MODE_HANDLING_CONTROLS;
         // run through event handler
-#ifndef CS40L5X_BAREMETAL
         if (CS40L5X_STATUS_OK != cs40l5x_event_handler(driver))
         {
             driver->event_flags |= CS40L5X_EVENT_FLAG_STATE_ERROR;
         }
-#endif //CS40L5X_BAREMETAL
-        driver->mode = CS40L5X_MODE_HANDLING_CONTROLS;
     }
-
     if (driver->event_flags)
     {
 
@@ -788,6 +824,7 @@ uint32_t cs40l5x_process(cs40l5x_t *driver)
         driver->event_flags = 0;
     }
 
+    // bsp_driver_if_g->enable_irq();
     return CS40L5X_STATUS_OK;
 }
 
@@ -801,10 +838,10 @@ uint32_t cs40l5x_reset(cs40l5x_t *driver)
     regmap_cp_config_t *cp = REGMAP_GET_CP(driver);
 
     // Drive RESET low for at least T_RLPW (1ms)
-    bsp_driver_if_g->set_gpio(driver->config.bsp_config.reset_gpio_id, BSP_GPIO_LOW);
+    bsp_driver_if_g->set_gpio((uint32_t)driver->config.bsp_config.reset_gpio_id, BSP_GPIO_LOW);
     bsp_driver_if_g->set_timer(2, NULL, NULL);
     // Drive RESET high and wait for at least T_IRS (2.2ms)
-    bsp_driver_if_g->set_gpio(driver->config.bsp_config.reset_gpio_id, BSP_GPIO_HIGH);
+    bsp_driver_if_g->set_gpio((uint32_t)driver->config.bsp_config.reset_gpio_id, BSP_GPIO_HIGH);
     bsp_driver_if_g->set_timer(3, NULL, NULL);
 
     // Read DEVID
@@ -864,6 +901,8 @@ uint32_t cs40l5x_reset(cs40l5x_t *driver)
         }
     }
 
+    // driver->mode = CS40L5X_MODE_HANDLING_CONTROLS;
+
     /**
      * Enable/Disable MBOX IRQs if specified.
      * For Rev B0, enabled by default.
@@ -883,6 +922,50 @@ uint32_t cs40l5x_reset(cs40l5x_t *driver)
                                 CS40L5X_IRQ1_MASK_2_DSP_VIRTUAL2_MBOX_WR_MASK1);
     }
 
+
+    // //TODO: Remove this
+    // driver->config.enable_dsp_err_irq = true;
+    // /**
+    //  * Enable/Disable DSP error IRQs if specified.
+    //  * For Rev B0, disabled by default.
+    //  */
+    // if(driver->config.enable_dsp_err_irq)
+    // {
+    //     ret = regmap_update_reg(cp,
+    //                     CS40L5X_IRQ1_INT_18,
+    //                     CS40L5X_IRQ1_MASK_18_GLOBAL_ERR_MASK1,
+    //                     0);
+    // }
+    // else
+    // {
+    //     ret = regmap_update_reg(cp,
+    //                     CS40L5X_IRQ1_INT_18,
+    //                     CS40L5X_IRQ1_MASK_18_GLOBAL_ERR_MASK1,
+    //                     CS40L5X_IRQ1_MASK_18_GLOBAL_ERR_MASK1);
+    // }
+
+    //TODO: Remove this
+    driver->config.enable_dsp_err_irq = true;
+    /**
+     * Enable/Disable DSP error IRQs if specified.
+     * For Rev B0, disabled by default.
+     */
+    if(driver->config.enable_dsp_err_irq)
+    {
+        ret = regmap_update_reg(cp,
+                        CS40L5X_IRQ1_IRQ1_MASK_1,
+                        IRQ1_INT_1_AMP_SHORT_ERR_INT1_BITMASK,
+                        0);
+    }
+    else
+    {
+        ret = regmap_update_reg(cp,
+                        CS40L5X_IRQ1_IRQ1_MASK_1,
+                        IRQ1_INT_1_AMP_SHORT_ERR_INT1_BITMASK,
+                        IRQ1_INT_1_AMP_SHORT_ERR_INT1_BITMASK);
+    }
+
+    // bsp_driver_if_g->enable_irq();
     return ret;
 }
 
@@ -971,11 +1054,6 @@ uint32_t cs40l5x_timeout_ticks_set(cs40l5x_t *driver, uint32_t ms)
     lower_val = ticks & CS40L5X_PM_TIMEOUT_TICKS_LOWER_MASK;
 
     ret = regmap_write(cp, CS40L5X_PM_TIMER_TIMEOUT_TICKS_3_L, lower_val);
-    if (ret)
-    {
-      return ret;
-    }
-
     return ret;
 }
 
@@ -1317,7 +1395,7 @@ uint32_t cs40l5x_trigger(cs40l5x_t *driver, uint32_t index, cs40l5x_wavetable_ba
     regmap_cp_config_t *cp = REGMAP_GET_CP(driver);
 
     if (driver->config.broadcast)
-        cp = &broadcast_cp;
+        cp = (regmap_cp_config_t*)&broadcast_cp;
 
     switch (bank)
     {
@@ -1332,10 +1410,6 @@ uint32_t cs40l5x_trigger(cs40l5x_t *driver, uint32_t index, cs40l5x_wavetable_ba
     }
 
     ret = regmap_write(cp, CS40L5X_DSP_VIRTUAL1_MBOX_1, wf_index);
-    if (ret)
-    {
-        return ret;
-    }
 
     return ret;
 }
@@ -1531,7 +1605,7 @@ uint32_t cs40l5x_trigger_pwle(cs40l5x_t *driver, rth_pwle_section_t **s)
     addr = CS40L5X_OWT_WAVE_XM_TABLE + (addr * 4);
 
     if (driver->config.broadcast)
-            cp = &broadcast_cp;
+            cp = (regmap_cp_config_t*)&broadcast_cp;
 
     ret = regmap_write(cp, addr, CS40L5X_RTH_TYPE_PWLE);
     if (ret)
@@ -1560,10 +1634,7 @@ uint32_t cs40l5x_trigger_pwle(cs40l5x_t *driver, rth_pwle_section_t **s)
         addr += 0x4;
     }
     ret = regmap_write(cp, CS40L5X_DSP_VIRTUAL1_MBOX_1, CS40L5X_TRIGGER_RTH);
-    if (ret)
-    {
-        return ret;
-    }
+
     return ret;
 }
 
@@ -1578,7 +1649,7 @@ uint32_t cs40l5x_trigger_pwle_advanced(cs40l5x_t *driver, rth_pwle_section_t **s
     addr = CS40L5X_OWT_WAVE_XM_TABLE + (addr * 4);
 
     if (driver->config.broadcast)
-            cp = &broadcast_cp;
+            cp = (regmap_cp_config_t*)&broadcast_cp;
 
     ret = regmap_write(cp, addr, CS40L5X_RTH_TYPE_PWLE);
     if (ret)
@@ -1643,12 +1714,234 @@ uint32_t cs40l5x_trigger_pwle_advanced(cs40l5x_t *driver, rth_pwle_section_t **s
     }
 
     ret = regmap_write(cp, CS40L5X_DSP_VIRTUAL1_MBOX_1, CS40L5X_TRIGGER_RTH);
+
+    return ret;
+}
+
+/**
+ * Write the header section of a composite waveform to the OWT
+ *
+ */
+uint32_t cs40l5x_write_owt_composite_header(cs40l5x_t *driver, uint8_t num_waveforms, uint8_t repeats)
+{
+    uint32_t ret, addr;
+    int i;
+    regmap_cp_config_t *cp = REGMAP_GET_CP(driver);
+    driver->config.bsp_config.owt_data_len = 0;
+    regmap_read(cp, CS40L5X_VIBEGEN_OWT_NEXT_XM, &addr);
+    addr = addr & ~(0x800000);
+    addr = CS40L5X_OWT_WAVE_XM_TABLE + (addr * CS40L5X_DSP_BYTES_PER_WORD);
+
+    owt_header_default.word1.waveform_type = CS40L5X_RTH_TYPE_COMPOSITE;
+    owt_header_default.word2.offset = OFFSET_DEFAULT; // Composite waveforms use subwave metadata, so offset can be left as default
+    owt_header_default.word3.data_length = 0;         // Update this after going through all sections
+    for (i = 0; i < OWT_HEADER_SIZE; i++)
+    {
+        ret = regmap_write(cp, addr, owt_header_default.words[i]);
+        if (ret)
+        {
+            return ret;
+        }
+        addr += CS40L5X_DSP_BYTES_PER_WORD;
+    }
+
+    composite_header_default.word1.waveform_length = WF_LENGTH_DEFAULT;
+    composite_header_default.word2.num_waveforms = num_waveforms;
+    composite_header_default.word2.repeats = repeats;
+    for (i = 0; i < COMPOSITE_HEADER_SIZE; i++)
+    {
+        ret = regmap_write(cp, addr, composite_header_default.words[i]);
+        if (ret)
+        {
+            return ret;
+        }
+        addr += CS40L5X_DSP_BYTES_PER_WORD;
+    }
+    driver->config.bsp_config.owt_data_len += COMPOSITE_HEADER_SIZE;
+    driver->config.bsp_config.owt_addr = addr;
+    return CS40L5X_STATUS_OK;
+}
+
+/**
+ * Write a single section of a composite waveform to the OWT
+ *
+ */
+uint32_t cs40l5x_write_owt_composite_section(cs40l5x_t *driver,
+                                             uint8_t nested_repeats,
+                                             uint8_t waveform_idx,
+                                             uint8_t amplitude,
+                                             uint16_t delay,
+                                             uint8_t owt_subwave,
+                                             uint8_t rom_subwave,
+                                             uint8_t duration_present,
+                                             uint32_t duration)
+{
+    uint32_t ret, addr;
+    regmap_cp_config_t *cp = REGMAP_GET_CP(driver);
+
+    addr = driver->config.bsp_config.owt_addr;
+    composite_section_default.word1.nested_repeats = nested_repeats;
+    composite_section_default.word1.waveform_idx = waveform_idx;
+    composite_section_default.word1.amplitude = amplitude;
+    composite_section_default.word2.delay = delay;
+    composite_section_default.word2.owt_subwave = owt_subwave;
+    composite_section_default.word2.rom_subwave = rom_subwave;
+    composite_section_default.word2.duration_present = duration_present;
+    composite_section_default.word3.duration = duration;
+
+    // Composite size is dependent on presence of duration section
+    if (composite_section_default.word2.duration_present)
+    {
+        for (int i = 0; i < COMPOSITE_SECTION_SIZE; i++)
+        {
+            ret = regmap_write(cp, addr, composite_section_default.words[i]);
+            if (ret)
+            {
+                return ret;
+            }
+            addr += CS40L5X_DSP_BYTES_PER_WORD;
+        }
+        driver->config.bsp_config.owt_data_len += COMPOSITE_SECTION_SIZE;
+    }
+    else
+    {
+        for (int i = 0; i < COMPOSITE_SECTION_SIZE - 1; i++)
+        {
+            ret = regmap_write(cp, addr, composite_section_default.words[i]);
+            if (ret)
+            {
+                return ret;
+            }
+            addr += CS40L5X_DSP_BYTES_PER_WORD;
+        }
+        driver->config.bsp_config.owt_data_len += (COMPOSITE_SECTION_SIZE - 1);
+    }
+    driver->config.bsp_config.owt_addr = addr;
+    return CS40L5X_STATUS_OK;
+}
+
+/**
+ * Finalize the number of sections in a composite and push the waveform to the OWT
+ *
+ */
+uint32_t cs40l5x_push_owt_composite(cs40l5x_t *driver)
+{
+    uint32_t addr, ret;
+    regmap_cp_config_t *cp = REGMAP_GET_CP(driver);
+
+    // Write data length now that we have counts of sections with and without duration sections
+    regmap_read(cp, CS40L5X_VIBEGEN_OWT_NEXT_XM, &addr);
+    addr = addr & ~(0x800000);
+    addr = CS40L5X_OWT_WAVE_XM_TABLE + (addr * CS40L5X_DSP_BYTES_PER_WORD);
+    addr += CS40L5X_DSP_BYTES_PER_WORD * 2; // data length is stored at 3rd word of composite waveform header
+    ret = regmap_write(cp, addr, driver->config.bsp_config.owt_data_len);
     if (ret)
     {
         return ret;
     }
+    ret = regmap_write(cp, CS40L5X_DSP_VIRTUAL1_MBOX_1, CS40L5X_DSP_MBOX_OWT_PUSH);
+    if (ret)
+    {
+        return ret;
+    }
+    return CS40L5X_STATUS_OK;
+}
 
-    return ret;
+/**
+ * Create a composite waveform in the OWT with a single subwave section
+ *
+ */
+uint32_t cs40l5x_write_owt_composite_one_section(cs40l5x_t *driver,
+                                                 uint8_t nested_repeats,
+                                                 uint8_t waveform_idx,
+                                                 uint8_t amplitude,
+                                                 uint16_t delay,
+                                                 uint8_t owt_subwave,
+                                                 uint8_t rom_subwave)
+{
+    const uint8_t duration_present = 0;
+    const uint8_t num_waveforms = 1;
+    const uint32_t duration = 0;
+    const uint8_t repeats = 0;
+
+    uint32_t ret, addr;
+    int i;
+
+    regmap_cp_config_t *cp = REGMAP_GET_CP(driver);
+    driver->config.bsp_config.owt_data_len = 0;
+    regmap_read(cp, CS40L5X_VIBEGEN_OWT_NEXT_XM, &addr);
+    addr = addr & ~(0x800000);
+    addr = CS40L5X_OWT_WAVE_XM_TABLE + (addr * CS40L5X_DSP_BYTES_PER_WORD);
+
+    owt_header_default.word1.waveform_type = CS40L5X_RTH_TYPE_COMPOSITE;
+    owt_header_default.word2.offset = OFFSET_DEFAULT; // Composite waveforms use subwave metadata, so offset can be left as default
+    owt_header_default.word3.data_length = COMPOSITE_ONE_SECTION_DATA_LENGTH;
+    for (i = 0; i < OWT_HEADER_SIZE; i++)
+    {
+        ret = regmap_write(cp, addr, owt_header_default.words[i]);
+        if (ret)
+        {
+            return ret;
+        }
+        addr += CS40L5X_DSP_BYTES_PER_WORD;
+    }
+
+    composite_header_default.word1.waveform_length = WF_LENGTH_DEFAULT;
+    composite_header_default.word2.num_waveforms = num_waveforms;
+    composite_header_default.word2.repeats = repeats;
+    for (i = 0; i < COMPOSITE_HEADER_SIZE; i++)
+    {
+        ret = regmap_write(cp, addr, composite_header_default.words[i]);
+        if (ret)
+        {
+            return ret;
+        }
+        addr += CS40L5X_DSP_BYTES_PER_WORD;
+    }
+    driver->config.bsp_config.owt_data_len += COMPOSITE_HEADER_SIZE;
+    driver->config.bsp_config.owt_addr = addr;
+
+    ret = cs40l5x_write_owt_composite_section(driver, nested_repeats, waveform_idx, amplitude, delay, owt_subwave, rom_subwave, duration_present, duration);
+    if (ret)
+    {
+        return ret;
+    }
+    ret = regmap_write(cp, CS40L5X_DSP_VIRTUAL1_MBOX_1, CS40L5X_DSP_MBOX_OWT_PUSH);
+    if (ret)
+    {
+        return ret;
+    }
+    return CS40L5X_STATUS_OK;
+}
+
+/**
+ * Trigger an effect at an index in the OWT
+ *
+ */
+uint32_t cs40l5x_trigger_owt(cs40l5x_t *driver, uint32_t idx)
+{
+    uint32_t ret;
+    regmap_cp_config_t *cp = REGMAP_GET_CP(driver);
+
+    ret = regmap_write(cp, CS40L5X_DSP_VIRTUAL1_MBOX_1, CS40L5X_TRIGGER_RTH | idx);
+    if(ret)
+    {
+        return ret;
+    }
+    return 0;
+}
+
+uint32_t cs40l5x_delete_owt(cs40l5x_t *driver, uint32_t idx)
+{
+    uint32_t ret;
+    regmap_cp_config_t *cp = REGMAP_GET_CP(driver);
+
+    ret = regmap_write(cp, CS40L5X_DSP_VIRTUAL1_MBOX_1, CS40L5X_DELETE_OWT | idx);
+    if(ret)
+    {
+        return ret;
+    }
+    return 0;
 }
 
 uint32_t cs40l5x_pack_pcm_data(regmap_cp_config_t *cp, int index, uint32_t *word, uint8_t data, uint32_t *addr)
@@ -1690,7 +1983,7 @@ uint32_t cs40l5x_trigger_pcm(cs40l5x_t *driver, uint8_t *s, uint32_t num_section
     addr = CS40L5X_OWT_WAVE_XM_TABLE + (addr * 4);
 
     if (driver->config.broadcast)
-        cp = &broadcast_cp;
+        cp = (regmap_cp_config_t*)&broadcast_cp;
 
     ret = regmap_write(cp, addr, CS40L5X_RTH_TYPE_PCM); //write the type of waveform
     if (ret)

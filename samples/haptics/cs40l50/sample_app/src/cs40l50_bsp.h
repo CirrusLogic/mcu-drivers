@@ -169,7 +169,7 @@ typedef struct
      * @see BSP_GPIO_LOW BSP_GPIO_HIGH
      *
      */
-    uint32_t (*set_gpio)(uint32_t gpio_id, uint8_t gpio_state);
+    uint32_t (*set_gpio)(const struct gpio_dt_spec* gpio_id, uint8_t gpio_state);
 
     /**
      * Enable or disable a supply
@@ -202,7 +202,7 @@ typedef struct
      * - BSP_STATUS_OK          otherwise
      *
      */
-    uint32_t (*register_gpio_cb)(uint32_t gpio_id, bsp_callback_t cb, void *cb_arg);
+    uint32_t (*register_gpio_cb)(const struct gpio_dt_spec* gpio_id, bsp_callback_t cb, void *cb_arg);
 
     /**
      * Set a timer to expire

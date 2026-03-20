@@ -1,26 +1,26 @@
 Artifact Info:
-Artifact           : CS40L25 Alt-OS Driver: 4.29.1 - 2f0ba78f8e9c128b90e91ed2a8c84ee49bf0ee11
+Artifact           : CS40L25 Alt-OS Driver: 4.29.3 - b6dfab30750e692c4567601866926e44e9c35b00
 Test Target MCU SDK: STM32Cube_FW_F4: 1.24.1
 Target toolchain   : GNU Arm Embedded Toolchain: arm-none-eabi-gcc (Arm GNU Toolchain 13.2.rel1 (Build arm-13.7)) 13.2.1 20231009
 Build system       : make: GNU Make 4.3
-OS                 : Linux: 5.14.0-611.34.1.el9_7.x86_64
+OS                 : Linux: 5.14.0-611.38.1.el9_7.x86_64
 Shell              : bash: GNU bash, version 5.1.8(1)-release (x86_64-redhat-linux-gnu)
 Host toolchain     : MinGW GCC: gcc (GCC) 11.5.0 20240719 (Red Hat 11.5.0-11)
-Build Job          : princeh_alt_os_nightly: 2078
-Git SHA            : 2f0ba78f8e9c128b90e91ed2a8c84ee49bf0ee11
+Build Job          : princeh_alt_os_nightly: 2106
+Git SHA            : b6dfab30750e692c4567601866926e44e9c35b00
 
 System resources:
 
 Build Configuration 1:
 
 Artifact filename    : libcs40l25.a
-Driver TEXT          : 6554
+Driver TEXT          : 6548
 Driver BSS           : 0
 Driver DATA          : 168
 Driver Max Stack     : 176 (cs40l25_power -> cs40l25_power_down -> cs40l25_write_acked_fw_control -> regmap_write_acked_fw_control -> regmap_write_acked_reg -> regmap_read -> GET_BYTE_FROM_WORD)
 
 Artifact filename    : baremetal.elf
-Driver TEXT          : 6156
+Driver TEXT          : 6142
 Driver BSS           : 780
 Driver DATA          : 168
 
@@ -31,18 +31,4 @@ Artifact filename    : cs40l25_fw_img.o
 Driver TEXT          : 30064
 
 Compiler flags:
-    -mcpu=cortex-m4
-    -mthumb
-    -mfpu=fpv4-sp-d16
-    -mfloat-abi=hard
-    -march=armv7e-m+fp
-    -Os
-    -Werror
-    -Wall
-    -std=gnu11
-    -fno-diagnostics-show-caret
-    -fdata-sections
-    -ffunction-sections
-    -fstack-usage
-    -frecord-gcc-switches
 
