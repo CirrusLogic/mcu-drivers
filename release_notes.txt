@@ -11,30 +11,14 @@ GNU Arm Embedded Toolchain: arm-none-eabi-gcc -mcpu=cortex-m4
 
 New Features/Changes:
 
-d93ccd2 SDK release 4.29.4: updated copyrights and fixed whitespaces
-ca11b5b Update Manifest
-31a53a0 CS40L5X: Add HIH API reorganization to 5X variants
-464f811 CS40L5X: Add 5X version of CS40L50's basic zephyr sample_app
-87faae0 CS40L50: Update sample_app to FW 4.0.3, remove A/B FW loading feature
-ad7325d CS40L50/5X: Fix path in HIH sample app READMEs
-b58564e tools: Add algo blacklist to cs40l26+cs40l50 ROM mode
-63678d5 CS40L50: Reorganize host initiated haptics API
-0d0b9b9 tools: Add msft_id flag to hwt_converter
-d381ce5 tools: Make generated waveforms.c/.h data structures const
-6ab2edb CS40L5X: Update 'Sweep' to 'Grow' in host init haptics wavetable
-aaa2995 CS40L50: Update 'Sweep' to 'Grow' in host init haptics wavetable
-46bcdb8 tools: Add explicit support for cs40l5x in hwt_to_waveform_converter
-d875142 samples: Add pytest output as artifact in jenkins
-d4aeb9e samples: Jenkins: Save build error log
-f7acc49 samples: Jenkins: Install ARM toolchain only
-bcf7f59 samples: Jenkins: Add artifacts for rom/ram reports
-73b86fe samples: Jenkins: Clean workspace after build
-7f7d55c samples: Add hardware test of system_test to Jenkins pipeline
-a30274f CS40L5X: Add system_test sample app for Jenkins pipeline
-7669cc4 CS40L50: Add system_test sample application for Jenkins Pipeline
-
+Reorganize Host Initiated Haptics API in CS40l50 + CS40l5X BSP
+Rename 'Sweep' to 'Grow' in HIH sample applications
+Add basic sample_app to CS40l5X sample applications
+Add microsoft ID support into hwt_converter for HIH applications
 
 Fixed Bugs:
+
+Fix algorithm blacklisting in firmware_converter for Jamerson/Peart ROM mode
 
 =============================================================================
 =============================================================================
