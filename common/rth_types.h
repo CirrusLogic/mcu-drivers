@@ -45,10 +45,11 @@ typedef struct
 
 typedef struct
 {
-   rth_pwle_section_t** sections;
+   const rth_pwle_section_t** sections;
    uint16_t num_sections;
    uint32_t length_us;
    const char* name;
+   uint32_t msft_id;
 } rth_pwle_t;
 
 #ifdef __cplusplus

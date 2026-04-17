@@ -29,7 +29,7 @@ import json
 #==========================================================================
 # CONSTANTS/GLOBALS
 #==========================================================================
-pwle_section_template_str = """static rth_pwle_section_t pwle_{pwle_num}_section{num} =
+pwle_section_template_str = """const rth_pwle_section_t pwle_{pwle_num}_section{num} =
 {
     .duration = {duration},
     .level = {level},
@@ -41,12 +41,12 @@ pwle_section_template_str = """static rth_pwle_section_t pwle_{pwle_num}_section
 
 pwle_list_section_template_str = """&pwle_{pwle_num}_section{section_num}"""
 
-pwle_section_list_template_str = """rth_pwle_section_t *pwle{pwle_num}_sections[{num_sections}] =
+pwle_section_list_template_str = """const rth_pwle_section_t *pwle{pwle_num}_sections[{num_sections}] =
 {
     {pwle_sections}
 };
 
-static rth_pwle_t pwle_{pwle_num} =
+const rth_pwle_t pwle_{pwle_num} =
 {
     .sections = pwle{pwle_num}_sections,
     .num_sections = {num_sections},
@@ -54,6 +54,22 @@ static rth_pwle_t pwle_{pwle_num} =
     .name = "{name}"
 };
 """
+
+pwle_section_list_HIH_template_str = """const rth_pwle_section_t *pwle{pwle_num}_sections[{num_sections}] =
+{
+    {pwle_sections}
+};
+
+const rth_pwle_t pwle_{pwle_num} =
+{
+    .sections = pwle{pwle_num}_sections,
+    .num_sections = {num_sections},
+    .length_us = {length_us},
+    .name = "{name}",
+    .msft_id = {msft_id}
+};
+"""
+
 pcm_f0_redc_template = """
 uint16_t pcm_{pcm_num}_f0 = {f0};
 uint16_t pcm_{pcm_num}_redc = {redc};
@@ -76,7 +92,8 @@ const uint32_t pcm_{pcm_num}_data_size = {num_samples};
 redc_factors = {
     "cs40l26": 128/5.857,
     "cs40l26m": 128/5.857,
-    "cs40l50": 128/8.275
+    "cs40l50": 128/8.275,
+    "cs40l5x": 128/8.275,
 }
 #==========================================================================
 # CLASSES
@@ -201,13 +218,17 @@ class pwle_section:
         return output_str
 
 class pwle_section_list:
-    def __init__(self, pwle_num, num_sections, length_us, name):
-        self.template_str = pwle_section_list_template_str
+    def __init__(self, pwle_num, num_sections, length_us, name, msft_id=None):
+        if(msft_id != None):
+            self.template_str = pwle_section_list_HIH_template_str
+        else:
+            self.template_str = pwle_section_list_template_str
         self.output_str = ''
         self.pwle_num = str(pwle_num)
         self.num_sections = num_sections
         self.length_us = length_us
         self.name = name
+        self.msft_id = msft_id
 
     def __str__(self):
         output_str = self.template_str
@@ -215,6 +236,8 @@ class pwle_section_list:
         output_str = output_str.replace('{num_sections}', str(self.num_sections))
         output_str = output_str.replace('{length_us}', str(self.length_us))
         output_str = output_str.replace('{name}', str(self.name))
+        if(self.msft_id != None):
+            output_str = output_str.replace('{msft_id}', str(self.msft_id))
         list_str = ''
         for i in range(1, int(self.num_sections)+1):
             line = ''

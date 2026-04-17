@@ -38,7 +38,20 @@ from hwt_to_waveform_templates import pwle_section, pwle_section_list, pwle_name
 #==========================================================================
 supported_part_numbers = ['cs40l26',
                           'cs40l26m',
-                          'cs40l50',]
+                          'cs40l50',
+                          'cs40l5x',]
+
+host_init_haptics_msft_id_map = {
+    'Hover'   : '0x1008',
+    'Collide' : '0x1012',
+    'Align'   : '0x1013',
+    'Step'    : '0x1014',
+    'Grow'    : '0x1015',
+    'Press'   : '0x1006',
+    'Release' : '0x1007',
+    'Success' : '0x1009',
+    'Error'   : '0x100A'
+}
 
 #==========================================================================
 # CLASSES
@@ -57,7 +70,7 @@ def get_args(args):
                           '--sym-input', '--sym-output', '--binary', '--binary-output',
                           '--wmdr-only', '--exclude-wmfw', '--generic-sym', '--fw-img-version',
                           '--revision-check', '--sym-partition', '--no-sym-table',
-                          '--exclude-dummy', '--skip-command-print', '--output-directory']
+                          '--exclude-dummy', '--skip-command-print', '--output-directory', '--host-init-haptics']
 
     rom_allowed_options = ['--wmdr', '--wmdr-only', '--exclude-wmfw', '--binary', '--binary-output']
 
@@ -67,6 +80,8 @@ def get_args(args):
                         help='The part number that the HWT is targeted at.')
     parser.add_argument(dest='hwt_filename', type=str,help='The HWT file to be parsed.')
     parser.add_argument('--output-directory', dest='output_directory', default='.', help="Output directory of files. By default uses current work dir")
+    parser.add_argument('--host-init-haptics', dest='host_init_haptics', action='store_true', default=False,
+                        help='Include hardcoded Microsoft haptics IDs in waveform output')
 
     return parser.parse_args(args[1:])
 
@@ -156,10 +171,16 @@ def main(argv):
                     lenInSeconds = 0
             else:
                 lenInSeconds = 0
-            plist = pwle_section_list(pwle_num, entry["Body"]["NumberOfSections"]["Value"], int(lenInSeconds*1e6), entry["Body"]["Name"])
+            if(args.host_init_haptics):
+                try:
+                    plist = pwle_section_list(pwle_num, entry["Body"]["NumberOfSections"]["Value"], int(lenInSeconds*1e6), entry["Body"]["Name"], msft_id=host_init_haptics_msft_id_map[entry["Body"]["Name"]])
+                except KeyError:
+                    plist = pwle_section_list(pwle_num, entry["Body"]["NumberOfSections"]["Value"], int(lenInSeconds*1e6), entry["Body"]["Name"], msft_id=0x0)
+            else:
+                plist = pwle_section_list(pwle_num, entry["Body"]["NumberOfSections"]["Value"], int(lenInSeconds*1e6), entry["Body"]["Name"])
             pwle_str = pwle_str + str(plist)
             file_output_str += pwle_str
-            file_h_output_str += 'extern rth_pwle_section_t *pwle' + str(pwle_num) + '[];\n'
+            file_h_output_str += 'extern const rth_pwle_section_t *pwle' + str(pwle_num) + '[];\n'
             file_h_output_str += 'extern const uint32_t pwle_' + str(pwle_num) + '_size;\n\n'
             pwle_num += 1
         else:
@@ -177,7 +198,7 @@ def main(argv):
         file_h_output_str += 'extern const uint32_t pwleCount;\n'
         file_h_output_str += 'extern rth_pwle_t *pwleList[];\n'
         file_output_str += f"uint32_t const pwleCount = {pwle_num-1};"
-        file_output_str += f'\nrth_pwle_t *pwleList[{pwle_num-1}] =\n{{'
+        file_output_str += f'\nconst rth_pwle_t *pwleList[{pwle_num-1}] =\n{{'
         for i in range(1, pwle_num):
             file_output_str += f"\n\t&pwle_{i},"
         file_output_str += "\n};\n"

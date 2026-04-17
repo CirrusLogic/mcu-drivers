@@ -105,6 +105,9 @@
 #define BSP_SUPPLY_ENABLE               (1)
 
 
+/**
+ */
+#define MAX_HIH_EFFECT_NAME_SIZE        (20)
 /***********************************************************************************************************************
  * MACROS
  **********************************************************************************************************************/
@@ -490,6 +493,19 @@ struct cs40l50_owt_section_params{
     uint32_t duration;
 };
 
+typedef enum { EFFECT_OWT_IDX, EFFECT_MSFT_ID, EFFECT_NAME } effectLabel;
+
+typedef struct
+{
+    effectLabel label;
+    union {
+        uint16_t owtIdx;
+        uint32_t msft_ID;
+        char effectName[MAX_HIH_EFFECT_NAME_SIZE];
+    } HIH_effect_identifier;
+} HIH_effect;
+
+
 extern const struct gpio_dt_spec reset;
 extern bsp_driver_if_t *bsp_driver_if_g;
 
@@ -507,14 +523,14 @@ int cs40l50_write_acked_reg_dt(const struct i2c_dt_spec *spec, const uint32_t re
 int cs40l50_set_haptic_cfg(const struct device *dev, struct cs40l50_haptic_source_config* hap_cfg);
 
 //Functions to write to owt with N sections
-int haptics_cs40l50_write_owt_header(const struct device *dev, uint8_t num_waveforms, uint8_t repeats);
-int haptics_cs40l50_write_owt_section(const struct device *dev, struct cs40l50_owt_section_params section);
-int haptics_cs40l50_push_owt(const struct device *dev);
-int haptics_cs40l50_write_owt_composite_one_section(const struct device *dev, struct cs40l50_owt_section_params section);
+int bsp_cs40l50_write_owt_header(const struct device *dev, uint8_t num_waveforms, uint8_t repeats);
+int bsp_cs40l50_write_owt_section(const struct device *dev, struct cs40l50_owt_section_params section);
+int bsp_cs40l50_push_owt(const struct device *dev);
+int bsp_cs40l50_write_owt_composite_one_section(const struct device *dev, struct cs40l50_owt_section_params section);
 
-int haptics_cs40l50_trigger_owt(const struct device *dev, int owt_idx);
-int haptics_cs40l50_delete_owt(const struct device *dev, int owt_idx);
-int cs40l50_get_num_owt_wf(const struct device *dev, uint32_t* num);
+int bsp_cs40l50_trigger_owt(const struct device *dev, int owt_idx);
+int bsp_cs40l50_delete_owt(const struct device *dev, int owt_idx);
+int bsp_cs40l50_get_num_owt_wf(const struct device *dev, uint32_t* num);
 
 
 /*
@@ -522,17 +538,60 @@ int cs40l50_get_num_owt_wf(const struct device *dev, uint32_t* num);
  *
  * This function will calculate the total length of the SVC pilot tone by reading back
  * tone section data from SVC_INIT_PH_PILOT_HI_START_SMP, SVC_INIT_PH_OFST_CAL_START_SMP,
- * SVC_INIT_PH_OFST_CAL_NSMP, SVC_INIT_PH_OFST_STL_NSMP, and converting this to milliseconds
+ * SVC_INIT_PH_OFST_CAL_NSMP, SVC_INIT_PH_OFST_STL_NSMP, and converting this to microseconds
  * given the current sample rate.
  *
  * @param [in] dev           Pointer to the driver state
  * @param [in, out] length   Pointer to uint32_t length value to be returned in us
  *
  * @return
+ * - BSP_STATUS_OK if:
+ *      - SVC length successfully read back and calculated in us
+ * - otherwise, returns BSP_STATUS_FAIL
+ *
+ */
+int bsp_cs40l50_get_SVC_tone_length(const struct device *dev, uint32_t* length);
+
+
+/*
+ * Adds a new host initiated waveform to the OWT and triggers it.
+ *
+ * This function deletes a prior existing OWT effect, constructs a new composite effect based
+ * on input parameters, adds this new composite effect to the OWT, then triggers this new effect.
+ *
+ * @param [in] dev                  Pointer to the driver state
+ * @param [in] effect               HIH_effect structure that allows for effect to referenced by effect name,
+ *                                  microsoft ID, or OWT table index
+ * @param [in] intensity            New effect amplitude, from 1-200%
+ * @param [in] repeats              Number of repeats of selected waveform, from 0-255
+ * @param [in] retrigger_period     Delay between waveform repeats, from 0-10000 ms
+ * @param [in] cutoff_time          TODO: Maximimum playback time of waveform in ms
+ *
+ * @return
  * - CS40L50_STATUS_FAIL if:
- *      - Control port activity fails
+ *      - Deletion of last added OWT waveform fails
+ *      - Function fails to find effect index in wavetable
+ *      - Addition of new OWT waveform fails
+ *      - Triggering new OWT waveform fails
  * - otherwise, returns CS40L50_STATUS_OK
  *
  */
-int haptics_cs40l50_get_SVC_tone_length(const struct device *dev, uint32_t* length);
+int bsp_cs40l50_host_initiated_trigger(const struct device *dev, HIH_effect effect, uint32_t intensity, uint32_t repeats, uint32_t retrigger_period, uint32_t cutoff_time);
+
+/*
+ * Lists the available host initiated haptics effects and their durations
+ *
+ * This function list the effects with their duration, accounting for the additional
+ * playback time added by SVC.
+ *
+ * @param [in] dev           Pointer to the driver state
+ *
+ * @return
+ * - BSP_STATUS_FAIL if:
+ *      - Issue reading back SVC length
+ * - otherwise, returns BSP_STATUS_OK
+ *
+ */
+int bsp_cs40l50_list_host_initiated_effects(const struct device *dev);
+
 #endif

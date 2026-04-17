@@ -259,39 +259,11 @@ static int cs40l50_write_fw_blocks(struct i2c_dt_spec *i2c, halo_boot_block_t *b
     return 0;
 }
 
-static int cs40l50_gpi_get_level(cs40l50_t *drv, unsigned int gpio)
-{
-    uint32_t gpio_status;
-    struct i2c_dt_spec *i2c = drv->config.bsp_config.i2c;
-
-    if (gpio > 13)
-        return -1;
-
-    regmap_read(i2c, CS40L50_GPIO_STATUS1, &gpio_status);
-
-    return ((gpio_status & (1 << (gpio - 1))) != 0);
-}
-
-enum cs40l50_tuning_set {
-    CS40L50_TUNING_SET_A,
-    CS40L50_TUNING_SET_B,
-};
-
-static unsigned int get_tuning_set(cs40l50_t *drv)
-{
-    int gpi_level;
-    gpi_level = cs40l50_gpi_get_level(drv, 1);
-    return gpi_level;
-}
-
 static int cs40l50_firmware_load(cs40l50_t *drv)
 {
     int num_blocks, ret;
     halo_boot_block_t *blocks;
     struct i2c_dt_spec *i2c = drv->config.bsp_config.i2c;
-    uint32_t tuning_set;
-
-    tuning_set = get_tuning_set(drv);
 
     num_blocks = cs40l50_total_fw_blocks;
     blocks = (halo_boot_block_t*)cs40l50_fw_blocks;
@@ -299,35 +271,13 @@ static int cs40l50_firmware_load(cs40l50_t *drv)
     if (ret != 0)
         return ret;
 
-    if (tuning_set == CS40L50_TUNING_SET_A) {
-        num_blocks = cs40l50_SVC_A_total_coeff_blocks_0;
-        blocks = (halo_boot_block_t*)cs40l50_SVC_A_coeff_0_blocks;
-        ret = cs40l50_write_fw_blocks(i2c, blocks, num_blocks);
-        if (ret != 0)
-            return ret;
+    num_blocks = cs40l50_wt_total_coeff_blocks;
+    blocks = (halo_boot_block_t*)cs40l50_wt_coeff_blocks;
+    ret = cs40l50_write_fw_blocks(i2c, blocks, num_blocks);
+    if (ret != 0)
+        return ret;
 
-        num_blocks = cs40l50_WT_A_total_coeff_blocks_2;
-        blocks = (halo_boot_block_t*)cs40l50_WT_A_coeff_2_blocks;
-        ret = cs40l50_write_fw_blocks(i2c, blocks, num_blocks);
-        if (ret != 0)
-            return ret;
-
-        LOG_INF("Loaded tuning set A");
-    } else if (tuning_set == CS40L50_TUNING_SET_B) {
-        num_blocks = cs40l50_SVC_B_total_coeff_blocks_1;
-        blocks = (halo_boot_block_t*)cs40l50_SVC_A_coeff_0_blocks;
-        ret = cs40l50_write_fw_blocks(i2c, blocks, num_blocks);
-        if (ret != 0)
-            return ret;
-
-        num_blocks = cs40l50_WT_B_total_coeff_blocks_3;
-        blocks = (halo_boot_block_t*)cs40l50_WT_B_coeff_3_blocks;
-        ret = cs40l50_write_fw_blocks(i2c, blocks, num_blocks);
-        if (ret != 0)
-            return ret;
-
-        LOG_INF("Loaded tuning set B");
-    }
+    LOG_INF("Loaded wavetable");
 
     return 0;
 }
@@ -422,7 +372,7 @@ static int cs40l50_init(const struct device *dev)
 
     k_msleep(1000);
 
-    regmap_read(&config->i2c, FIRMWARE_CS40L50_HALO_STATE, &val);
+    regmap_read(&config->i2c, FIRMWARE_CS40L5X_HALO_STATE, &val);
     LOG_INF("cs40l50_init: HALO_STATE = %x\n", val);
 
     LOG_INF("cs40l50_calibrate\n");
@@ -458,12 +408,8 @@ static int cs40l50_init(const struct device *dev)
     k_msleep(1000);
 
     /* to-do */
-    regmap_read(&config->i2c, FIRMWARE_CS40L50_HALO_STATE, &val);
+    regmap_read(&config->i2c, FIRMWARE_CS40L5X_HALO_STATE, &val);
     LOG_INF("cs40l50_init: HALO_STATE = %x\n", val);
-
-    LOG_INF("cs40l50_init: Enable ASP");
-    ret = cs40l50_set_asp_enable(drv, true, 0);
-    LOG_INF("cs40l50_init: ASP retval: %d", ret);
 
 //    config->irq_cfg_func();
 //    config->irq_enable_func();

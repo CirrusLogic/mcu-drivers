@@ -50,7 +50,7 @@ _Config_
 Config is generated using the WISCE script converter Python tool and the wisce_init.txt included in the SDK, run the following from the project directory:
 
 ```
-python  ../../../../tools/wisce_script_converter/wisce_script_converter.py -c c_array -p cs40l50 -i ../../../../cs40l50/config/wisce_init.txt -o ../../../../samples/haptics/cs40l50/diagnostics/src/
+python  ../../../../tools/wisce_script_converter/wisce_script_converter.py -c c_array -p cs40l50 -i ../../../../cs40l50/config/wisce_init.txt -o ../../../../samples/haptics/cs40l50/host_init_haptics/src/
 ```
 
 # BSP

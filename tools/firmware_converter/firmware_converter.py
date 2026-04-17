@@ -1,5 +1,5 @@
 #==========================================================================
-# (c) 2019-2025 Cirrus Logic, Inc.
+# (c) 2019-2026 Cirrus Logic, Inc.
 #--------------------------------------------------------------------------
 # Project : Convert from WMFW/WMDR ("BIN") Files to C Header/Source
 # File    : firmware_converter.py
@@ -484,10 +484,16 @@ def main(argv):
 
     if (args.alg_name_blacklist is not None):
         algids_blacklist = []
-        for alg_block in wmfw.get_algorithm_information_data_blocks():
-            if alg_block.fields['algorithm_name'] in args.alg_name_blacklist:
-                print("Found alg id " + hex(alg_block.fields['algorithm_id']) + " matching blacklisted alg " + alg_block.fields['algorithm_name'])
-                algids_blacklist.append(alg_block.fields['algorithm_id'])
+        if args.wmfw == 'ROM':
+            for alg_info in wmfw.fw_id_block.fields['algorithm_info']:
+                if alg_info['algorithm_name'] in args.alg_name_blacklist:
+                    print("Found alg id " + hex(alg_info['algorithm_id']) + " matching blacklisted alg " + alg_info['algorithm_name'])
+                    algids_blacklist.append(alg_info['algorithm_id'])
+        else:
+            for alg_block in wmfw.get_algorithm_information_data_blocks():
+                if alg_block.fields['algorithm_name'] in args.alg_name_blacklist:
+                    print("Found alg id " + hex(alg_block.fields['algorithm_id']) + " matching blacklisted alg " + alg_block.fields['algorithm_name'])
+                    algids_blacklist.append(alg_block.fields['algorithm_id'])
 
     wmdrs = []
     if (process_wmdr):

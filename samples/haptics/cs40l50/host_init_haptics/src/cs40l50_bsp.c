@@ -20,6 +20,7 @@
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/drivers/i2c.h>
+#include <strings.h>
 
 LOG_MODULE_REGISTER(cirrus_cs40l50);
 
@@ -482,7 +483,7 @@ static int haptics_cs40l50_start_output(const struct device *dev)
     return 0;
 }
 
-int haptics_cs40l50_trigger_owt(const struct device *dev, int owt_idx)
+int bsp_cs40l50_trigger_owt(const struct device *dev, int owt_idx)
 {
     struct cs40l50_bsp *data = dev->data;
     cs40l50_t *drv = &data->priv;
@@ -497,7 +498,7 @@ int haptics_cs40l50_trigger_owt(const struct device *dev, int owt_idx)
     return BSP_STATUS_OK;
 }
 
-int haptics_cs40l50_delete_owt(const struct device *dev, int owt_idx)
+int bsp_cs40l50_delete_owt(const struct device *dev, int owt_idx)
 {
     struct cs40l50_bsp *data = dev->data;
     cs40l50_t *drv = &data->priv;
@@ -512,7 +513,7 @@ int haptics_cs40l50_delete_owt(const struct device *dev, int owt_idx)
     return BSP_STATUS_OK;
 }
 
-int haptics_cs40l50_write_owt_header(const struct device *dev, uint8_t num_waveforms, uint8_t repeats)
+int bsp_cs40l50_write_owt_header(const struct device *dev, uint8_t num_waveforms, uint8_t repeats)
 {
     struct cs40l50_bsp *data = dev->data;
     cs40l50_t *drv = &data->priv;
@@ -527,7 +528,7 @@ int haptics_cs40l50_write_owt_header(const struct device *dev, uint8_t num_wavef
     return BSP_STATUS_OK;
 }
 
-int haptics_cs40l50_write_owt_section(const struct device *dev, struct cs40l50_owt_section_params section)
+int bsp_cs40l50_write_owt_section(const struct device *dev, struct cs40l50_owt_section_params section)
 {
     struct cs40l50_bsp *data = dev->data;
     cs40l50_t *drv = &data->priv;
@@ -550,7 +551,7 @@ int haptics_cs40l50_write_owt_section(const struct device *dev, struct cs40l50_o
     return BSP_STATUS_OK;
 }
 
-int haptics_cs40l50_push_owt(const struct device *dev)
+int bsp_cs40l50_push_owt(const struct device *dev)
 {
     struct cs40l50_bsp *data = dev->data;
     cs40l50_t *drv = &data->priv;
@@ -565,7 +566,7 @@ int haptics_cs40l50_push_owt(const struct device *dev)
     return BSP_STATUS_OK;
 }
 
-int haptics_cs40l50_write_owt_composite_one_section(const struct device *dev, struct cs40l50_owt_section_params section)
+int bsp_cs40l50_write_owt_composite_one_section(const struct device *dev, struct cs40l50_owt_section_params section)
 {
     uint32_t ret;
     struct cs40l50_bsp *data = dev->data;
@@ -586,7 +587,7 @@ int haptics_cs40l50_write_owt_composite_one_section(const struct device *dev, st
     return ret;
 }
 
-int haptics_cs40l50_get_SVC_tone_length(const struct device *dev, uint32_t* length)
+int bsp_cs40l50_get_SVC_tone_length(const struct device *dev, uint32_t* length)
 {
     struct cs40l50_config *config = (struct cs40l50_config*)dev->config;
     uint32_t val, ret;
@@ -624,6 +625,140 @@ int haptics_cs40l50_get_SVC_tone_length(const struct device *dev, uint32_t* leng
     return BSP_STATUS_OK;
 }
 
+static uint32_t bsp_cs40l50_convert_effect_name(char* effect_name, uint32_t *idx)
+{
+    for (int i = 0; i < pwleCount; i++)
+    {
+        if(strcasecmp(effect_name, pwleList[i]->name) == 0)
+        {
+            *idx = i;
+            return BSP_STATUS_OK;
+        }
+    }
+    return BSP_STATUS_FAIL;
+}
+
+static uint32_t bsp_cs40l50_convert_msft_id(uint32_t msft_id, uint32_t *idx)
+{
+    for (int i = 0; i < pwleCount; i++)
+    {
+        if(msft_id == pwleList[i]->msft_id)
+        {
+            *idx = i;
+            return BSP_STATUS_OK;
+        }
+    }
+    return BSP_STATUS_FAIL;
+}
+
+int bsp_cs40l50_host_initiated_trigger(const struct device *dev, HIH_effect effect, uint32_t intensity, uint32_t repeats, uint32_t retrigger_period, uint32_t cutoff_time)
+{
+    uint32_t ret, idx;
+    struct cs40l50_config *config = (struct cs40l50_config*)dev->config;
+
+    ret = bsp_cs40l50_get_num_owt_wf(dev, &idx);
+    if(ret)
+    {
+        return ret;
+    }
+    if(idx > 0)
+    {
+        ret = bsp_cs40l50_delete_owt(dev, idx-1);
+        if(ret)
+        {
+            return ret;
+        }
+    }
+
+    //Get effect OWT index from string name or microsoft ID
+    if(effect.label == EFFECT_NAME)
+    {
+        ret = bsp_cs40l50_convert_effect_name(effect.HIH_effect_identifier.effectName, &idx);
+        if(ret)
+        {
+            LOG_ERR("Error: Effect named %s not found", effect.HIH_effect_identifier.effectName);
+            return ret;
+        }
+    }
+    else if(effect.label == EFFECT_MSFT_ID)
+    {
+        ret = bsp_cs40l50_convert_msft_id(effect.HIH_effect_identifier.msft_ID, &idx);
+        if(ret)
+        {
+            LOG_ERR("Error: Effect ID 0x%x not found", effect.HIH_effect_identifier.msft_ID);
+            return ret;
+        }
+    }
+    else
+    {
+        idx = effect.HIH_effect_identifier.owtIdx;
+    }
+
+    struct cs40l50_owt_section_params section =
+    {
+        .nested_repeats = repeats,
+        .waveform_idx = idx,
+        .amplitude = intensity,
+        .delay = retrigger_period,
+        .owt_subwave = 0,
+        .rom_subwave = 0,
+        .duration_present = 0,
+        .duration = 0
+    };
+
+    ret = bsp_cs40l50_write_owt_composite_one_section(dev, section);
+    if(ret)
+    {
+        return ret;
+    }
+
+    ret = regmap_write(&config->i2c, VIBEGEN_TIMEOUT_MS, cutoff_time);
+    if(ret)
+    {
+        return ret;
+    }
+
+    ret = bsp_cs40l50_get_num_owt_wf(dev, &idx);
+    if(ret)
+    {
+        return ret;
+    }
+
+    ret = bsp_cs40l50_trigger_owt(dev, idx-1);
+    if(ret)
+    {
+        return ret;
+    }
+
+    return BSP_STATUS_OK;
+}
+int bsp_cs40l50_list_host_initiated_effects(const struct device *dev)
+{
+    uint32_t ret;
+    printf("\n---Wavetable Waveform List---\n");
+    for(int i = 1; i < pwleCount; i++)
+    {
+        uint32_t length_svc_us = 0;
+        ret = bsp_cs40l50_get_SVC_tone_length(dev, &length_svc_us);
+        if(ret)
+        {
+            return ret;
+        }
+        uint32_t length_svc_ms = length_svc_us / 1000;
+        uint32_t length_svc_ms_dec = (length_svc_us % 1000) / 10;
+        uint32_t length_ms = pwleList[i]->length_us / 1000 + length_svc_ms;
+        uint32_t length_ms_dec = (pwleList[i]->length_us % 1000) / 10 + length_svc_ms_dec;
+        length_ms += length_ms_dec/100;
+        length_ms_dec %= 100;
+        if(length_ms_dec > 50) //Round to nearest ms
+        {
+            length_ms += 1;
+        }
+        printf("Name : \"%s\", Duration : %d ms\n", pwleList[i]->name, length_ms);
+    }
+    return BSP_STATUS_OK;
+}
+
 static const struct haptics_driver_api cs40l50_driver_api = {
     .start_output = &haptics_cs40l50_start_output,
     .stop_output = &haptics_cs40l50_stop_output,
@@ -633,7 +768,7 @@ static const struct haptics_driver_api cs40l50_driver_api = {
 // {
 // }
 
-int cs40l50_get_num_owt_wf(const struct device *dev, uint32_t* num)
+int bsp_cs40l50_get_num_owt_wf(const struct device *dev, uint32_t* num)
 {
     struct cs40l50_config *config = (struct cs40l50_config*)dev->config;
     return regmap_read(&config->i2c, VIBEGEN_OWT_NUM_OF_WAVES_XM, num);

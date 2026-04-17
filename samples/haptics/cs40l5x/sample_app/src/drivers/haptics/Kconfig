@@ -1,0 +1,47 @@
+# Copyright 2024 Cirrus Logic, Inc.
+#
+# SPDX-License-Identifier: Apache-2.0
+
+menuconfig HAPTICS
+	bool "Haptic feedback drivers"
+	help
+	  Enable haptics driver configuration.
+
+if HAPTICS
+
+module = HAPTICS
+module-str = haptics
+source "subsys/logging/Kconfig.template.log_config"
+
+config HAPTICS_INIT_PRIORITY
+	int "Haptic driver init priority"
+	default 90
+	help
+	  Haptic driver initialization priority.
+
+choice HAPTICS_CS40L5X_VARIANT
+	prompt "CS40L5X Build Variant"
+	default HAPTICS_CS40L51
+	help
+		Select the CS40L5X variant to build. These variants are mutually exclusive.
+
+config HAPTICS_CS40L51
+	bool "CS40L51 Build Variant"
+	help
+		Configure CS40l5X driver for L51 build variant
+
+config HAPTICS_CS40L52
+	bool "CS40L52 Build Variant"
+	help
+		Configure CS40l5X driver for L52 build variant
+
+config HAPTICS_CS40L53
+	bool "CS40L53 Build Variant"
+	help
+		Configure CS40l5X driver for L53 build variant
+
+endchoice
+
+rsource "Kconfig.cs40l5x"
+
+endif # HAPTICS

@@ -82,6 +82,16 @@ struct cs40l50_register_encoding {
 /** @} */
 
 /**
+ * @defgroup SECTION_5_2_4_DSP_STATUS_REGISTERS
+ * @brief Register descriptions from datasheet
+ *
+ * @{
+ */
+#define CS40L50_HALO_STATE                                                  (0x028021E0)
+#define CS40L50_PM_STATE                                                    (0x02804308)
+/** @} */
+
+/**
  * Encoding for CCM register REFCLK_INPUT field PLL_REFCLK_FREQ
  *
  * Encodes from raw PLL input reference clock frequency in Hertz to bitfield code.
