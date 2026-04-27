@@ -1,0 +1,2273 @@
+{
+  "FormatVersion": {
+    "Major": 1,
+    "Minor": 6,
+    "Build": 0,
+    "Revision": 0,
+    "MajorRevision": 0,
+    "MinorRevision": 0
+  },
+  "GlobalScalingFactor": 1.0,
+  "UseExtendedFrequency": true,
+  "Entries": [
+    {
+      "Header": {
+        "Type": "Type12",
+        "Features": {
+          "BuzzOrClick": "Buzz",
+          "HasClosedLoopActiveBraking": false,
+          "SampleRate": "SampleRate8kHz",
+          "HasDynamicF0": false,
+          "NonBlockingClab": "Blocking",
+          "HasSvcMetaData": false,
+          "HasEpMetaData": false,
+          "HasMetaData": false,
+          "DvlEnabled": false,
+          "LiveF0TrackingEnabled": false
+        },
+        "Name": ""
+      },
+      "Body": {
+        "HalfCyclesSupported": true,
+        "Repeat": {
+          "Value": 0,
+          "Name": ""
+        },
+        "WaitTime": {
+          "Value": 400.0,
+          "Name": ""
+        },
+        "NumberOfSections": {
+          "Value": 2,
+          "Name": ""
+        },
+        "Sections": [
+          {
+            "Time": {
+              "IsInfinite": false,
+              "HalfCycles": false,
+              "Value": 0.0,
+              "Name": ""
+            },
+            "Level": {
+              "Value": 0.0,
+              "Name": ""
+            },
+            "Frequency": {
+              "UseExtendedFrequency": true,
+              "UseF0Relative": false,
+              "UseF0Phase": false,
+              "Value": 200.0,
+              "Name": ""
+            },
+            "ChirpMode": {
+              "Value": false,
+              "Name": ""
+            },
+            "Braking": {
+              "Value": false,
+              "Name": ""
+            },
+            "AmplitudeRegulation": {
+              "Value": false,
+              "Name": ""
+            },
+            "HalfCycles": {
+              "Value": false,
+              "Name": ""
+            },
+            "ExtendedFrequency": {
+              "Value": true,
+              "Name": ""
+            },
+            "F0Relative": {
+              "Value": false,
+              "Name": ""
+            },
+            "IsPhase": {
+              "Value": false,
+              "Name": ""
+            },
+            "VbTarget": {
+              "Value": 0.0,
+              "Name": ""
+            },
+            "Value": null,
+            "Name": ""
+          },
+          {
+            "Time": {
+              "IsInfinite": false,
+              "HalfCycles": false,
+              "Value": 1.0,
+              "Name": ""
+            },
+            "Level": {
+              "Value": 0.0,
+              "Name": ""
+            },
+            "Frequency": {
+              "UseExtendedFrequency": true,
+              "UseF0Relative": false,
+              "UseF0Phase": false,
+              "Value": 200.0,
+              "Name": ""
+            },
+            "ChirpMode": {
+              "Value": false,
+              "Name": ""
+            },
+            "Braking": {
+              "Value": false,
+              "Name": ""
+            },
+            "AmplitudeRegulation": {
+              "Value": false,
+              "Name": ""
+            },
+            "HalfCycles": {
+              "Value": false,
+              "Name": ""
+            },
+            "ExtendedFrequency": {
+              "Value": true,
+              "Name": ""
+            },
+            "F0Relative": {
+              "Value": false,
+              "Name": ""
+            },
+            "IsPhase": {
+              "Value": false,
+              "Name": ""
+            },
+            "VbTarget": {
+              "Value": 0.0,
+              "Name": ""
+            },
+            "Value": null,
+            "Name": ""
+          }
+        ],
+        "ScalingFactor": 1.0,
+        "Length": {
+          "IsLongerThanMax": false,
+          "HasLengthBeenCalculated": true,
+          "Name": ""
+        },
+        "LengthInSeconds": 0.001,
+        "Name": "null_1ms_wave"
+      },
+      "MetaData": {
+        "Collection": [],
+        "BrakingTimeInSeconds": null,
+        "Name": ""
+      }
+    },
+    {
+      "Header": {
+        "Type": "Type12",
+        "Features": {
+          "BuzzOrClick": "Buzz",
+          "HasClosedLoopActiveBraking": false,
+          "SampleRate": "SampleRate8kHz",
+          "HasDynamicF0": false,
+          "NonBlockingClab": "Blocking",
+          "HasSvcMetaData": true,
+          "HasEpMetaData": false,
+          "HasMetaData": true,
+          "DvlEnabled": false,
+          "LiveF0TrackingEnabled": false
+        },
+        "Name": ""
+      },
+      "Body": {
+        "HalfCyclesSupported": true,
+        "Repeat": {
+          "Value": 0,
+          "Name": ""
+        },
+        "WaitTime": {
+          "Value": 400.0,
+          "Name": ""
+        },
+        "NumberOfSections": {
+          "Value": 2,
+          "Name": ""
+        },
+        "Sections": [
+        {
+            "Time": {
+              "IsInfinite": false,
+              "HalfCycles": false,
+              "Value": 0.0,
+              "Name": ""
+            },
+            "Level": {
+              "Value": 0.08039092055485499,
+              "Name": ""
+            },
+            "Frequency": {
+              "UseExtendedFrequency": true,
+              "UseF0Relative": false,
+              "UseF0Phase": false,
+              "Value": 160.82,
+              "Name": ""
+            },
+            "ChirpMode": {
+              "Value": false,
+              "Name": ""
+            },
+            "Braking": {
+              "Value": false,
+              "Name": ""
+            },
+            "AmplitudeRegulation": {
+              "Value": false,
+              "Name": ""
+            },
+            "HalfCycles": {
+              "Value": false,
+              "Name": ""
+            },
+            "ExtendedFrequency": {
+              "Value": true,
+              "Name": ""
+            },
+            "F0Relative": {
+              "Value": false,
+              "Name": ""
+            },
+            "IsPhase": {
+              "Value": false,
+              "Name": ""
+            },
+            "VbTarget": {
+              "Value": 0.0,
+              "Name": ""
+            },
+            "Value": null,
+            "Name": ""
+          },
+        {
+            "Time": {
+              "IsInfinite": false,
+              "HalfCycles": false,
+              "Value": 6.25,
+              "Name": ""
+            },
+            "Level": {
+              "Value": 0.0,
+              "Name": ""
+            },
+            "Frequency": {
+              "UseExtendedFrequency": true,
+              "UseF0Relative": false,
+              "UseF0Phase": false,
+              "Value": 160.82,
+              "Name": ""
+            },
+            "ChirpMode": {
+              "Value": false,
+              "Name": ""
+            },
+            "Braking": {
+              "Value": false,
+              "Name": ""
+            },
+            "AmplitudeRegulation": {
+              "Value": false,
+              "Name": ""
+            },
+            "HalfCycles": {
+              "Value": false,
+              "Name": ""
+            },
+            "ExtendedFrequency": {
+              "Value": true,
+              "Name": ""
+            },
+            "F0Relative": {
+              "Value": false,
+              "Name": ""
+            },
+            "IsPhase": {
+              "Value": false,
+              "Name": ""
+            },
+            "VbTarget": {
+              "Value": 0.0,
+              "Name": ""
+            },
+            "Value": null,
+            "Name": ""
+          }
+        ],
+        "ScalingFactor": 1.0,
+        "Length": {
+          "IsLongerThanMax": false,
+          "HasLengthBeenCalculated": true,
+          "Name": ""
+        },
+        "LengthInSeconds": 0.00625,
+        "Name": "Hover"
+      },
+      "MetaData": {
+        "Collection": [
+          {
+            "Id": 1,
+            "Length": 1,
+            "RawShortData": 1,
+            "RawData": [
+              160
+            ]
+          }
+        ],
+        "BrakingTimeInSeconds": 0.02,
+        "Name": ""
+      }
+    },
+    {
+      "Header": {
+        "Type": "Type12",
+        "Features": {
+          "BuzzOrClick": "Buzz",
+          "HasClosedLoopActiveBraking": false,
+          "SampleRate": "SampleRate8kHz",
+          "HasDynamicF0": false,
+          "NonBlockingClab": "Blocking",
+          "HasSvcMetaData": true,
+          "HasEpMetaData": false,
+          "HasMetaData": true,
+          "DvlEnabled": false,
+          "LiveF0TrackingEnabled": false
+        },
+        "Name": ""
+      },
+      "Body": {
+        "HalfCyclesSupported": true,
+        "Repeat": {
+          "Value": 0,
+          "Name": ""
+        },
+        "WaitTime": {
+          "Value": 400.0,
+          "Name": ""
+        },
+        "NumberOfSections": {
+          "Value": 6,
+          "Name": ""
+        },
+        "Sections": [
+        {
+            "Time": {
+              "IsInfinite": false,
+              "HalfCycles": false,
+              "Value": 0.0,
+              "Name": ""
+            },
+            "Level": {
+              "Value": 0.0,
+              "Name": ""
+            },
+            "Frequency": {
+              "UseExtendedFrequency": true,
+              "UseF0Relative": false,
+              "UseF0Phase": false,
+              "Value": 101.2,
+              "Name": ""
+            },
+            "ChirpMode": {
+              "Value": false,
+              "Name": ""
+            },
+            "Braking": {
+              "Value": false,
+              "Name": ""
+            },
+            "AmplitudeRegulation": {
+              "Value": false,
+              "Name": ""
+            },
+            "HalfCycles": {
+              "Value": false,
+              "Name": ""
+            },
+            "ExtendedFrequency": {
+              "Value": true,
+              "Name": ""
+            },
+            "F0Relative": {
+              "Value": false,
+              "Name": ""
+            },
+            "IsPhase": {
+              "Value": false,
+              "Name": ""
+            },
+            "VbTarget": {
+              "Value": 0.0,
+              "Name": ""
+            },
+            "Value": null,
+            "Name": ""
+          },
+        {
+            "Time": {
+              "IsInfinite": false,
+              "HalfCycles": false,
+              "Value": 10.0,
+              "Name": ""
+            },
+            "Level": {
+              "Value": 0.19561790668348045,
+              "Name": ""
+            },
+            "Frequency": {
+              "UseExtendedFrequency": true,
+              "UseF0Relative": false,
+              "UseF0Phase": false,
+              "Value": 101.2,
+              "Name": ""
+            },
+            "ChirpMode": {
+              "Value": false,
+              "Name": ""
+            },
+            "Braking": {
+              "Value": false,
+              "Name": ""
+            },
+            "AmplitudeRegulation": {
+              "Value": false,
+              "Name": ""
+            },
+            "HalfCycles": {
+              "Value": false,
+              "Name": ""
+            },
+            "ExtendedFrequency": {
+              "Value": true,
+              "Name": ""
+            },
+            "F0Relative": {
+              "Value": false,
+              "Name": ""
+            },
+            "IsPhase": {
+              "Value": false,
+              "Name": ""
+            },
+            "VbTarget": {
+              "Value": 0.0,
+              "Name": ""
+            },
+            "Value": null,
+            "Name": ""
+          },
+        {
+            "Time": {
+              "IsInfinite": false,
+              "HalfCycles": false,
+              "Value": 0.0,
+              "Name": ""
+            },
+            "Level": {
+              "Value": 0.0,
+              "Name": ""
+            },
+            "Frequency": {
+              "UseExtendedFrequency": true,
+              "UseF0Relative": false,
+              "UseF0Phase": false,
+              "Value": 101.2,
+              "Name": ""
+            },
+            "ChirpMode": {
+              "Value": false,
+              "Name": ""
+            },
+            "Braking": {
+              "Value": false,
+              "Name": ""
+            },
+            "AmplitudeRegulation": {
+              "Value": false,
+              "Name": ""
+            },
+            "HalfCycles": {
+              "Value": false,
+              "Name": ""
+            },
+            "ExtendedFrequency": {
+              "Value": true,
+              "Name": ""
+            },
+            "F0Relative": {
+              "Value": false,
+              "Name": ""
+            },
+            "IsPhase": {
+              "Value": false,
+              "Name": ""
+            },
+            "VbTarget": {
+              "Value": 0.0,
+              "Name": ""
+            },
+            "Value": null,
+            "Name": ""
+          },
+        {
+            "Time": {
+              "IsInfinite": false,
+              "HalfCycles": false,
+              "Value": 39.5,
+              "Name": ""
+            },
+            "Level": {
+              "Value": 0.0,
+              "Name": ""
+            },
+            "Frequency": {
+              "UseExtendedFrequency": true,
+              "UseF0Relative": false,
+              "UseF0Phase": false,
+              "Value": 101.2,
+              "Name": ""
+            },
+            "ChirpMode": {
+              "Value": false,
+              "Name": ""
+            },
+            "Braking": {
+              "Value": false,
+              "Name": ""
+            },
+            "AmplitudeRegulation": {
+              "Value": false,
+              "Name": ""
+            },
+            "HalfCycles": {
+              "Value": false,
+              "Name": ""
+            },
+            "ExtendedFrequency": {
+              "Value": true,
+              "Name": ""
+            },
+            "F0Relative": {
+              "Value": false,
+              "Name": ""
+            },
+            "IsPhase": {
+              "Value": false,
+              "Name": ""
+            },
+            "VbTarget": {
+              "Value": 0.0,
+              "Name": ""
+            },
+            "Value": null,
+            "Name": ""
+          },
+        {
+            "Time": {
+              "IsInfinite": false,
+              "HalfCycles": false,
+              "Value": 0.0,
+              "Name": ""
+            },
+            "Level": {
+              "Value": 0.19561790668348045,
+              "Name": ""
+            },
+            "Frequency": {
+              "UseExtendedFrequency": true,
+              "UseF0Relative": false,
+              "UseF0Phase": false,
+              "Value": 101.2,
+              "Name": ""
+            },
+            "ChirpMode": {
+              "Value": false,
+              "Name": ""
+            },
+            "Braking": {
+              "Value": false,
+              "Name": ""
+            },
+            "AmplitudeRegulation": {
+              "Value": false,
+              "Name": ""
+            },
+            "HalfCycles": {
+              "Value": false,
+              "Name": ""
+            },
+            "ExtendedFrequency": {
+              "Value": true,
+              "Name": ""
+            },
+            "F0Relative": {
+              "Value": false,
+              "Name": ""
+            },
+            "IsPhase": {
+              "Value": false,
+              "Name": ""
+            },
+            "VbTarget": {
+              "Value": 0.0,
+              "Name": ""
+            },
+            "Value": null,
+            "Name": ""
+          },
+        {
+            "Time": {
+              "IsInfinite": false,
+              "HalfCycles": false,
+              "Value": 10.0,
+              "Name": ""
+            },
+            "Level": {
+              "Value": 0.0,
+              "Name": ""
+            },
+            "Frequency": {
+              "UseExtendedFrequency": true,
+              "UseF0Relative": false,
+              "UseF0Phase": false,
+              "Value": 101.2,
+              "Name": ""
+            },
+            "ChirpMode": {
+              "Value": false,
+              "Name": ""
+            },
+            "Braking": {
+              "Value": false,
+              "Name": ""
+            },
+            "AmplitudeRegulation": {
+              "Value": false,
+              "Name": ""
+            },
+            "HalfCycles": {
+              "Value": false,
+              "Name": ""
+            },
+            "ExtendedFrequency": {
+              "Value": true,
+              "Name": ""
+            },
+            "F0Relative": {
+              "Value": false,
+              "Name": ""
+            },
+            "IsPhase": {
+              "Value": false,
+              "Name": ""
+            },
+            "VbTarget": {
+              "Value": 0.0,
+              "Name": ""
+            },
+            "Value": null,
+            "Name": ""
+          }
+        ],
+        "ScalingFactor": 1.0,
+        "Length": {
+          "IsLongerThanMax": false,
+          "HasLengthBeenCalculated": true,
+          "Name": ""
+        },
+        "LengthInSeconds": 0.0595,
+        "Name": "Collide"
+      },
+      "MetaData": {
+        "Collection": [
+          {
+            "Id": 1,
+            "Length": 1,
+            "RawShortData": 1,
+            "RawData": [
+              160
+            ]
+          }
+        ],
+        "BrakingTimeInSeconds": 0.02,
+        "Name": ""
+      }
+    },
+    {
+      "Header": {
+        "Type": "Type12",
+        "Features": {
+          "BuzzOrClick": "Buzz",
+          "HasClosedLoopActiveBraking": false,
+          "SampleRate": "SampleRate8kHz",
+          "HasDynamicF0": false,
+          "NonBlockingClab": "Blocking",
+          "HasSvcMetaData": true,
+          "HasEpMetaData": false,
+          "HasMetaData": true,
+          "DvlEnabled": false,
+          "LiveF0TrackingEnabled": false
+        },
+        "Name": ""
+      },
+      "Body": {
+        "HalfCyclesSupported": true,
+        "Repeat": {
+          "Value": 0,
+          "Name": ""
+        },
+        "WaitTime": {
+          "Value": 400.0,
+          "Name": ""
+        },
+        "NumberOfSections": {
+          "Value": 2,
+          "Name": ""
+        },
+        "Sections": [
+        {
+            "Time": {
+              "IsInfinite": false,
+              "HalfCycles": false,
+              "Value": 0.0,
+              "Name": ""
+            },
+            "Level": {
+              "Value": 0.16346153846153846,
+              "Name": ""
+            },
+            "Frequency": {
+              "UseExtendedFrequency": true,
+              "UseF0Relative": false,
+              "UseF0Phase": false,
+              "Value": 389.4,
+              "Name": ""
+            },
+            "ChirpMode": {
+              "Value": false,
+              "Name": ""
+            },
+            "Braking": {
+              "Value": false,
+              "Name": ""
+            },
+            "AmplitudeRegulation": {
+              "Value": false,
+              "Name": ""
+            },
+            "HalfCycles": {
+              "Value": false,
+              "Name": ""
+            },
+            "ExtendedFrequency": {
+              "Value": true,
+              "Name": ""
+            },
+            "F0Relative": {
+              "Value": false,
+              "Name": ""
+            },
+            "IsPhase": {
+              "Value": false,
+              "Name": ""
+            },
+            "VbTarget": {
+              "Value": 0.0,
+              "Name": ""
+            },
+            "Value": null,
+            "Name": ""
+          },
+        {
+            "Time": {
+              "IsInfinite": false,
+              "HalfCycles": false,
+              "Value": 1.25,
+              "Name": ""
+            },
+            "Level": {
+              "Value": 0.16346153846153846,
+              "Name": ""
+            },
+            "Frequency": {
+              "UseExtendedFrequency": true,
+              "UseF0Relative": false,
+              "UseF0Phase": false,
+              "Value": 389.4,
+              "Name": ""
+            },
+            "ChirpMode": {
+              "Value": false,
+              "Name": ""
+            },
+            "Braking": {
+              "Value": false,
+              "Name": ""
+            },
+            "AmplitudeRegulation": {
+              "Value": false,
+              "Name": ""
+            },
+            "HalfCycles": {
+              "Value": false,
+              "Name": ""
+            },
+            "ExtendedFrequency": {
+              "Value": true,
+              "Name": ""
+            },
+            "F0Relative": {
+              "Value": false,
+              "Name": ""
+            },
+            "IsPhase": {
+              "Value": false,
+              "Name": ""
+            },
+            "VbTarget": {
+              "Value": 0.0,
+              "Name": ""
+            },
+            "Value": null,
+            "Name": ""
+          }
+        ],
+        "ScalingFactor": 1.0,
+        "Length": {
+          "IsLongerThanMax": false,
+          "HasLengthBeenCalculated": true,
+          "Name": ""
+        },
+        "LengthInSeconds": 0.00125,
+        "Name": "Align"
+      },
+      "MetaData": {
+        "Collection": [
+          {
+            "Id": 1,
+            "Length": 1,
+            "RawShortData": 1,
+            "RawData": [
+              160
+            ]
+          }
+        ],
+        "BrakingTimeInSeconds": 0.02,
+        "Name": ""
+      }
+    },
+    {
+      "Header": {
+        "Type": "Type12",
+        "Features": {
+          "BuzzOrClick": "Buzz",
+          "HasClosedLoopActiveBraking": false,
+          "SampleRate": "SampleRate8kHz",
+          "HasDynamicF0": false,
+          "NonBlockingClab": "Blocking",
+          "HasSvcMetaData": true,
+          "HasEpMetaData": false,
+          "HasMetaData": true,
+          "DvlEnabled": false,
+          "LiveF0TrackingEnabled": false
+        },
+        "Name": ""
+      },
+      "Body": {
+        "HalfCyclesSupported": true,
+        "Repeat": {
+          "Value": 0,
+          "Name": ""
+        },
+        "WaitTime": {
+          "Value": 400.0,
+          "Name": ""
+        },
+        "NumberOfSections": {
+          "Value": 2,
+          "Name": ""
+        },
+        "Sections": [
+        {
+            "Time": {
+              "IsInfinite": false,
+              "HalfCycles": false,
+              "Value": 0.0,
+              "Name": ""
+            },
+            "Level": {
+              "Value": 0.16346153846153846,
+              "Name": ""
+            },
+            "Frequency": {
+              "UseExtendedFrequency": true,
+              "UseF0Relative": false,
+              "UseF0Phase": false,
+              "Value": 136.4,
+              "Name": ""
+            },
+            "ChirpMode": {
+              "Value": false,
+              "Name": ""
+            },
+            "Braking": {
+              "Value": false,
+              "Name": ""
+            },
+            "AmplitudeRegulation": {
+              "Value": false,
+              "Name": ""
+            },
+            "HalfCycles": {
+              "Value": false,
+              "Name": ""
+            },
+            "ExtendedFrequency": {
+              "Value": true,
+              "Name": ""
+            },
+            "F0Relative": {
+              "Value": false,
+              "Name": ""
+            },
+            "IsPhase": {
+              "Value": false,
+              "Name": ""
+            },
+            "VbTarget": {
+              "Value": 0.0,
+              "Name": ""
+            },
+            "Value": null,
+            "Name": ""
+          },
+        {
+            "Time": {
+              "IsInfinite": false,
+              "HalfCycles": false,
+              "Value": 11.0,
+              "Name": ""
+            },
+            "Level": {
+              "Value": 0.16346153846153846,
+              "Name": ""
+            },
+            "Frequency": {
+              "UseExtendedFrequency": true,
+              "UseF0Relative": false,
+              "UseF0Phase": false,
+              "Value": 136.4,
+              "Name": ""
+            },
+            "ChirpMode": {
+              "Value": false,
+              "Name": ""
+            },
+            "Braking": {
+              "Value": false,
+              "Name": ""
+            },
+            "AmplitudeRegulation": {
+              "Value": false,
+              "Name": ""
+            },
+            "HalfCycles": {
+              "Value": false,
+              "Name": ""
+            },
+            "ExtendedFrequency": {
+              "Value": true,
+              "Name": ""
+            },
+            "F0Relative": {
+              "Value": false,
+              "Name": ""
+            },
+            "IsPhase": {
+              "Value": false,
+              "Name": ""
+            },
+            "VbTarget": {
+              "Value": 0.0,
+              "Name": ""
+            },
+            "Value": null,
+            "Name": ""
+          }
+        ],
+        "ScalingFactor": 1.0,
+        "Length": {
+          "IsLongerThanMax": false,
+          "HasLengthBeenCalculated": true,
+          "Name": ""
+        },
+        "LengthInSeconds": 0.011,
+        "Name": "Step"
+      },
+      "MetaData": {
+        "Collection": [
+          {
+            "Id": 1,
+            "Length": 1,
+            "RawShortData": 1,
+            "RawData": [
+              160
+            ]
+          }
+        ],
+        "BrakingTimeInSeconds": 0.02,
+        "Name": ""
+      }
+    },
+    {
+      "Header": {
+        "Type": "Type12",
+        "Features": {
+          "BuzzOrClick": "Buzz",
+          "HasClosedLoopActiveBraking": false,
+          "SampleRate": "SampleRate8kHz",
+          "HasDynamicF0": false,
+          "NonBlockingClab": "Blocking",
+          "HasSvcMetaData": true,
+          "HasEpMetaData": false,
+          "HasMetaData": true,
+          "DvlEnabled": false,
+          "LiveF0TrackingEnabled": false
+        },
+        "Name": ""
+      },
+      "Body": {
+        "HalfCyclesSupported": true,
+        "Repeat": {
+          "Value": 0,
+          "Name": ""
+        },
+        "WaitTime": {
+          "Value": 400.0,
+          "Name": ""
+        },
+        "NumberOfSections": {
+          "Value": 3,
+          "Name": ""
+        },
+        "Sections": [
+        {
+            "Time": {
+              "IsInfinite": false,
+              "HalfCycles": false,
+              "Value": 0.0,
+              "Name": ""
+            },
+            "Level": {
+              "Value": 0.0,
+              "Name": ""
+            },
+            "Frequency": {
+              "UseExtendedFrequency": true,
+              "UseF0Relative": false,
+              "UseF0Phase": false,
+              "Value": 101.2,
+              "Name": ""
+            },
+            "ChirpMode": {
+              "Value": false,
+              "Name": ""
+            },
+            "Braking": {
+              "Value": false,
+              "Name": ""
+            },
+            "AmplitudeRegulation": {
+              "Value": false,
+              "Name": ""
+            },
+            "HalfCycles": {
+              "Value": false,
+              "Name": ""
+            },
+            "ExtendedFrequency": {
+              "Value": true,
+              "Name": ""
+            },
+            "F0Relative": {
+              "Value": false,
+              "Name": ""
+            },
+            "IsPhase": {
+              "Value": false,
+              "Name": ""
+            },
+            "VbTarget": {
+              "Value": 0.0,
+              "Name": ""
+            },
+            "Value": null,
+            "Name": ""
+          },
+        {
+            "Time": {
+              "IsInfinite": false,
+              "HalfCycles": false,
+              "Value": 19.5,
+              "Name": ""
+            },
+            "Level": {
+              "Value": 0.04823455233291299,
+              "Name": ""
+            },
+            "Frequency": {
+              "UseExtendedFrequency": true,
+              "UseF0Relative": false,
+              "UseF0Phase": false,
+              "Value": 127.6,
+              "Name": ""
+            },
+            "ChirpMode": {
+              "Value": true,
+              "Name": ""
+            },
+            "Braking": {
+              "Value": false,
+              "Name": ""
+            },
+            "AmplitudeRegulation": {
+              "Value": false,
+              "Name": ""
+            },
+            "HalfCycles": {
+              "Value": false,
+              "Name": ""
+            },
+            "ExtendedFrequency": {
+              "Value": true,
+              "Name": ""
+            },
+            "F0Relative": {
+              "Value": false,
+              "Name": ""
+            },
+            "IsPhase": {
+              "Value": false,
+              "Name": ""
+            },
+            "VbTarget": {
+              "Value": 0.0,
+              "Name": ""
+            },
+            "Value": null,
+            "Name": ""
+          },
+        {
+            "Time": {
+              "IsInfinite": false,
+              "HalfCycles": false,
+              "Value": 26.75,
+              "Name": ""
+            },
+            "Level": {
+              "Value": 0.17953972257250947,
+              "Name": ""
+            },
+            "Frequency": {
+              "UseExtendedFrequency": true,
+              "UseF0Relative": false,
+              "UseF0Phase": false,
+              "Value": 187.0,
+              "Name": ""
+            },
+            "ChirpMode": {
+              "Value": true,
+              "Name": ""
+            },
+            "Braking": {
+              "Value": false,
+              "Name": ""
+            },
+            "AmplitudeRegulation": {
+              "Value": false,
+              "Name": ""
+            },
+            "HalfCycles": {
+              "Value": false,
+              "Name": ""
+            },
+            "ExtendedFrequency": {
+              "Value": true,
+              "Name": ""
+            },
+            "F0Relative": {
+              "Value": false,
+              "Name": ""
+            },
+            "IsPhase": {
+              "Value": false,
+              "Name": ""
+            },
+            "VbTarget": {
+              "Value": 0.0,
+              "Name": ""
+            },
+            "Value": null,
+            "Name": ""
+          }
+        ],
+        "ScalingFactor": 1.0,
+        "Length": {
+          "IsLongerThanMax": false,
+          "HasLengthBeenCalculated": true,
+          "Name": ""
+        },
+        "LengthInSeconds": 0.04625,
+        "Name": "Grow"
+      },
+      "MetaData": {
+        "Collection": [
+          {
+            "Id": 1,
+            "Length": 1,
+            "RawShortData": 1,
+            "RawData": [
+              160
+            ]
+          }
+        ],
+        "BrakingTimeInSeconds": 0.02,
+        "Name": ""
+      }
+    },
+    {
+      "Header": {
+        "Type": "Type12",
+        "Features": {
+          "BuzzOrClick": "Buzz",
+          "HasClosedLoopActiveBraking": false,
+          "SampleRate": "SampleRate8kHz",
+          "HasDynamicF0": false,
+          "NonBlockingClab": "Blocking",
+          "HasSvcMetaData": true,
+          "HasEpMetaData": false,
+          "HasMetaData": true,
+          "DvlEnabled": false,
+          "LiveF0TrackingEnabled": false
+        },
+        "Name": ""
+      },
+      "Body": {
+        "HalfCyclesSupported": true,
+        "Repeat": {
+          "Value": 0,
+          "Name": ""
+        },
+        "WaitTime": {
+          "Value": 400.0,
+          "Name": ""
+        },
+        "NumberOfSections": {
+          "Value": 2,
+          "Name": ""
+        },
+        "Sections": [
+        {
+            "Time": {
+              "IsInfinite": false,
+              "HalfCycles": false,
+              "Value": 0.0,
+              "Name": ""
+            },
+            "Level": {
+              "Value": 0.19561790668348045,
+              "Name": ""
+            },
+            "Frequency": {
+              "UseExtendedFrequency": true,
+              "UseF0Relative": false,
+              "UseF0Phase": false,
+              "Value": 134.2,
+              "Name": ""
+            },
+            "ChirpMode": {
+              "Value": false,
+              "Name": ""
+            },
+            "Braking": {
+              "Value": false,
+              "Name": ""
+            },
+            "AmplitudeRegulation": {
+              "Value": false,
+              "Name": ""
+            },
+            "HalfCycles": {
+              "Value": false,
+              "Name": ""
+            },
+            "ExtendedFrequency": {
+              "Value": true,
+              "Name": ""
+            },
+            "F0Relative": {
+              "Value": false,
+              "Name": ""
+            },
+            "IsPhase": {
+              "Value": false,
+              "Name": ""
+            },
+            "VbTarget": {
+              "Value": 0.0,
+              "Name": ""
+            },
+            "Value": null,
+            "Name": ""
+          },
+        {
+            "Time": {
+              "IsInfinite": false,
+              "HalfCycles": false,
+              "Value": 11.25,
+              "Name": ""
+            },
+            "Level": {
+              "Value": 0.0,
+              "Name": ""
+            },
+            "Frequency": {
+              "UseExtendedFrequency": true,
+              "UseF0Relative": false,
+              "UseF0Phase": false,
+              "Value": 134.2,
+              "Name": ""
+            },
+            "ChirpMode": {
+              "Value": false,
+              "Name": ""
+            },
+            "Braking": {
+              "Value": false,
+              "Name": ""
+            },
+            "AmplitudeRegulation": {
+              "Value": false,
+              "Name": ""
+            },
+            "HalfCycles": {
+              "Value": false,
+              "Name": ""
+            },
+            "ExtendedFrequency": {
+              "Value": true,
+              "Name": ""
+            },
+            "F0Relative": {
+              "Value": false,
+              "Name": ""
+            },
+            "IsPhase": {
+              "Value": false,
+              "Name": ""
+            },
+            "VbTarget": {
+              "Value": 0.0,
+              "Name": ""
+            },
+            "Value": null,
+            "Name": ""
+          }
+        ],
+        "ScalingFactor": 1.0,
+        "Length": {
+          "IsLongerThanMax": false,
+          "HasLengthBeenCalculated": true,
+          "Name": ""
+        },
+        "LengthInSeconds": 0.01125,
+        "Name": "Press"
+      },
+      "MetaData": {
+        "Collection": [
+          {
+            "Id": 1,
+            "Length": 1,
+            "RawShortData": 1,
+            "RawData": [
+              160
+            ]
+          }
+        ],
+        "BrakingTimeInSeconds": 0.02,
+        "Name": ""
+      }
+    },
+    {
+      "Header": {
+        "Type": "Type12",
+        "Features": {
+          "BuzzOrClick": "Buzz",
+          "HasClosedLoopActiveBraking": false,
+          "SampleRate": "SampleRate8kHz",
+          "HasDynamicF0": false,
+          "NonBlockingClab": "Blocking",
+          "HasSvcMetaData": true,
+          "HasEpMetaData": false,
+          "HasMetaData": true,
+          "DvlEnabled": false,
+          "LiveF0TrackingEnabled": false
+        },
+        "Name": ""
+      },
+      "Body": {
+        "HalfCyclesSupported": true,
+        "Repeat": {
+          "Value": 0,
+          "Name": ""
+        },
+        "WaitTime": {
+          "Value": 400.0,
+          "Name": ""
+        },
+        "NumberOfSections": {
+          "Value": 2,
+          "Name": ""
+        },
+        "Sections": [
+        {
+            "Time": {
+              "IsInfinite": false,
+              "HalfCycles": false,
+              "Value": 0.0,
+              "Name": ""
+            },
+            "Level": {
+              "Value": 0.0,
+              "Name": ""
+            },
+            "Frequency": {
+              "UseExtendedFrequency": true,
+              "UseF0Relative": false,
+              "UseF0Phase": false,
+              "Value": 308.0,
+              "Name": ""
+            },
+            "ChirpMode": {
+              "Value": false,
+              "Name": ""
+            },
+            "Braking": {
+              "Value": false,
+              "Name": ""
+            },
+            "AmplitudeRegulation": {
+              "Value": false,
+              "Name": ""
+            },
+            "HalfCycles": {
+              "Value": false,
+              "Name": ""
+            },
+            "ExtendedFrequency": {
+              "Value": true,
+              "Name": ""
+            },
+            "F0Relative": {
+              "Value": false,
+              "Name": ""
+            },
+            "IsPhase": {
+              "Value": false,
+              "Name": ""
+            },
+            "VbTarget": {
+              "Value": 0.0,
+              "Name": ""
+            },
+            "Value": null,
+            "Name": ""
+          },
+        {
+            "Time": {
+              "IsInfinite": false,
+              "HalfCycles": false,
+              "Value": 4.75,
+              "Name": ""
+            },
+            "Level": {
+              "Value": 0.19561790668348045,
+              "Name": ""
+            },
+            "Frequency": {
+              "UseExtendedFrequency": true,
+              "UseF0Relative": false,
+              "UseF0Phase": false,
+              "Value": 308.0,
+              "Name": ""
+            },
+            "ChirpMode": {
+              "Value": false,
+              "Name": ""
+            },
+            "Braking": {
+              "Value": false,
+              "Name": ""
+            },
+            "AmplitudeRegulation": {
+              "Value": false,
+              "Name": ""
+            },
+            "HalfCycles": {
+              "Value": false,
+              "Name": ""
+            },
+            "ExtendedFrequency": {
+              "Value": true,
+              "Name": ""
+            },
+            "F0Relative": {
+              "Value": false,
+              "Name": ""
+            },
+            "IsPhase": {
+              "Value": false,
+              "Name": ""
+            },
+            "VbTarget": {
+              "Value": 0.0,
+              "Name": ""
+            },
+            "Value": null,
+            "Name": ""
+          }
+        ],
+        "ScalingFactor": 1.0,
+        "Length": {
+          "IsLongerThanMax": false,
+          "HasLengthBeenCalculated": true,
+          "Name": ""
+        },
+        "LengthInSeconds": 0.00475,
+        "Name": "Release"
+      },
+      "MetaData": {
+        "Collection": [
+          {
+            "Id": 1,
+            "Length": 1,
+            "RawShortData": 1,
+            "RawData": [
+              160
+            ]
+          }
+        ],
+        "BrakingTimeInSeconds": 0.02,
+        "Name": ""
+      }
+    },
+    {
+      "Header": {
+        "Type": "Type12",
+        "Features": {
+          "BuzzOrClick": "Buzz",
+          "HasClosedLoopActiveBraking": false,
+          "SampleRate": "SampleRate8kHz",
+          "HasDynamicF0": false,
+          "NonBlockingClab": "Blocking",
+          "HasSvcMetaData": true,
+          "HasEpMetaData": false,
+          "HasMetaData": true,
+          "DvlEnabled": false,
+          "LiveF0TrackingEnabled": false
+        },
+        "Name": ""
+      },
+      "Body": {
+        "HalfCyclesSupported": true,
+        "Repeat": {
+          "Value": 0,
+          "Name": ""
+        },
+        "WaitTime": {
+          "Value": 400.0,
+          "Name": ""
+        },
+        "NumberOfSections": {
+          "Value": 5,
+          "Name": ""
+        },
+        "Sections": [
+        {
+            "Time": {
+              "IsInfinite": false,
+              "HalfCycles": false,
+              "Value": 0.0,
+              "Name": ""
+            },
+            "Level": {
+              "Value": 0.11522698612862547,
+              "Name": ""
+            },
+            "Frequency": {
+              "UseExtendedFrequency": true,
+              "UseF0Relative": false,
+              "UseF0Phase": false,
+              "Value": 200.20000000000002,
+              "Name": ""
+            },
+            "ChirpMode": {
+              "Value": false,
+              "Name": ""
+            },
+            "Braking": {
+              "Value": false,
+              "Name": ""
+            },
+            "AmplitudeRegulation": {
+              "Value": false,
+              "Name": ""
+            },
+            "HalfCycles": {
+              "Value": false,
+              "Name": ""
+            },
+            "ExtendedFrequency": {
+              "Value": true,
+              "Name": ""
+            },
+            "F0Relative": {
+              "Value": false,
+              "Name": ""
+            },
+            "IsPhase": {
+              "Value": false,
+              "Name": ""
+            },
+            "VbTarget": {
+              "Value": 0.0,
+              "Name": ""
+            },
+            "Value": null,
+            "Name": ""
+          },
+        {
+            "Time": {
+              "IsInfinite": false,
+              "HalfCycles": false,
+              "Value": 6.75,
+              "Name": ""
+            },
+            "Level": {
+              "Value": 0.11522698612862547,
+              "Name": ""
+            },
+            "Frequency": {
+              "UseExtendedFrequency": true,
+              "UseF0Relative": false,
+              "UseF0Phase": false,
+              "Value": 220.0,
+              "Name": ""
+            },
+            "ChirpMode": {
+              "Value": true,
+              "Name": ""
+            },
+            "Braking": {
+              "Value": false,
+              "Name": ""
+            },
+            "AmplitudeRegulation": {
+              "Value": false,
+              "Name": ""
+            },
+            "HalfCycles": {
+              "Value": false,
+              "Name": ""
+            },
+            "ExtendedFrequency": {
+              "Value": true,
+              "Name": ""
+            },
+            "F0Relative": {
+              "Value": false,
+              "Name": ""
+            },
+            "IsPhase": {
+              "Value": false,
+              "Name": ""
+            },
+            "VbTarget": {
+              "Value": 0.0,
+              "Name": ""
+            },
+            "Value": null,
+            "Name": ""
+          },
+        {
+            "Time": {
+              "IsInfinite": false,
+              "HalfCycles": false,
+              "Value": 0.0,
+              "Name": ""
+            },
+            "Level": {
+              "Value": 0.0,
+              "Name": ""
+            },
+            "Frequency": {
+              "UseExtendedFrequency": true,
+              "UseF0Relative": false,
+              "UseF0Phase": false,
+              "Value": 220.0,
+              "Name": ""
+            },
+            "ChirpMode": {
+              "Value": true,
+              "Name": ""
+            },
+            "Braking": {
+              "Value": false,
+              "Name": ""
+            },
+            "AmplitudeRegulation": {
+              "Value": false,
+              "Name": ""
+            },
+            "HalfCycles": {
+              "Value": false,
+              "Name": ""
+            },
+            "ExtendedFrequency": {
+              "Value": true,
+              "Name": ""
+            },
+            "F0Relative": {
+              "Value": false,
+              "Name": ""
+            },
+            "IsPhase": {
+              "Value": false,
+              "Name": ""
+            },
+            "VbTarget": {
+              "Value": 0.0,
+              "Name": ""
+            },
+            "Value": null,
+            "Name": ""
+          },
+        {
+            "Time": {
+              "IsInfinite": false,
+              "HalfCycles": false,
+              "Value": 54.5,
+              "Name": ""
+            },
+            "Level": {
+              "Value": 0.0,
+              "Name": ""
+            },
+            "Frequency": {
+              "UseExtendedFrequency": true,
+              "UseF0Relative": false,
+              "UseF0Phase": false,
+              "Value": 220.0,
+              "Name": ""
+            },
+            "ChirpMode": {
+              "Value": true,
+              "Name": ""
+            },
+            "Braking": {
+              "Value": false,
+              "Name": ""
+            },
+            "AmplitudeRegulation": {
+              "Value": false,
+              "Name": ""
+            },
+            "HalfCycles": {
+              "Value": false,
+              "Name": ""
+            },
+            "ExtendedFrequency": {
+              "Value": true,
+              "Name": ""
+            },
+            "F0Relative": {
+              "Value": false,
+              "Name": ""
+            },
+            "IsPhase": {
+              "Value": false,
+              "Name": ""
+            },
+            "VbTarget": {
+              "Value": 0.0,
+              "Name": ""
+            },
+            "Value": null,
+            "Name": ""
+          },
+        {
+            "Time": {
+              "IsInfinite": false,
+              "HalfCycles": false,
+              "Value": 64.5,
+              "Name": ""
+            },
+            "Level": {
+              "Value": 0.35907944514501894,
+              "Name": ""
+            },
+            "Frequency": {
+              "UseExtendedFrequency": true,
+              "UseF0Relative": false,
+              "UseF0Phase": false,
+              "Value": 596.2,
+              "Name": ""
+            },
+            "ChirpMode": {
+              "Value": true,
+              "Name": ""
+            },
+            "Braking": {
+              "Value": false,
+              "Name": ""
+            },
+            "AmplitudeRegulation": {
+              "Value": false,
+              "Name": ""
+            },
+            "HalfCycles": {
+              "Value": false,
+              "Name": ""
+            },
+            "ExtendedFrequency": {
+              "Value": true,
+              "Name": ""
+            },
+            "F0Relative": {
+              "Value": false,
+              "Name": ""
+            },
+            "IsPhase": {
+              "Value": false,
+              "Name": ""
+            },
+            "VbTarget": {
+              "Value": 0.0,
+              "Name": ""
+            },
+            "Value": null,
+            "Name": ""
+          }
+        ],
+        "ScalingFactor": 1.0,
+        "Length": {
+          "IsLongerThanMax": false,
+          "HasLengthBeenCalculated": true,
+          "Name": ""
+        },
+        "LengthInSeconds": 0.12575,
+        "Name": "Success"
+      },
+      "MetaData": {
+        "Collection": [
+          {
+            "Id": 1,
+            "Length": 1,
+            "RawShortData": 1,
+            "RawData": [
+              160
+            ]
+          }
+        ],
+        "BrakingTimeInSeconds": 0.02,
+        "Name": ""
+      }
+    },
+    {
+      "Header": {
+        "Type": "Type12",
+        "Features": {
+          "BuzzOrClick": "Buzz",
+          "HasClosedLoopActiveBraking": false,
+          "SampleRate": "SampleRate8kHz",
+          "HasDynamicF0": false,
+          "NonBlockingClab": "Blocking",
+          "HasSvcMetaData": true,
+          "HasEpMetaData": false,
+          "HasMetaData": true,
+          "DvlEnabled": false,
+          "LiveF0TrackingEnabled": false
+        },
+        "Name": ""
+      },
+      "Body": {
+        "HalfCyclesSupported": true,
+        "Repeat": {
+          "Value": 0,
+          "Name": ""
+        },
+        "WaitTime": {
+          "Value": 400.0,
+          "Name": ""
+        },
+        "NumberOfSections": {
+          "Value": 6,
+          "Name": ""
+        },
+        "Sections": [
+        {
+            "Time": {
+              "IsInfinite": false,
+              "HalfCycles": false,
+              "Value": 0.0,
+              "Name": ""
+            },
+            "Level": {
+              "Value": 0.19561790668348045,
+              "Name": ""
+            },
+            "Frequency": {
+              "UseExtendedFrequency": true,
+              "UseF0Relative": false,
+              "UseF0Phase": false,
+              "Value": 303.59999999999997,
+              "Name": ""
+            },
+            "ChirpMode": {
+              "Value": false,
+              "Name": ""
+            },
+            "Braking": {
+              "Value": false,
+              "Name": ""
+            },
+            "AmplitudeRegulation": {
+              "Value": false,
+              "Name": ""
+            },
+            "HalfCycles": {
+              "Value": false,
+              "Name": ""
+            },
+            "ExtendedFrequency": {
+              "Value": true,
+              "Name": ""
+            },
+            "F0Relative": {
+              "Value": false,
+              "Name": ""
+            },
+            "IsPhase": {
+              "Value": false,
+              "Name": ""
+            },
+            "VbTarget": {
+              "Value": 0.0,
+              "Name": ""
+            },
+            "Value": null,
+            "Name": ""
+          },
+        {
+            "Time": {
+              "IsInfinite": false,
+              "HalfCycles": false,
+              "Value": 49.5,
+              "Name": ""
+            },
+            "Level": {
+              "Value": 0.19561790668348045,
+              "Name": ""
+            },
+            "Frequency": {
+              "UseExtendedFrequency": true,
+              "UseF0Relative": false,
+              "UseF0Phase": false,
+              "Value": 303.59999999999997,
+              "Name": ""
+            },
+            "ChirpMode": {
+              "Value": false,
+              "Name": ""
+            },
+            "Braking": {
+              "Value": false,
+              "Name": ""
+            },
+            "AmplitudeRegulation": {
+              "Value": false,
+              "Name": ""
+            },
+            "HalfCycles": {
+              "Value": false,
+              "Name": ""
+            },
+            "ExtendedFrequency": {
+              "Value": true,
+              "Name": ""
+            },
+            "F0Relative": {
+              "Value": false,
+              "Name": ""
+            },
+            "IsPhase": {
+              "Value": false,
+              "Name": ""
+            },
+            "VbTarget": {
+              "Value": 0.0,
+              "Name": ""
+            },
+            "Value": null,
+            "Name": ""
+          },
+        {
+            "Time": {
+              "IsInfinite": false,
+              "HalfCycles": false,
+              "Value": 0.0,
+              "Name": ""
+            },
+            "Level": {
+              "Value": 0.0,
+              "Name": ""
+            },
+            "Frequency": {
+              "UseExtendedFrequency": true,
+              "UseF0Relative": false,
+              "UseF0Phase": false,
+              "Value": 303.59999999999997,
+              "Name": ""
+            },
+            "ChirpMode": {
+              "Value": false,
+              "Name": ""
+            },
+            "Braking": {
+              "Value": false,
+              "Name": ""
+            },
+            "AmplitudeRegulation": {
+              "Value": false,
+              "Name": ""
+            },
+            "HalfCycles": {
+              "Value": false,
+              "Name": ""
+            },
+            "ExtendedFrequency": {
+              "Value": true,
+              "Name": ""
+            },
+            "F0Relative": {
+              "Value": false,
+              "Name": ""
+            },
+            "IsPhase": {
+              "Value": false,
+              "Name": ""
+            },
+            "VbTarget": {
+              "Value": 0.0,
+              "Name": ""
+            },
+            "Value": null,
+            "Name": ""
+          },
+        {
+            "Time": {
+              "IsInfinite": false,
+              "HalfCycles": false,
+              "Value": 33.0,
+              "Name": ""
+            },
+            "Level": {
+              "Value": 0.0,
+              "Name": ""
+            },
+            "Frequency": {
+              "UseExtendedFrequency": true,
+              "UseF0Relative": false,
+              "UseF0Phase": false,
+              "Value": 303.59999999999997,
+              "Name": ""
+            },
+            "ChirpMode": {
+              "Value": false,
+              "Name": ""
+            },
+            "Braking": {
+              "Value": false,
+              "Name": ""
+            },
+            "AmplitudeRegulation": {
+              "Value": false,
+              "Name": ""
+            },
+            "HalfCycles": {
+              "Value": false,
+              "Name": ""
+            },
+            "ExtendedFrequency": {
+              "Value": true,
+              "Name": ""
+            },
+            "F0Relative": {
+              "Value": false,
+              "Name": ""
+            },
+            "IsPhase": {
+              "Value": false,
+              "Name": ""
+            },
+            "VbTarget": {
+              "Value": 0.0,
+              "Name": ""
+            },
+            "Value": null,
+            "Name": ""
+          },
+        {
+            "Time": {
+              "IsInfinite": false,
+              "HalfCycles": false,
+              "Value": 0.0,
+              "Name": ""
+            },
+            "Level": {
+              "Value": 0.19561790668348045,
+              "Name": ""
+            },
+            "Frequency": {
+              "UseExtendedFrequency": true,
+              "UseF0Relative": false,
+              "UseF0Phase": false,
+              "Value": 303.59999999999997,
+              "Name": ""
+            },
+            "ChirpMode": {
+              "Value": false,
+              "Name": ""
+            },
+            "Braking": {
+              "Value": false,
+              "Name": ""
+            },
+            "AmplitudeRegulation": {
+              "Value": false,
+              "Name": ""
+            },
+            "HalfCycles": {
+              "Value": false,
+              "Name": ""
+            },
+            "ExtendedFrequency": {
+              "Value": true,
+              "Name": ""
+            },
+            "F0Relative": {
+              "Value": false,
+              "Name": ""
+            },
+            "IsPhase": {
+              "Value": false,
+              "Name": ""
+            },
+            "VbTarget": {
+              "Value": 0.0,
+              "Name": ""
+            },
+            "Value": null,
+            "Name": ""
+          },
+        {
+            "Time": {
+              "IsInfinite": false,
+              "HalfCycles": false,
+              "Value": 49.5,
+              "Name": ""
+            },
+            "Level": {
+              "Value": 0.19561790668348045,
+              "Name": ""
+            },
+            "Frequency": {
+              "UseExtendedFrequency": true,
+              "UseF0Relative": false,
+              "UseF0Phase": false,
+              "Value": 303.59999999999997,
+              "Name": ""
+            },
+            "ChirpMode": {
+              "Value": false,
+              "Name": ""
+            },
+            "Braking": {
+              "Value": false,
+              "Name": ""
+            },
+            "AmplitudeRegulation": {
+              "Value": false,
+              "Name": ""
+            },
+            "HalfCycles": {
+              "Value": false,
+              "Name": ""
+            },
+            "ExtendedFrequency": {
+              "Value": true,
+              "Name": ""
+            },
+            "F0Relative": {
+              "Value": false,
+              "Name": ""
+            },
+            "IsPhase": {
+              "Value": false,
+              "Name": ""
+            },
+            "VbTarget": {
+              "Value": 0.0,
+              "Name": ""
+            },
+            "Value": null,
+            "Name": ""
+          }
+        ],
+        "ScalingFactor": 1.0,
+        "Length": {
+          "IsLongerThanMax": false,
+          "HasLengthBeenCalculated": true,
+          "Name": ""
+        },
+        "LengthInSeconds": 0.132,
+        "Name": "Error"
+      },
+      "MetaData": {
+        "Collection": [
+          {
+            "Id": 1,
+            "Length": 1,
+            "RawShortData": 1,
+            "RawData": [
+              160
+            ]
+          }
+        ],
+        "BrakingTimeInSeconds": 0.02,
+        "Name": ""
+      }
+    }
+    ],
+  "Description": "",
+  "ModifiedDateTime": "0001-01-01T00:00:00"
+}

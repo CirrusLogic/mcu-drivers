@@ -3,6 +3,19 @@ Release Notes
 
 =============================================================================
 Summary:
+This is the release of Alt-OS Driver SDK v4.29.5
+Date: 2026/04/27
+
+Architectures/Compilers Used:
+GNU Arm Embedded Toolchain: arm-none-eabi-gcc -mcpu=cortex-m4
+
+Fixed Bugs:
+
+Expose Host Initiated Haptics tunings and wavetable to public repo
+
+=============================================================================
+=============================================================================
+Summary:
 This is the release of Alt-OS Driver SDK v4.29.4
 Date: 2026/04/17
 
