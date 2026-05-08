@@ -12,7 +12,7 @@
 	pinctrl-0 = <&i2c1_scl_pb6 &i2c1_sda_pb7>;
         
         haptic1: cs40l50@34 {
-                compatible = "cirrus,cs40l50";
+                compatible = "cirrus,cs40l50_alt_os";
                 reg = <0x34>;
                 status = "okay";
 

@@ -4,7 +4,7 @@
  * @brief Functions and prototypes exported by the BSP module for the cs35l56 platform.
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2022-2025 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2022-2026 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -70,7 +70,7 @@ uint32_t bsp_dut_configure_gpio_trigger(cs40l50_gpio_bank_t gpio, bool rth,
                                         uint8_t attenuation, bool ram, uint8_t plybck_index);
 uint32_t bsp_dut_dynamic_f0_set_enable(bool enable);
 uint32_t bsp_dut_trigger_haptic(uint8_t waveform, cs40l50_wavetable_bank_t bank);
-uint32_t bsp_dut_trigger_rth_pwle(bool is_simple, rth_pwle_section_t **pwle_data, uint8_t num_sections, uint8_t repeat);
+uint32_t bsp_dut_trigger_rth_pwle(bool is_simple, const rth_pwle_section_t **pwle_data, uint8_t num_sections, uint8_t repeat);
 uint32_t bsp_dut_trigger_rth_pcm(uint8_t *pcm_data, uint32_t num_sections, uint16_t buffer, uint16_t f0, uint16_t redc);
 uint32_t bsp_dut_dynamic_calibrate(uint8_t index);
 

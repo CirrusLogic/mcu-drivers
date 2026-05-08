@@ -261,7 +261,7 @@ static int cs35l56_fw_reset(const struct device *dev)
     cs35l56_t *drv = &data->priv;
     const struct i2c_dt_spec *i2c = drv->config.bsp_config.i2c;
 
-    ret = regmap_write(i2c, FIRMWARE_CS35L56_HALO_STATE, CS35L56_DSP_STATE_HIBERNATE);
+    ret = regmap_write(i2c, FIRMWARE_CS35L56_HALO_STATE, CS35L56_STATE_HIBERNATE);
     if (ret < 0) {
         return ret;
     }
@@ -365,7 +365,7 @@ bsp_driver_if_t cs35l56_bsp_driver_if = {.set_timer = cs35l56_set_timer,
 
 bsp_driver_if_t *bsp_driver_if_g = &cs35l56_bsp_driver_if;
 
-static int cs35l56_configure(const struct device *dev, struct audio_codec_cfg *cfg)
+static int bsp_cs35l56_configure(const struct device *dev, struct audio_codec_cfg *cfg)
 {
     // TODO
     return 0;
@@ -397,7 +397,7 @@ static void cs35l56_stop_output(const struct device *dev)
 
 static int cs35l56_init(const struct device *dev)
 {
-    const struct cs35l56_config *config = dev->config;
+    struct cs35l56_config *config = (struct cs35l56_config*)dev->config;
     struct cs35l56_bsp *data = dev->data;
     cs35l56_t *drv = &data->priv;
     uint32_t val;
@@ -471,7 +471,7 @@ static int cs35l56_init(const struct device *dev)
 }
 
 static const struct audio_codec_api cs35l56_driver_api = {
-    .configure = cs35l56_configure,
+    .configure = bsp_cs35l56_configure,
     .start_output = cs35l56_start_output,
     .stop_output = cs35l56_stop_output,
 };

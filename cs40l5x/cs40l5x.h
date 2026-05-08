@@ -909,8 +909,8 @@ uint32_t cs40l5x_configure_gpio_trigger(cs40l5x_t *driver, cs40l5x_gpio_bank_t g
 
 uint32_t cs40l5x_set_click_compensation_enable(cs40l5x_t *driver, bool f0_enable, bool redc_enable);
 uint32_t cs40l5x_set_broadcast_enable(cs40l5x_t *driver, bool enable);
-uint32_t cs40l5x_trigger_pwle(cs40l5x_t *driver, rth_pwle_section_t **s);
-uint32_t cs40l5x_trigger_pwle_advanced(cs40l5x_t *driver, rth_pwle_section_t **s, uint8_t repeat, uint8_t num_sections);
+uint32_t cs40l5x_trigger_pwle(cs40l5x_t *driver, const rth_pwle_section_t **s);
+uint32_t cs40l5x_trigger_pwle_advanced(cs40l5x_t *driver, const rth_pwle_section_t **s, uint8_t repeat, uint8_t num_sections);
 uint32_t cs40l5x_trigger_pcm(cs40l5x_t *driver, uint8_t *s, uint32_t num_sections, uint16_t buffer_size_samples, uint16_t f0, uint16_t redc);
 uint32_t cs40l5x_trigger_owt(cs40l5x_t *driver, uint32_t idx);
 uint32_t cs40l5x_delete_owt(cs40l5x_t *driver, uint32_t idx);

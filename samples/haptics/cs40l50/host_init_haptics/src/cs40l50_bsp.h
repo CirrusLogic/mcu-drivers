@@ -17,7 +17,7 @@
 #ifndef CS40L50_BSP_H
 #define CS40L50_BSP_H
 
-#define DT_DRV_COMPAT cirrus_cs40l50
+#define DT_DRV_COMPAT cirrus_cs40l50_alt_os
 
 #include "cs40l50.h"
 #include <stdbool.h>

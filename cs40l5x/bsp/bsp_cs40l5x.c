@@ -4,7 +4,7 @@
  * @brief Implementation of the BSP for the cs40l5x platform.
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2025 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2025-2026 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -485,7 +485,7 @@ uint32_t bsp_dut_trigger_haptic(uint8_t waveform, cs40l5x_wavetable_bank_t bank)
     return ret;
 }
 
-uint32_t bsp_dut_trigger_rth_pwle(bool is_simple, rth_pwle_section_t **pwle_data, uint8_t num_sections, uint8_t repeat)
+uint32_t bsp_dut_trigger_rth_pwle(bool is_simple, const rth_pwle_section_t **pwle_data, uint8_t num_sections, uint8_t repeat)
 {
     uint32_t ret = BSP_STATUS_OK;
     if (is_simple)

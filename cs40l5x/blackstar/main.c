@@ -4,7 +4,7 @@
  * @brief The main function for CS40L5x System Test Harness
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2025 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2025-2026 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -133,7 +133,7 @@ void app_process_pb(void)
            * Ramp down - Sine Chirp, 330Hz to 50Hz, 0.33FS to 0FS in 0.50ms
            *
            */
-            bsp_dut_trigger_rth_pwle(false, pwle1, pwle_1_size, 0);
+            bsp_dut_trigger_rth_pwle(false, pwleList[0]->sections, pwleList[0]->num_sections, 0);
             break;
         case 1:
           /**
@@ -143,7 +143,7 @@ void app_process_pb(void)
            * Ramp down - Sine Chirp, 100Hz to 50Hz, 0.41FS to 0FS in 0.75ms
            *
            */
-            bsp_dut_trigger_rth_pwle(false, pwle2, pwle_2_size, 0);
+            bsp_dut_trigger_rth_pwle(false, pwleList[1]->sections, pwleList[1]->num_sections, 0);
             break;
         case 2:
           /**
@@ -151,7 +151,7 @@ void app_process_pb(void)
            * Sine, 125ms, 180Hz, 0.13FS to 0.29FS, 168 half cycles, 265Hz, 0.29FS to 0.42FS
            *
            */
-            bsp_dut_trigger_rth_pwle(false, pwle3, pwle_3_size, 0);
+            bsp_dut_trigger_rth_pwle(false, pwleList[2]->sections, pwleList[2]->num_sections, 0);
             break;
         case 3:
           /**

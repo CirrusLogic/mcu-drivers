@@ -502,7 +502,28 @@ int bsp_cs40l50_delete_owt(const struct device *dev, int owt_idx)
 {
     struct cs40l50_bsp *data = dev->data;
     cs40l50_t *drv = &data->priv;
-    uint32_t ret;
+    struct cs40l50_config *config = (struct cs40l50_config*)dev->config;
+    uint32_t ret, state;
+
+    ret = regmap_read(&config->i2c, PM_PM_CUR_STATE, &state);
+    if(ret)
+    {
+        return ret;
+    }
+
+    if(state == CS40L50_DSP_STATE_ACTIVE)
+    {
+        ret = regmap_write(&config->i2c, CS40L50_DSP_VIRTUAL1_MBOX_1, CS40L50_DSP_MBOX_STOP_PLAYBACK);
+        if(ret)
+        {
+            return ret;
+        }
+        ret = regmap_poll_reg(&config->i2c, PM_PM_CUR_STATE, CS40L50_DSP_STATE_STANDBY, 10, 10);
+        if(ret)
+        {
+            return ret; //If unable to stop playback don't send delete command
+        }
+    }
 
     ret = cs40l50_delete_owt(drv, owt_idx);
     if(ret)

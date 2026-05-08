@@ -83,6 +83,19 @@ extern "C" {
 /** @} */
 
 /**
+ * @defgroup CS35L56_MODE_
+ * @brief Mode of the driver
+ *
+ * @see cs35l56_t member mode
+ *
+ * @{
+ */
+#define CS35L56_MODE_HANDLING_CONTROLS                  (0)
+#define CS35L56_MODE_HANDLING_EVENTS                    (1)
+/** @} */
+
+
+/**
  * @defgroup CS35L56_POWER_
  * @brief Power states passed on to power() API argument power_state
  *
@@ -106,6 +119,26 @@ extern "C" {
 #define CS35L56_POLL_ACK_CTRL_MAX (100) ///< Maximum number of times to poll for ACKed memory writes
 #define CS35L56_BOOT_TIMEMOUT_MS                                                                   \
     (10) ///< Maximum delay in ms between attempts reading back successful DSP boot
+/** @} */
+
+/**
+ * @defgroup CS35L56_EVENT_FLAG_
+ * @brief Flags passed to Notification Callback to notify BSP of specific driver events
+ *
+ * @see CS35L56_notification_callback_t argument event_flags
+ *
+ * @{
+ */
+#define CS35L56_EVENT_FLAG_DSP_ERROR                    (1 << 31)
+#define CS35L56_EVENT_FLAG_STATE_ERROR                  (1 << 30)
+#define CS35L56_EVENT_FLAG_RUNTIME_SHORT_DETECTED       (1 << 23)
+#define CS35L56_EVENT_FLAG_PERMANENT_SHORT_DETECTED     (1 << 22)
+#define CS35L56_EVENT_FLAG_AWAKE                        (1 << 21)
+#define CS35L56_EVENT_FLAG_INIT_COMPLETE                (1 << 20)
+#define CS35L56_EVENT_FLAG_OTP_BOOT_DONE                (1 << 3)
+#define CS35L56_EVENT_FLAG_AMP_ERROR                    (1 << 2)
+#define CS35L56_EVENT_FLAG_TEMP_ERROR                   (1 << 1)
+#define CS35L56_EVENT_FLAG_BST_ERROR                    (1 << 0)
 /** @} */
 
 /***********************************************************************************************************************
@@ -147,11 +180,9 @@ typedef struct {
  */
 typedef struct {
 #ifdef CIRRUS_ZEPHYR_SAMPLE
-    const struct i2c_dt_spec *i2c;
-    const struct gpio_dt_spec
-        *reset_gpio_id; ///< Used to interact with CS35L56 Reset pin in zephyr bsp
-    const struct gpio_dt_spec
-        *int_gpio_id; ///< Used to interact with CS35L56 INT pin in zephyr bsp
+    struct i2c_dt_spec *i2c;
+    const struct gpio_dt_spec *reset_gpio_id;   ///< Used to interact with CS35L56 Reset pin in zephyr bsp
+    const struct gpio_dt_spec *int_gpio_id;     ///< Used to interact with CS35L56 INT pin in zephyr bsp
 #else
     uint32_t reset_gpio_id; ///< Used to ID CS35L56 Reset pin in bsp_driver_if calls
     uint32_t int_gpio_id;   ///< Used to ID CS35L56 INT pin in bsp_driver_if calls
@@ -176,7 +207,6 @@ typedef struct {
     cs35l56_calibration_t cal_data;  ///< Calibration data from previous calibration sequence
     bool is_ext_bst;      ///< Indicates whether the device is internal or external boost
     bool enable_mbox_irq; ///< Enable IRQ for MBOX after device reset
-    uint32_t dynamic_f0_threshold; ///< imonRingPPThreshold
     bool broadcast;                ///< Broadcast I2C data and triggers
 } cs35l56_config_t;
 
@@ -223,6 +253,41 @@ typedef struct {
  *
  */
 uint32_t cs35l56_initialize(cs35l56_t *driver);
+
+/**
+ * Configures driver state/handle
+ *
+ * Including the following:
+ * - Applies all one-time configurations to the driver state
+ * - Registers the IRQ Callback for INTb GPIO with the BSP
+ * - Applies calibration data (if valid) to the driver state
+ *
+ * @param [in] driver           Pointer to the driver state
+ * @param [in] config           Pointer to driver configuration data structure
+ *
+ * @return
+ * - CS35L56_STATUS_FAIL        if any pointers are NULL
+ * - CS35L56_STATUS_OK          otherwise
+ *
+ */
+uint32_t cs35l56_configure(cs35l56_t *driver, cs35l56_config_t *config);
+
+/**
+ * Processes driver events and notifications
+ *
+ * This implements Event Handling and BSP Notification
+ *
+ * @param [in] driver           Pointer to the driver state
+ *
+ * @return
+ * - if in UNCONFIGURED or ERROR state, returns CS35L56_STATUS_OK
+ * - else if in HANDLING_CONTROLS mode, returns CS35L56_STATUS_OK
+ * - otherwise, returns status Event Handler
+ *
+ * @warning This MUST be placed either in baremetal or RTOS task while (1)
+ *
+ */
+uint32_t cs35l56_process(cs35l56_t *driver);
 
 /**
  * Reset the CS35L56

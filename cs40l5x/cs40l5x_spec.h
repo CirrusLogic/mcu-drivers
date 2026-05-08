@@ -198,6 +198,7 @@ extern const struct cs40l5x_diagnostic_flag_encoding cs40l5x_diag_flags[NUM_DIAG
 #define CS40L5X_DSP_MBOX_CMD_START_I2S                                      (0x03000002)
 #define CS40L5X_DSP_MBOX_CMD_STOP_I2S                                       (0x03000003)
 #define CS40L5X_DSP_MBOX_PM_CMD_BASE                                        CS40L5X_DSP_MBOX_CMD_HIBER
+#define CS40L5X_DSP_MBOX_STOP_PLAYBACK                                      (0x05000000)
 
 #define CS40L5X_DSP_MBOX_OWT_PUSH                                           (0x03000008)
 #define CS40L5X_DSP_MBOX_OWT_RESET                                          (0x03000009)

@@ -117,7 +117,7 @@ extern const struct cs35l56_register_encoding cs35l56_pll_refclk[CS35L56_NUM_VAL
 
 #define CS35L56_DSP1_CCM_CORE_CONTROL  (0x02BC1000)
 #define CS35L56_FIRMWARE_CALL_RAM_INIT (0x028021DC)
-#define CS35L56_HALO_STATE             (0x028021E0)
+#define CS35L56_HALO_STATE             (0x02803D20)
 #define CS35L56_PWRMGT_CTL             (0x00002900)
 
 #define CS35L56_DATA_BYTES    (4)
@@ -145,12 +145,10 @@ extern const struct cs35l56_register_encoding cs35l56_pll_refclk[CS35L56_NUM_VAL
 #define CS35L56_STATE_ACTIVE    (3)
 #define CS35L56_STATE_WAKE      (4)
 
-/* DSP State */
-#define CS35L56_DSP_STATE_HIBERNATE (0)
-#define CS35L56_DSP_STATE_SHUTDOWN  (1)
-#define CS35L56_DSP_STATE_STANDBY   (2)
-#define CS35L56_DSP_STATE_ACTIVE    (3)
-#define CS35L56_DSP_STATE_UNKNOWN   (4)
+/* HALO State */
+#define CS35L56_HALO_STATE_PREBOOT (0)
+#define CS35L56_HALO_STATE_BOOT_IN_PROGRESS  (1)
+#define CS35L56_HALO_STATE_RUNNING   (2)
 
 /* PM State */
 #define CS35L56_PM_STATE_SHUTDOWN (1)
@@ -173,6 +171,7 @@ extern const struct cs35l56_register_encoding cs35l56_pll_refclk[CS35L56_NUM_VAL
 #define CS35L56_DYNAMIC_F0_TABLE     (0x02802FA0)
 
 /* DSP mailbox controls */
+// MBOX inbound commands
 #define CS35L56_DSP_MBOX_RESET             (0x0)
 #define CS35L56_DSP_MBOX_CMD_HIBER         (0x02000001)
 #define CS35L56_DSP_MBOX_CMD_WAKEUP        (0x02000002)
@@ -182,6 +181,16 @@ extern const struct cs35l56_register_encoding cs35l56_pll_refclk[CS35L56_NUM_VAL
 #define CS35L56_DSP_MBOX_CMD_SYSTEM_RESET  (0x02000007)
 #define CS35L56_DSP_MBOX_PM_CMD_BASE       CS35L56_DSP_MBOX_CMD_HIBER
 
+#define CS35L56_DSP_MBOX_CMD_PLAY  (0x0B000001)
+#define CS35L56_DSP_MBOX_CMD_PAUSE (0x0B000002)
+
+// MBOX outbound data
+#define CS35L56_MBOX_COMMAND_INIT                           (0x02000000)
+#define CS35L56_MBOX_COMMAND_AWAKE                          (0x02000002)
+#define CS35L56_MBOX_COMMAND_PERMANENT_SHORT_DETECTED       (0x0C000C1C)
+#define CS35L56_MBOX_COMMAND_RUNTIME_SHORT_DETECTED         (0x0C000C1D)
+
+// MBOX metadata
 #define CS35L56_DSP_BYTES_PER_WORD       (4)
 #define CS35L56_MAILBOX_QUEUE_BASE       (0x028042C0)
 #define CS35L56_MAILBOX_QUEUE_LEN_OFFSET (4)
@@ -190,9 +199,6 @@ extern const struct cs35l56_register_encoding cs35l56_pll_refclk[CS35L56_NUM_VAL
 
 #define CS35L56_MBOX_RD_MASK (0x1F)
 #define CS35L56_MBOX_RD_SIZE (0x1C)
-
-#define CS35L56_DSP_MBOX_CMD_PLAY  (0x0B000001)
-#define CS35L56_DSP_MBOX_CMD_PAUSE (0x0B000002)
 
 /*GPIO trigger configuration*/
 #define CS35L56_GPIO_HANDLERS_BASE               (0x02804140)
@@ -309,7 +315,7 @@ extern const struct cs35l56_register_encoding cs35l56_pll_refclk[CS35L56_NUM_VAL
 
 #define CS35L56_ASP1_DATA_CONTROL5 (0x00004840)
 
-#define CS35L56_FIRMWARE_PLL_REFCLK_FREQ        (0x00002C04)
+#define CS35L56_FIRMWARE_PLL_REFCLK_FREQ        (0x02803D54)
 #define CS35L56_FIRMWARE_PLL_REFCLK_FREQ_OFFSET (5)
 
 #define CS35L56_FIRMWARE_PLL_OPEN_LOOP_MASK (1 << 11)

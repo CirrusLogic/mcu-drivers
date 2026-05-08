@@ -3,7 +3,7 @@
 
 description: CS40L50 Haptic Driver
 
-compatible: "cirrus,cs40l50"
+compatible: "cirrus,cs40l50_alt_os"
 
 include: ["i2c-device.yaml"]
 

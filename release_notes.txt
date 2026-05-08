@@ -3,6 +3,25 @@ Release Notes
 
 =============================================================================
 Summary:
+This is the release of Alt-OS Driver SDK v4.29.6
+Date: 2026/05/08
+
+Architectures/Compilers Used:
+GNU Arm Embedded Toolchain: arm-none-eabi-gcc -mcpu=cortex-m4
+
+New Features/Changes:
+
+Add example baremetal sample application for CS35L56 Driver
+
+Fixed Bugs:
+
+Fix blackstar project compatability with rth waveform datastructure changes
+Fix conflict with upstream zephyr in CS40L50 zephyr example overlays
+Fix bug in rapid repeated triggers in host initiated haptics API
+
+=============================================================================
+=============================================================================
+Summary:
 This is the release of Alt-OS Driver SDK v4.29.5
 Date: 2026/04/27
 

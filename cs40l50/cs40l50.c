@@ -1589,7 +1589,7 @@ uint32_t cs40l50_set_asp_enable(cs40l50_t *driver, bool enable, uint32_t freq)
  * Trigger a basic (single section) PWLE effect through the OWT
  *
  */
-uint32_t cs40l50_trigger_pwle(cs40l50_t *driver, rth_pwle_section_t **s)
+uint32_t cs40l50_trigger_pwle(cs40l50_t *driver, const rth_pwle_section_t **s)
 {
     int i;
     uint32_t ret, addr;
@@ -1640,7 +1640,7 @@ uint32_t cs40l50_trigger_pwle(cs40l50_t *driver, rth_pwle_section_t **s)
  * Trigger an advanced (multi section) PWLE effect through the OWT
  *
  */
-uint32_t cs40l50_trigger_pwle_advanced(cs40l50_t *driver, rth_pwle_section_t **s, uint8_t repeat, uint8_t num_sections)
+uint32_t cs40l50_trigger_pwle_advanced(cs40l50_t *driver, const rth_pwle_section_t **s, uint8_t repeat, uint8_t num_sections)
 {
     uint32_t ret, addr;
     int i;

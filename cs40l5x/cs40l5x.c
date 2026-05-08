@@ -922,30 +922,6 @@ uint32_t cs40l5x_reset(cs40l5x_t *driver)
                                 CS40L5X_IRQ1_MASK_2_DSP_VIRTUAL2_MBOX_WR_MASK1);
     }
 
-
-    // //TODO: Remove this
-    // driver->config.enable_dsp_err_irq = true;
-    // /**
-    //  * Enable/Disable DSP error IRQs if specified.
-    //  * For Rev B0, disabled by default.
-    //  */
-    // if(driver->config.enable_dsp_err_irq)
-    // {
-    //     ret = regmap_update_reg(cp,
-    //                     CS40L5X_IRQ1_INT_18,
-    //                     CS40L5X_IRQ1_MASK_18_GLOBAL_ERR_MASK1,
-    //                     0);
-    // }
-    // else
-    // {
-    //     ret = regmap_update_reg(cp,
-    //                     CS40L5X_IRQ1_INT_18,
-    //                     CS40L5X_IRQ1_MASK_18_GLOBAL_ERR_MASK1,
-    //                     CS40L5X_IRQ1_MASK_18_GLOBAL_ERR_MASK1);
-    // }
-
-    //TODO: Remove this
-    driver->config.enable_dsp_err_irq = true;
     /**
      * Enable/Disable DSP error IRQs if specified.
      * For Rev B0, disabled by default.
@@ -1594,7 +1570,7 @@ uint32_t cs40l5x_set_asp_enable(cs40l5x_t *driver, bool enable, uint32_t freq)
 }
 
 #ifndef CS40L5X_BAREMETAL
-uint32_t cs40l5x_trigger_pwle(cs40l5x_t *driver, rth_pwle_section_t **s)
+uint32_t cs40l5x_trigger_pwle(cs40l5x_t *driver, const rth_pwle_section_t **s)
 {
     int i;
     uint32_t ret, addr;
@@ -1638,7 +1614,7 @@ uint32_t cs40l5x_trigger_pwle(cs40l5x_t *driver, rth_pwle_section_t **s)
     return ret;
 }
 
-uint32_t cs40l5x_trigger_pwle_advanced(cs40l5x_t *driver, rth_pwle_section_t **s, uint8_t repeat, uint8_t num_sections)
+uint32_t cs40l5x_trigger_pwle_advanced(cs40l5x_t *driver, const rth_pwle_section_t **s, uint8_t repeat, uint8_t num_sections)
 {
     uint32_t ret, addr;
     int i;
