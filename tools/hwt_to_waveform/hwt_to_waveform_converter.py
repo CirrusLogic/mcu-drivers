@@ -41,12 +41,14 @@ supported_part_numbers = ['cs40l26',
                           'cs40l50',
                           'cs40l5x',]
 
+#TODO: Remove Sweep, name changed to Grow
 host_init_haptics_msft_id_map = {
     'Hover'   : '0x1008',
     'Collide' : '0x1012',
     'Align'   : '0x1013',
     'Step'    : '0x1014',
     'Grow'    : '0x1015',
+    'Sweep'    : '0x1015',
     'Press'   : '0x1006',
     'Release' : '0x1007',
     'Success' : '0x1009',

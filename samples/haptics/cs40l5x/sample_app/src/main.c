@@ -41,7 +41,7 @@ int main(void)
         const struct device *cs40l5x = DEVICE_DT_GET(DT_NODELABEL(haptic1));
         const struct device *uart = DEVICE_DT_GET(DT_NODELABEL(usart2));
         struct cs40l5x_haptic_source_config hap_cfg = {
-                .index = CS40L5X_HAPTIC_ROM_ZIPPER,
+                .index = CS40L5X_HAPTIC_ROM_CLICK_1_VCM,
                 .bank = ROM_BANK,
         };
         cs40l5x_set_haptic_cfg(cs40l5x, &hap_cfg);

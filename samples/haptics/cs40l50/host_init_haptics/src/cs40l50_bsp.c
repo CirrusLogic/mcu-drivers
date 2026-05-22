@@ -32,6 +32,20 @@ struct cs40l50_config {
     void (*irq_disable_func)(void);
 };
 
+//TODO: Remove Sweep, old name
+const char *HIH_effect_names[] = {
+    "Hover",
+    "Collide",
+    "Align",
+    "Step",
+    "Grow",
+    "Sweep",
+    "Press",
+    "Release",
+    "Success",
+    "Error"
+};
+
 int cs40l50_i2c_write_reg_dt(const struct i2c_dt_spec *spec, const uint32_t reg_addr,
                     const uint32_t value)
 {
@@ -753,29 +767,45 @@ int bsp_cs40l50_host_initiated_trigger(const struct device *dev, HIH_effect effe
 
     return BSP_STATUS_OK;
 }
+
+static bool check_pwle_is_HIH_effect(const char* effect_name)
+{
+    for(int i = 0; i < sizeof(HIH_effect_names) / sizeof(HIH_effect_names[0]); i++)
+    {
+        if(strcasecmp(effect_name, HIH_effect_names[i]) == 0)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
 int bsp_cs40l50_list_host_initiated_effects(const struct device *dev)
 {
     uint32_t ret;
     printf("\n---Wavetable Waveform List---\n");
-    for(int i = 1; i < pwleCount; i++)
+    for(int i = 0; i < pwleCount; i++)
     {
-        uint32_t length_svc_us = 0;
-        ret = bsp_cs40l50_get_SVC_tone_length(dev, &length_svc_us);
-        if(ret)
+        if(check_pwle_is_HIH_effect(pwleList[i]->name))
         {
-            return ret;
+            uint32_t length_svc_us = 0;
+            ret = bsp_cs40l50_get_SVC_tone_length(dev, &length_svc_us);
+            if(ret)
+            {
+                return ret;
+            }
+            uint32_t length_svc_ms = length_svc_us / 1000;
+            uint32_t length_svc_ms_dec = (length_svc_us % 1000) / 10;
+            uint32_t length_ms = pwleList[i]->length_us / 1000 + length_svc_ms;
+            uint32_t length_ms_dec = (pwleList[i]->length_us % 1000) / 10 + length_svc_ms_dec;
+            length_ms += length_ms_dec/100;
+            length_ms_dec %= 100;
+            if(length_ms_dec > 50) //Round to nearest ms
+            {
+                length_ms += 1;
+            }
+            printf("Name : \"%s\", Duration : %d ms\n", pwleList[i]->name, length_ms);
         }
-        uint32_t length_svc_ms = length_svc_us / 1000;
-        uint32_t length_svc_ms_dec = (length_svc_us % 1000) / 10;
-        uint32_t length_ms = pwleList[i]->length_us / 1000 + length_svc_ms;
-        uint32_t length_ms_dec = (pwleList[i]->length_us % 1000) / 10 + length_svc_ms_dec;
-        length_ms += length_ms_dec/100;
-        length_ms_dec %= 100;
-        if(length_ms_dec > 50) //Round to nearest ms
-        {
-            length_ms += 1;
-        }
-        printf("Name : \"%s\", Duration : %d ms\n", pwleList[i]->name, length_ms);
     }
     return BSP_STATUS_OK;
 }

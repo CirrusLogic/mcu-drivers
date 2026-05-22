@@ -205,7 +205,7 @@ int main(void)
     }
 
     struct cs40l5x_haptic_source_config hap_cfg = {
-        .index = CS40L5X_HAPTIC_ROM_CLICK_14_VCM,
+        .index = CS40L5X_HAPTIC_ROM_CLICK_1_VCM,
         .bank = ROM_BANK,
     };
     cs40l5x_set_haptic_cfg(cs40l5x, &hap_cfg);

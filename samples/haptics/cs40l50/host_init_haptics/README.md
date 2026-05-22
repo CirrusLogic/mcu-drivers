@@ -40,7 +40,7 @@ _Waveforms_
 
 Waveform source files are generated using the hwt converter python tool and a .hwt file corresponding to the wavetable included in the SDK, run the follow from the project/src directory:
 ```
-python ../../../../../tools/hwt_to_waveform/hwt_to_waveform_converter.py  cs40l50 ../../../../../cs40l50/fw/host_init_haptics.hwt
+python ../../../../../tools/hwt_to_waveform/hwt_to_waveform_converter.py  cs40l50 ../../../../../cs40l50/fw/host_init_haptics.hwt --host-init-haptics
 ```
 
 _Config_

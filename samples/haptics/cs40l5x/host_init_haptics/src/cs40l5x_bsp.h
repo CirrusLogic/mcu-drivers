@@ -139,6 +139,17 @@
 /**
  */
 #define MAX_HIH_EFFECT_NAME_SIZE        (20)
+
+/**
+ * Example ROM wavetable waveform index
+ */
+#define CS40L5X_HAPTIC_ROM_CLICK_1_VCM  (0x0A)
+
+/**
+ * Array of valid effect names for Host Initiated Haptics
+ */
+extern const char *HIH_effect_names[];
+
 /***********************************************************************************************************************
  * MACROS
  **********************************************************************************************************************/
@@ -472,36 +483,6 @@ typedef struct
      */
     uint32_t (*spi_restore_speed)(void);
 } bsp_driver_if_t;
-
-enum cs40l5x_haptic_rom_bank {
-    CS40L5X_HAPTIC_ROM_BUZZ_160,
-    CS40L5X_HAPTIC_ROM_CLICK_1,
-    CS40L5X_HAPTIC_ROM_CLICK_2,
-    CS40L5X_HAPTIC_ROM_CLICK_3,
-    CS40L5X_HAPTIC_ROM_CLICK_4,
-    CS40L5X_HAPTIC_ROM_CLICK_5,
-    CS40L5X_HAPTIC_ROM_CLICK_6,
-    CS40L5X_HAPTIC_ROM_CLICK_7,
-    CS40L5X_HAPTIC_ROM_CLICK_8,
-    CS40L5X_HAPTIC_ROM_BUZZ_240,
-    CS40L5X_HAPTIC_ROM_CLICK_1_VCM,
-    CS40L5X_HAPTIC_ROM_CLICK_2_VCM,
-    CS40L5X_HAPTIC_ROM_CLICK_3_VCM,
-    CS40L5X_HAPTIC_ROM_CLICK_4_VCM,
-    CS40L5X_HAPTIC_ROM_CLICK_5_VCM,
-    CS40L5X_HAPTIC_ROM_CLICK_6_VCM,
-    CS40L5X_HAPTIC_ROM_CLICK_7_VCM,
-    CS40L5X_HAPTIC_ROM_CLICK_8_VCM,
-    CS40L5X_HAPTIC_ROM_CLICK_9_VCM,
-    CS40L5X_HAPTIC_ROM_CLICK_10_VCM,
-    CS40L5X_HAPTIC_ROM_CLICK_11_VCM,
-    CS40L5X_HAPTIC_ROM_CLICK_12_VCM,
-    CS40L5X_HAPTIC_ROM_CLICK_13_VCM,
-    CS40L5X_HAPTIC_ROM_CLICK_14_VCM,
-    CS40L5X_HAPTIC_ROM_CLICK_15_VCM,
-    CS40L5X_HAPTIC_ROM_ZIPPER,
-    CS40L5X_HAPTIC_ROM_BUMP,
-};
 
 struct cs40l5x_haptic_source_config {
     int index;
