@@ -4,7 +4,7 @@
  * @brief The main function for CS40L50 System Test Harness
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2025 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2025-2026 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -67,6 +67,8 @@ int main(void)
 
         if (bsp_was_pb_pressed(BSP_PB_ID_USER))
         {
+            //Set haptic effect attenuation in dB
+            bsp_dut_configure_attenuation(BSP_DUT_ATTEN_DB_0);
             bsp_dut_trigger_haptic(0, ROM_BANK);
         }
 

@@ -30,7 +30,7 @@ include $(REPO_PATH)/common/common.mk
 # Assign paths and variables
 PART_NUM = cs35l56
 $(eval $(call assign_paths))
-PLATFORM_TARGETS = baremetal
+PLATFORM_TARGETS = baremetal cl_mcu
 VALID_TARGETS = unit_test $(PLATFORM_TARGETS)
 $(eval $(call eval_targets))
 $(eval $(call eval_optimization_level))
@@ -39,6 +39,8 @@ $(eval $(call eval_optimization_level))
 ifdef IS_NOT_UNIT_TEST
     ifeq ($(MAKECMDGOALS), blackstar)
         PLATFORM=blackstar
+    else ifeq ($(MAKECMDGOALS), cl_mcu)
+        PLATFORM=cl_mcu
     else
         ifeq ($(MAKECMDGOALS), blackstack)
             PLATFORM=blackstar
@@ -52,6 +54,10 @@ endif
 # Assign firmware and configuration script variables
 #HALO_FIRMWARE_FILE = ROM
 ifeq ($(MAKECMDGOALS), baremetal)
+FIRMWARE_CONV_TARGET = export
+FIRMWARE_HEADER = ./cs35l56_firmware.h
+HALO_FIRMWARE_WMDR = CS35L56_LT.bin CS35L56_RT.bin --preserve-filename
+else  ifeq ($(MAKECMDGOALS), cl_mcu)
 FIRMWARE_CONV_TARGET = export
 FIRMWARE_HEADER = ./cs35l56_firmware.h
 HALO_FIRMWARE_WMDR = CS35L56_LT.bin CS35L56_RT.bin --preserve-filename
@@ -139,7 +145,7 @@ print_targets:
 	@echo ERROR:  No valid target specified.
 	@echo
 	@echo Valid targets:
-	@echo       baremetal
+	@echo       baremetal cl_mcu
 	@echo
 	@echo Valid command line variables:
 	@echo		BULLSEYE=0	\(will disable Bullseye coverage\)

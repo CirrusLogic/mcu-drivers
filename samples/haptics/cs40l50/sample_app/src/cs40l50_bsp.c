@@ -259,6 +259,10 @@ static int cs40l50_write_fw_blocks(struct i2c_dt_spec *i2c, halo_boot_block_t *b
     return 0;
 }
 
+/* NOTE: Example tunings and wavetable are not designed for general-purpose applications and should
+ * be used for verification purposes only. Please contact your Cirrus Logic representative for
+ * application specific waveforms and tunings
+ */
 static int cs40l50_firmware_load(cs40l50_t *drv)
 {
     int num_blocks, ret;

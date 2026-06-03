@@ -38,22 +38,22 @@ int main(void)
 {
         int ret;
         char in_char;
-        const struct device *dev1 = DEVICE_DT_GET(DT_NODELABEL(haptic1));
+        const struct device *cs40l50 = DEVICE_DT_GET(DT_NODELABEL(haptic1));
         const struct device *uart = DEVICE_DT_GET(DT_NODELABEL(usart2));
         struct cs40l50_haptic_source_config hap_cfg = {
                 .index = CS40L50_HAPTIC_ROM_CLICK_14_VCM,
                 .bank = ROM_BANK,
         };
-        cs40l50_set_haptic_cfg(dev1, &hap_cfg);
+        cs40l50_set_haptic_cfg(cs40l50, &hap_cfg);
 
-        if (!dev1) {
+        if (!cs40l50) {
                 LOG_ERR("CS40L50 device not found");
                 return -ENODEV;
-        } else if (!device_is_ready(dev1)) {
-                LOG_ERR("CS40L50 device %s is not ready", dev1->name);
+        } else if (!device_is_ready(cs40l50)) {
+                LOG_ERR("CS40L50 device %s is not ready", cs40l50->name);
                 return -EIO;
         } else {
-                LOG_INF("Found CS40L50 device %s", dev1->name);
+                LOG_INF("Found CS40L50 device %s", cs40l50->name);
         }
 
         while (1) {
@@ -61,7 +61,7 @@ int main(void)
                 ret = uart_poll_in(uart, &in_char);
 
                 if (ret == 0) {
-                        ret = haptics_start_output(dev1);
+                        ret = haptics_start_output(cs40l50);
                         if (ret < 0) {
                                 LOG_ERR("Failed to start output: %d", ret);
                                 return ret;

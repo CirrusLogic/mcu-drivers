@@ -153,6 +153,10 @@ uint32_t bsp_dut_boot(void)
 
     cs40l50_boot(&cs40l50_driver, NULL);
 
+    /* NOTE: Example tunings and wavetable are not designed for general-purpose applications and should
+    * be used for verification purposes only. Please contact your Cirrus Logic representative for
+    * application specific waveforms and tunings
+    */
     for (i = 0; i < cs40l50_total_fw_blocks; i++) {
         ret = regmap_write_block((&cs40l50_driver.config.bsp_config.cp_config),
                                  cs40l50_fw_blocks[i].address,
@@ -224,6 +228,16 @@ uint32_t bsp_dut_trigger_haptic(uint8_t waveform, cs40l50_wavetable_bank_t bank)
     uint32_t ret = BSP_STATUS_OK;
 
     ret = cs40l50_trigger(&cs40l50_driver, waveform, bank);
+
+    return ret;
+}
+
+uint32_t bsp_dut_configure_attenuation(uint32_t atten_db)
+{
+    uint32_t ret = BSP_STATUS_OK;
+
+    uint32_t atten = atten_db << 2;
+    ret = regmap_write((&cs40l50_driver.config.bsp_config.cp_config), HAPTICS_SYSTEM_SOURCE_ATTENUATION, atten);
 
     return ret;
 }

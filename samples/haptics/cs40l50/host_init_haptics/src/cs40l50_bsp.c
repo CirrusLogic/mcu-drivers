@@ -298,6 +298,10 @@ static unsigned int get_tuning_set(cs40l50_t *drv)
     return gpi_level;
 }
 
+/* NOTE: Example tunings and wavetable are not designed for general-purpose applications and should
+ * be used for verification purposes only. Please contact your Cirrus Logic representative for
+ * application specific waveforms and tunings
+ */
 static int cs40l50_firmware_load(cs40l50_t *drv)
 {
     int num_blocks, ret;

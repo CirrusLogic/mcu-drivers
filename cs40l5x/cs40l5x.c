@@ -87,24 +87,6 @@
  * LOCAL VARIABLES
  **********************************************************************************************************************/
 
-// See CS40L5X_HAP1_Init_BoostMode.txt
-static const uint32_t cs40l5x_internal_bst_cfg[] =
-{
-    0x2018, 0x00003321,
-    0x201C, 0x04000010,
-};
-
-// See CS40L5X_HAP1_Errata_BoostMode.txt
-static const uint32_t cs40l5x_b0_errata_internal[] =
-{
-    0x00000040, 0x00000055,
-    0x00000040, 0x000000AA,
-    0x3808, 0x40000001,
-    0x3810, 0x0001,
-    0x38EC, 0x0032,
-    0x00000040, 0x0,
-};
-
 // See CS40L5X_HAP2_Init_ExtVDDAmp.txt
 static const uint32_t cs40l5x_external_bst_cfg[] =
 {
@@ -782,7 +764,7 @@ uint32_t cs40l5x_configure(cs40l5x_t *driver, cs40l5x_config_t *config)
         (NULL != config))
     {
         driver->config = *config;
-        ret = bsp_driver_if_g->register_gpio_cb((uint32_t)driver->config.bsp_config.int_gpio_id,
+        ret = bsp_driver_if_g->register_gpio_cb(driver->config.bsp_config.int_gpio_id,
                                                 &cs40l5x_irq_callback,
                                                 driver);
         if (ret == BSP_STATUS_OK)
@@ -838,10 +820,10 @@ uint32_t cs40l5x_reset(cs40l5x_t *driver)
     regmap_cp_config_t *cp = REGMAP_GET_CP(driver);
 
     // Drive RESET low for at least T_RLPW (1ms)
-    bsp_driver_if_g->set_gpio((uint32_t)driver->config.bsp_config.reset_gpio_id, BSP_GPIO_LOW);
+    bsp_driver_if_g->set_gpio(driver->config.bsp_config.reset_gpio_id, BSP_GPIO_LOW);
     bsp_driver_if_g->set_timer(2, NULL, NULL);
     // Drive RESET high and wait for at least T_IRS (2.2ms)
-    bsp_driver_if_g->set_gpio((uint32_t)driver->config.bsp_config.reset_gpio_id, BSP_GPIO_HIGH);
+    bsp_driver_if_g->set_gpio(driver->config.bsp_config.reset_gpio_id, BSP_GPIO_HIGH);
     bsp_driver_if_g->set_timer(3, NULL, NULL);
 
     // Read DEVID
@@ -882,19 +864,6 @@ uint32_t cs40l5x_reset(cs40l5x_t *driver)
         }
         ret = regmap_write_array(cp, (uint32_t *) cs40l5x_b0_errata_external,
                                  sizeof(cs40l5x_b0_errata_external)/sizeof(uint32_t));
-        if (ret)
-        {
-            return ret;
-        }
-    } else {
-        ret = regmap_write_array(cp, (uint32_t *) cs40l5x_internal_bst_cfg,
-                                 sizeof(cs40l5x_internal_bst_cfg)/sizeof(uint32_t));
-        if (ret)
-        {
-          return ret;
-        }
-        ret = regmap_write_array(cp, (uint32_t *) cs40l5x_b0_errata_internal,
-                                 sizeof(cs40l5x_b0_errata_internal)/sizeof(uint32_t));
         if (ret)
         {
             return ret;

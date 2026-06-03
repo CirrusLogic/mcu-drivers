@@ -285,6 +285,10 @@ static unsigned int get_tuning_set(cs40l50_t *drv)
     return gpi_level;
 }
 
+/* NOTE: Example tunings and wavetable are not designed for general-purpose applications and should
+ * be used for verification purposes only. Please contact your Cirrus Logic representative for
+ * application specific waveforms and tunings
+ */
 static int cs40l50_firmware_load(cs40l50_t *drv)
 {
     int num_blocks, ret;
@@ -296,6 +300,18 @@ static int cs40l50_firmware_load(cs40l50_t *drv)
 
     num_blocks = cs40l50_total_fw_blocks;
     blocks = (halo_boot_block_t*)cs40l50_fw_blocks;
+    ret = cs40l50_write_fw_blocks(i2c, blocks, num_blocks);
+    if (ret != 0)
+        return ret;
+
+    num_blocks = cs40l50_wt_total_coeff_blocks;
+    blocks = (halo_boot_block_t*)cs40l50_wt_coeff_blocks;
+    ret = cs40l50_write_fw_blocks(i2c, blocks, num_blocks);
+    if (ret != 0)
+        return ret;
+
+    num_blocks = cs40l50_SVC_total_coeff_blocks;
+    blocks = (halo_boot_block_t*)cs40l50_SVC_coeff_blocks;
     ret = cs40l50_write_fw_blocks(i2c, blocks, num_blocks);
     if (ret != 0)
         return ret;
@@ -376,6 +392,19 @@ static int cs40l50_init(const struct device *dev)
     drv->config.syscfg_regs_total = CS40L50_SYSCFG_REGS_TOTAL;
     drv->config.is_ext_bst = true;
 
+    static const struct gpio_dt_spec reset = GPIO_DT_SPEC_GET(DT_NODELABEL(haptic1), reset_gpios);
+
+    if (!gpio_is_ready_dt(&reset)) {
+        LOG_INF("cs40l50 reset pin GPIO port is not ready.\n");
+        return 0;
+    }
+
+    ret = gpio_pin_configure_dt(&reset, GPIO_OUTPUT_INACTIVE);
+    if (ret != 0) {
+        LOG_INF("cs40l50 configuring reset pin failed: %d\n", ret);
+        return 0;
+    }
+
     if (!i2c_is_ready_dt(&config->i2c)) {
         LOG_INF("cs40l50 no I2C\n");
         return -ENODEV;
@@ -388,7 +417,7 @@ static int cs40l50_init(const struct device *dev)
 
     k_msleep(1000);
 
-    regmap_read(&config->i2c, FIRMWARE_CS40L50_HALO_STATE, &val);
+    regmap_read(&config->i2c, FIRMWARE_CS40L5X_HALO_STATE, &val);
     LOG_INF("cs40l50_init: HALO_STATE = %x\n", val);
 
     LOG_INF("cs40l50_calibrate\n");
@@ -427,7 +456,7 @@ static int cs40l50_init(const struct device *dev)
     k_msleep(1000);
 
     /* to-do */
-    regmap_read(&config->i2c, FIRMWARE_CS40L50_HALO_STATE, &val);
+    regmap_read(&config->i2c, FIRMWARE_CS40L5X_HALO_STATE, &val);
     LOG_INF("cs40l50_init: HALO_STATE = %x\n", val);
 
 //    config->irq_cfg_func();

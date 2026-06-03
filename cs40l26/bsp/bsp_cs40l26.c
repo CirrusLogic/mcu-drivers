@@ -4,7 +4,7 @@
  * @brief Implementation of the BSP for the cs40l26 platform.
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2021-2023 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2021-2023, 2026 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -156,6 +156,10 @@ uint32_t bsp_dut_boot(bool cal_boot)
     const uint8_t *fw_img_end;
     uint32_t write_size;
 
+    /* NOTE: Example tunings and wavetable are not designed for general-purpose applications and should
+    * be used for verification purposes only. Please contact your Cirrus Logic representative for
+    * application specific waveforms and tunings
+    */
     if (cal_boot)
     {
         cs40l26_driver.is_cal_boot = true;

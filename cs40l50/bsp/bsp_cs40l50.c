@@ -167,6 +167,11 @@ uint32_t bsp_dut_boot(void)
     const uint8_t *fw_img_end;
     uint32_t write_size;
 
+
+    /* NOTE: Example tunings and wavetable are not designed for general-purpose applications and should
+    * be used for verification purposes only. Please contact your Cirrus Logic representative for
+    * application specific waveforms and tunings
+    */
     fw_img = cs40l50_fw_img;
     fw_img_end = cs40l50_fw_img + FW_IMG_SIZE(cs40l50_fw_img);
 

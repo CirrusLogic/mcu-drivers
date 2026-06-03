@@ -39,6 +39,13 @@ extern "C" {
  **********************************************************************************************************************/
 #define BSP_DUT_I2C_ADDRESS_8BIT                            (0x68)
 
+#define BSP_DUT_ATTEN_DB_0                                  (0U)
+#define BSP_DUT_ATTEN_DB_6                                  (6U)
+#define BSP_DUT_ATTEN_DB_12                                 (12U)
+#define BSP_DUT_ATTEN_DB_18                                 (18U)
+#define BSP_DUT_ATTEN_DB_24                                 (24U)
+#define BSP_DUT_ATTEN_DB_30                                 (30U)
+
 /***********************************************************************************************************************
  * MACROS
  **********************************************************************************************************************/
@@ -73,7 +80,20 @@ uint32_t bsp_dut_trigger_haptic(uint8_t waveform, cs40l50_wavetable_bank_t bank)
 uint32_t bsp_dut_trigger_rth_pwle(bool is_simple, const rth_pwle_section_t **pwle_data, uint8_t num_sections, uint8_t repeat);
 uint32_t bsp_dut_trigger_rth_pcm(uint8_t *pcm_data, uint32_t num_sections, uint16_t buffer, uint16_t f0, uint16_t redc);
 uint32_t bsp_dut_dynamic_calibrate(uint8_t index);
-
+/**
+ * @brief Sets the global attenuation of the haptic output
+ *
+ * This function takes in the attenuation of haptic triggers in a dB, converts it to a s21.2 fixed point value, then writes it to
+ * HAPTICS_SYSTEM_SOURCE_ATTENUATION in the system firmware.
+ *
+ * @param [in] atten Attenuation value to set for haptic output in s22.2 format
+ *
+ * @return
+ * - CS40L50_STATUS_OK if:
+ *      - HAPTICS_SYSTEM_SOURCE_ATTENUATION successfully written with new value
+ * - otherwise, returns CS40L50_STATUS_FAIL
+ */
+uint32_t bsp_dut_configure_attenuation(uint32_t atten_db);
 /**********************************************************************************************************************/
 #ifdef __cplusplus
 }

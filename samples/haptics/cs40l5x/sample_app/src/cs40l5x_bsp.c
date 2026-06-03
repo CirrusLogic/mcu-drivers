@@ -257,6 +257,10 @@ static int cs40l5x_write_fw_blocks(struct i2c_dt_spec *i2c, const halo_boot_bloc
     return 0;
 }
 
+/* NOTE: Example tunings and wavetable are not designed for general-purpose applications and should
+ * be used for verification purposes only. Please contact your Cirrus Logic representative for
+ * application specific waveforms and tunings
+ */
 static int cs40l5x_firmware_load(cs40l5x_t *drv)
 {
     int num_blocks, ret;
@@ -309,13 +313,13 @@ static uint32_t cs40l5x_set_timer(uint32_t duration_ms, bsp_callback_t cb, void 
     return 0;
 }
 
-static uint32_t cs40l5x_register_gpio_cb(uint32_t gpio_id, bsp_callback_t cb, void *cb_arg)
+static uint32_t cs40l5x_register_gpio_cb(const struct gpio_dt_spec* gpio_id, bsp_callback_t cb, void *cb_arg)
 {
     //TODO
     return 0;
 }
 
-static uint32_t cs40l5x_set_gpio(uint32_t gpio_id, uint8_t gpio_state)
+static uint32_t cs40l5x_set_gpio(const struct gpio_dt_spec* gpio_id, uint8_t gpio_state)
 {
     //TODO
     return 0;

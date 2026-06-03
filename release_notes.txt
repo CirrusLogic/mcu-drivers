@@ -3,6 +3,25 @@ Release Notes
 
 =============================================================================
 Summary:
+This is the release of Alt-OS Driver SDK v4.30.1
+Date: 2026/06/03
+
+Architectures/Compilers Used:
+GNU Arm Embedded Toolchain: arm-none-eabi-gcc -mcpu=cortex-m4
+
+New Features/Changes:
+
+Add CL_MCU platform support
+Add Audio2haptics sample application for CS40L5X
+Add set gain function to CS40L50 baremetal bsp
+
+Fixed Bugs:
+
+Remove explicit interal boost configuration from CS40L50/5X driver
+
+=============================================================================
+=============================================================================
+Summary:
 This is the release of Alt-OS Driver SDK v4.29.7
 Date: 2026/05/22
 

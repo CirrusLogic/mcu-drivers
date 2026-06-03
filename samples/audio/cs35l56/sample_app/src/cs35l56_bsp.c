@@ -288,6 +288,10 @@ static int cs35l56_fw_reset(const struct device *dev)
     return -ETIME;
 }
 
+/* NOTE: Example tunings are not designed for general-purpose applications and should
+ * be used for verification purposes only. Please contact your Cirrus Logic representative for
+ * application specific tunings
+ */
 static int cs35l56_firmware_load(const struct device *dev)
 {
     int num_blocks, ret;

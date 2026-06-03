@@ -4,6 +4,8 @@ Follow the Zephyr Getting Started guide to create a Zephyr workspace: https://do
 
 The SDK samples will use the ST Nucleo F401RE board as a target (nucleo_f401re)
 
+***Wavetable and tunings for these examples are not meant for general purpose usage, please contact your Cirrus Logic representative for application specific tunings.***
+
 ## Directory structure
 
 Clone the SDK repo (mcu-drivers) inside the 'zephyrproject' directory, at the same level as the Zephyr kernel. This repo includes a samples directory with sample zephyr applications for the drivers.
@@ -38,10 +40,8 @@ Hello World:
 https://github.com/CirrusLogic/mcu-drivers/blob/7faad294f130f55ace18f95e3f3ed827589601cd/samples/helloworld/cs40l50/
 
 
-
 Basic Sample Application:
 https://github.com/CirrusLogic/mcu-drivers/tree/master/samples/haptics/cs40l50/sample_app
-
 
 
 Using Diagnostics:
@@ -54,3 +54,17 @@ https://github.com/CirrusLogic/mcu-drivers/tree/master/samples/haptics/cs40l50/a
 
 Host Initiated Haptics
 https://github.com/CirrusLogic/mcu-drivers/tree/master/samples/haptics/cs40l50/host_init_haptics
+
+## Samples CS40L5X
+
+Basic Sample Application:
+https://github.com/CirrusLogic/mcu-drivers/tree/master/samples/haptics/cs40l5x/sample_app
+
+
+Host Initiated Haptics:
+https://github.com/CirrusLogic/mcu-drivers/tree/master/samples/haptics/cs40l5x/host_init_haptics
+
+## Samples CS35L56
+
+Basic Streaming Sample Application:
+https://github.com/CirrusLogic/mcu-drivers/tree/master/samples/audio/cs35l56/sample_app
