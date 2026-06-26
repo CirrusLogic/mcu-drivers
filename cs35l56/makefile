@@ -93,6 +93,10 @@ INCLUDES += -I$(HALO_FIRMWARE_PATH)
 $(eval $(call assign_sources_includes))
 C_SRCS += $(APP_PATH)/main.c
 
+ifeq ($(MAKECMDGOALS), cl_mcu)
+    C_SRCS += $(DRIVER_PATH)/bsp/bsp_cl_mcu.c
+endif
+
 ifeq ($(MAKECMDGOALS), baremetal)
     C_SRCS += $(HALO_FIRMWARE_PATH)/cs35l56_firmware.c
     C_SRCS += $(DRIVER_PATH)/bsp/bsp_cs35l56_baremetal.c

@@ -3,6 +3,9 @@ MCU Drivers for Cirrus Logic Codecs and Amplifiers
 
 Application Notes are available for drivers included in the SDK - please contact a Cirrus Logic representative for more details.
 
+[AN0644R2 - MCU Driver SDK Integration Guide](AN0644R2 - MCU Driver Software Development Kit Integration Guide.pdf)
+[AN0672R2 - Firmware Converter Guide](tools/firmware_converter/AN0672R2 - Firmware Converter Guide.pdf)
+
 # MCU Driver SDK License and Credits
 Copyright (c) Cirrus Logic 2019-2021 All Rights Reserved, http://www.cirrus.com/
 

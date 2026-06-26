@@ -51,7 +51,7 @@
 /**
  * Total INT and MASK registers to handle in IRQ1
  */
-#define CS40L50_IRQ1_REG_TOTAL          (10)
+#define CS40L50_IRQ1_REG_TOTAL          (20)
 
 /**
  * This ID is unique to the Blackstar BSP and maps to
@@ -219,6 +219,7 @@ static const uint32_t cs40l50_irq_to_event_flag_map[] =
     CS40L50_IRQ1_INT_9, IRQ1_INT_9_BST_SHORT_ERR_INT1_BITMASK, CS40L50_EVENT_FLAG_BST_ERROR,
     CS40L50_IRQ1_INT_9, IRQ1_INT_9_BST_UVP_ERR_INT1_BITMASK, CS40L50_EVENT_FLAG_BST_ERROR,
     CS40L50_IRQ1_INT_10, IRQ1_INT_10_UVLO_VDDBATT_ERR_INT1_BITMASK, CS40L50_EVENT_FLAG_BST_ERROR,
+    CS40L50_IRQ1_INT_20, IRQ1_INT_10_IF1_BLOCKED_INT1_BITMASK, CS40L50_EVENT_FLAG_IF_ERROR
 };
 
 static uint32_t cs40l50_mbox_command_to_event_id_map[] =
@@ -736,6 +737,15 @@ static uint32_t cs40l50_event_handler(cs40l50_t *driver)
         }
     }
 
+    if(driver->event_flags & CS40L50_EVENT_FLAG_IF_ERROR)
+    {
+        ret = regmap_write(cp, CS40L50_IRQ1_INT_20, IRQ1_INT_10_IF1_BLOCKED_INT1_BITMASK);
+        if (ret)
+        {
+            return ret;
+        }
+    }
+
     return CS40L50_STATUS_OK;
 }
 
@@ -887,6 +897,9 @@ uint32_t cs40l50_reset(cs40l50_t *driver)
             return ret;
         }
     }
+
+    //Initially handle events for software reset case
+    driver->mode = CS40L50_MODE_HANDLING_EVENTS;
 
     /**
      * Enable/Disable MBOX IRQs if specified.
@@ -1164,6 +1177,7 @@ uint32_t cs40l50_calibrate(cs40l50_t *driver)
         return ret;
     }
 
+    mbox_rd_ptr_value = (mbox_rd_ptr_value & ~CS40L50_MBOX_RD_MASK) | ((mbox_rd_ptr_value & CS40L50_MBOX_RD_MASK) % CS40L50_MBOX_RD_SIZE);
     mbox_rd_ptr_value += 4;
 
     ret = regmap_write(cp, mbox_rd_ptr_addr, mbox_rd_ptr_value);
@@ -1178,6 +1192,7 @@ uint32_t cs40l50_calibrate(cs40l50_t *driver)
         return ret;
     }
 
+    mbox_rd_ptr_value = (mbox_rd_ptr_value & ~CS40L50_MBOX_RD_MASK) | ((mbox_rd_ptr_value & CS40L50_MBOX_RD_MASK) % CS40L50_MBOX_RD_SIZE);
     mbox_rd_ptr_value += 4;
 
     ret = regmap_write(cp, mbox_rd_ptr_addr, mbox_rd_ptr_value);
@@ -1212,6 +1227,7 @@ uint32_t cs40l50_calibrate(cs40l50_t *driver)
         return ret;
     }
 
+    mbox_rd_ptr_value = (mbox_rd_ptr_value & ~CS40L50_MBOX_RD_MASK) | ((mbox_rd_ptr_value & CS40L50_MBOX_RD_MASK) % CS40L50_MBOX_RD_SIZE);
     mbox_rd_ptr_value += 4;
 
     ret = regmap_write(cp, mbox_rd_ptr_addr, mbox_rd_ptr_value);
@@ -1225,6 +1241,7 @@ uint32_t cs40l50_calibrate(cs40l50_t *driver)
         return ret;
     }
 
+    mbox_rd_ptr_value = (mbox_rd_ptr_value & ~CS40L50_MBOX_RD_MASK) | ((mbox_rd_ptr_value & CS40L50_MBOX_RD_MASK) % CS40L50_MBOX_RD_SIZE);
     mbox_rd_ptr_value += 4;
 
     ret = regmap_write(cp, mbox_rd_ptr_addr, mbox_rd_ptr_value);

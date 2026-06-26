@@ -34,7 +34,7 @@ struct cs40l50_config {
 };
 
 int cs40l50_i2c_write_reg_dt(const struct i2c_dt_spec *spec, const uint32_t reg_addr,
-                    const uint32_t value)
+                 const uint32_t value)
 {
     uint8_t addr_buf[4], data_buf[4], msg_buf[8];
     int i, j = 4;
@@ -52,7 +52,7 @@ int cs40l50_i2c_write_reg_dt(const struct i2c_dt_spec *spec, const uint32_t reg_
 }
 
 int cs40l50_i2c_read_reg_dt(const struct i2c_dt_spec *spec, const uint32_t reg_addr,
-                   uint32_t *value)
+                uint32_t *value)
 {
     uint8_t write_buf[4], read_buf[4];
     int ret;
@@ -71,7 +71,7 @@ int cs40l50_i2c_read_reg_dt(const struct i2c_dt_spec *spec, const uint32_t reg_a
 }
 
 int cs40l50_update_reg_dt(const struct i2c_dt_spec *spec, const uint32_t reg_addr,
-                 const uint32_t mask, const uint32_t value)
+              const uint32_t mask, const uint32_t value)
 {
     uint32_t old_value, new_value;
     int ret;
@@ -90,13 +90,12 @@ int cs40l50_update_reg_dt(const struct i2c_dt_spec *spec, const uint32_t reg_add
 }
 
 /* write addr/word pairs */
-int cs40l50_write_array_dt(const struct i2c_dt_spec *spec,
-                    const uint32_t *array, uint32_t words)
+int cs40l50_write_array_dt(const struct i2c_dt_spec *spec, const uint32_t *array, uint32_t words)
 {
     int i, ret;
 
-    for (i = 0; i < words; i+=2) {
-        ret = cs40l50_i2c_write_reg_dt(spec, array[i], array[i+1]);
+    for (i = 0; i < words; i += 2) {
+        ret = cs40l50_i2c_write_reg_dt(spec, array[i], array[i + 1]);
         if (ret < 0) {
             return ret;
         }
@@ -105,11 +104,12 @@ int cs40l50_write_array_dt(const struct i2c_dt_spec *spec,
 }
 
 /**
- * Reads a register for a specific value for a specified amount of tries while waiting between reads.
+ * Reads a register for a specific value for a specified amount of tries while waiting between
+ * reads.
  *
  */
-int cs40l50_poll_reg_dt(const struct i2c_dt_spec *spec, const uint32_t reg_addr,
-                   uint32_t value, uint32_t tries, uint32_t delay)
+int cs40l50_poll_reg_dt(const struct i2c_dt_spec *spec, const uint32_t reg_addr, uint32_t value,
+            uint32_t tries, uint32_t delay)
 {
     uint32_t tmp;
     int i, ret;
@@ -120,8 +120,9 @@ int cs40l50_poll_reg_dt(const struct i2c_dt_spec *spec, const uint32_t reg_addr,
             return ret;
         }
 
-        if (tmp == value)
-          return 0;
+        if (tmp == value) {
+            return 0;
+        }
 
         k_msleep(delay);
     }
@@ -129,7 +130,7 @@ int cs40l50_poll_reg_dt(const struct i2c_dt_spec *spec, const uint32_t reg_addr,
 }
 
 int cs40l50_write_acked_reg_dt(const struct i2c_dt_spec *spec, const uint32_t reg_addr,
-                                uint32_t val, uint32_t acked_val,  uint8_t tries,  uint32_t delay)
+                   uint32_t val, uint32_t acked_val, uint8_t tries, uint32_t delay)
 {
     int i, ret;
 
@@ -138,15 +139,14 @@ int cs40l50_write_acked_reg_dt(const struct i2c_dt_spec *spec, const uint32_t re
         return ret;
     }
 
-    for (i = 0 ; i < tries; i++) {
+    for (i = 0; i < tries; i++) {
         uint32_t temp_reg_val;
 
         k_msleep(delay);
 
         cs40l50_i2c_read_reg_dt(spec, reg_addr, &temp_reg_val);
 
-        if (temp_reg_val == acked_val)
-        {
+        if (temp_reg_val == acked_val) {
             return 0;
         }
     }
@@ -155,16 +155,17 @@ int cs40l50_write_acked_reg_dt(const struct i2c_dt_spec *spec, const uint32_t re
 }
 
 int cs40l50_i2c_write_bulk_bus(const struct i2c_dt_spec *spec, const uint32_t reg_addr,
-    const uint8_t *buf, unsigned int num_bytes, uint16_t bus_addr)
+                   const uint8_t *buf, unsigned int num_bytes, uint16_t bus_addr)
 {
     uint8_t addr_buf[4], *msg_buf;
     int i, ret = 0;
 
     LOG_INF("cs40l50_i2c_write_bulk_bus: reg=%x size=%d\n", reg_addr, num_bytes);
 
-    msg_buf = k_malloc(num_bytes+4);
-    if (!msg_buf)
+    msg_buf = k_malloc(num_bytes + 4);
+    if (!msg_buf) {
         return -ENOMEM;
+    }
 
     sys_put_be32(reg_addr, addr_buf);
 
@@ -172,7 +173,7 @@ int cs40l50_i2c_write_bulk_bus(const struct i2c_dt_spec *spec, const uint32_t re
         msg_buf[i] = addr_buf[i];
     }
 
-    bytecpy(msg_buf+4, buf, num_bytes);
+    bytecpy(msg_buf + 4, buf, num_bytes);
 
     ret = i2c_write(spec->bus, msg_buf, 4 + num_bytes, bus_addr);
 
@@ -180,8 +181,8 @@ int cs40l50_i2c_write_bulk_bus(const struct i2c_dt_spec *spec, const uint32_t re
     return ret;
 }
 
-int cs40l50_i2c_write_bus(const struct i2c_dt_spec *spec, const uint32_t reg_addr,
-    uint32_t val, uint16_t bus_addr)
+int cs40l50_i2c_write_bus(const struct i2c_dt_spec *spec, const uint32_t reg_addr, uint32_t val,
+              uint16_t bus_addr)
 {
     uint8_t addr_buf[4], data_buf[4], *msg_buf;
     int ret = 0;
@@ -189,14 +190,15 @@ int cs40l50_i2c_write_bus(const struct i2c_dt_spec *spec, const uint32_t reg_add
     LOG_INF("cs40l50_i2c_write_bus: reg=%x\n", reg_addr);
 
     msg_buf = k_malloc(8);
-    if (!msg_buf)
+    if (!msg_buf) {
         return -ENOMEM;
+    }
 
     sys_put_be32(reg_addr, addr_buf);
     sys_put_be32(val, data_buf);
 
     bytecpy(msg_buf, addr_buf, 4);
-    bytecpy(msg_buf+4, data_buf, 4);
+    bytecpy(msg_buf + 4, data_buf, 4);
 
     ret = i2c_write(spec->bus, msg_buf, 8, bus_addr);
 
@@ -205,16 +207,17 @@ int cs40l50_i2c_write_bus(const struct i2c_dt_spec *spec, const uint32_t reg_add
 }
 
 int cs40l50_i2c_write_bulk_dt(const struct i2c_dt_spec *spec, const uint32_t reg_addr,
-    const uint8_t *buf, unsigned int num_bytes)
+                  const uint8_t *buf, unsigned int num_bytes)
 {
     uint8_t addr_buf[4], *msg_buf;
     int i, ret = 0;
 
     LOG_INF("cs40l50_i2c_write_bulk_dt: reg=%x size=%d\n", reg_addr, num_bytes);
 
-    msg_buf = k_malloc(num_bytes+4);
-    if (!msg_buf)
+    msg_buf = k_malloc(num_bytes + 4);
+    if (!msg_buf) {
         return -ENOMEM;
+    }
 
     sys_put_be32(reg_addr, addr_buf);
 
@@ -222,7 +225,7 @@ int cs40l50_i2c_write_bulk_dt(const struct i2c_dt_spec *spec, const uint32_t reg
         msg_buf[i] = addr_buf[i];
     }
 
-    bytecpy(msg_buf+4, buf, num_bytes);
+    bytecpy(msg_buf + 4, buf, num_bytes);
 
     ret = i2c_write_dt(spec, msg_buf, sizeof(msg_buf) + num_bytes);
 
@@ -230,29 +233,30 @@ int cs40l50_i2c_write_bulk_dt(const struct i2c_dt_spec *spec, const uint32_t reg
     return ret;
 }
 
-int cs40l50_set_haptic_cfg(const struct device *dev, struct cs40l50_haptic_source_config* hap_cfg)
+int cs40l50_set_haptic_cfg(const struct device *dev, struct cs40l50_haptic_source_config *hap_cfg)
 {
-    struct cs40l50_bsp* data = dev->data;
+    struct cs40l50_bsp *data = dev->data;
     data->hap_cfg = *hap_cfg;
     return 0;
 }
 
-
-static int cs40l50_write_fw_blocks(struct i2c_dt_spec *i2c, halo_boot_block_t *blocks, int num_blocks)
+static int cs40l50_write_fw_blocks(struct i2c_dt_spec *i2c, halo_boot_block_t *blocks,
+                   int num_blocks)
 {
     int i, ret;
     halo_boot_block_t block;
     uint32_t bytes, address;
-    uint8_t* buffer;
+    uint8_t *buffer;
 
     for (i = 0; i < num_blocks; i++) {
         block = blocks[i];
         bytes = block.block_size;
         address = block.address;
-        buffer = (uint8_t*)block.bytes;
+        buffer = (uint8_t *)block.bytes;
         ret = cs40l50_i2c_write_bulk_dt(i2c, address, buffer, bytes);
-        if (ret != 0)
+        if (ret != 0) {
             return ret;
+        }
         k_msleep(5);
     }
 
@@ -270,16 +274,18 @@ static int cs40l50_firmware_load(cs40l50_t *drv)
     struct i2c_dt_spec *i2c = drv->config.bsp_config.i2c;
 
     num_blocks = cs40l50_total_fw_blocks;
-    blocks = (halo_boot_block_t*)cs40l50_fw_blocks;
+    blocks = (halo_boot_block_t *)cs40l50_fw_blocks;
     ret = cs40l50_write_fw_blocks(i2c, blocks, num_blocks);
-    if (ret != 0)
+    if (ret != 0) {
         return ret;
+    }
 
     num_blocks = cs40l50_wt_total_coeff_blocks;
-    blocks = (halo_boot_block_t*)cs40l50_wt_coeff_blocks;
+    blocks = (halo_boot_block_t *)cs40l50_wt_coeff_blocks;
     ret = cs40l50_write_fw_blocks(i2c, blocks, num_blocks);
-    if (ret != 0)
+    if (ret != 0) {
         return ret;
+    }
 
     LOG_INF("Loaded wavetable");
 
@@ -291,8 +297,9 @@ static int cs40l50_clear_gpio_triggers(cs40l50_t *drv)
     int i;
     struct i2c_dt_spec *i2c = drv->config.bsp_config.i2c;
 
-    for (i = 0; i < 16; i++)
-        regmap_write(i2c, CS40L50_GPIO_HANDLERS_BASE + i*4, 0x1FF);
+    for (i = 0; i < 16; i++) {
+        regmap_write(i2c, CS40L50_GPIO_HANDLERS_BASE + i * 4, 0x1FF);
+    }
 
     return 0;
 }
@@ -301,11 +308,12 @@ static int cs40l50_setup_gpi(cs40l50_t *drv, unsigned int gpio)
 {
     struct i2c_dt_spec *i2c = drv->config.bsp_config.i2c;
 
-    if (gpio > 13)
+    if (gpio > 13) {
         return -1;
+    }
 
     regmap_write(i2c, CS40L50_GPIO_CTRL1 + (4 * (gpio - 1)),
-        CS40L50_GPIO_CTRL_DIR_BITMASK | CS40L50_GPIO_CTRL_FN_INPUT_OUTPUT);
+             CS40L50_GPIO_CTRL_DIR_BITMASK | CS40L50_GPIO_CTRL_FN_INPUT_OUTPUT);
     return 0;
 }
 
@@ -315,23 +323,22 @@ static uint32_t cs40l50_set_timer(uint32_t duration_ms, bsp_callback_t cb, void 
     return 0;
 }
 
-static uint32_t cs40l50_register_gpio_cb(const struct gpio_dt_spec* gpio_id, bsp_callback_t cb, void *cb_arg)
+static uint32_t cs40l50_register_gpio_cb(const struct gpio_dt_spec *gpio_id, bsp_callback_t cb,
+                     void *cb_arg)
 {
-    //TODO
+    // TODO
     return 0;
 }
 
-static uint32_t cs40l50_set_gpio(const struct gpio_dt_spec* gpio_id, uint8_t gpio_state)
+static uint32_t cs40l50_set_gpio(const struct gpio_dt_spec *gpio_id, uint8_t gpio_state)
 {
-    //TODO
+    // TODO
     return 0;
 }
 
-bsp_driver_if_t cs40l50_bsp_driver_if = {
-    .set_timer = cs40l50_set_timer,
-    .register_gpio_cb = cs40l50_register_gpio_cb,
-    .set_gpio = cs40l50_set_gpio
-};
+bsp_driver_if_t cs40l50_bsp_driver_if = {.set_timer = cs40l50_set_timer,
+                     .register_gpio_cb = cs40l50_register_gpio_cb,
+                     .set_gpio = cs40l50_set_gpio};
 
 bsp_driver_if_t *bsp_driver_if_g = &cs40l50_bsp_driver_if;
 
@@ -339,7 +346,7 @@ bsp_driver_if_t *bsp_driver_if_g = &cs40l50_bsp_driver_if;
 
 static int cs40l50_init(const struct device *dev)
 {
-    struct cs40l50_config *config = (struct cs40l50_config*)dev->config;
+    struct cs40l50_config *config = (struct cs40l50_config *)dev->config;
     struct cs40l50_bsp *data = dev->data;
     cs40l50_t *drv = &data->priv;
     uint32_t val;
@@ -351,7 +358,8 @@ static int cs40l50_init(const struct device *dev)
     drv->config.syscfg_regs_total = CS40L50_SYSCFG_REGS_TOTAL;
     drv->config.is_ext_bst = true;
 
-    static const struct gpio_dt_spec reset = GPIO_DT_SPEC_GET(DT_NODELABEL(haptic1), reset_gpios);
+    static const struct gpio_dt_spec reset =
+        GPIO_DT_SPEC_GET(DT_NODELABEL(haptic1), reset_gpios);
 
     if (!gpio_is_ready_dt(&reset)) {
         LOG_INF("cs40l50 reset pin GPIO port is not ready.\n");
@@ -415,8 +423,8 @@ static int cs40l50_init(const struct device *dev)
     regmap_read(&config->i2c, FIRMWARE_CS40L5X_HALO_STATE, &val);
     LOG_INF("cs40l50_init: HALO_STATE = %x\n", val);
 
-//    config->irq_cfg_func();
-//    config->irq_enable_func();
+    //    config->irq_cfg_func();
+    //    config->irq_enable_func();
 
     return 0;
 }
@@ -428,9 +436,10 @@ static int haptics_cs40l50_stop_output(const struct device *dev)
 
 static int haptics_cs40l50_start_output(const struct device *dev)
 {
-    struct cs40l50_bsp *data = (struct cs40l50_bsp*)dev->data;
+    struct cs40l50_bsp *data = (struct cs40l50_bsp *)dev->data;
 
-    LOG_INF("haptics_cs40l50_start_output, bank=%x, index=%x\n", data->hap_cfg.bank, data->hap_cfg.index);
+    LOG_INF("haptics_cs40l50_start_output, bank=%x, index=%x\n", data->hap_cfg.bank,
+        data->hap_cfg.index);
 
     cs40l50_trigger(&data->priv, data->hap_cfg.index, data->hap_cfg.bank);
 
@@ -448,22 +457,20 @@ static const struct haptics_driver_api cs40l50_driver_api = {
 
 #define CS40L50_INIT(inst)                                                                         \
                                                                                                    \
-                                                                                                   \
     static const struct cs40l50_config cs40l50_config_##inst = {                               \
         .i2c = I2C_DT_SPEC_INST_GET(inst),                                                 \
     };                                                                                         \
                                                                                                    \
-    static struct cs40l50_bsp cs40l50_bsp_data_##inst = {                                         \
+    static struct cs40l50_bsp cs40l50_bsp_data_##inst = {                                      \
                                                                                                    \
     };                                                                                         \
                                                                                                    \
     PM_DEVICE_DT_INST_DEFINE(inst, cs40l50_pm_action);                                         \
                                                                                                    \
-    DEVICE_DT_INST_DEFINE(inst, &cs40l50_init, NULL, &cs40l50_bsp_data_##inst,                     \
+    DEVICE_DT_INST_DEFINE(inst, &cs40l50_init, NULL, &cs40l50_bsp_data_##inst,                 \
                   &cs40l50_config_##inst, POST_KERNEL, CONFIG_HAPTICS_INIT_PRIORITY,   \
                   &cs40l50_driver_api);
 
 DT_INST_FOREACH_STATUS_OKAY(CS40L50_INIT)
 
 /* ===================================================================================== */
-

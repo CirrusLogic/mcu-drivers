@@ -40,45 +40,45 @@
 #ifdef CONFIG_HAPTICS_CS40L51
 #include "cs40l51_firmware.h"
 #define cs40l5x_total_fw_blocks cs40l51_total_fw_blocks
-#define cs40l5x_fw_blocks cs40l51_fw_blocks
+#define cs40l5x_fw_blocks       cs40l51_fw_blocks
 
 #define cs40l5x_total_coeff_blocks_0 cs40l51_total_coeff_blocks_0
 #define cs40l5x_total_coeff_blocks_1 cs40l51_total_coeff_blocks_1
-#define cs40l5x_coeff_0_blocks cs40l51_coeff_0_blocks
-#define cs40l5x_coeff_1_blocks cs40l51_coeff_1_blocks
+#define cs40l5x_coeff_0_blocks       cs40l51_coeff_0_blocks
+#define cs40l5x_coeff_1_blocks       cs40l51_coeff_1_blocks
 #endif
 
 #ifdef CONFIG_HAPTICS_CS40L52
 #include "cs40l52_firmware.h"
 #define cs40l5x_total_fw_blocks cs40l52_total_fw_blocks
-#define cs40l5x_fw_blocks cs40l52_fw_blocks
+#define cs40l5x_fw_blocks       cs40l52_fw_blocks
 
 #define cs40l5x_total_coeff_blocks_0 cs40l52_total_coeff_blocks_0
 #define cs40l5x_total_coeff_blocks_1 cs40l52_total_coeff_blocks_1
-#define cs40l5x_coeff_0_blocks cs40l52_coeff_0_blocks
-#define cs40l5x_coeff_1_blocks cs40l52_coeff_1_blocks
+#define cs40l5x_coeff_0_blocks       cs40l52_coeff_0_blocks
+#define cs40l5x_coeff_1_blocks       cs40l52_coeff_1_blocks
 #endif
 
 #ifdef CONFIG_HAPTICS_CS40L53
 #include "cs40l53_firmware.h"
 #define cs40l5x_total_fw_blocks cs40l53_total_fw_blocks
-#define cs40l5x_fw_blocks cs40l53_fw_blocks
+#define cs40l5x_fw_blocks       cs40l53_fw_blocks
 
 #define cs40l5x_total_coeff_blocks_0 cs40l53_total_coeff_blocks_0
 #define cs40l5x_total_coeff_blocks_1 cs40l53_total_coeff_blocks_1
-#define cs40l5x_coeff_0_blocks cs40l53_coeff_0_blocks
-#define cs40l5x_coeff_1_blocks cs40l53_coeff_1_blocks
+#define cs40l5x_coeff_0_blocks       cs40l53_coeff_0_blocks
+#define cs40l5x_coeff_1_blocks       cs40l53_coeff_1_blocks
 #endif
 
-#define regmap_cp_config_t struct i2c_dt_spec
-#define REGMAP_GET_CP(x) x->config.bsp_config.i2c
-#define regmap_read cs40l5x_i2c_read_reg_dt
-#define regmap_write cs40l5x_i2c_write_reg_dt
-#define regmap_update_reg cs40l5x_update_reg_dt
-#define regmap_write_array cs40l5x_write_array_dt
-#define regmap_poll_reg cs40l5x_poll_reg_dt
+#define regmap_cp_config_t     struct i2c_dt_spec
+#define REGMAP_GET_CP(x)       x->config.bsp_config.i2c
+#define regmap_read            cs40l5x_i2c_read_reg_dt
+#define regmap_write           cs40l5x_i2c_write_reg_dt
+#define regmap_update_reg      cs40l5x_update_reg_dt
+#define regmap_write_array     cs40l5x_write_array_dt
+#define regmap_poll_reg        cs40l5x_poll_reg_dt
 #define regmap_write_acked_reg cs40l5x_write_acked_reg_dt
-#define regmap_write_blocks cs40l5x_i2c_write_bulk_dt
+#define regmap_write_blocks    cs40l5x_i2c_write_bulk_dt
 
 /***********************************************************************************************************************
  * LITERALS & CONSTANTS
@@ -90,8 +90,8 @@
  *
  * @{
  */
-#define BSP_STATUS_OK               (0)
-#define BSP_STATUS_FAIL             (1)
+#define BSP_STATUS_OK   (0)
+#define BSP_STATUS_FAIL (1)
 /** @} */
 
 /**
@@ -102,11 +102,11 @@
  *
  * @{
  */
-#define BSP_TIMER_DURATION_1MS      (1)
-#define BSP_TIMER_DURATION_2MS      (2)
-#define BSP_TIMER_DURATION_5MS      (5)
-#define BSP_TIMER_DURATION_10MS     (10)
-#define BSP_TIMER_DURATION_2S       (2000)
+#define BSP_TIMER_DURATION_1MS  (1)
+#define BSP_TIMER_DURATION_2MS  (2)
+#define BSP_TIMER_DURATION_5MS  (5)
+#define BSP_TIMER_DURATION_10MS (10)
+#define BSP_TIMER_DURATION_2S   (2000)
 /** @} */
 
 /**
@@ -115,8 +115,8 @@
  * @see bsp_driver_if_t.set_gpio
  *
  */
-#define BSP_GPIO_LOW                (0)
-#define BSP_GPIO_INACTIVE           (0)
+#define BSP_GPIO_LOW      (0)
+#define BSP_GPIO_INACTIVE (0)
 
 /**
  * Value to indicate driving a GPIO high
@@ -124,8 +124,8 @@
  * @see bsp_driver_if_t.set_gpio
  *
  */
-#define BSP_GPIO_HIGH               (1)
-#define BSP_GPIO_ACTIVE             (1)
+#define BSP_GPIO_HIGH   (1)
+#define BSP_GPIO_ACTIVE (1)
 
 /**
  * Value to indicate enabling or disabling a supply
@@ -133,17 +133,17 @@
  * @see bsp_driver_if_t.set_supply
  *
  */
-#define BSP_SUPPLY_DISABLE              (0)
-#define BSP_SUPPLY_ENABLE               (1)
+#define BSP_SUPPLY_DISABLE (0)
+#define BSP_SUPPLY_ENABLE  (1)
 
 /**
  */
-#define MAX_HIH_EFFECT_NAME_SIZE        (20)
+#define MAX_HIH_EFFECT_NAME_SIZE (20)
 
 /**
  * Example ROM wavetable waveform index
  */
-#define CS40L5X_HAPTIC_ROM_CLICK_1_VCM  (0x0A)
+#define CS40L5X_HAPTIC_ROM_CLICK_1_VCM (0x0A)
 
 /**
  * Array of valid effect names for Host Initiated Haptics
@@ -162,7 +162,7 @@ extern const char *HIH_effect_names[];
  *
  * @return                      byte at position B in word A
  */
-#define GET_BYTE_FROM_WORD(A, B)   ((A >> (B * 8)) & 0xFF)
+#define GET_BYTE_FROM_WORD(A, B) ((A >> (B * 8)) & 0xFF)
 
 /**
  * Macro to insert byte into multi-byte word
@@ -173,11 +173,11 @@ extern const char *HIH_effect_names[];
  *
  * @return none
  */
-#define ADD_BYTE_TO_WORD(A, B, C) \
-{ \
-    A &= (0xFFFFFF00 << (C * 8)); \
-    A |= ((B & 0xFF) << (C * 8)); \
-}
+#define ADD_BYTE_TO_WORD(A, B, C)                                                                  \
+    {                                                                                          \
+        A &= (0xFFFFFF00 << (C * 8));                                                      \
+        A |= ((B & 0xFF) << (C * 8));                                                      \
+    }
 
 /***********************************************************************************************************************
  * ENUMS, STRUCTS, UNIONS, TYPEDEFS
@@ -194,16 +194,15 @@ extern const char *HIH_effect_names[];
  * @see BSP_STATUS_
  *
  */
-typedef void (*bsp_callback_t)(uint32_t status, void* arg);
+typedef void (*bsp_callback_t)(uint32_t status, void *arg);
 
 /**
  * BSP-to-Driver public API
  *
- * All API calls return a status @see CS35L41_STATUS_
+ * All API calls return a status @see CS40L5X_STATUS_
  *
  */
-typedef struct
-{
+typedef struct {
     /**
      * Set GPIO to LOW/HIGH
      *
@@ -217,12 +216,13 @@ typedef struct
      * @see BSP_GPIO_LOW BSP_GPIO_HIGH
      *
      */
-    uint32_t (*set_gpio)(const struct gpio_dt_spec* gpio_id, uint8_t gpio_state);
+    uint32_t (*set_gpio)(const struct gpio_dt_spec *gpio_id, uint8_t gpio_state);
 
     /**
      * Enable or disable a supply
      *
-     * @param [in] supply_id      ID for supply to change - can be defined in implementation header
+     * @param [in] supply_id      ID for supply to change - can be defined in implementation
+     * header
      * @param [in] supply_state   Enable or Disable
      *
      * @return
@@ -250,7 +250,8 @@ typedef struct
      * - BSP_STATUS_OK          otherwise
      *
      */
-    uint32_t (*register_gpio_cb)(const struct gpio_dt_spec* gpio_id, bsp_callback_t cb, void *cb_arg);
+    uint32_t (*register_gpio_cb)(const struct gpio_dt_spec *gpio_id, bsp_callback_t cb,
+                     void *cb_arg);
 
     /**
      * Set a timer to expire
@@ -269,11 +270,13 @@ typedef struct
     /**
      * Reset I2C Port used for a specific device
      *
-     * Abort the current I2C transaction and reset the I2C peripheral.  This is required for quickly handling of
-     * CS35L41 IRQ events.
+     * Abort the current I2C transaction and reset the I2C peripheral.  This is required for
+     * quickly handling of CS40L5X IRQ events.
      *
-     * @param [in] bsp_dev_id       ID of the I2C device corresponding to the I2C peripheral to reset
-     * @param [out] was_i2c_busy    flag to indicate whether an I2C transaction was in progress when reset
+     * @param [in] bsp_dev_id       ID of the I2C device corresponding to the I2C peripheral to
+     * reset
+     * @param [out] was_i2c_busy    flag to indicate whether an I2C transaction was in progress
+     * when reset
      *
      * @return
      * - BSP_STATUS_FAIL        if bsp_dev_id is invalid
@@ -285,8 +288,9 @@ typedef struct
     /**
      * Perform an I2C Write-Repeated Start-Read transaction
      *
-     * This is the common way to read data from an I2C device with a register file, since the address of the
-     * register to read must first be written to the device before reading any contents.
+     * This is the common way to read data from an I2C device with a register file, since the
+     * address of the register to read must first be written to the device before reading any
+     * contents.
      *
      * Perform transaction in the order:
      * 1. I2C Start
@@ -297,7 +301,8 @@ typedef struct
      *
      * BSP will decode \b bsp_dev_id to the correct I2C bus and I2C address.
      *
-     * @param [in] bsp_dev_id       ID of the I2C device corresponding to the I2C peripheral to reset
+     * @param [in] bsp_dev_id       ID of the I2C device corresponding to the I2C peripheral to
+     * reset
      * @param [in] write_buffer     pointer to array of bytes to write
      * @param [in] write_length     total number of bytes in \b write_buffer
      * @param [in] read_buffer      pointer to array of bytes to load with I2C bytes read
@@ -306,47 +311,45 @@ typedef struct
      * @param [in] cb_arg           pointer to argument to use when calling callback
      *
      * @return
-     * - BSP_STATUS_FAIL            if bsp_dev_id is invalid, if any portion of I2C transaction failed
+     * - BSP_STATUS_FAIL            if bsp_dev_id is invalid, if any portion of I2C transaction
+     * failed
      * - BSP_STATUS_OK              otherwise
      *
      */
-    uint32_t (*i2c_read_repeated_start)(uint32_t bsp_dev_id,
-                                        uint8_t *write_buffer,
-                                        uint32_t write_length,
-                                        uint8_t *read_buffer,
-                                        uint32_t read_length,
-                                        bsp_callback_t cb,
-                                        void *cb_arg);
+    uint32_t (*i2c_read_repeated_start)(uint32_t bsp_dev_id, uint8_t *write_buffer,
+                        uint32_t write_length, uint8_t *read_buffer,
+                        uint32_t read_length, bsp_callback_t cb, void *cb_arg);
 
     /**
      * Perform I2C Write
      *
      * BSP will decode \b bsp_dev_id to the correct I2C bus and I2C address.
      *
-     * @param [in] bsp_dev_id       ID of the I2C device corresponding to the I2C peripheral to reset
+     * @param [in] bsp_dev_id       ID of the I2C device corresponding to the I2C peripheral to
+     * reset
      * @param [in] write_buffer     pointer to array of bytes to write
      * @param [in] write_length     total number of bytes in \b write_buffer
      * @param [in] cb               pointer to callback function
      * @param [in] cb_arg           pointer to argument to use when calling callback
      *
      * @return
-     * - BSP_STATUS_FAIL            if bsp_dev_id is invalid, if any portion of I2C transaction failed
+     * - BSP_STATUS_FAIL            if bsp_dev_id is invalid, if any portion of I2C transaction
+     * failed
      * - BSP_STATUS_OK              otherwise
      *
      */
-    uint32_t (*i2c_write)(uint32_t bsp_dev_id,
-                          uint8_t *write_buffer,
-                          uint32_t write_length,
-                          bsp_callback_t cb,
-                          void *cb_arg);
+    uint32_t (*i2c_write)(uint32_t bsp_dev_id, uint8_t *write_buffer, uint32_t write_length,
+                  bsp_callback_t cb, void *cb_arg);
 
     /**
      * Perform a Double-Buffered ("db") I2C Write
      *
-     * This will first write the contents of \b write_buffer_0 to the I2C device, and then write the contents of
+     * This will first write the contents of \b write_buffer_0 to the I2C device, and then write
+     * the contents of
      * \b write_buffer_1.
      *
-     * @param [in] bsp_dev_id       ID of the I2C device corresponding to the I2C peripheral to reset
+     * @param [in] bsp_dev_id       ID of the I2C device corresponding to the I2C peripheral to
+     * reset
      * @param [in] write_buffer_0   pointer to array of first batch of bytes to write
      * @param [in] write_length_0   total number of bytes in \b write_buffer_0
      * @param [in] write_buffer_1   pointer to array of second batch of bytes to write
@@ -355,23 +358,20 @@ typedef struct
      * @param [in] cb_arg           pointer to argument to use when calling callback
      *
      * @return
-     * - BSP_STATUS_FAIL            if bsp_dev_id is invalid, if any portion of I2C transaction failed
+     * - BSP_STATUS_FAIL            if bsp_dev_id is invalid, if any portion of I2C transaction
+     * failed
      * - BSP_STATUS_OK              otherwise
      *
      */
-    uint32_t (*i2c_db_write)(uint32_t bsp_dev_id,
-                          uint8_t *write_buffer_0,
-                          uint32_t write_length_0,
-                          uint8_t *write_buffer_1,
-                          uint32_t write_length_1,
-                          bsp_callback_t cb,
-                          void *cb_arg);
+    uint32_t (*i2c_db_write)(uint32_t bsp_dev_id, uint8_t *write_buffer_0,
+                 uint32_t write_length_0, uint8_t *write_buffer_1,
+                 uint32_t write_length_1, bsp_callback_t cb, void *cb_arg);
 
     /**
      * Perform a SPI read
      *
-     * This function will write and then read back data from a SPI device with a register file. Padding
-     * will automatically be added.
+     * This function will write and then read back data from a SPI device with a register file.
+     * Padding will automatically be added.
      *
      * Perform transaction in the order:
      * 1. SPI CS low
@@ -382,30 +382,29 @@ typedef struct
      *
      * BSP will decode \b bsp_dev_id to the correct SPI bus and SPI address.
      *
-     * @param [in] bsp_dev_id       ID of the SPI device corresponding to the SPI peripheral to reset
+     * @param [in] bsp_dev_id       ID of the SPI device corresponding to the SPI peripheral to
+     * reset
      * @param [in] addr_buffer      pointer to array of bytes to write
      * @param [in] addr_length      total number of bytes in \b write_buffer
      * @param [in] data_buffer      pointer to array of bytes to load with SPI bytes read
      * @param [in] data_length      total number of bytes to read into \b read_buffer
-     * @param [in] pad_len          total number of bytes of padding between the addr write transaction and the data read
+     * @param [in] pad_len          total number of bytes of padding between the addr write
+     * transaction and the data read
      *
      * @return
-     * - BSP_STATUS_FAIL            if bsp_dev_id is invalid, if any portion of SPI transaction failed
+     * - BSP_STATUS_FAIL            if bsp_dev_id is invalid, if any portion of SPI transaction
+     * failed
      * - BSP_STATUS_OK              otherwise
      *
      */
-    uint32_t (*spi_read)(uint32_t bsp_dev_id,
-                         uint8_t *addr_buffer,
-                         uint32_t addr_length,
-                         uint8_t *data_buffer,
-                         uint32_t data_length,
-                         uint32_t pad_len);
+    uint32_t (*spi_read)(uint32_t bsp_dev_id, uint8_t *addr_buffer, uint32_t addr_length,
+                 uint8_t *data_buffer, uint32_t data_length, uint32_t pad_len);
 
     /**
      * Perform a SPI write
      *
-     * This function will write data to a SPI device with a register file. Padding will automatically
-     * be added.
+     * This function will write data to a SPI device with a register file. Padding will
+     * automatically be added.
      *
      * Perform transaction in the order:
      * 1. SPI CS low
@@ -416,24 +415,23 @@ typedef struct
      *
      * BSP will decode \b bsp_dev_id to the correct SPI bus and SPI address.
      *
-     * @param [in] bsp_dev_id       ID of the SPI device corresponding to the SPI peripheral to reset
+     * @param [in] bsp_dev_id       ID of the SPI device corresponding to the SPI peripheral to
+     * reset
      * @param [in] addr_buffer      pointer to array of bytes to write
      * @param [in] addr_length      total number of bytes in \b write_buffer
      * @param [in] data_buffer      pointer to array of bytes to load with SPI bytes read
      * @param [in] data_length      total number of bytes to read into \b read_buffer
-     * @param [in] pad_len          total number of bytes of padding between the addr write transaction and the data write
+     * @param [in] pad_len          total number of bytes of padding between the addr write
+     * transaction and the data write
      *
      * @return
-     * - BSP_STATUS_FAIL            if bsp_dev_id is invalid, if any portion of SPI transaction failed
+     * - BSP_STATUS_FAIL            if bsp_dev_id is invalid, if any portion of SPI transaction
+     * failed
      * - BSP_STATUS_OK              otherwise
      *
      */
-    uint32_t (*spi_write)(uint32_t bsp_dev_id,
-                          uint8_t *addr_buffer,
-                          uint32_t addr_length,
-                          uint8_t *data_buffer,
-                          uint32_t data_length,
-                          uint32_t pad_len);
+    uint32_t (*spi_write)(uint32_t bsp_dev_id, uint8_t *addr_buffer, uint32_t addr_length,
+                  uint8_t *data_buffer, uint32_t data_length, uint32_t pad_len);
 
     /**
      * Global enable of interrupts
@@ -441,7 +439,8 @@ typedef struct
      * Since this is MCU-platform specific, it is included as part of the BSP-Driver interface.
      *
      * @return
-     * - BSP_STATUS_FAIL            if bsp_dev_id is invalid, if any portion of I2C transaction failed
+     * - BSP_STATUS_FAIL            if bsp_dev_id is invalid, if any portion of I2C transaction
+     * failed
      * - BSP_STATUS_OK              otherwise
      *
      */
@@ -453,7 +452,8 @@ typedef struct
      * Since this is MCU-platform specific, it is included as part of the BSP-Driver interface.
      *
      * @return
-     * - BSP_STATUS_FAIL            if bsp_dev_id is invalid, if any portion of I2C transaction failed
+     * - BSP_STATUS_FAIL            if bsp_dev_id is invalid, if any portion of I2C transaction
+     * failed
      * - BSP_STATUS_OK              otherwise
      *
      */
@@ -462,11 +462,12 @@ typedef struct
     /**
      * Temporarily change the clock speed of the SPI bus
      *
-     * Since portions of a driver may have a maximum bus speed limitation, this API allows for temporarily specifying
-     * the maximum bus speed.
+     * Since portions of a driver may have a maximum bus speed limitation, this API allows for
+     * temporarily specifying the maximum bus speed.
      *
      * @return
-     * - BSP_STATUS_FAIL            if a slower speed is requested by the current SPI speed is already slowest available
+     * - BSP_STATUS_FAIL            if a slower speed is requested by the current SPI speed is
+     * already slowest available
      * - BSP_STATUS_OK              otherwise
      *
      */
@@ -475,8 +476,8 @@ typedef struct
     /**
      * Restore the clock speed of the SPI bus to the original configuration
      *
-     * After a call to spi_throttle_speed(), this API allows for restoring the bus clock speed of the SPI bus to the
-     * original configuration given during BSP initialization.
+     * After a call to spi_throttle_speed(), this API allows for restoring the bus clock speed
+     * of the SPI bus to the original configuration given during BSP initialization.
      *
      * @return                      BSP_STATUS_OK always
      *
@@ -494,7 +495,7 @@ struct cs40l5x_bsp {
     struct cs40l5x_haptic_source_config hap_cfg;
 };
 
-struct cs40l5x_owt_section_params{
+struct cs40l5x_owt_section_params {
     uint8_t nested_repeats;
     uint8_t waveform_idx;
     uint8_t amplitude;
@@ -505,10 +506,13 @@ struct cs40l5x_owt_section_params{
     uint32_t duration;
 };
 
-typedef enum { EFFECT_OWT_IDX, EFFECT_MSFT_ID, EFFECT_NAME } effectLabel;
+typedef enum {
+    EFFECT_OWT_IDX,
+    EFFECT_MSFT_ID,
+    EFFECT_NAME
+} effectLabel;
 
-typedef struct
-{
+typedef struct {
     effectLabel label;
     union {
         uint16_t owtIdx;
@@ -520,31 +524,211 @@ typedef struct
 extern const struct gpio_dt_spec reset;
 extern bsp_driver_if_t *bsp_driver_if_g;
 
+/**
+ * Writes the contents of a single register/memory address via i2c
+ *
+ * @param [in] spec                 Pointer to the i2c struct reference
+ * @param [in] reg_addr             32-bit address to be written
+ * @param [in] value                32-bit value to be written
+ *
+ * @return
+ * - -EIO                           on failure
+ * - BSP_STATUS_OK                  otherwise
+ *
+ */
 int cs40l5x_i2c_write_reg_dt(const struct i2c_dt_spec *spec, const uint32_t reg_addr,
-                    const uint32_t value);
+                 const uint32_t value);
+
+/**
+ * Reads the contents of a single register/memory address via i2c
+ *
+ * @param [in] spec                 Pointer to the i2c struct reference
+ * @param [in] reg_addr             32-bit address to be read
+ * @param [out] value               Pointer to variable to read data into
+ *
+ * @return
+ * - -EIO                           on failure
+ * - BSP_STATUS_OK                  otherwise
+ *
+ */
 int cs40l5x_i2c_read_reg_dt(const struct i2c_dt_spec *spec, const uint32_t reg_addr,
-                   uint32_t *value);
+                uint32_t *value);
+
+/**
+ * Read-Modify-Write of register using 32-bit mask via i2c
+ *
+ * @param [in] spec                 Pointer to the i2c struct reference
+ * @param [in] reg_addr             32-bit address to be read
+ * @param [in] mask                 32-bit mask for bits to be modified
+ * @param [in] value                32-bit value to be written
+ *
+ * @return
+ * - BSP_STATUS_FAIL                on read failure
+ * - BSP_STATUS_OK                  otherwise
+ */
 int cs40l5x_update_reg_dt(const struct i2c_dt_spec *spec, const uint32_t reg_addr,
-                 const uint32_t mask, const uint32_t value);
+              const uint32_t mask, const uint32_t value);
+
+/**
+ * Writes an array of addr/word pairs to its corresponding register/memory addresses via i2c
+ *
+ * @param [in] spec                 Pointer to the i2c struct reference
+ * @param [in] array                Array of address/word pairs with the addr at array[i] and the
+ * word at array[i+1]
+ * @param [in] words                Size of array to be written (number of words * 2)
+ *
+ * @return
+ * - BSP_STATUS_FAIL                on write failure
+ * - BSP_STATUS_OK                  otherwise
+ */
 int cs40l5x_write_array_dt(const struct i2c_dt_spec *spec, const uint32_t *array, uint32_t words);
-int cs40l5x_poll_reg_dt(const struct i2c_dt_spec *spec, const uint32_t reg_addr,
-                   uint32_t value, uint32_t tries, uint32_t delay);
+
+/**
+ * Reads a register via i2c for a specific value for a set number of tries while waiting
+ * between reads.
+ *
+ * @param [in] spec                 Pointer to the i2c struct reference
+ * @param [in] reg_addr             Address to read from.
+ * @param [in] value                Value to compare the read value to.
+ * @param [in] tries                How many times to read the address.
+ * @param [in] delay                How long to delay between each read.
+ *
+ * @return
+ * - BSP_STATUS_FAIL                if the i2c read failed or if value not polled
+ *                                  within the amount of tries
+ * - BSP_STATUS_OK                  otherwise
+ */
+int cs40l5x_poll_reg_dt(const struct i2c_dt_spec *spec, const uint32_t reg_addr, uint32_t value,
+            uint32_t tries, uint32_t delay);
+
+/**
+ * Write a value to a register via i2c and poll for an updated value
+ *
+ * @param [in] spec                 Pointer to the i2c struct reference
+ * @param [in] reg_addr             Address to read from.
+ * @param [in] val                  32-bit value to be written
+ * @param [in] acked_val            Value to poll for after writing 'val'
+ * @param [in] tries                How many times to read the address.
+ * @param [in] delay                How long to delay between each read (ms)
+ *
+ * @return
+ * - BSP_STATUS_FAIL                if the i2c write failed or if value not polled
+ *                                  within the amount of tries
+ * - BSP_STATUS_OK                  otherwise
+ */
 int cs40l5x_write_acked_reg_dt(const struct i2c_dt_spec *spec, const uint32_t reg_addr,
-                                uint32_t val, uint32_t acked_val,  uint8_t tries,  uint32_t delay);
-int cs40l5x_set_haptic_cfg(const struct device *dev, struct cs40l5x_haptic_source_config* hap_cfg);
+                   uint32_t val, uint32_t acked_val, uint8_t tries, uint32_t delay);
 
-//Functions to write to owt with N sections
+/**
+ * Update the driver's current haptic configuration for haptic triggers
+ *
+ * @param [in] dev                  Pointer to the driver state
+ * @param [in] hap_cfg              Haptic source data structure containing
+ * effect bank and index
+ *
+ * @return
+ * - BSP_STATUS_FAIL if dev or hap_cfg invalid
+ * - BSP_STATUS_OK                  otherwise
+ */
+int cs40l5x_set_haptic_cfg(const struct device *dev, struct cs40l5x_haptic_source_config *hap_cfg);
+
+/**
+ * Write initial header for an OWT composite to next available OWT index
+ *
+ * @param [in] dev                      Pointer to the driver state
+ * @param [in] num_waveforms            Total number of individual effects making up
+ * the OWT composite waveform
+ * @param [in] repeats                  Number of repeats of the overall composite
+ * waveform
+ *
+ * @return
+ * - BSP_STATUS_FAIL        If failure to write OWT header with
+ * cs40l5x_write_owt_composite_header()
+ * - BSP_STATUS_OK          otherwise
+ */
 int bsp_cs40l5x_write_owt_header(const struct device *dev, uint8_t num_waveforms, uint8_t repeats);
-int bsp_cs40l5x_write_owt_section(const struct device *dev, struct cs40l5x_owt_section_params section);
+
+/**
+ * Write a single section for an OWT composite waveform following an OWT header
+ *
+ * This function should be called N times following the call to bsp_cs40l5x_write_owt_header
+ * based on the "num_waveforms" parameter passed into the OWT header.
+ *
+ * @param [in] dev                      Pointer to the driver state
+ * @param [in] section                  Data structure containing OWT section
+ * parameters
+ *
+ * @return
+ * - BSP_STATUS_FAIL        If failure to write OWT section with
+ * cs40l5x_write_owt_composite_section()
+ * - BSP_STATUS_OK          otherwise
+ */
+int bsp_cs40l5x_write_owt_section(const struct device *dev,
+                  struct cs40l5x_owt_section_params section);
+
+/**
+ * Push the most recently written OWT effect to the OWT based on the number of sections
+ * written and the next available OWT index
+ *
+ * @param [in] dev              Pointer to the driver state
+ *
+ * @return
+ * - BSP_STATUS_FAIL        If failure to call cs40l5x_push_owt_composite
+ * - BSP_STATUS_OK          otherwise
+ */
 int bsp_cs40l5x_push_owt(const struct device *dev);
-int bsp_cs40l5x_write_owt_composite_one_section(const struct device *dev, struct cs40l5x_owt_section_params section);
 
+/**
+ * Function to minimize i2c transactions while adding a new composite waveform to the OWT
+ * specifically with only one composite section
+ *
+ * @param [in] dev              Pointer to the driver state
+ * @param [in] section          Data structure containing OWT effect parameters
+ *
+ * @return
+ * - BSP_STATUS_FAIL if failure to write new OWT waveform
+ * - BSP_STATUS_OK                  otherwise
+ */
+int bsp_cs40l5x_write_owt_composite_one_section(const struct device *dev,
+                        struct cs40l5x_owt_section_params section);
+
+/**
+ * Send an OWT trigger mailbox command to trigger an effect at a specific OWT index
+ *
+ * @param [in] dev              Pointer to the driver state
+ * @param [in] owt_idx          Effect index in OWT to trigger
+ *
+ * @return
+ * - BSP_STATUS_FAIL        If failure to write OWT trigger mailbox command
+ * - BSP_STATUS_OK          otherwise
+ */
 int bsp_cs40l5x_trigger_owt(const struct device *dev, int owt_idx);
+
+/**
+ * Send an OWT delete mailbox command to delete the effect at a specific OWT index
+ *
+ * @param [in] dev              Pointer to the driver state
+ * @param [in] owt_idx          Effect index in OWT to delete
+ *
+ * @return
+ * - BSP_STATUS_FAIL        If failure to write OWT delete mailbox command
+ * - BSP_STATUS_OK          otherwise
+ */
 int bsp_cs40l5x_delete_owt(const struct device *dev, int owt_idx);
-int bsp_cs40l5x_get_num_owt_wf(const struct device *dev, uint32_t* num);
 
+/**
+ * Read back the number of waveforms currently in the OWT
+ *
+ * @param [in] dev              Pointer to the driver state
+ * @param [out] num             Returned number of effects in OWT
+ *
+ * @return
+ * - BSP_STATUS_FAIL        If failure to readback number of OWT waveforms
+ * - BSP_STATUS_OK          otherwise
+ */
+int bsp_cs40l5x_get_num_owt_wf(const struct device *dev, uint32_t *num);
 
-/*
+/**
  * Calculates and returns the length of the SVC pilot tone in us
  *
  * This function will calculate the total length of the SVC pilot tone by reading back
@@ -561,18 +745,17 @@ int bsp_cs40l5x_get_num_owt_wf(const struct device *dev, uint32_t* num);
  * - otherwise, returns BSP_STATUS_FAIL
  *
  */
-int bsp_cs40l5x_get_SVC_tone_length(const struct device *dev, uint32_t* length);
+int bsp_cs40l5x_get_SVC_tone_length(const struct device *dev, uint32_t *length);
 
-
-/*
+/**
  * Adds a new host initiated waveform to the OWT and triggers it.
  *
  * This function deletes a prior existing OWT effect, constructs a new composite effect based
  * on input parameters, adds this new composite effect to the OWT, then triggers this new effect.
  *
  * @param [in] dev                  Pointer to the driver state
- * @param [in] effect               HIH_effect structure that allows for effect to referenced by effect name,
- *                                  microsoft ID, or OWT table index
+ * @param [in] effect               HIH_effect structure that allows for effect to be referenced by
+ * effect name, microsoft ID, or OWT table index
  * @param [in] intensity            New effect amplitude, from 1-200%
  * @param [in] repeats              Number of repeats of selected waveform, from 0-255
  * @param [in] retrigger_period     Delay between waveform repeats, from 0-10000 ms
@@ -587,9 +770,11 @@ int bsp_cs40l5x_get_SVC_tone_length(const struct device *dev, uint32_t* length);
  * - otherwise, returns CS40L5X_STATUS_OK
  *
  */
-int bsp_cs40l5x_host_initiated_trigger(const struct device *dev, HIH_effect effect, uint32_t intensity, uint32_t repeats, uint32_t retrigger_period, uint32_t cutoff_time);
+int bsp_cs40l5x_host_initiated_trigger(const struct device *dev, HIH_effect effect,
+                       uint32_t intensity, uint32_t repeats,
+                       uint32_t retrigger_period, uint32_t cutoff_time);
 
-/*
+/**
  * Lists the available host initiated haptics effects and their durations
  *
  * This function list the effects with their duration, accounting for the additional
@@ -604,6 +789,5 @@ int bsp_cs40l5x_host_initiated_trigger(const struct device *dev, HIH_effect effe
  *
  */
 int bsp_cs40l5x_list_host_initiated_effects(const struct device *dev);
-
 
 #endif

@@ -215,6 +215,7 @@ extern "C" {
 #define CS40L5X_EVENT_FLAG_HAPTIC_TRIGGER_MBOX          (1 << 16)
 #define CS40L5X_EVENT_FLAG_HAPTIC_COMPLETE_I2S          (1 << 15)
 #define CS40L5X_EVENT_FLAG_HAPTIC_TRIGGER_I2S           (1 << 14)
+#define CS40L5X_EVENT_FLAG_IF_ERROR                     (1 << 4)
 #define CS40L5X_EVENT_FLAG_OTP_BOOT_DONE                (1 << 3)
 #define CS40L5X_EVENT_FLAG_AMP_ERROR                    (1 << 2)
 #define CS40L5X_EVENT_FLAG_TEMP_ERROR                   (1 << 1)

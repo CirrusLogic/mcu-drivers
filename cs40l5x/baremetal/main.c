@@ -78,6 +78,8 @@ int main(void)
 
         if (bsp_was_pb_pressed(BSP_PB_ID_USER))
         {
+            //Set haptic effect attenuation in dB
+            bsp_dut_configure_attenuation(BSP_DUT_ATTEN_DB_0);
             bsp_dut_trigger_haptic(0, ROM_BANK);
         }
         bsp_set_timer(10, NULL, NULL);

@@ -401,7 +401,7 @@ static void cs35l56_stop_output(const struct device *dev)
 
 static int cs35l56_init(const struct device *dev)
 {
-    struct cs35l56_config *config = (struct cs35l56_config*)dev->config;
+    struct cs35l56_config *config = (struct cs35l56_config *)dev->config;
     struct cs35l56_bsp *data = dev->data;
     cs35l56_t *drv = &data->priv;
     uint32_t val;

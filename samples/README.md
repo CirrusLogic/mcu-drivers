@@ -64,6 +64,10 @@ https://github.com/CirrusLogic/mcu-drivers/tree/master/samples/haptics/cs40l5x/s
 Host Initiated Haptics:
 https://github.com/CirrusLogic/mcu-drivers/tree/master/samples/haptics/cs40l5x/host_init_haptics
 
+
+Audio to Haptics:
+https://github.com/CirrusLogic/mcu-drivers/tree/master/samples/haptics/cs40l5x/audio2haptics
+
 ## Samples CS35L56
 
 Basic Streaming Sample Application:

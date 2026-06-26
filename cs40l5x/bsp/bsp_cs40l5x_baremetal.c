@@ -152,7 +152,7 @@ uint32_t bsp_dut_reset(void)
     return BSP_STATUS_OK;
 }
 
-uint32_t bsp_dut_process()
+uint32_t bsp_dut_process(void)
 {
     uint32_t ret;
     ret = cs40l5x_process(&cs40l5x_driver);
@@ -251,4 +251,14 @@ uint32_t bsp_dut_check_error(void)
         return BSP_STATUS_FAIL;
     }
     return BSP_STATUS_OK;
+}
+
+uint32_t bsp_dut_configure_attenuation(uint32_t atten_db)
+{
+    uint32_t ret = BSP_STATUS_OK;
+
+    uint32_t atten = atten_db << 2;
+    ret = regmap_write((&cs40l5x_driver.config.bsp_config.cp_config), HAPTICS_SYSTEM_SOURCE_ATTENUATION, atten);
+
+    return ret;
 }

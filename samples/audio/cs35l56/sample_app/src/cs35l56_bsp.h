@@ -64,6 +64,13 @@
 #define BSP_GPIO_HIGH   (1)
 #define BSP_GPIO_ACTIVE (1)
 
+/**
+ * Value to indicate unexpected error in BSP status
+ *
+ */
+#define BSP_STATUS_OK   (0)
+#define BSP_STATUS_FAIL (1)
+
 /***********************************************************************************************************************
  * ENUMS, STRUCTS, UNIONS, TYPEDEFS
  **********************************************************************************************************************/
@@ -76,7 +83,7 @@
  *
  * @return none
  *
- * @see BSP_STATUS_
+ * @see BSP_STATUS_OK BSP_STATUS_FAIL
  *
  */
 typedef void (*bsp_callback_t)(uint32_t status, void *arg);
@@ -84,7 +91,7 @@ typedef void (*bsp_callback_t)(uint32_t status, void *arg);
 /**
  * BSP-to-Driver public API
  *
- * All API calls return a status @see CS35L41_STATUS_
+ * All API calls return a status @see CS35L56_STATUS_
  *
  */
 typedef struct {
@@ -155,7 +162,7 @@ typedef struct {
      * Reset I2C Port used for a specific device
      *
      * Abort the current I2C transaction and reset the I2C peripheral.  This is required for
-     * quickly handling of CS35L41 IRQ events.
+     * quickly handling of CS35L56 IRQ events.
      *
      * @param [in] bsp_dev_id       ID of the I2C device corresponding to the I2C peripheral to
      * reset
@@ -375,15 +382,99 @@ struct cs35l56_bsp {
 
 extern bsp_driver_if_t *bsp_driver_if_g;
 
+/**
+ * Writes the contents of a single register/memory address via i2c
+ *
+ * @param [in] spec             Pointer to the i2c struct reference
+ * @param [in] reg_addr             32-bit address to be written
+ * @param [in] value              32-bit value to be written
+ *
+ * @return
+ * - -EIO                       on failure
+ * - BSP_STATUS_OK              otherwise
+ *
+ */
 int cs35l56_i2c_write_reg_dt(const struct i2c_dt_spec *spec, const uint32_t reg_addr,
                  const uint32_t value);
+
+/**
+ * Reads the contents of a single register/memory address via i2c
+ *
+ * @param [in] spec               Pointer to the i2c struct reference
+ * @param [in] reg_addr             32-bit address to be read
+ * @param [out] value             Pointer to variable to read data into
+ *
+ * @return
+ * - -EIO                       on failure
+ * - BSP_STATUS_OK              otherwise
+ *
+ */
 int cs35l56_i2c_read_reg_dt(const struct i2c_dt_spec *spec, const uint32_t reg_addr,
                 uint32_t *value);
+
+/**
+ * Read-Modify-Write of register using 32-bit mask via i2c
+ *
+ *
+ * @param [in] spec             Pointer to the i2c struct reference
+ * @param [in] reg_addr         32-bit address to be read
+ * @param [in] mask             32-bit mask for bits to be modified
+ * @param [in] value            32-bit value to be written
+ *
+ * @return
+ * - BSP_STATUS_FAIL            on read failure
+ * - BSP_STATUS_OK              otherwise
+ */
 int cs35l56_update_reg_dt(const struct i2c_dt_spec *spec, const uint32_t reg_addr,
               const uint32_t mask, const uint32_t value);
+
+/**
+ * Writes an array of addr/word pairs to its corresponding register/memory addresses via i2c
+ *
+ * @param [in] spec             Pointer to the i2c struct reference
+ * @param [in] array            Array of address/word pairs with the addr at array[i] and the data
+ * word at array[i+1]
+ * @param [in] words            Size of array to be written (number of words * 2)
+ *
+ * @return
+ * - BSP_STATUS_FAIL            on write failure
+ * - BSP_STATUS_OK              otherwise
+ */
 int cs35l56_write_array_dt(const struct i2c_dt_spec *spec, const uint32_t *array, uint32_t words);
+
+/**
+ * Reads a register via i2c for a specific value for a set number of tries while waiting
+ * between reads.
+ *
+ * @param [in] spec             Pointer to the i2c struct reference
+ * @param [in] reg_addr         Address to read from.
+ * @param [in] value            Value to compare the read value to.
+ * @param [in] tries            How many times to read the address.
+ * @param [in] delay            How long to delay between each read.
+ *
+ * @return
+ * - BSP_STATUS_FAIL            if the i2c read failed or if value not polled
+ *                              within the amount of tries
+ * - BSP_STATUS_OK              otherwise
+ */
 int cs35l56_poll_reg_dt(const struct i2c_dt_spec *spec, const uint32_t reg_addr, uint32_t value,
             uint32_t tries, uint32_t delay);
+
+/**
+ * Write a value to a register via i2c and poll for an updated value
+ *
+ * @param [in] spec             Pointer to the i2c struct reference
+ * @param [in] reg_addr         Address to read from.
+ * @param [in] val              32-bit value to be written
+ * @param [in] acked_val        Value to poll for after writing 'val'
+ * @param [in] tries            How many times to read the address.
+ * @param [in] delay            How long to delay between each read (ms)
+ *
+ * @return
+ * - BSP_STATUS_FAIL            if the i2c write failed or if value not polled
+ *                              within the amount of tries
+ * - BSP_STATUS_OK              otherwise
+ */
 int cs35l56_write_acked_reg_dt(const struct i2c_dt_spec *spec, const uint32_t reg_addr,
                    uint32_t val, uint32_t acked_val, uint8_t tries, uint32_t delay);
 #endif

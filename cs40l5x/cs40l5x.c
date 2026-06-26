@@ -51,7 +51,7 @@
 /**
  * Total INT and MASK registers to handle in IRQ1
  */
-#define CS40L5X_IRQ1_REG_TOTAL          (10)
+#define CS40L5X_IRQ1_REG_TOTAL          (20)
 
 /**
  * This ID is unique to the Blackstar BSP and maps to
@@ -216,6 +216,7 @@ static const uint32_t cs40l5x_irq_to_event_flag_map[] =
     CS40L5X_IRQ1_INT_9, IRQ1_INT_9_BST_SHORT_ERR_INT1_BITMASK, CS40L5X_EVENT_FLAG_BST_ERROR,
     CS40L5X_IRQ1_INT_9, IRQ1_INT_9_BST_UVP_ERR_INT1_BITMASK, CS40L5X_EVENT_FLAG_BST_ERROR,
     CS40L5X_IRQ1_INT_10, IRQ1_INT_10_UVLO_VDDBATT_ERR_INT1_BITMASK, CS40L5X_EVENT_FLAG_BST_ERROR,
+    CS40L5X_IRQ1_INT_20, IRQ1_INT_10_IF1_BLOCKED_INT1_BITMASK, CS40L5X_EVENT_FLAG_IF_ERROR
 };
 
 static uint32_t cs40l5x_mbox_command_to_event_id_map[] =
@@ -687,7 +688,6 @@ static uint32_t cs40l5x_event_handler(cs40l5x_t *driver)
     {
         driver->event_flags |= cs40l5x_process_mbox_queue(cp);
     }
-
     // Handle any events that result in Global Error State OR FW Runtime/Permanent Short Detection
     if (driver->event_flags & CS40L5X_EVENT_GLOBAL_ERROR_STATE_MASK)
     {
@@ -720,6 +720,15 @@ static uint32_t cs40l5x_event_handler(cs40l5x_t *driver)
         } else {
             //timer expired without init/wake
             cs40l5x_reset(driver);
+        }
+    }
+
+    if(driver->event_flags & CS40L5X_EVENT_FLAG_IF_ERROR)
+    {
+        ret = regmap_write(cp, CS40L5X_IRQ1_INT_20, IRQ1_INT_10_IF1_BLOCKED_INT1_BITMASK);
+        if (ret)
+        {
+            return ret;
         }
     }
 
@@ -870,7 +879,8 @@ uint32_t cs40l5x_reset(cs40l5x_t *driver)
         }
     }
 
-    // driver->mode = CS40L5X_MODE_HANDLING_CONTROLS;
+    //Initially handle events for software reset case
+    driver->mode = CS40L5X_MODE_HANDLING_EVENTS;
 
     /**
      * Enable/Disable MBOX IRQs if specified.
@@ -1153,6 +1163,7 @@ uint32_t cs40l5x_calibrate(cs40l5x_t *driver)
         return ret;
     }
 
+    mbox_rd_ptr_value = (mbox_rd_ptr_value & ~CS40L5X_MBOX_RD_MASK) | ((mbox_rd_ptr_value & CS40L5X_MBOX_RD_MASK) % CS40L5X_MBOX_RD_SIZE);
     mbox_rd_ptr_value += 4;
 
     ret = regmap_write(cp, mbox_rd_ptr_addr, mbox_rd_ptr_value);
@@ -1167,6 +1178,7 @@ uint32_t cs40l5x_calibrate(cs40l5x_t *driver)
         return ret;
     }
 
+    mbox_rd_ptr_value = (mbox_rd_ptr_value & ~CS40L5X_MBOX_RD_MASK) | ((mbox_rd_ptr_value & CS40L5X_MBOX_RD_MASK) % CS40L5X_MBOX_RD_SIZE);
     mbox_rd_ptr_value += 4;
 
     ret = regmap_write(cp, mbox_rd_ptr_addr, mbox_rd_ptr_value);
@@ -1201,6 +1213,7 @@ uint32_t cs40l5x_calibrate(cs40l5x_t *driver)
         return ret;
     }
 
+    mbox_rd_ptr_value = (mbox_rd_ptr_value & ~CS40L5X_MBOX_RD_MASK) | ((mbox_rd_ptr_value & CS40L5X_MBOX_RD_MASK) % CS40L5X_MBOX_RD_SIZE);
     mbox_rd_ptr_value += 4;
 
     ret = regmap_write(cp, mbox_rd_ptr_addr, mbox_rd_ptr_value);
@@ -1214,6 +1227,7 @@ uint32_t cs40l5x_calibrate(cs40l5x_t *driver)
         return ret;
     }
 
+    mbox_rd_ptr_value = (mbox_rd_ptr_value & ~CS40L5X_MBOX_RD_MASK) | ((mbox_rd_ptr_value & CS40L5X_MBOX_RD_MASK) % CS40L5X_MBOX_RD_SIZE);
     mbox_rd_ptr_value += 4;
 
     ret = regmap_write(cp, mbox_rd_ptr_addr, mbox_rd_ptr_value);

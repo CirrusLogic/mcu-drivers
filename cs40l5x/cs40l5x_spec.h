@@ -262,6 +262,9 @@ extern const struct cs40l5x_diagnostic_flag_encoding cs40l5x_diag_flags[NUM_DIAG
 #define CS40L5X_IRQ1_INT_18                                                 (0x0000E054)
 #define IRQ1_INT_18_GLOBAL_ERR_INT1_BITMASK                                 (1U << 15)
 
+#define CS40L5X_IRQ1_INT_20                                                 (0x0000E05C)
+#define IRQ1_INT_10_IF1_BLOCKED_INT1_BITMASK                                (1U << 2)
+
 #define CS40L5X_IRQ1_IRQ1_MASK_1                                            (0x0000E090)
 
 #define CS40L5X_MSM_ERROR_RELEASE                                           (0x00002034)

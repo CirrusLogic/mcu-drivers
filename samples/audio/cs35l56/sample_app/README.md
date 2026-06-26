@@ -66,6 +66,11 @@ The Zephyr init macros ensure that the BSP is allocated the data it needs (`cs35
 
 The BSP is responsible for loading the firmware. This is implemented in the `cs35l56_firmware_load`,  `cs35l56_write_fw_blocks`, and `cs35l56_fw_reset` functions.
 
+# Building Project
+From the sample application directory, the project can be compiled using west, assuming the zephyr workspace has been setup according the the zephyr getting started guide.
+
+west build -p always -b nucleo_f401re driver/samples/audio/cs35l56/sample_app/
+
 ## Init
 
 Due to the devicetree declaration and the CS35L56_INIT definition, the BSP/driver will be instantiated when the system starts and will enter the cs35l56_init function for each amp.

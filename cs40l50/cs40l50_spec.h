@@ -262,6 +262,9 @@ extern const struct cs40l50_diagnostic_flag_encoding cs40l50_diag_flags[NUM_DIAG
 #define CS40L50_IRQ1_INT_10                                                 (0x0000E034)
 #define IRQ1_INT_10_UVLO_VDDBATT_ERR_INT1_BITMASK                           (1 << 16)
 
+#define CS40L50_IRQ1_INT_20                                                 (0x0000E05C)
+#define IRQ1_INT_10_IF1_BLOCKED_INT1_BITMASK                                (1U << 2)
+
 #define CS40L50_IRQ1_IRQ1_MASK_1                                            (0x0000E090)
 
 #define CS40L50_MSM_ERROR_RELEASE                                           (0x00002034)
