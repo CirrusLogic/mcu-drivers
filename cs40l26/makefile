@@ -144,7 +144,7 @@ firmware_converter:
 ifeq ($(call WMFW_CHECK,$(HALO_FIRMWARE_PATH)/$(HALO_FIRMWARE_FILE)),)
 ifeq ($(call WMFW_CHECK,$(HALO_FIRMWARE_PATH)/$(HALO_FIRMWARE_WMDR)),)
 	@echo Running firmware_converter for $(HALO_FIRMWARE_FILE) and $(HALO_FIRMWARE_WMDR)
-	cd $(HALO_FIRMWARE_PATH) && python3 ../../tools/firmware_converter/firmware_converter.py fw_img_v2 cs40l26 $(HALO_FIRMWARE_FILE) --sym-input $(CONFIG_PATH)/cs40l26_sym.h --generic-sym --wmdr tuning.bin
+	cd $(HALO_FIRMWARE_PATH) && python3 ../../tools/firmware_converter/firmware_converter.py fw_img_v2 cs40l26 $(HALO_FIRMWARE_FILE) --sym-input $(CONFIG_PATH)/cs40l26_sym.h --generic-sym --wmdr tuning.bin A2H.bin DVL.bin
 else
 	@echo Not running firmware_converter for $(HALO_FIRMWARE_WMDR) \(missing file\)
 endif

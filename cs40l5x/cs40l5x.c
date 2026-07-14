@@ -137,6 +137,20 @@ cs40l5x_owt_header_t owt_header_default =
     .word3.data_length = DATA_LENGTH_DEFAULT
 };
 
+cs40l5x_owt_pcm_header_t pcm_header_default =
+{
+    .word1.waveform_length = WF_LENGTH_DEFAULT,
+    .word2.f0 = F0_DEFAULT,
+    .word2.scaled_redc = SCALED_REDC_DEFAULT,
+};
+
+cs40l5x_owt_pcm_section_t pcm_section_default =
+{
+    .word1.sample0 = 0,
+    .word1.sample1 = 0,
+    .word1.sample2 = 0
+};
+
 cs40l5x_owt_composite_header_t composite_header_default =
 {
     .word1.waveform_length = WF_LENGTH_DEFAULT,
@@ -156,6 +170,28 @@ cs40l5x_owt_composite_section_t composite_section_default =
     .word3.duration = DURATION_DEFAULT
 };
 
+cs40l5x_owt_pwle_header_t pwle_header_default =
+{
+    .word1.waveform_length = WF_LENGTH_DEFAULT,
+    .word2.repeats = REPEATS_DEFAULT,
+    .word2.wait_time = WAIT_TIME_DEFAULT,
+    .word2.num_pw_lin_sections_ms4 = PW_LIN_SECTIONS_DEFAULT >> 4
+};
+
+cs40l5x_owt_pwle_section_t pwle_section_default =
+{
+    .word1.first_byte = PW_LIN_SECTIONS_DEFAULT & 0xF,
+    .word1.time = TIME_DEFAULT,
+    .word1.level_ms4 = LEVEL_DEFAULT >> 8,
+    .word2.level_ls8 = LEVEL_DEFAULT & 0xFF,
+    .word2.frequency = FREQ_DEFAULT,
+    .word2.chirp_mode = CHIRP_DEFAULT,
+    .word2.half_cycle_def = HALF_CYCLE_DEFAULT,
+    .word2.ext_frequency = EXT_FREQ_DEFAULT,
+    .word3.F0_relative_freq = F0_RELATIVE_FREQ_DEFAULT,
+    .word3.phase_offset = PHASE_OFFSET_DEFAULT,
+    .word3.Vb_target_ms20 = DURATION_DEFAULT
+};
 
 cs40l5x_pwle_t pwle_default =
 {
@@ -1599,6 +1635,10 @@ uint32_t cs40l5x_trigger_pwle(cs40l5x_t *driver, const rth_pwle_section_t **s)
 
 uint32_t cs40l5x_trigger_pwle_advanced(cs40l5x_t *driver, const rth_pwle_section_t **s, uint8_t repeat, uint8_t num_sections)
 {
+    if(driver == NULL)
+    {
+        return CS40L5X_STATUS_FAIL;
+    }
     uint32_t ret, addr;
     int i;
     regmap_cp_config_t *cp = REGMAP_GET_CP(driver);
@@ -1678,6 +1718,100 @@ uint32_t cs40l5x_trigger_pwle_advanced(cs40l5x_t *driver, const rth_pwle_section
 }
 
 /**
+ * Helper function to write buffer of pcm data
+ *
+ */
+uint32_t cs40l5x_write_pcm_buffer(regmap_cp_config_t *cp, uint32_t *addr, const uint8_t *buffer, uint32_t buffer_size)
+{
+    uint32_t ret;
+    //Zero pad PCM entries beyond buffer_size%3
+    for (uint32_t i = 0; i < buffer_size; i += 3)
+    {
+        uint32_t packed_word = 0;
+        packed_word |= ((uint32_t)buffer[i]) << 16;
+
+        if ((i + 1) < buffer_size)
+        {
+            packed_word |= ((uint32_t)buffer[i + 1]) << 8;
+        }
+        if ((i + 2) < buffer_size)
+        {
+            packed_word |= buffer[i + 2];
+        }
+
+        ret = regmap_write(cp, *addr, packed_word);
+        if (ret)
+        {
+            return ret;
+        }
+        *addr += CS40L5X_DSP_BYTES_PER_WORD;
+    }
+    return CS40L5X_STATUS_OK;
+}
+
+/**
+ * Write a PCM waveform to the OWT
+ *
+ */
+uint32_t cs40l5x_write_owt_pcm(cs40l5x_t *driver, uint8_t sample_rate, const uint8_t* buffer, uint32_t buffer_size)
+{
+    if(driver == NULL || buffer == NULL || buffer_size == 0)
+    {
+        return CS40L5X_STATUS_FAIL;
+    }
+    uint32_t ret, addr;
+    regmap_cp_config_t *cp = REGMAP_GET_CP(driver);
+    driver->config.bsp_config.owt_data_len = 0;
+    regmap_read(cp, CS40L5X_VIBEGEN_OWT_NEXT_XM, &addr);
+    addr = addr & ~(0x800000);
+    addr = CS40L5X_OWT_WAVE_XM_TABLE + (addr * CS40L5X_DSP_BYTES_PER_WORD);
+
+    owt_header_default.word1.waveform_type = CS40L5X_RTH_TYPE_PCM;
+    owt_header_default.word1.fs = sample_rate;
+    owt_header_default.word2.offset = OFFSET_DEFAULT; // Offset left as default IF no metadata present
+    owt_header_default.word3.data_length = buffer_size + PCM_HEADER_SIZE;         // Update this after going through all sections
+    for (int i = 0; i < OWT_HEADER_SIZE; i++)
+    {
+        ret = regmap_write(cp, addr, owt_header_default.words[i]);
+        if (ret)
+        {
+            return ret;
+        }
+        addr += CS40L5X_DSP_BYTES_PER_WORD;
+    }
+
+    ret = regmap_write(cp, addr, CS40L5X_OWT_METADATA_HEADER_END);
+    addr += CS40L5X_DSP_BYTES_PER_WORD;
+
+    pcm_header_default.word1.waveform_length = buffer_size;
+    pcm_header_default.word2.f0 = driver->config.cal_data.f0;
+    pcm_header_default.word2.scaled_redc = driver->config.cal_data.redc;
+    for (int i = 0; i < PCM_HEADER_SIZE; i++)
+    {
+        ret = regmap_write(cp, addr, pcm_header_default.words[i]);
+        if (ret)
+        {
+            return ret;
+        }
+        addr += CS40L5X_DSP_BYTES_PER_WORD;
+    }
+    driver->config.bsp_config.owt_data_len += PCM_HEADER_SIZE;
+    driver->config.bsp_config.owt_addr = addr;
+
+    ret = cs40l5x_write_pcm_buffer(cp, &addr, buffer, buffer_size);
+    if (ret)
+    {
+        return ret;
+    }
+    ret = regmap_write(cp, CS40L5X_DSP_VIRTUAL1_MBOX_1, CS40L5X_DSP_MBOX_OWT_PUSH);
+    if (ret)
+    {
+        return ret;
+    }
+    return CS40L5X_STATUS_OK;
+}
+
+/**
  * Write the header section of a composite waveform to the OWT
  *
  */
@@ -1703,6 +1837,9 @@ uint32_t cs40l5x_write_owt_composite_header(cs40l5x_t *driver, uint8_t num_wavef
         }
         addr += CS40L5X_DSP_BYTES_PER_WORD;
     }
+
+    ret = regmap_write(cp, addr, CS40L5X_OWT_METADATA_HEADER_END);
+    addr += CS40L5X_DSP_BYTES_PER_WORD;
 
     composite_header_default.word1.waveform_length = WF_LENGTH_DEFAULT;
     composite_header_default.word2.num_waveforms = num_waveforms;
@@ -1792,7 +1929,7 @@ uint32_t cs40l5x_push_owt_composite(cs40l5x_t *driver)
     regmap_read(cp, CS40L5X_VIBEGEN_OWT_NEXT_XM, &addr);
     addr = addr & ~(0x800000);
     addr = CS40L5X_OWT_WAVE_XM_TABLE + (addr * CS40L5X_DSP_BYTES_PER_WORD);
-    addr += CS40L5X_DSP_BYTES_PER_WORD * 2; // data length is stored at 3rd word of composite waveform header
+    addr += CS40L5X_DSP_BYTES_PER_WORD * 2; // data length is stored in 2rd word of composite waveform header
     ret = regmap_write(cp, addr, driver->config.bsp_config.owt_data_len);
     if (ret)
     {
@@ -1845,6 +1982,9 @@ uint32_t cs40l5x_write_owt_composite_one_section(cs40l5x_t *driver,
         addr += CS40L5X_DSP_BYTES_PER_WORD;
     }
 
+    ret = regmap_write(cp, addr, CS40L5X_OWT_METADATA_HEADER_END);
+    addr += CS40L5X_DSP_BYTES_PER_WORD;
+
     composite_header_default.word1.waveform_length = WF_LENGTH_DEFAULT;
     composite_header_default.word2.num_waveforms = num_waveforms;
     composite_header_default.word2.repeats = repeats;
@@ -1861,6 +2001,137 @@ uint32_t cs40l5x_write_owt_composite_one_section(cs40l5x_t *driver,
     driver->config.bsp_config.owt_addr = addr;
 
     ret = cs40l5x_write_owt_composite_section(driver, nested_repeats, waveform_idx, amplitude, delay, owt_subwave, rom_subwave, duration_present, duration);
+    if (ret)
+    {
+        return ret;
+    }
+    ret = regmap_write(cp, CS40L5X_DSP_VIRTUAL1_MBOX_1, CS40L5X_DSP_MBOX_OWT_PUSH);
+    if (ret)
+    {
+        return ret;
+    }
+    return CS40L5X_STATUS_OK;
+}
+
+/**
+ * Write the header section of a PWLE waveform to the OWT
+ *
+ */
+uint32_t cs40l5x_write_owt_pwle_header(cs40l5x_t *driver, uint8_t *next_first_byte, uint8_t repeats, uint16_t wait_time, uint8_t num_lin_sections)
+{
+    uint32_t ret, addr;
+    int i;
+    regmap_cp_config_t *cp = REGMAP_GET_CP(driver);
+    driver->config.bsp_config.owt_data_len = 0;
+    regmap_read(cp, CS40L5X_VIBEGEN_OWT_NEXT_XM, &addr);
+    addr = addr & ~(0x800000);
+    addr = CS40L5X_OWT_WAVE_XM_TABLE + (addr * CS40L5X_DSP_BYTES_PER_WORD);
+
+    owt_header_default.word1.waveform_type = CS40L5X_RTH_TYPE_PWLE;
+    owt_header_default.word2.offset = OFFSET_DEFAULT;
+    owt_header_default.word3.data_length = 0;         // Update this after going through all sections
+    for (i = 0; i < OWT_HEADER_SIZE; i++)
+    {
+        ret = regmap_write(cp, addr, owt_header_default.words[i]);
+        if (ret)
+        {
+            return ret;
+        }
+        addr += CS40L5X_DSP_BYTES_PER_WORD;
+    }
+
+    ret = regmap_write(cp, addr, CS40L5X_OWT_METADATA_HEADER_END);
+    addr += CS40L5X_DSP_BYTES_PER_WORD;
+
+    pwle_header_default.word1.waveform_length = WF_LENGTH_DEFAULT;
+    pwle_header_default.word2.repeats = repeats;
+    pwle_header_default.word2.wait_time = wait_time;
+    pwle_header_default.word2.num_pw_lin_sections_ms4 = num_lin_sections >> 4;
+    *next_first_byte = num_lin_sections & 0xF;
+    for (i = 0; i < PWLE_HEADER_SIZE; i++)
+    {
+        ret = regmap_write(cp, addr, pwle_header_default.words[i]);
+        if (ret)
+        {
+            return ret;
+        }
+        addr += CS40L5X_DSP_BYTES_PER_WORD;
+    }
+    driver->config.bsp_config.owt_data_len += (PWLE_HEADER_SIZE);
+    driver->config.bsp_config.owt_addr = addr;
+    return CS40L5X_STATUS_OK;
+}
+
+/**
+ * Write a single section of a PWLE waveform to the OWT
+ *
+ */
+uint32_t cs40l5x_write_owt_pwle_section(cs40l5x_t *driver,
+                                             bool first_section,
+                                             uint8_t *next_first_byte, //First byte of section 1 is variable depending on prior section (or if 1st section)
+                                             uint16_t time,
+                                             uint16_t level,
+                                             uint16_t frequency,
+                                             uint8_t chirp_mode,
+                                             uint8_t half_cycle_def,
+                                             uint8_t ext_frequency,
+                                             uint8_t F0_relative_freq,
+                                             uint8_t phase_offset,
+                                             uint32_t Vb_target)
+{
+    uint32_t ret, addr;
+    regmap_cp_config_t *cp = REGMAP_GET_CP(driver);
+
+    addr = driver->config.bsp_config.owt_addr;
+    pwle_section_default.word1.first_byte = *next_first_byte;
+    pwle_section_default.word1.time = time;
+    pwle_section_default.word1.level_ms4 = level >> 8;
+    pwle_section_default.word2.level_ls8 = level & 0xFF;
+    pwle_section_default.word2.frequency = frequency;
+    pwle_section_default.word2.chirp_mode = chirp_mode;
+    pwle_section_default.word2.half_cycle_def = half_cycle_def;
+    pwle_section_default.word2.ext_frequency = ext_frequency;
+    pwle_section_default.word3.F0_relative_freq = F0_relative_freq;
+    pwle_section_default.word3.phase_offset = phase_offset;
+    pwle_section_default.word3.Vb_target_ms20 = Vb_target >> 4;
+
+
+    // Vb_target not supported on Jamerson H, so section size is always 2
+    for (int i = 0; i < PWLE_SECTION_SIZE - 1; i++)
+    {
+        ret = regmap_write(cp, addr, pwle_section_default.words[i]);
+        if (ret)
+        {
+            return ret;
+        }
+        addr += CS40L5X_DSP_BYTES_PER_WORD;
+    }
+    *next_first_byte = (pwle_section_default.word3.F0_relative_freq << 3) | (pwle_section_default.word3.phase_offset << 2); //First byte of word3 is next section's starting byte
+    driver->config.bsp_config.owt_data_len += (PWLE_SECTION_SIZE - 1);
+    driver->config.bsp_config.owt_addr = addr;
+    return CS40L5X_STATUS_OK;
+}
+
+/**
+ * Finalize the number of sections in a PWLE and push the waveform to the OWT
+ *
+ */
+uint32_t cs40l5x_push_owt_pwle(cs40l5x_t *driver, uint8_t *next_first_byte)
+{
+    uint32_t addr, ret;
+    regmap_cp_config_t *cp = REGMAP_GET_CP(driver);
+
+    //First, update final "next section" byte and zero pad the rest of the word. This is the final data word in the list of sections.
+    addr = driver->config.bsp_config.owt_addr;
+    ret = regmap_write(cp, addr, *next_first_byte << 20);
+    driver->config.bsp_config.owt_data_len++;
+
+    // Write data length now that we have counts of sections with and without duration sections
+    regmap_read(cp, CS40L5X_VIBEGEN_OWT_NEXT_XM, &addr);
+    addr = addr & ~(0x800000);
+    addr = CS40L5X_OWT_WAVE_XM_TABLE + (addr * CS40L5X_DSP_BYTES_PER_WORD);
+    addr += CS40L5X_DSP_BYTES_PER_WORD * 2; // data length is stored in 2nd+3rd word of pwle waveform header
+    ret = regmap_write(cp, addr, driver->config.bsp_config.owt_data_len);
     if (ret)
     {
         return ret;

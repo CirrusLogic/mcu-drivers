@@ -131,11 +131,15 @@ extern "C" {
  * Default values for different open wavetable fields
  */
 #define OWT_HEADER_SIZE                           (3)
-#define PWLE_HEADER_SIZE                          (3)
-#define PWLE_SECTION_SIZE                         (2)
+#define PCM_HEADER_SIZE                           (2)
+#define PCM_SECTION_SIZE                          (1)
+#define PWLE_HEADER_SIZE                          (2)
+#define PWLE_SECTION_SIZE                         (3)
 #define COMPOSITE_HEADER_SIZE                     (2)
 #define COMPOSITE_SECTION_SIZE                    (3)
 #define COMPOSITE_ONE_SECTION_DATA_LENGTH         (6)
+
+#define PW_LIN_SECTIONS_DEFAULT        (0)
 
 #define BUZZ_OR_CLICK_DEFAULT          (0)
 #define FS_DEFAULT                     (0)
@@ -144,12 +148,12 @@ extern "C" {
 #define DVL_DEFAULT                    (0)
 #define LF0T_DEFAULT                   (0)
 #define WAVEFORM_TYPE_DEFAULT          (0x8)
-#define OFFSET_DEFAULT                 (0x3)
+#define OFFSET_DEFAULT                 (0x4)
 #define DATA_LENGTH_DEFAULT            (0x5)
 
 #define WF_LENGTH_DEFAULT              (0x3FFFFF)
 #define PWLS_MS4                       (0)
-#define WAIT_TIME_DEFAULT              (0)
+#define WAIT_TIME_DEFAULT              (1600)
 #define REPEAT_DEFAULT                 (0)
 #define LEVEL_MS4                      (0)
 #define TIME_DEFAULT                   (0)
@@ -178,13 +182,13 @@ extern "C" {
 #define DURATION_PRESENT_DEFAULT       (0)
 #define DURATION_DEFAULT               (0)
 
-#define OFFSET_DEFAULT                 (0x3)
-
 #define PWLE_API_ENABLE                (0)
 
 #define WAV_LENGTH_DEFAULT             (0)
 #define F0_DEFAULT                     (0)
 #define SCALED_REDC_DEFAULT            (0)
+#define F0_RELATIVE_FREQ_DEFAULT       (0)
+#define PHASE_OFFSET_DEFAULT           (0)
 
 #define CS40L50_PLAY_RTH               (0)
 
@@ -192,6 +196,12 @@ extern "C" {
 #define CS40L50_RTH_TYPE_COMPOSITE     (0xa)
 #define CS40L50_RTH_TYPE_PWLE          (0xc)
 #define CS40L50_OWT_NO_METADATA_OFFSET (0x3)
+#define CS40L50_OWT_METADATA_HEADER_END (0xFFFFFF)
+
+#define CS40L50_OWT_SAMPLE_RATE_8K      (0x0)
+#define CS40L50_OWT_SAMPLE_RATE_4K      (0x1)
+#define CS40L50_OWT_SAMPLE_RATE_24K     (0x2)
+#define CS40L50_OWT_SAMPLE_RATE_48K     (0x3)
 
 /**
  * @defgroup CS40L50_EVENT_FLAG_
@@ -415,16 +425,62 @@ typedef union
     };
 } cs40l50_owt_header_t;
 
+/** PCM OWT Data Structure **/
 
-typedef struct
-{
-    union
-    {
+typedef struct {
+    union {
         uint32_t word;
-        struct
-        {
-            uint32_t waveform_length            : 24;
-            uint8_t reserved                    : 8;
+        struct {
+            uint32_t waveform_length: 24;
+            uint8_t reserved: 8;
+        };
+    };
+} cs40l50_owt_pcm_header_word1_t;
+
+typedef struct {
+    union {
+        uint32_t word;
+        struct {
+            uint16_t f0: 12;
+            uint16_t scaled_redc: 12;
+            uint16_t reserved: 8;
+        };
+    };
+} cs40l50_owt_pcm_header_word2_t;
+
+typedef union {
+    uint32_t words[PCM_HEADER_SIZE];
+    struct {
+        cs40l50_owt_pcm_header_word1_t word1;
+        cs40l50_owt_pcm_header_word2_t word2;
+    };
+} cs40l50_owt_pcm_header_t;
+
+typedef struct {
+    union {
+        uint32_t word;
+        struct {
+            uint8_t sample2: 8;
+            uint8_t sample1: 8;
+            uint8_t sample0: 8;
+            uint8_t reserved: 8;
+        };
+    };
+} cs40l50_owt_pcm_section_word1_t;
+
+typedef union {
+    uint32_t words[PCM_SECTION_SIZE];
+    struct {
+        cs40l50_owt_pcm_section_word1_t word1;
+    };
+} cs40l50_owt_pcm_section_t;
+
+typedef struct {
+    union {
+        uint32_t word;
+        struct {
+            uint32_t waveform_length: 24;
+            uint8_t reserved: 8;
         };
     };
 } cs40l50_owt_composite_header_word1_t;
@@ -510,6 +566,104 @@ typedef union
         cs40l50_owt_composite_section_word3_t word3;
     };
 } cs40l50_owt_composite_section_t;
+
+typedef struct
+{
+    union
+    {
+        uint32_t word;
+        struct
+        {
+            uint32_t waveform_length            : 24;
+            uint8_t reserved                    : 8;
+        };
+    };
+} cs40l50_owt_pwle_header_word1_t;
+
+typedef struct
+{
+    union
+    {
+        uint32_t word;
+        struct
+        {
+            uint16_t num_pw_lin_sections_ms4    : 4;
+            uint16_t wait_time                  : 12;
+            uint16_t repeats                    : 8;
+            uint16_t reserved                   : 8;
+        };
+    };
+} cs40l50_owt_pwle_header_word2_t;
+
+typedef union
+{
+    uint32_t words[PWLE_HEADER_SIZE];
+    struct
+    {
+        cs40l50_owt_pwle_header_word1_t word1;
+        cs40l50_owt_pwle_header_word2_t word2;
+    };
+} cs40l50_owt_pwle_header_t;
+
+typedef struct
+{
+    union
+    {
+        uint32_t word;
+        struct
+        {
+            uint32_t level_ms4                  : 4;
+            uint32_t time                       : 16;
+            uint32_t first_byte                 : 4;
+            uint32_t reserved                   : 8;
+        };
+    };
+} cs40l50_owt_pwle_section_word1_t;
+
+typedef struct
+{
+    union
+    {
+        uint32_t word;
+        struct
+        {
+            uint32_t ext_frequency              : 1;
+            uint32_t half_cycle_def             : 1;
+            uint32_t unused                     : 1;
+            uint32_t chirp_mode                 : 1;
+            uint32_t frequency                  : 12;
+            uint32_t level_ls8                  : 8;
+            uint32_t reserved                   : 8;
+        };
+    };
+} cs40l50_owt_pwle_section_word2_t;
+
+typedef struct
+{
+    union
+    {
+        uint32_t word;
+        struct
+        {
+            uint32_t Vb_target_ms20             : 20;
+            uint32_t unused                     : 2;
+            uint32_t phase_offset               : 1;
+            uint32_t F0_relative_freq           : 1;
+            uint32_t reserved                   : 8;
+        };
+    };
+} cs40l50_owt_pwle_section_word3_t;
+
+typedef union
+{
+    uint32_t words[PWLE_SECTION_SIZE];
+    struct
+    {
+        cs40l50_owt_pwle_section_word1_t word1;
+        cs40l50_owt_pwle_section_word2_t word2;
+        cs40l50_owt_pwle_section_word3_t word3;
+    };
+} cs40l50_owt_pwle_section_t;
 
 /* OLD PWLE entry types */
 
@@ -917,6 +1071,26 @@ uint32_t cs40l50_get_dynamic_f0(cs40l50_t *driver, cs40l50_df0_table_entry_t *f0
 uint32_t cs40l50_set_asp_enable(cs40l50_t *driver, bool enable, uint32_t freq);
 
 /**
+ * Write PCM Waveform to Open Wave Table
+ *
+ * This will construct and write a complete PCM waveform to the next available OWT entry,
+ * including OWT header, PCM header, and PCM sample payload data.
+ *
+ * @param [in] driver               Pointer to the driver state
+ * @param [in] sample_rate          Sample rate (use CS40L50_OWT_SAMPLE_RATE_* values)
+ * @param [in] buffer               Pointer to PCM payload bytes
+ * @param [in] buffer_size          Number of PCM payload bytes
+ * @param [in] F0                   F0 value (reserved for API compatibility)
+ * @param [in] scaled_ReDC          Scaled ReDC value (reserved for API compatibility)
+ *
+ * @return
+ * - CS40L50_STATUS_FAIL        if any control port transaction fails, or inputs are invalid
+ * - CS40L50_STATUS_OK          otherwise
+ *
+ */
+uint32_t cs40l50_write_owt_pcm(cs40l50_t *driver, uint8_t sample_rate, const uint8_t *buffer, uint32_t buffer_size);
+
+/**
  * Write Composite Waveform header to Open Wave Table
  *
  * This will construct and write composite waveform header basic on the required parameter as input arguments.
@@ -1007,6 +1181,85 @@ uint32_t cs40l50_write_owt_composite_one_section(cs40l50_t *driver,
                                                  uint16_t delay,
                                                  uint8_t owt_subwave,
                                                  uint8_t rom_subwave);
+
+/**
+ * Write PWLE Waveform header to Open Wave Table
+ *
+ * This writes the OWT header and PWLE header for a new PWLE waveform. TODO: Metadata is currently
+ * excluded for PWLE waveforms (OWT header word1 bit26 is 0).
+ *
+ * @param [in] driver               Pointer to the driver state
+ * @param [out] next_first_byte     First-byte value to be used by the first PWLE section
+ * @param [in] repeats              Number of overall waveform repeats
+ * @param [in] wait_time            Delay in ms between repeats
+ * @param [in] num_lin_sections     Total number of PWLE linear sections
+ *
+ * @return
+ * - CS40L50_STATUS_FAIL        if any control port transaction fails
+ * - CS40L50_STATUS_OK          otherwise
+ *
+ */
+
+uint32_t cs40l50_write_owt_pwle_header(cs40l50_t *driver,
+                                       uint8_t *next_first_byte,
+                                       uint8_t repeats,
+                                       uint16_t wait_time,
+                                       uint8_t num_lin_sections);
+
+
+/**
+ * Write PWLE Waveform section to Open Wave Table
+ *
+ * This will construct and write a single PWLE section at bsp_config.owt_addr, then increment
+ * bsp_config.owt_addr so multiple PWLE sections can be written sequentially to one waveform.
+ *
+ * @param [in] driver               Pointer to the driver state
+ * @param [in] first_section        True if writing the first section of the PWLE waveform
+ * @param [in/out] next_first_byte  First-byte value used for this section and updated for the next
+ * section
+ * @param [in] time                 Section time field (ms)
+ * @param [in] level                Section level field (-1 - 0.995, two's complement)
+ * @param [in] frequency            Section frequency field (Hz, depends on ext_frequency)
+ * @param [in] chirp_mode           Section chirp mode field
+ * @param [in] half_cycle_def       Section half-cycle definition field
+ * @param [in] ext_frequency        Section external frequency field
+ * @param [in] F0_relative_freq     Section F0-relative-frequency field
+ * @param [in] phase_offset         Section phase-offset field
+ * @param [in] Vb_target            Section Vb-target field
+ *
+ * @return
+ * - CS40L50_STATUS_FAIL        if any control port transaction fails
+ * - CS40L50_STATUS_OK          otherwise
+ *
+ */
+uint32_t cs40l50_write_owt_pwle_section(cs40l50_t *driver,
+                                        bool first_section,
+                                        uint8_t *next_first_byte,
+                                        uint16_t time,
+                                        uint16_t level,
+                                        uint16_t frequency,
+                                        uint8_t chirp_mode,
+                                        uint8_t half_cycle_def,
+                                        uint8_t ext_frequency,
+                                        uint8_t F0_relative_freq,
+                                        uint8_t phase_offset,
+                                        uint32_t Vb_target);
+
+/**
+ * Push PWLE Waveform to Open Wave Table
+ *
+ * This writes the last next-section byte in the PWLE waveform, updates the data length
+ * in the PWLE header, then pushes the complete PWLE waveform to the OWT.
+ *
+ * @param [in] driver               Pointer to the driver state
+ * @param [in] next_first_byte      Final next-section first-byte value for tail padding
+ *
+ * @return
+ * - CS40L50_STATUS_FAIL        if any control port transaction fails
+ * - CS40L50_STATUS_OK          otherwise
+ *
+ */
+uint32_t cs40l50_push_owt_pwle(cs40l50_t *driver, uint8_t *next_first_byte);
 
 /*
  * Reads the contents of a single register/memory address

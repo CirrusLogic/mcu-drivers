@@ -18,15 +18,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * firmware_converter.py SDK version: 4.29.1 - internal
- * Command:  ../../../../../tools/firmware_converter/firmware_converter.py export cs40l52 ../../../../../cs40l5x/fw/CS40L52_Rev4.0.3.wmfw --wmdr ../../../../../cs40l5x/fw/host_init_haptics.bin ../../../../../cs40l5x/fw/SVC_FW_4.0.3.bin
+ * firmware_converter.py SDK version: 4.30.2 - internal
+ * Command:  ../../../../../tools/firmware_converter/firmware_converter.py export cs40l52 ../../../../../cs40l5x/fw/CS40L52_Rev4.0.7.wmfw --wmdr ../../../../../cs40l5x/fw/host_init_haptics.bin ../../../../../cs40l5x/fw/SVC_FW_4.0.7.bin
  * WMDR Filename: ../../../../../cs40l5x/fw/host_init_haptics.bin
  *     Informational Text:
  *     requires_reinit=false
  *
- * WMDR Filename: ../../../../../cs40l5x/fw/SVC_FW_4.0.3.bin
+ * WMDR Filename: ../../../../../cs40l5x/fw/SVC_FW_4.0.7.bin
  *     Informational Text:
- *     requires_reinit=false
+ *     requires_reinit=true
  *
  *
  */
@@ -355,10 +355,10 @@
 #define F0_ESTIMATION_TONE_DURATION_MS 0x2802F80
 #define F0_ESTIMATION_F0_EST 0x2802F84
 #define F0_ESTIMATION_Q_EST 0x2802F88
-#define F0_ESTIMATION_TION_YM_STRUCT_T 0x34007DC
+#define F0_ESTIMATION_TION_YM_STRUCT_T 0x3400D70
 //F0_ESTIMATION_TION_YM_STRUCT_T size: 8 bytes
-#define F0_ESTIMATION_Z_MAX 0x34007DC
-#define F0_ESTIMATION_BEMF_MAX 0x34007E0
+#define F0_ESTIMATION_Z_MAX 0x3400D70
+#define F0_ESTIMATION_BEMF_MAX 0x3400D74
 
 //Definitions for HAPTICS_LOGGER Controls
 #define HAPTICS_LOGGER_GGER_XM_STRUCT_T 0x28033E8
@@ -565,8 +565,8 @@
 
 //Definitions for DIAGNOSTICS Controls
 #define DIAGNOSTICS_TICS_YM_STRUCT_T 0x3400794
-//DIAGNOSTICS_TICS_YM_STRUCT_T size: 72 bytes
-#define DIAGNOSTICS_RUN_LRA_CHECKS 0x3400794
+//DIAGNOSTICS_TICS_YM_STRUCT_T size: 104 bytes
+#define DIAGNOSTICS_CONFIG 0x3400794
 #define DIAGNOSTICS_RESULT 0x3400798
 #define DIAGNOSTICS_VDD_AMP_MIN 0x340079C
 #define DIAGNOSTICS_VDD_AMP_MAX 0x34007A0
@@ -584,13 +584,21 @@
 #define DIAGNOSTICS_BEMF_MAX 0x34007D0
 #define DIAGNOSTICS_ZRES_MIN 0x34007D4
 #define DIAGNOSTICS_ZRES_MAX 0x34007D8
+#define DIAGNOSTICS_ACTUALS_VDD_AMP 0x34007DC
+#define DIAGNOSTICS_ACTUALS_VDD_B 0x34007E0
+#define DIAGNOSTICS_ACTUALS_REDC 0x34007E4
+#define DIAGNOSTICS_ACTUALS_LE 0x34007E8
+#define DIAGNOSTICS_ACTUALS_F0 0x34007EC
+#define DIAGNOSTICS_ACTUALS_Q 0x34007F0
+#define DIAGNOSTICS_ACTUALS_BEMF 0x34007F4
+#define DIAGNOSTICS_ACTUALS_ZRES 0x34007F8
 
 /** @} */
 
 /**
  * Total blocks of CS40L52 Firmware
  */
-#define cs40l52_total_fw_blocks (23)
+#define cs40l52_total_fw_blocks (24)
 
 /**
  * Total blocks of CS40L52 Coefficient _0 data

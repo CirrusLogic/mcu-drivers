@@ -4,7 +4,7 @@
  * @brief The CS40L26 Driver module
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2021-2023, 2025 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2021-2023, 2025-2026 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -1138,7 +1138,7 @@ uint32_t cs40l26_start_i2s(cs40l26_t *driver)
     }
 
     ret = regmap_update_reg(cp, CS40L26_REFCLK_INPUT_REG,
-                            CS40L26_PLL_REFCLK_FREQ_MASK, driver->config.bclk_freq);
+                            CS40L26_PLL_REFCLK_FREQ_MASK, driver->config.pll_refclk_freq);
     if (ret)
     {
         return ret;
@@ -1157,6 +1157,21 @@ uint32_t cs40l26_start_i2s(cs40l26_t *driver)
     {
         return ret;
     }
+
+    ret = regmap_update_reg(cp, CS40L26_ASP_CONTROL1,
+                            CS40L26_BCLK_FREQ_MASK, driver->config.bclk_freq);
+    if (ret)
+    {
+        return ret;
+    }
+
+    ret = regmap_update_reg(cp, CS40L26_ASP_CONTROL2,
+                            CS40L26_ASP_RX_WIDTH_MASK, CS40L26_ASP_RX_WIDTH);
+    if (ret)
+    {
+        return ret;
+    }
+
 
     cs40l26_dataif_asp_enables1_t asp_reg_val;
     asp_reg_val.word = 0;

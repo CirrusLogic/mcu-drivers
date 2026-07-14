@@ -4,7 +4,7 @@
  * @brief Functions and prototypes exported by the CS40L26 Driver module
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2021-2023 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2021-2023, 2026 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -179,6 +179,62 @@ typedef enum
     OWT_BANK      = 3
 } cs40l26_wavetable_bank_t;
 
+typedef enum
+{
+    CS40L26_AUX_NGATE_THRESH_66 = 0, // --66dBFS
+    CS40L26_AUX_NGATE_THRESH_72 = 1, // --72dBFS
+    CS40L26_AUX_NGATE_THRESH_78 = 2, // --78dBFS
+    CS40L26_AUX_NGATE_THRESH_84 = 3, // --84dBFS
+    CS40L26_AUX_NGATE_THRESH_90 = 4, // --90dBFS
+    CS40L26_AUX_NGATE_THRESH_96 = 5, // --96dBFS
+    CS40L26_AUX_NGATE_THRESH_102 = 6, // --102dBFS
+    CS40L26_AUX_NGATE_THRESH_108 = 7, // --108dBFS
+} cs40l26_aux_ng_thresh_t;
+
+typedef enum
+{
+    CS40L26_AUX_NGATE_DELAY_5MS = 0, // 5ms
+    CS40L26_AUX_NGATE_DELAY_10MS = 1, // 10ms
+    CS40L26_AUX_NGATE_DELAY_25MS = 2, // 25ms
+    CS40L26_AUX_NGATE_DELAY_50MS = 3, // 50ms
+    CS40L26_AUX_NGATE_DELAY_100MS = 4, // 100ms
+    CS40L26_AUX_NGATE_DELAY_250MS = 5, // 250ms
+    CS40L26_AUX_NGATE_DELAY_500MS = 6, // 500ms
+    CS40L26_AUX_NGATE_DELAY_1S = 7, // 1s
+    CS40L26_AUX_NGATE_DELAY_5S = 8, // 5s
+    CS40L26_AUX_NGATE_DELAY_10S = 9, // 10s
+    CS40L26_AUX_NGATE_DELAY_20S = 10, // 20s
+    CS40L26_AUX_NGATE_DELAY_30S = 11, // 30s
+    CS40L26_AUX_NGATE_DELAY_40S = 12, // 40s
+    CS40L26_AUX_NGATE_DELAY_50S = 13, // 50s
+    CS40L26_AUX_NGATE_DELAY_60S = 14, // 60s
+    CS40L26_AUX_NGATE_DELAY_120S = 15, // 120s
+} cs40l26_aux_ng_delay_t;
+
+typedef enum
+{
+    CS40L26_HW_NGATE_THRESH_0 = 0, // 0.654 mVpk
+    CS40L26_HW_NGATE_THRESH_1 = 1, // 0.328 mVpk
+    CS40L26_HW_NGATE_THRESH_2 = 2, // 0.164 mVpk
+    CS40L26_HW_NGATE_THRESH_3 = 3, // 0.082 mVpk (Default)
+    CS40L26_HW_NGATE_THRESH_4 = 4, // 0.041 mVpk
+    CS40L26_HW_NGATE_THRESH_5 = 5, // 0.021 mVpk
+    CS40L26_HW_NGATE_THRESH_6 = 6, // 0.010 mVpk
+    CS40L26_HW_NGATE_THRESH_7 = 7, // True zero data (no LSB dither)
+} cs40l26_hw_ng_thresh_t;
+
+typedef enum
+{
+    CS40L26_HW_NGATE_DELAY_5MS = 0, // 5ms
+    CS40L26_HW_NGATE_DELAY_10MS = 1, // 10ms
+    CS40L26_HW_NGATE_DELAY_25MS = 2, // 25ms
+    CS40L26_HW_NGATE_DELAY_50MS = 3, // 50ms
+    CS40L26_HW_NGATE_DELAY_100MS = 4, // 100ms
+    CS40L26_HW_NGATE_DELAY_250MS = 5, // 250ms
+    CS40L26_HW_NGATE_DELAY_500MS = 6, // 500ms
+    CS40L26_HW_NGATE_DELAY_1S = 7, // 1s
+} cs40l26_hw_ng_delay_t;
+
 /**
  * Function pointer to Notification Callback
  *
@@ -249,6 +305,7 @@ typedef struct
     uint32_t *syscfg_regs;              ///< Pointer to system configuration table
     uint32_t syscfg_regs_total;         ///< Total entries in system configuration table
     cs40l26_calibration_t cal_data;     ///< Calibration data from previous calibration sequence
+    uint32_t pll_refclk_freq;           ///< Frequency of pll_refclk
     uint32_t bclk_freq;                 ///< Frequency of bclk
 } cs40l26_config_t;
 

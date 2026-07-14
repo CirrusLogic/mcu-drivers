@@ -4,7 +4,7 @@
  * @brief Constants and Types from CS40L26 datasheet
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2021-2025 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2021-2026 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -36,6 +36,9 @@ extern "C" {
 #define CS40L26_REVID                (0x4)
 #define CS40L26_TEST_KEY_CTRL        (0x40)
 
+#define CS40L26_SFT_RESET_REG                               0x00000020
+#define CS40L26_SFT_RESET_MASK                              0x5A000000
+
 #define CS40L26_GLOBAL_ENABLES_REG        (0x2014)
 
 #define CS40L26_REFCLK_INPUT_REG          (0x2C04)
@@ -44,10 +47,21 @@ extern "C" {
 #define CS40L26_PLL_REFCLK_SEL_MASK       (0x7)
 #define CS40L26_PLL_REFCLK_FREQ_SHIFT     (5)
 #define CS40L26_PLL_REFCLK_FREQ_MASK      (0x3F << CS40L26_PLL_REFCLK_FREQ_SHIFT)
-#define CS40L26_BCLK_SHIFT                (5)
-#define CS40L26_BCLK_FREQ                 (0x21 << CS40L26_BCLK_SHIFT)
+#define CS40L26_PLL_REFCLK_FREQ           (0x21)
+
+#define CS40L26_BCLK_FREQ_MASK            (0x1F)
+#define CS40L26_BCLK_FREQ                 (0x21)
+
 #define CS40L26_REFCLK_PLL_LOOP_SHIFT     (11)
 #define CS40L26_REFCLK_PLL_LOOP_MASK      (1 << CS40L26_REFCLK_PLL_LOOP_SHIFT)
+
+#define CS40L26_ASP_RX_WIDTH_OFFSET       (24)
+#define CS40L26_ASP_RX_WIDTH_MASK         (0xFF << CS40L26_ASP_RX_WIDTH_OFFSET)
+#define CS40L26_ASP_RX_WIDTH              (0x20 << CS40L26_ASP_RX_WIDTH_OFFSET)
+
+#define CS40L26_ASP_TX_WIDTH_OFFSET       (16)
+#define CS40L26_ASP_TX_WIDTH_MASK         (0xFF << CS40L26_ASP_TX_WIDTH_OFFSET)
+#define CS40L26_ASP_TX_WIDTH              (0x20 << CS40L26_ASP_TX_WIDTH_OFFSET)
 
 #define CS40L26_PLL_CLK_SEL_BCLK          (0x0)
 #define CS40L26_PLL_REFCLK_DETECT_0       (0x2C28)
@@ -221,6 +235,7 @@ extern "C" {
 #define IRQ1_IRQ1_MASK_REG                              (0x00010110)
 #define MSM_BLOCK_ENABLES_REG                           (0x00002018)
 
+#define IRQ1_IRQ1_STS1_GPIO1_STS1_BITMASK               (1 << 0)
 #define IRQ1_IRQ1_EINT_1_WKSRC_STATUS_ANY_EINT1_BITMASK (1 << 8)
 #define IRQ1_IRQ1_EINT_1_WKSRC_STATUS1_EINT1_BITMASK    (1 << 9)
 #define IRQ1_IRQ1_EINT_1_WKSRC_STATUS2_EINT1_BITMASK    (1 << 10)
@@ -304,12 +319,24 @@ extern "C" {
 #define CS40L26_ASPTX4_INPUT                            (0x4C2C)
 #define CS40L26_NGATE1_INPUT                            (0x4C60)
 #define CS40L26_NGATE2_INPUT                            (0x4C64)
-#define CS40L26_NGATE_CFG                               (0x12000)
-#define CS40L26_NGATE_CH1_CFG                           (0x12004)
-#define CS40L26_NGATE_CH2_CFG                           (0x12008)
 #define CS40L26_DATA_SRC_MASK                           (0x3F)
 #define CS40L26_DATA_SRC_DSP1TX1                        (0x32)
 #define CS40L26_DATA_SRC_VMON                           (0x18)
+
+/* Noise Gate */
+#define CS40L26_AUX_NGATE_CFG                           (0x12000)
+#define CS40L26_AUX_NGATE_CH1_CFG                       (0x12004)
+#define CS40L26_AUX_NGATE_CH2_CFG                       (0x12008)
+#define CS40L26_AUX_NGATE_THRESH_SHIFT                  (0)
+#define CS40L26_AUX_NGATE_THRESH_MASK                   (0x00000007)
+#define CS40L26_AUX_NGATE_DELAY_SHIFT                   (8)
+#define CS40L26_AUX_NGATE_DELAY_MASK                    (0x00000F00)
+#define CS40L26_HW_NGATE_CFG                            (0x6808)
+#define CS40L26_HW_NGATE_THRESH_SHIFT                   (0)
+#define CS40L26_HW_NGATE_THRESH_MASK                    (0x00000007)
+#define CS40L26_HW_NGATE_DELAY_SHIFT                    (4)
+#define CS40L26_HW_NGATE_DELAY_MASK                     (0x00000070)
+
 
 /** @} */
 

@@ -4,7 +4,7 @@
  * @brief The main function for CS40L25 System Test Harness
  *
  * @copyright
- * Copyright (c) Cirrus Logic 2021-2023 All Rights Reserved, http://www.cirrus.com/
+ * Copyright (c) Cirrus Logic 2021-2023, 2026 All Rights Reserved, http://www.cirrus.com/
  *
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -26,6 +26,7 @@
 #include "cs40l26_ext.h"
 #include <stddef.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 /***********************************************************************************************************************
  * LOCAL LITERAL SUBSTITUTIONS
@@ -33,14 +34,15 @@
 #define APP_STATE_BUZZ           (0)
 #define APP_STATE_OWT_TRIGGER    (1)
 #define APP_STATE_START_STOP_I2S (2)
-#define APP_STATE_CALIBRATE      (3)
-#define APP_STATE_DYNAMIC_F0     (4)
+#define APP_STATE_A2H            (3)
+#define APP_STATE_CALIBRATE      (4)
+#define APP_STATE_DYNAMIC_F0     (5)
 
 
 /***********************************************************************************************************************
  * LOCAL VARIABLES
  **********************************************************************************************************************/
-static uint8_t app_state = APP_STATE_BUZZ;
+static uint8_t app_state = APP_STATE_A2H;
 static bool bsp_pb_pressed = false;
 
 uint32_t pwle1[] =
@@ -261,6 +263,25 @@ int main(void)
                     bsp_set_timer(300, NULL, NULL);
                     bsp_dut_stop_i2s();
                     bsp_audio_stop(BSP_I2S_PORT_PRIMARY);
+                    bsp_dut_hibernate();
+                    app_state++;
+                }
+                break;
+            case APP_STATE_A2H:
+                if (bsp_pb_pressed)
+                {
+                    bsp_dut_wake();
+                    bsp_dut_reset();
+                    bsp_dut_boot(false);
+                    bsp_dut_wake();
+                    bsp_dut_load_wavetable();
+                    bsp_dut_trigger_haptic(3, RAM_BANK);
+
+                    bsp_dut_start_i2s();
+                    //Wait for 2nd button press to turn off streaming
+                    while(!bsp_was_pb_pressed(BSP_PB_ID_USER));
+                    bsp_dut_stop_i2s();
+
                     bsp_dut_hibernate();
                     app_state++;
                 }

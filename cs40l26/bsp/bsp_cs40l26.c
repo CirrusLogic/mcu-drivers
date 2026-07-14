@@ -105,6 +105,7 @@ uint32_t bsp_dut_initialize(void)
         haptic_config.syscfg_regs = cs40l26_syscfg_regs;
         haptic_config.syscfg_regs_total = CS40L26_SYSCFG_REGS_TOTAL;
 
+        haptic_config.pll_refclk_freq = CS40L26_PLL_REFCLK_FREQ;
         haptic_config.bclk_freq = CS40L26_BCLK_FREQ;
 
         haptic_status = cs40l26_configure(&cs40l26_driver, &haptic_config);

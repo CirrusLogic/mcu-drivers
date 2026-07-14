@@ -706,6 +706,7 @@ int bsp_cs40l50_trigger_owt(const struct device *dev, int owt_idx);
  * @return
  * - BSP_STATUS_FAIL         If failure to write OWT delete mailbox command
  * - BSP_STATUS_OK
+ */
 int bsp_cs40l50_delete_owt(const struct device *dev, int owt_idx);
 
 /**

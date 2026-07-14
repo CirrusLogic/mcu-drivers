@@ -3,6 +3,26 @@ Release Notes
 
 =============================================================================
 Summary:
+This is the release of Alt-OS Driver SDK v4.30.4
+Date: 2026/07/14
+
+Architectures/Compilers Used:
+GNU Arm Embedded Toolchain: arm-none-eabi-gcc -mcpu=cortex-m4
+
+New Features/Changes:
+
+Refactor CS40L50/5X PWLE/PCM OWT driver APIs
+Add owt_demo sample applications for CS40L50/5X
+Add A2H tuning/app state to CS40L26 baremetal application
+Add CS40L50/5X firmware v4.0.7
+
+Fixed Bugs:
+
+Fix bug with metadata table ender in OWT waveforms
+
+=============================================================================
+=============================================================================
+Summary:
 This is the release of Alt-OS Driver SDK v4.30.2
 Date: 2026/06/26
 
