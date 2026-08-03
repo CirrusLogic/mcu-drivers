@@ -18,13 +18,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * firmware_converter.py SDK version: 4.29.7 - internal
- * Command:  ../../../../../tools/firmware_converter/firmware_converter.py export cs40l50 ../../../../../cs40l50/fw/CS40L50_Rev4.0.3.wmfw --wmdr ../../../../../cs40l50/fw/cs40l50_wt.bin ../../../../../cs40l50/fw/cs40l50_SVC.bin ../../../../../cs40l50/fw/cs40l50_A2H.bin --preserve-filename
- * WMDR Filename: ../../../../../cs40l50/fw/cs40l50_SVC.bin
+ * firmware_converter.py SDK version: 4.30.4 - internal
+ * Command:  ../../../../../tools/firmware_converter/firmware_converter.py export cs40l50 ../../../../../cs40l50/fw/CS40L50_Rev4.0.3.wmfw --wmdr ../tunings/cs40l50_wt.bin ../tunings/cs40l50_SVC.bin ../tunings/cs40l50_A2H.bin --preserve-filename
+ * WMDR Filename: ../tunings/cs40l50_SVC.bin
  *     Informational Text:
  *     requires_reinit=true
  *
- * WMDR Filename: ../../../../../cs40l50/fw/cs40l50_A2H.bin
+ * WMDR Filename: ../tunings/cs40l50_A2H.bin
  *     Informational Text:
  *     requires_reinit=false
  *

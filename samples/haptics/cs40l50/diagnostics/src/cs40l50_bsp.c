@@ -417,7 +417,7 @@ static int cs40l50_init(const struct device *dev)
         return ret;
     }
 
-    regmap_read(&config->i2c, FIRMWARE_CS40L50_HALO_STATE, &val);
+    regmap_read(&config->i2c, FIRMWARE_CS40L5X_HALO_STATE, &val);
     LOG_INF("cs40l50_init: HALO_STATE = %x\n", val);
 
     LOG_INF("cs40l50_calibrate\n");
@@ -453,7 +453,7 @@ static int cs40l50_init(const struct device *dev)
     k_msleep(1000);
 
     /* to-do */
-    regmap_read(&config->i2c, FIRMWARE_CS40L50_HALO_STATE, &val);
+    regmap_read(&config->i2c, FIRMWARE_CS40L5X_HALO_STATE, &val);
     LOG_INF("cs40l50_init: HALO_STATE = %x\n", val);
 
     //    config->irq_cfg_func();

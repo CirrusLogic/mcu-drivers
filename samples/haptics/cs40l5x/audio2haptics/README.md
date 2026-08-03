@@ -33,17 +33,17 @@ Firmware is generated using the firmware converter Python tool and an A2H tuning
 
 **CS40L51:**
 ```
-python ../../../../../tools/firmware_converter/firmware_converter.py export cs40l51 ../../../../../cs40l5x/fw/CS40L51_Rev4.0.3.wmfw --wmdr ../../../../../cs40l5x/fw/cs40l5x_A2H.bin ../../../../../cs40l5x/fw/cs40l5x_SVC.bin
+python ../../../../../tools/firmware_converter/firmware_converter.py export cs40l51 ../../../../../cs40l5x/fw/CS40L51_Rev4.0.7.wmfw --wmdr ../tunings/cs40l5x_A2H.bin ../tunings/cs40l5x_SVC.bin ../tunings/cs40l5x_AVC.bin
 ```
 
 **CS40L52:**
 ```
-python ../../../../../tools/firmware_converter/firmware_converter.py export cs40l52 ../../../../../cs40l5x/fw/CS40L52_Rev4.0.3.wmfw --wmdr ../../../../../cs40l5x/fw/cs40l5x_A2H.bin ../../../../../cs40l5x/fw/cs40l5x_SVC.bin
+python ../../../../../tools/firmware_converter/firmware_converter.py export cs40l52 ../../../../../cs40l5x/fw/CS40L52_Rev4.0.7.wmfw --wmdr ../tunings/cs40l5x_A2H.bin ../tunings/cs40l5x_SVC.bin ../tunings/cs40l5x_AVC.bin
 ```
 
 **CS40L53:**
 ```
-python ../../../../../tools/firmware_converter/firmware_converter.py export cs40l53 ../../../../../cs40l5x/fw/CS40L53_Rev4.0.3.wmfw --wmdr ../../../../../cs40l5x/fw/cs40l5x_A2H.bin ../../../../../cs40l5x/fw/cs40l5x_SVC.bin
+python ../../../../../tools/firmware_converter/firmware_converter.py export cs40l53 ../../../../../cs40l5x/fw/CS40L53_Rev4.0.7.wmfw --wmdr ../tunings/cs40l5x_A2H.bin ../tunings/cs40l5x_SVC.bin ../tunings/cs40l5x_AVC.bin
 ```
 
 _Config_

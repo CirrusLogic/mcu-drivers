@@ -2017,7 +2017,7 @@ uint32_t cs40l5x_write_owt_composite_one_section(cs40l5x_t *driver,
  * Write the header section of a PWLE waveform to the OWT
  *
  */
-uint32_t cs40l5x_write_owt_pwle_header(cs40l5x_t *driver, uint8_t *next_first_byte, uint8_t repeats, uint16_t wait_time, uint8_t num_lin_sections)
+uint32_t cs40l5x_write_owt_pwle_header(cs40l5x_t *driver, uint8_t *next_first_byte, uint32_t wf_length, uint8_t repeats, uint16_t wait_time, uint8_t num_lin_sections)
 {
     uint32_t ret, addr;
     int i;

@@ -114,6 +114,7 @@
  *
  */
 #define BSP_GPIO_LOW (0)
+#define BSP_GPIO_INACTIVE (0)
 
 /**
  * Value to indicate driving a GPIO high
@@ -122,6 +123,7 @@
  *
  */
 #define BSP_GPIO_HIGH (1)
+#define BSP_GPIO_ACTIVE (1)
 
 /**
  * Value to indicate enabling or disabling a supply
@@ -621,4 +623,19 @@ int cs40l5x_write_acked_reg_dt(const struct i2c_dt_spec *spec, const uint32_t re
  * - BSP_STATUS_OK                  otherwise
  */
 int cs40l5x_set_haptic_cfg(const struct device *dev, struct cs40l5x_haptic_source_config *hap_cfg);
+
+/**
+ * Update Vibration Compensation's input speed in kph (0-255)
+ *
+ * @param [in] dev                  Pointer to the driver state
+ * @param [in] speed                Speed in kph
+ *
+ * @return
+ * - BSP_STATUS_FAIL if dev or write failure
+ * - BSP_STATUS_OK                  otherwise
+ */
+int cs40l5x_set_vibecomp_speed(const struct device *dev, uint32_t speed);
+
+int bsp_cs40l5x_start_i2s(const struct device *dev);
+int bsp_cs40l5x_stop_i2s(const struct device *dev);
 #endif

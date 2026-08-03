@@ -31,6 +31,7 @@
 #include <stdio.h>
 #include <strings.h>
 #include <ctype.h>
+#include "owt.h"
 
 #define LOG_LEVEL 4
 
@@ -47,10 +48,12 @@ const struct device *cs40l5x = DEVICE_DT_GET(DT_NODELABEL(haptic1));
            "<frequency_hz> <length_ms> <fs_hz>")
 #define CS40L5X_STORE_COMPOSITE                                                                    \
     SHELL_HELP("Store Composite Effect in Open Wavetable after prompting for parameters", NULL)
+#define CS40L5X_STORE_FF_CIRRUS SHELL_HELP("Store Compiste Effect in OWT based on ff_cirrus", "<ff_cirrus_string>")
 #define CS40L5X_STORE_PWLE                                                                         \
     SHELL_HELP("Store PWLE Effect in Open Wavetable after prompting for parameters", NULL)
 #define CS40L5X_TRIGGER SHELL_HELP("Trigger an Effect in Open Wavetable", "<owt_wf_index>")
 #define CS40L5X_GET_NUM_OWT_EFFECTS SHELL_HELP("Get Number of Effects in Open Wavetable", NULL)
+#define CS40L5X_DUMP_REGS           SHELL_HELP("Dump consecutive registers", "<addr> <num_words>")
 
 // Shell helper function to receive line input, up to len characters
 static char *shell_getline(const struct shell *shell, char *buf, const size_t len)
@@ -320,6 +323,7 @@ static int cmd_store_pwle_owt(const struct shell *sh, size_t argc, char **argv)
     memset(read_buf, 0, read_buf_len);
 
     uint8_t next_first_byte;
+    uint32_t wf_length = WF_LENGTH_DEFAULT;
     uint8_t repeats = REPEATS_DEFAULT;
     uint16_t wait_time = WAIT_TIME_DEFAULT;
     uint8_t num_sections = PW_LIN_SECTIONS_DEFAULT;
@@ -353,7 +357,7 @@ static int cmd_store_pwle_owt(const struct shell *sh, size_t argc, char **argv)
     printf("\n%d sections\n", input_arg);
     num_sections = input_arg + 1;
 
-    bsp_cs40l5x_write_owt_pwle_header(cs40l5x, &next_first_byte, repeats, wait_time,
+    bsp_cs40l5x_write_owt_pwle_header(cs40l5x, &next_first_byte, wf_length, repeats, wait_time,
                       num_sections);
     struct cs40l5x_owt_pwle_section_params section;
     memset(&section, 0, sizeof(section));
@@ -454,6 +458,13 @@ static int cmd_store_pwle_owt(const struct shell *sh, size_t argc, char **argv)
     return 0;
 }
 
+static int cmd_store_ff_cirrus(const struct shell *sh, size_t argc, char **argv)
+{
+    uint32_t ret;
+    ret = get_owt_data(cs40l5x, argv[1]);
+    return 0;
+}
+
 static int cmd_trigger_owt(const struct shell *sh, size_t argc, char **argv)
 {
     char *endptr;
@@ -472,15 +483,38 @@ static int cmd_get_num_owt_effects(const struct shell *sh, size_t argc, char **a
     return 0;
 }
 
+
+static int cmd_dump_regs(const struct shell *sh, size_t argc, char **argv)
+{
+    uint32_t ret;
+    uint32_t addr;
+    uint32_t num_words;
+
+    ret = convert_int_input(sh, argv[1], &addr, 0, UINT32_MAX);
+    if (ret) {
+        return ret;
+    }
+
+    ret = convert_int_input(sh, argv[2], &num_words, 0, UINT16_MAX);
+    if (ret) {
+        return ret;
+    }
+
+    return bsp_cs40l5x_dump_regs(cs40l5x, addr, num_words);
+}
+
 SHELL_STATIC_SUBCMD_SET_CREATE(
     cs40l5x_cmds,
     SHELL_CMD_ARG(store_pcm_owt, NULL, CS40L5X_STORE_PCM, cmd_store_pcm_owt, 4, 0),
     SHELL_CMD_ARG(store_composite_owt, NULL, CS40L5X_STORE_COMPOSITE, cmd_store_composite_owt,
               1, 0),
+    SHELL_CMD_ARG(store_ff_cirrus, NULL, CS40L5X_STORE_FF_CIRRUS, cmd_store_ff_cirrus,
+              2, 0),
     SHELL_CMD_ARG(store_pwle_owt, NULL, CS40L5X_STORE_PWLE, cmd_store_pwle_owt, 1, 0),
     SHELL_CMD_ARG(trigger_owt, NULL, CS40L5X_TRIGGER, cmd_trigger_owt, 2, 0),
     SHELL_CMD_ARG(get_num_owt_effects, NULL, CS40L5X_GET_NUM_OWT_EFFECTS,
               cmd_get_num_owt_effects, 1, 0),
+    SHELL_CMD_ARG(dump_regs, NULL, CS40L5X_DUMP_REGS, cmd_dump_regs, 3, 0),
     SHELL_SUBCMD_SET_END);
 
 SHELL_CMD_REGISTER(cs40l5x, &cs40l5x_cmds, "CS40L5X shell commands", NULL);

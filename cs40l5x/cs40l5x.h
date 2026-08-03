@@ -1217,6 +1217,7 @@ uint32_t cs40l5x_write_owt_composite_one_section(cs40l5x_t *driver,
  *
  * @param [in] driver               Pointer to the driver state
  * @param [out] next_first_byte     First-byte value to be used by the first PWLE section
+ * @param [in] wf_length            WF length in samples at 8kHz using the LS 22 bits
  * @param [in] repeats              Number of overall waveform repeats
  * @param [in] wait_time            Delay in ms between repeats
  * @param [in] num_lin_sections     Total number of PWLE linear sections
@@ -1228,6 +1229,7 @@ uint32_t cs40l5x_write_owt_composite_one_section(cs40l5x_t *driver,
  */
 uint32_t cs40l5x_write_owt_pwle_header(cs40l5x_t *driver,
                                        uint8_t *next_first_byte,
+                                       uint32_t wf_length,
                                        uint8_t repeats,
                                        uint16_t wait_time,
                                        uint8_t num_lin_sections);

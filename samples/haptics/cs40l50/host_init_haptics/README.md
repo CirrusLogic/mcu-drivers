@@ -32,7 +32,7 @@ _Firmware_
 
 Firmware is generated using the firmware converter Python tool and a wavetable included in the SDK, run the following from the project/src directory:
 ```
-python ../../../../../tools/firmware_converter/firmware_converter.py export cs40l50 ../../../../../cs40l50/fw/CS40L50_Rev4.0.7.wmfw --wmdr ../../../../../cs40l50/fw/host_init_haptics.bin ../../../../../cs40l50/fw/SVC_FW_4.0.7.bin
+python ../../../../../tools/firmware_converter/firmware_converter.py export cs40l50 ../../../../../cs40l50/fw/CS40L50_Rev4.0.7.wmfw --wmdr ../tunings/host_init_haptics_wt.bin ../tunings/cs40l50_SVC.bin
 ```
 _Waveforms_
 * waveforms.c

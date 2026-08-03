@@ -645,21 +645,10 @@ uint32_t cs35l56_set_asp_enable(cs35l56_t *driver, bool enable, uint32_t freq)
             return ret;
         }
 
-        // PLL_OPEN_LOOP must clear before changing REFCLK FREQ
-        ret = regmap_update_reg(cp, CS35L56_FIRMWARE_PLL_REFCLK_FREQ,
-                    CS35L56_FIRMWARE_PLL_OPEN_LOOP_MASK, 0);
-        if (ret) {
-            return ret;
-        }
         ret = regmap_update_reg(
             cp, CS35L56_FIRMWARE_PLL_REFCLK_FREQ, 0,
             (pll_refclk_val << CS35L56_FIRMWARE_PLL_REFCLK_FREQ_OFFSET) |
                 CS35L56_FIRMWARE_PLL_REFCLK_EN_MASK);
-        if (ret) {
-            return ret;
-        }
-        ret = regmap_update_reg(cp, CS35L56_FIRMWARE_PLL_REFCLK_FREQ,
-                    CS35L56_FIRMWARE_PLL_OPEN_LOOP_MASK, 0);
         if (ret) {
             return ret;
         }

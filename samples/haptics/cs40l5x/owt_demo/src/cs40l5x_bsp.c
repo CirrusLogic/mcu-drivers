@@ -647,13 +647,13 @@ int bsp_cs40l5x_push_owt_composite(const struct device *dev)
 }
 
 int bsp_cs40l5x_write_owt_pwle_header(const struct device *dev, uint8_t *next_first_byte,
-                      uint8_t repeats, uint16_t wait_time, uint8_t num_lin_sections)
+                      uint32_t wf_length, uint8_t repeats, uint16_t wait_time, uint8_t num_lin_sections)
 {
     struct cs40l5x_bsp *data = dev->data;
     cs40l5x_t *drv = &data->priv;
     uint32_t ret;
 
-    ret = cs40l5x_write_owt_pwle_header(drv, next_first_byte, repeats, wait_time,
+    ret = cs40l5x_write_owt_pwle_header(drv, next_first_byte, wf_length, repeats, wait_time,
                         num_lin_sections);
     if (ret) {
         LOG_ERR("Failure writing OWT PWLE header");
@@ -728,6 +728,37 @@ int bsp_cs40l5x_get_num_owt_wf(const struct device *dev, uint32_t *num)
 {
     struct cs40l5x_config *config = (struct cs40l5x_config *)dev->config;
     return regmap_read(&config->i2c, VIBEGEN_OWT_NUM_OF_WAVES_XM, num);
+}
+
+
+int bsp_cs40l5x_dump_regs(const struct device *dev, uint32_t addr, uint32_t num_words)
+{
+    struct cs40l5x_config *config = (struct cs40l5x_config *)dev->config;
+    uint32_t reg_addr = addr;
+    uint32_t reg_val;
+    uint32_t i;
+    int ret;
+
+    for (i = 0; i < num_words; i++) {
+        ret = regmap_read(&config->i2c, reg_addr, &reg_val);
+        if (ret) {
+            LOG_ERR("Error reading reg 0x%06x", reg_addr);
+            return ret;
+        }
+
+        printk("0x%06x: 0x%06x\n", reg_addr, reg_val);
+
+        if (i < num_words) {
+            if (reg_addr > (UINT32_MAX - sizeof(uint32_t))) {
+                LOG_ERR("Register address overflow from 0x%08x", reg_addr);
+                return -EINVAL;
+            }
+
+            reg_addr += sizeof(uint32_t);
+        }
+    }
+
+    return BSP_STATUS_OK;
 }
 
 #define CS40L5X_INIT(inst)                                                                         \

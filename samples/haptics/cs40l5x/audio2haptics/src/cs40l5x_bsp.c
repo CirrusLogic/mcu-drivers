@@ -390,6 +390,14 @@ static int cs40l5x_init(const struct device *dev)
         return 0;
     }
 
+    drv->config.bsp_config.reset_gpio_id = &reset;
+    // Activate RESET for at least T_RLPW (1ms)
+    gpio_pin_set_dt(&reset, BSP_GPIO_ACTIVE);
+    k_msleep(2);
+    // Wait for Lochnagar to boot
+    gpio_pin_set_dt(&reset, BSP_GPIO_INACTIVE);
+    k_msleep(2500);
+
     if (!i2c_is_ready_dt(&config->i2c)) {
         LOG_INF("cs40l5x no I2C\n");
         return -ENODEV;
@@ -465,6 +473,47 @@ static int haptics_cs40l5x_start_output(const struct device *dev)
     cs40l5x_trigger(&data->priv, data->hap_cfg.index, data->hap_cfg.bank);
 
     return 0;
+}
+
+int bsp_cs40l5x_start_i2s(const struct device *dev)
+{
+    uint32_t ret;
+    struct cs40l5x_bsp *data = dev->data;
+    cs40l5x_t *drv = &data->priv;
+    ret = cs40l5x_set_asp_enable(drv, true, 3072000); // Enable PPL with 3.072 MHz refclk frequency
+    return ret;
+}
+int bsp_cs40l5x_stop_i2s(const struct device *dev)
+{
+    uint32_t ret;
+    struct cs40l5x_bsp *data = dev->data;
+    cs40l5x_t *drv = &data->priv;
+    ret = cs40l5x_set_asp_enable(drv, false, 3072000); // Enable PPL with 3.072 MHz refclk frequency
+    return ret;
+}
+
+int cs40l5x_set_vibecomp_speed(const struct device *dev, uint32_t speed)
+{
+#ifdef CONFIG_HAPTICS_CS40L51
+    struct cs40l5x_config *config = (struct cs40l5x_config *)dev->config;
+    if(dev == NULL)
+    {
+        return BSP_STATUS_FAIL;
+    }
+
+    uint32_t ret = regmap_write(&config->i2c, VIBECOMP_CURR_SPEED, speed);
+    return ret;
+#endif
+
+#ifdef CONFIG_HAPTICS_CS40L52
+    LOG_ERR("VIBECOMP not support on CS40L52 FW!");
+    return BSP_STATUS_FAIL;
+#endif
+
+#ifdef CONFIG_HAPTICS_CS40L53
+        LOG_ERR("VIBECOMP not support on CS40L53 FW!");
+        return BSP_STATUS_FAIL;
+#endif
 }
 
 static const struct haptics_driver_api cs40l5x_driver_api = {

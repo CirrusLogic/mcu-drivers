@@ -18,13 +18,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * firmware_converter.py SDK version: 4.29.1 - internal
- * Command:  ../../../../../tools/firmware_converter/firmware_converter.py export cs40l51 ../../../../../cs40l5x/fw/CS40L51_Rev4.0.3.wmfw --wmdr ../../../../../cs40l5x/fw/owt_demo.bin ../../../../../cs40l5x/fw/SVC_FW_4.0.3.bin
- * WMDR Filename: ../../../../../cs40l5x/fw/owt_demo.bin
+ * firmware_converter.py SDK version: 4.30.4 - internal
+ * Command:  ../../../../../tools/firmware_converter/firmware_converter.py export cs40l51 ../../../../../cs40l5x/fw/CS40L51_Rev4.0.3.wmfw --wmdr ../tunings/owt_demo_wt.bin ../tunings/cs40l5x_SVC.bin
+ * WMDR Filename: ../tunings/owt_demo_wt.bin
  *     Informational Text:
  *     requires_reinit=false
  *
- * WMDR Filename: ../../../../../cs40l5x/fw/SVC_FW_4.0.3.bin
+ * WMDR Filename: ../tunings/cs40l5x_SVC.bin
  *     Informational Text:
  *     requires_reinit=false
  *

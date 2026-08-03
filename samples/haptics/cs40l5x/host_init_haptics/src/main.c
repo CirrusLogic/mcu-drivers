@@ -45,6 +45,7 @@ const struct device *cs40l5x = DEVICE_DT_GET(DT_NODELABEL(haptic1));
 #define CS40L5X_LIST_WT                     SHELL_HELP("List Effects in Main Wavetable", NULL)
 #define CS40L5X_EFFECT_MSFT_ID_TRIGGER      SHELL_HELP("Play Effect indicated by Microsoft ID with Given Intensity, Repeat Count, Retrigger Period (ms), and max waveform playback time (ms)", "<msft_ID> <intensity> <repeats> <retrigger_period> <cutoff_time>")
 #define CS40L5X_EFFECT_NAME_TRIGGER         SHELL_HELP("Play Effect indicated by effect name with Given Intensity, Repeat Count, and Retrigger Period (ms), and max waveform playback time (ms)", "<effect_name> <intensity> <repeats> <retrigger_period> <cutoff_time>")
+#define CS40L5X_DUMP_REGS           SHELL_HELP("Dump consecutive registers", "<addr> <num_words>")
 
 // Helper function to convert and validate shell input is int values in valid range
 static int convert_int_input(const struct shell *sh, char *input, uint32_t *output, uint32_t min, uint32_t max)
@@ -165,11 +166,31 @@ static int cmd_effect_msft_id_trigger(const struct shell *sh, size_t argc, char 
     return ret;
 }
 
+static int cmd_dump_regs(const struct shell *sh, size_t argc, char **argv)
+{
+    uint32_t ret;
+    uint32_t addr;
+    uint32_t num_words;
+
+    ret = convert_int_input(sh, argv[1], &addr, 0, UINT32_MAX);
+    if (ret) {
+        return ret;
+    }
+
+    ret = convert_int_input(sh, argv[2], &num_words, 0, UINT16_MAX);
+    if (ret) {
+        return ret;
+    }
+
+    return bsp_cs40l5x_dump_regs(cs40l5x, addr, num_words);
+}
+
 SHELL_STATIC_SUBCMD_SET_CREATE(
     cs40l5x_cmds,
     SHELL_CMD_ARG(list_wt, NULL, CS40L5X_LIST_WT, cmd_list_wt, 1, 0),
     SHELL_CMD_ARG(effect_msft_id_trigger, NULL, CS40L5X_EFFECT_MSFT_ID_TRIGGER, cmd_effect_msft_id_trigger, 6, 0),
     SHELL_CMD_ARG(effect_name_trigger, NULL, CS40L5X_EFFECT_NAME_TRIGGER, cmd_effect_name_trigger, 6, 0),
+    SHELL_CMD_ARG(dump_regs, NULL, CS40L5X_DUMP_REGS, cmd_dump_regs, 3, 0),
     SHELL_SUBCMD_SET_END);
 
 SHELL_CMD_REGISTER(cs40l5x, &cs40l5x_cmds, "CS40L5X shell commands", NULL);

@@ -18,13 +18,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * firmware_converter.py SDK version: 4.30.2 - internal
- * Command:  ../../../../../tools/firmware_converter/firmware_converter.py export cs40l50 ../../../../../cs40l50/fw/CS40L50_Rev4.0.7.wmfw --wmdr ../../../../../cs40l50/fw/host_init_haptics.bin ../../../../../cs40l50/fw/SVC_FW_4.0.7.bin
- * WMDR Filename: ../../../../../cs40l50/fw/host_init_haptics.bin
+ * firmware_converter.py SDK version: 4.30.4 - internal
+ * Command:  ../../../../../tools/firmware_converter/firmware_converter.py export cs40l50 ../../../../../cs40l50/fw/CS40L50_Rev4.0.7.wmfw --wmdr ../tunings/host_init_haptics_wt.bin ../tunings/cs40l50_SVC.bin
+ * WMDR Filename: ../tunings/host_init_haptics_wt.bin
  *     Informational Text:
  *     requires_reinit=false
  *
- * WMDR Filename: ../../../../../cs40l50/fw/SVC_FW_4.0.7.bin
+ * WMDR Filename: ../tunings/cs40l50_SVC.bin
  *     Informational Text:
  *     requires_reinit=true
  *

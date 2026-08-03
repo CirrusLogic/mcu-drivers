@@ -33,9 +33,6 @@
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/sys/util.h>
-#include "waveforms.h"
-
-#include "waveforms.h"
 
 #ifdef CONFIG_HAPTICS_CS40L51
 #include "cs40l51_firmware.h"
@@ -83,6 +80,13 @@
 /***********************************************************************************************************************
  * LITERALS & CONSTANTS
  **********************************************************************************************************************/
+
+/**
+ * @brief Host Initiated Haptics Effects metadata table offset
+ *
+ */
+#define HIH_EFFECT_WT_OFFSET 5 //9 HIH effects should be in order, with this offset from index 0 in the wavetable
+
 
 /**
  * @defgroup BSP_STATUS_
@@ -512,6 +516,17 @@ typedef enum {
     EFFECT_NAME
 } effectLabel;
 
+//HIH effect data structure to contain info about effect position in wavetable
+typedef struct {
+    uint8_t wt_idx;
+    uint32_t msft_ID;
+    char effectName[MAX_HIH_EFFECT_NAME_SIZE];
+    uint32_t length_ms; //effect length in ms in q30.2 format
+} HIH_effect_metadata;
+
+
+
+//HIH effect data structure to pass into HIH trigger BSP function
 typedef struct {
     effectLabel label;
     union {
@@ -789,5 +804,7 @@ int bsp_cs40l5x_host_initiated_trigger(const struct device *dev, HIH_effect effe
  *
  */
 int bsp_cs40l5x_list_host_initiated_effects(const struct device *dev);
-
+int bsp_cs40l5x_dump_regs(const struct device *dev, uint32_t addr, uint32_t num_words);
+int bsp_cs40l5x_get_pwle_length(const struct device *dev, uint32_t idx, uint32_t* len);
 #endif
+

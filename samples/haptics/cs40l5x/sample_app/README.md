@@ -35,17 +35,17 @@ Firmware is generated using the firmware converter Python tool and a wavetable i
 
 **CS40L51:**
 ```
-python ../../../../../tools/firmware_converter/firmware_converter.py export cs40l51 ../../../../../cs40l5x/fw/CS40L51_Rev4.0.3.wmfw --wmdr ../../../../../cs40l5x/fw/cs40l5x_wt.bin
+python ../../../../../tools/firmware_converter/firmware_converter.py export cs40l51 ../../../../../cs40l5x/fw/CS40L51_Rev4.0.3.wmfw --wmdr ../tunings/cs40l5x_wt.bin
 ```
 
 **CS40L52:**
 ```
-python ../../../../../tools/firmware_converter/firmware_converter.py export cs40l52 ../../../../../cs40l5x/fw/CS40L52_Rev4.0.3.wmfw --wmdr ../../../../../cs40l5x/fw/cs40l5x_wt.bin
+python ../../../../../tools/firmware_converter/firmware_converter.py export cs40l52 ../../../../../cs40l5x/fw/CS40L52_Rev4.0.3.wmfw --wmdr ../tunings/cs40l5x_wt.bin
 ```
 
 **CS40L53:**
 ```
-python ../../../../../tools/firmware_converter/firmware_converter.py export cs40l53 ../../../../../cs40l5x/fw/CS40L53_Rev4.0.3.wmfw --wmdr ../../../../../cs40l5x/fw/cs40l5x_wt.bin
+python ../../../../../tools/firmware_converter/firmware_converter.py export cs40l53 ../../../../../cs40l5x/fw/CS40L53_Rev4.0.3.wmfw --wmdr ../tunings/cs40l5x_wt.bin
 ```
 
 _Config_

@@ -51,8 +51,8 @@ extern "C" {
  */
 #define SDK_VERSION_MAJOR       (4) ///< Release Major version
 #define SDK_VERSION_MINOR       (30) ///< Release Minor version
-#define SDK_VERSION_UPDATE      (4) ///< Release Update version
-#define SDK_GIT_SHA             ("d31f1a698ce114ff78aa9dbffa3d19e790efc37a") ///< Release Git SHA
+#define SDK_VERSION_UPDATE      (5) ///< Release Update version
+#define SDK_GIT_SHA             ("bca48789b2ab4a0df221649e48be8a16afa07d14") ///< Release Git SHA
 /** @} */
 
 

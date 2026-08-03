@@ -18,8 +18,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * firmware_converter.py SDK version: 4.29.3 - internal
- * Command:  ../../../../../tools/firmware_converter/firmware_converter.py export cs40l53 ../../../../../cs40l5x/fw/CS40L53_Rev4.0.3.wmfw --wmdr ../../../../../cs40l5x/fw/cs40l5x_wt.bin
+ * firmware_converter.py SDK version: 4.30.4 - internal
+ * Command:  ../../../../../tools/firmware_converter/firmware_converter.py export cs40l53 ../../../../../cs40l5x/fw/CS40L53_Rev4.0.3.wmfw --wmdr ../tunings/cs40l5x_wt.bin
  *
  */
 

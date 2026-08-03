@@ -18,15 +18,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * firmware_converter.py SDK version: 4.29.7 - internal
- * Command:  ../../../../../tools/firmware_converter/firmware_converter.py export cs40l53 ../../../../../cs40l5x/fw/CS40L53_Rev4.0.3.wmfw --wmdr ../../../../../cs40l5x/fw/cs40l5x_A2H.bin ../../../../../cs40l5x/fw/cs40l5x_SVC.bin
- * WMDR Filename: ../../../../../cs40l5x/fw/cs40l5x_A2H.bin
+ * firmware_converter.py SDK version: 4.30.4 - internal
+ * Command:  ../../../../../tools/firmware_converter/firmware_converter.py export cs40l53 ../../../../../cs40l5x/fw/CS40L53_Rev4.0.7.wmfw --wmdr ../tunings/cs40l5x_A2H.bin ../tunings/cs40l5x_SVC.bin ../tunings/cs40l5x_AVC.bin
+ * WMDR Filename: ../tunings/cs40l5x_A2H.bin
  *     Informational Text:
  *     requires_reinit=false
  *
- * WMDR Filename: ../../../../../cs40l5x/fw/cs40l5x_SVC.bin
+ * WMDR Filename: ../tunings/cs40l5x_SVC.bin
  *     Informational Text:
  *     requires_reinit=true
+ *
+ * WMDR Filename: ../tunings/cs40l5x_AVC.bin
+ *     Informational Text:
+ *     requires_reinit=false
  *
  *
  */
@@ -575,6 +579,11 @@
  */
 #define cs40l53_total_coeff_blocks_1 (33)
 
+/**
+ * Total blocks of CS40L53 Coefficient _2 data
+ */
+#define cs40l53_total_coeff_blocks_2 (3)
+
 
 /***********************************************************************************************************************
  * MACROS
@@ -614,6 +623,11 @@ extern const halo_boot_block_t cs40l53_coeff_0_blocks[];
  * Coefficient _1 memory block metadata
  */
 extern const halo_boot_block_t cs40l53_coeff_1_blocks[];
+
+/**
+ * Coefficient _2 memory block metadata
+ */
+extern const halo_boot_block_t cs40l53_coeff_2_blocks[];
 
 
 /***********************************************************************************************************************

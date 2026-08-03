@@ -3,6 +3,27 @@ Release Notes
 
 =============================================================================
 Summary:
+This is the release of Alt-OS Driver SDK v4.30.5
+Date: 2026/08/03
+
+Architectures/Compilers Used:
+GNU Arm Embedded Toolchain: arm-none-eabi-gcc -mcpu=cortex-m4
+
+New Features/Changes:
+
+Add ff_cirrus style OWT writing to CS40L5X owt_demo sample application
+Add waveform length field to PWLE OWT driver API
+Change host initated haptic effect length calculation to no longer require .hwt
+Modify CS40L5X Audio2haptics sample application to use zephyr shell commands
+Add Vibecomp tuning and demo commands to CS40L5X audio2haptics sample app
+
+Fixed Bugs:
+
+Removed unecessary PLL openloop settings change in CS35L56 sample
+
+=============================================================================
+=============================================================================
+Summary:
 This is the release of Alt-OS Driver SDK v4.30.4
 Date: 2026/07/14
 

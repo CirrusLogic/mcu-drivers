@@ -145,7 +145,7 @@
 extern const uint8_t sineLookupTable[1000];
 
 // Uncomment to allow additional configuration parameters for PWLE and Composite waveforms in OWT
-// #define ADDITIONAL_OWT_WF_PARAMETERS
+#define ADDITIONAL_OWT_WF_PARAMETERS
 
 /***********************************************************************************************************************
  * MACROS
@@ -664,9 +664,8 @@ int bsp_cs40l5x_write_owt_composite_header(const struct device *dev, uint8_t num
 int bsp_cs40l5x_write_owt_composite_section(const struct device *dev,
                         struct cs40l5x_owt_composite_section_params section);
 
-int bsp_cs40l5x_write_owt_pwle_header(const struct device *dev, uint8_t *next_first_byte,
-                      uint8_t repeats, uint16_t wait_time,
-                      uint8_t num_lin_sections);
+int bsp_cs40l5x_write_owt_pwle_header(const struct device *dev, uint8_t *next_first_byte, uint32_t wf_length,
+                      uint8_t repeats, uint16_t wait_time, uint8_t num_lin_sections);
 int bsp_cs40l5x_write_owt_pwle_section(const struct device *dev, bool first_section,
                        uint8_t *next_first_byte,
                        struct cs40l5x_owt_pwle_section_params section);
@@ -721,5 +720,5 @@ int bsp_cs40l5x_delete_owt(const struct device *dev, int owt_idx);
 int bsp_cs40l5x_get_num_owt_wf(const struct device *dev, uint32_t *num);
 
 int haptics_cs40l5x_trigger_owt(const struct device *dev, int owt_idx);
-
+int bsp_cs40l5x_dump_regs(const struct device *dev, uint32_t addr, uint32_t num_words);
 #endif
