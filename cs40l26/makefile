@@ -29,6 +29,7 @@ include $(REPO_PATH)/common/common.mk
 
 # Assign paths and variables
 PART_NUM = cs40l26
+FW_FORMAT := fw_img_v2
 $(eval $(call assign_paths))
 PLATFORM_TARGETS = system_test baremetal freertos holdout
 VALID_TARGETS = unit_test $(PLATFORM_TARGETS)
@@ -69,6 +70,10 @@ ifdef IS_NOT_UNIT_TEST
     ifeq ($(SEMIHOSTING), 1)
         CFLAGS += -DSEMIHOSTING
     endif
+
+	ifeq ($(FW_FORMAT), export)
+		CFLAGS += -DCONFIG_FW_EXPORT_FORMAT
+	endif
 endif
 
 # Assign sources and includes for driver library
@@ -90,9 +95,16 @@ ifeq ($(MAKECMDGOALS), unit_test)
     ADD_OBJ_RULES = add_unit_test_obj_rules
 else ifdef IS_NOT_UNIT_TEST
     C_SRCS += $(DRIVER_PATH)/bsp/bsp_cs40l26.c
-    C_SRCS += $(HALO_FIRMWARE_PATH)/cs40l26_fw_img.c
     C_SRCS += $(HALO_FIRMWARE_PATH)/cs40l26_waveform.c
-    C_SRCS += $(HALO_FIRMWARE_PATH)/cs40l26_cal_fw_img.c
+
+	ifeq ($(FW_FORMAT), export)
+		C_SRCS += $(DRIVER_PATH)/bsp/bsp_cs40l26_export.c
+		C_SRCS += $(HALO_FIRMWARE_PATH)/cs40l26_firmware.c
+	else
+		C_SRCS += $(DRIVER_PATH)/bsp/bsp_cs40l26_fw_img_v2.c
+		C_SRCS += $(HALO_FIRMWARE_PATH)/cs40l26_fw_img.c
+		C_SRCS += $(HALO_FIRMWARE_PATH)/cs40l26_cal_fw_img.c
+	endif
 
     ifeq ($(MAKECMDGOALS), system_test)
         C_SRCS += $(APP_PATH)/test_cs40l26.c
@@ -140,11 +152,16 @@ $(eval $(call add_wisce_script_rule,cs40l26))
 .NOTPARALLEL: firmware_converter
 firmware_converter:
 	@echo -------------------------------------------------------------------------------
-	@echo GENERATING cs40l26_fw_img
+	@echo GENERATING cs40l26 firmware
 ifeq ($(call WMFW_CHECK,$(HALO_FIRMWARE_PATH)/$(HALO_FIRMWARE_FILE)),)
 ifeq ($(call WMFW_CHECK,$(HALO_FIRMWARE_PATH)/$(HALO_FIRMWARE_WMDR)),)
-	@echo Running firmware_converter for $(HALO_FIRMWARE_FILE) and $(HALO_FIRMWARE_WMDR)
-	cd $(HALO_FIRMWARE_PATH) && python3 ../../tools/firmware_converter/firmware_converter.py fw_img_v2 cs40l26 $(HALO_FIRMWARE_FILE) --sym-input $(CONFIG_PATH)/cs40l26_sym.h --generic-sym --wmdr tuning.bin A2H.bin DVL.bin
+	@if [ "$(FW_FORMAT)" = "export" ]; then \
+		echo Running firmware_converter for $(HALO_FIRMWARE_FILE) and $(HALO_FIRMWARE_WMDR); \
+		cd $(HALO_FIRMWARE_PATH) && python3 ../../tools/firmware_converter/firmware_converter.py export cs40l26 $(HALO_FIRMWARE_FILE) --wmdr cs40l26_wt.bin cs40l26_A2H.bin cs40l26_DVL.bin --preserve-filename; \
+	else \
+		echo Running firmware_converter for $(HALO_FIRMWARE_FILE) and $(HALO_FIRMWARE_WMDR); \
+		cd $(HALO_FIRMWARE_PATH) && python3 ../../tools/firmware_converter/firmware_converter.py fw_img_v2 cs40l26 $(HALO_FIRMWARE_FILE) --sym-input $(CONFIG_PATH)/cs40l26_sym.h --generic-sym --wmdr cs40l26_wt.bin cs40l26_A2H.bin cs40l26_DVL.bin; \
+	fi
 else
 	@echo Not running firmware_converter for $(HALO_FIRMWARE_WMDR) \(missing file\)
 endif
@@ -152,8 +169,10 @@ else
 	@echo Not running firmware_converter for $(HALO_FIRMWARE_FILE) \(missing file\)
 endif
 ifeq ($(call WMFW_CHECK,$(HALO_FIRMWARE_PATH)/$(HALO_CAL_FIRMWARE_FILE)),)
-	@echo Running firmware_converter for $(HALO_CAL_FIRMWARE_FILE)
-	cd $(HALO_FIRMWARE_PATH) && python3 ../../tools/firmware_converter/firmware_converter.py fw_img_v2 cs40l26 $(HALO_CAL_FIRMWARE_FILE) --sym-input $(CONFIG_PATH)/cs40l26_cal_sym.h --generic-sym --suffix cal
+	@if [ "$(FW_FORMAT)" = "fw_img_v2" ]; then \
+		echo Running firmware_converter for $(HALO_FIRMWARE_FILE) and $(HALO_FIRMWARE_WMDR); \
+		cd $(HALO_FIRMWARE_PATH) && python3 ../../tools/firmware_converter/firmware_converter.py fw_img_v2 cs40l26 $(HALO_CAL_FIRMWARE_FILE) --sym-input $(CONFIG_PATH)/cs40l26_sym.h --generic-sym --suffix cal; \
+	fi
 else
 	@echo Not running firmware_converter for $(HALO_CAL_FIRMWARE_FILE) \(missing file\)
 endif
@@ -194,6 +213,9 @@ print_targets:
 	@echo       OPTIMIZATION_LEVEL=2    \(configure for -O2 optimization level\)
 	@echo       OPTIMIZATION_LEVEL=3    \(configure for -O3 optimization level\)
 	@echo       OPTIMIZATION_LEVEL=s    \(configure for -Os optimization level\)
+	@echo
+	@echo		FW_FORMAT=export		\(run firmware_conveter and assign config variables for 'export' format)
+	@echo		FW_FORMAT=fw_img_v2		\(run firmware_conveter and assign config variables for 'fw_img_v2' format (default))
 
 clean:
 	$(RM) $(BUILD_DIR)

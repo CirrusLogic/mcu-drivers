@@ -1,5 +1,5 @@
 #==========================================================================
-# (c) 2020-2022, 2024-2025 Cirrus Logic, Inc.
+# (c) 2020-2022, 2024-2026 Cirrus Logic, Inc.
 #--------------------------------------------------------------------------
 # Project : Templates for C Source and Header files
 # File    : c_h_file_templates.py
@@ -109,7 +109,7 @@ header_file_template_str = """/**
 header_file_template_fw_blocks_info = """/**
  * Total blocks of {part_number_uc} Firmware
  */
-#define {part_number_lc}_total_fw_blocks ({total_fw_blocks})
+#define {fw_blocks_name_lc}_total_fw_blocks ({total_fw_blocks})
 
 {include_coeff_1}
 
@@ -142,7 +142,7 @@ typedef struct
 /**
  * Firmware memory block metadata
  */
-extern const halo_boot_block_t {part_number_lc}_fw_blocks[];
+extern const halo_boot_block_t {fw_blocks_name_lc}_fw_blocks[];
 
 {include_coeff_2}
 
@@ -233,7 +233,7 @@ source_file_template_str = """/**
 /**
  * Firmware memory block metadata
  */
-const halo_boot_block_t {part_number_lc}_fw_blocks[] = {
+const halo_boot_block_t {fw_blocks_name_lc}_fw_blocks[] = {
 {fw_boot_block_entries}
 };
 
@@ -250,7 +250,7 @@ const halo_boot_block_t {part_number_lc}_fw_blocks[] = {
  **********************************************************************************************************************/
 """
 
-source_file_template_fw_block_str = """const uint8_t {part_number_lc}_fw_block_{block_index}[] = {
+source_file_template_fw_block_str = """const uint8_t {fw_blocks_name_lc}_fw_block_{block_index}[] = {
 {block_bytes}
 };
 """
@@ -258,7 +258,7 @@ source_file_template_fw_block_str = """const uint8_t {part_number_lc}_fw_block_{
 source_file_template_fw_boot_block_entry_str = """    {
         .address = {block_address},
         .block_size = {block_size},
-        .bytes = {part_number_lc}_fw_block_{block_index}
+        .bytes = {fw_blocks_name_lc}_fw_block_{block_index}
     },"""
 
 source_file_template_coeff_strs = {
@@ -327,7 +327,7 @@ source_file_template_bin_boot_block_entry_str = """    {
 # CLASSES
 #==========================================================================
 class header_file:
-    def __init__(self, part_number_str, fw_meta, no_sym_table, exclude_dummy):
+    def __init__(self, part_number_str, fw_blocks_name_str, fw_meta, no_sym_table, exclude_dummy):
         self.template_str = header_file_template_str
         if not no_sym_table:
             self.template_str = self.template_str.replace('{fw_blocks_info}', header_file_template_fw_blocks_info)
@@ -339,6 +339,7 @@ class header_file:
         self.terms = dict()
         self.terms['part_number_lc'] = part_number_str.lower()
         self.terms['part_number_uc'] = part_number_str.upper()
+        self.terms['fw_blocks_name_lc'] = fw_blocks_name_str.lower()
         self.terms['total_fw_blocks'] = ''
         self.terms['total_coeff_blocks'] = []
         self.terms['total_bin_blocks'] = []
@@ -479,6 +480,7 @@ class header_file:
         output_str = output_str.replace('{total_fw_blocks}', self.terms['total_fw_blocks'])
         output_str = output_str.replace('{part_number_lc}', self.terms['part_number_lc'])
         output_str = output_str.replace('{part_number_uc}', self.terms['part_number_uc'])
+        output_str = output_str.replace('{fw_blocks_name_lc}', self.terms['fw_blocks_name_lc'])
 
         output_str = output_str.replace('{metadata_text}', self.terms['metadata_text'])
 
@@ -486,7 +488,7 @@ class header_file:
         return output_str
 
 class source_file:
-    def __init__(self, part_number_str):
+    def __init__(self, part_number_str, fw_blocks_name_str):
         self.template_str = source_file_template_str
         self.includes_coeff = False
         self.includes_bin = False
@@ -494,6 +496,7 @@ class source_file:
         self.terms = dict()
         self.terms['part_number_lc'] = part_number_str.lower()
         self.terms['part_number_uc'] = part_number_str.upper()
+        self.terms['fw_blocks_name_lc'] = fw_blocks_name_str.lower()
         self.terms['fw_block_arrays'] = ''
         self.terms['fw_boot_block_entries'] = ''
         self.total_fw_blocks = 0
@@ -524,6 +527,7 @@ class source_file:
         # Create string for block data
         temp_str = source_file_template_fw_block_str.replace('{block_index}', str(self.total_fw_blocks))
         temp_str = temp_str.replace('{block_bytes}', self.create_block_string(data_bytes))
+        temp_str = temp_str.replace('{fw_blocks_name_lc}', self.terms['fw_blocks_name_lc'])
 
         self.terms['fw_block_arrays'] = self.terms['fw_block_arrays'] + temp_str + '\n'
 
@@ -531,6 +535,7 @@ class source_file:
         temp_str = source_file_template_fw_boot_block_entry_str.replace('{block_index}', str(self.total_fw_blocks))
         temp_str = temp_str.replace('{block_address}', "0x" + "{0:0{1}X}".format(address, 8))
         temp_str = temp_str.replace('{block_size}', str(len(data_bytes)))
+        temp_str = temp_str.replace('{fw_blocks_name_lc}', self.terms['fw_blocks_name_lc'])
 
         self.terms['fw_boot_block_entries'] = self.terms['fw_boot_block_entries'] + temp_str + '\n'
 
@@ -642,6 +647,7 @@ class source_file:
 
         output_str = output_str.replace('{part_number_lc}', self.terms['part_number_lc'])
         output_str = output_str.replace('{part_number_uc}', self.terms['part_number_uc'])
+        output_str = output_str.replace('{fw_blocks_name_lc}', self.terms['fw_blocks_name_lc'])
 
         output_str = output_str.replace('\n\n\n', '\n\n')
         return output_str
@@ -650,9 +656,12 @@ class source_file_exporter(firmware_exporter):
 
     def __init__(self, attributes):
         firmware_exporter.__init__(self, attributes)
-        self.hf = header_file(self.attributes['part_number_str'], self.attributes['fw_meta'],
+        fw_blocks_name_str = self.attributes['part_number_str']
+        if self.attributes.get('custom_fw_name'):
+            fw_blocks_name_str = self.attributes['custom_fw_name']
+        self.hf = header_file(self.attributes['part_number_str'], fw_blocks_name_str, self.attributes['fw_meta'],
                               self.attributes['no_sym_table'], self.attributes['exclude_dummy'])
-        self.cf = source_file(self.attributes['part_number_str'])
+        self.cf = source_file(self.attributes['part_number_str'], fw_blocks_name_str)
         self.gen_only_include_file = False
         if self.attributes['no_sym_table']:
             self.gen_only_include_file = True

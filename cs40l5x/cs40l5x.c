@@ -2299,6 +2299,9 @@ uint32_t cs40l5x_write_reg(cs40l5x_t *driver, uint32_t addr, uint32_t val)
     uint32_t ret;
     regmap_cp_config_t *cp = REGMAP_GET_CP(driver);
 
+    if (driver->config.broadcast)
+        cp = (regmap_cp_config_t*)&broadcast_cp;
+
     ret = regmap_write(cp, addr, val);
     if (ret)
     {

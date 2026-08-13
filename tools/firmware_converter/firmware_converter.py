@@ -353,7 +353,7 @@ def get_args(args):
     parser.add_argument('--output-directory', dest='output_directory', default=None, help="Output directory of files. By default uses current work dir")
     parser.add_argument('--preserve-filename', dest='preserve_filename', action="store_true", default=False, help="Name coeff blocks according to the filename they originated in.")
     parser.add_argument('--alg-name-blacklist', dest='alg_name_blacklist', type=str, nargs='*', default=None, help='Algorithm Names that should be stripped from the .bin file conversion and not included in the results')
-
+    parser.add_argument('--custom-fw-name', dest='custom_fw_name', type=str, default=None, help='Custom export format variable name to be used instead of part number in firmware block names, as in "*_fw_blocks"')
     return parser.parse_args(args[1:])
 
 
@@ -578,6 +578,7 @@ def main(argv):
     attributes['no_sym_table'] = args.no_sym_table
     attributes['exclude_dummy'] = args.exclude_dummy
     attributes['output_directory'] = args.output_directory
+    attributes['custom_fw_name'] = args.custom_fw_name
 
     f = firmware_exporter_factory(attributes)
 
