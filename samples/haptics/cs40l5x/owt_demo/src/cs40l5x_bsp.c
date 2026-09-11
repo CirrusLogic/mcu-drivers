@@ -542,7 +542,7 @@ int bsp_cs40l5x_trigger_owt(const struct device *dev, int owt_idx)
     cs40l5x_t *drv = &data->priv;
     uint32_t ret;
 
-    ret = cs40l5x_trigger_owt(drv, owt_idx);
+    ret = cs40l5x_trigger_owt(drv, owt_idx, true);
     if (ret) {
         LOG_ERR("Error playing out owt waveform");
         return ret;
@@ -712,7 +712,7 @@ int haptics_cs40l5x_trigger_owt(const struct device *dev, int owt_idx)
     uint32_t ret;
 
     printk("Playing OWT waveform at index %d\n", owt_idx);
-    ret = cs40l5x_trigger_owt(drv, owt_idx);
+    ret = cs40l5x_trigger_owt(drv, owt_idx, true);
     if (ret) {
         LOG_ERR("Error playing out owt waveform");
     }

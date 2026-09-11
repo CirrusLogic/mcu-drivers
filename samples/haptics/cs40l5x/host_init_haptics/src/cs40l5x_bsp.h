@@ -804,7 +804,5 @@ int bsp_cs40l5x_host_initiated_trigger(const struct device *dev, HIH_effect effe
  *
  */
 int bsp_cs40l5x_list_host_initiated_effects(const struct device *dev);
-int bsp_cs40l5x_dump_regs(const struct device *dev, uint32_t addr, uint32_t num_words);
-int bsp_cs40l5x_get_pwle_length(const struct device *dev, uint32_t idx, uint32_t* len);
 #endif
 

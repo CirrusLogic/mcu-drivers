@@ -3,6 +3,26 @@ Release Notes
 
 =============================================================================
 Summary:
+This is the release of Alt-OS Driver SDK v4.30.7
+Date: 2026/09/11
+
+Architectures/Compilers Used:
+GNU Arm Embedded Toolchain: arm-none-eabi-gcc -mcpu=cortex-m4
+
+New Features/Changes:
+
+Add broadcast support to CS40L5X ASP config and OWT trigger driver functions
+Add composite length calculation to CS40L5X host initiated haptics sample application
+Add bypass attenuation functionality to CS40L5X owt trigger function
+
+Fixed Bugs:
+
+Adjust host initiated haptic retrigger period to start from beginning of effect
+Support half-cycle format in PWLE host initiated haptic effects
+
+=============================================================================
+=============================================================================
+Summary:
 This is the release of Alt-OS Driver SDK v4.30.6
 Date: 2026/08/13
 

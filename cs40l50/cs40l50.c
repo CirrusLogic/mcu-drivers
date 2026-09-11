@@ -1497,6 +1497,9 @@ uint32_t cs40l50_set_asp_enable(cs40l50_t *driver, bool enable, uint32_t freq)
     uint8_t pll_refclk_val;
     regmap_cp_config_t *cp = REGMAP_GET_CP(driver);
 
+    if (driver->config.broadcast)
+        cp = (regmap_cp_config_t*)&broadcast_cp;
+
     if (!enable) {
         // Disable I2C Config
         ret = regmap_write(cp, CS40L50_BLOCK_ENABLES2,
@@ -2236,6 +2239,10 @@ uint32_t cs40l50_trigger_owt(cs40l50_t *driver, uint32_t idx)
 {
     uint32_t ret;
     regmap_cp_config_t *cp = REGMAP_GET_CP(driver);
+
+    // All devices should have the OWT configured before broadcasting the trigger
+    if (driver->config.broadcast)
+        cp = (regmap_cp_config_t*)&broadcast_cp;
 
     ret = regmap_write(cp, CS40L50_DSP_VIRTUAL1_MBOX_1, CS40L50_TRIGGER_RTH | idx);
     if(ret)

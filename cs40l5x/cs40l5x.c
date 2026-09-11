@@ -1479,6 +1479,9 @@ uint32_t cs40l5x_set_asp_enable(cs40l5x_t *driver, bool enable, uint32_t freq)
     uint8_t pll_refclk_val;
     regmap_cp_config_t *cp = REGMAP_GET_CP(driver);
 
+    if (driver->config.broadcast)
+        cp = (regmap_cp_config_t*)&broadcast_cp;
+
     if (!enable) {
         // Disable I2C Config
         ret = regmap_write(cp, CS40L5X_BLOCK_ENABLES2,
@@ -2148,12 +2151,23 @@ uint32_t cs40l5x_push_owt_pwle(cs40l5x_t *driver, uint8_t *next_first_byte)
  * Trigger an effect at an index in the OWT
  *
  */
-uint32_t cs40l5x_trigger_owt(cs40l5x_t *driver, uint32_t idx)
+uint32_t cs40l5x_trigger_owt(cs40l5x_t *driver, uint32_t idx, bool bypass_src_atten)
 {
     uint32_t ret;
     regmap_cp_config_t *cp = REGMAP_GET_CP(driver);
 
-    ret = regmap_write(cp, CS40L5X_DSP_VIRTUAL1_MBOX_1, CS40L5X_TRIGGER_RTH | idx);
+    // All devices should have the OWT configured before broadcasting the trigger
+    if (driver->config.broadcast)
+        cp = (regmap_cp_config_t*)&broadcast_cp;
+
+    if(bypass_src_atten)
+    {
+        ret = regmap_write(cp, CS40L5X_DSP_VIRTUAL1_MBOX_1, CS40L5X_TRIGGER_RTH | idx | CS40L5X_BYPASS_SOURCE_ATTEN_MASK);
+    }
+    else
+    {
+        ret = regmap_write(cp, CS40L5X_DSP_VIRTUAL1_MBOX_1, CS40L5X_TRIGGER_RTH | idx);
+    }
     if(ret)
     {
         return ret;

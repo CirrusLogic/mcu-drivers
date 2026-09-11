@@ -32,9 +32,9 @@ struct cs40l5x_config {
     void (*irq_disable_func)(void);
 };
 
-// TODO: Remove Sweep, old name
-const char *HIH_effect_names[] = {"Hover", "Collide", "Align",   "Step",    "Grow",
-                  "Press",   "Release", "Success", "Error"};
+/***************************************************
+** FUNCTIONS TO SUPPORT HIH EFFECT DATA STRUCTURE **
+****************************************************/
 
 static HIH_effect_metadata hih_effect_metadata[] = {
     {.wt_idx = HIH_EFFECT_WT_OFFSET + 0, .msft_ID = 0x1008, .effectName = "Hover", .length_ms = 0},
@@ -47,6 +47,264 @@ static HIH_effect_metadata hih_effect_metadata[] = {
     {.wt_idx = HIH_EFFECT_WT_OFFSET + 7, .msft_ID = 0x1009, .effectName = "Success", .length_ms = 0},
     {.wt_idx = HIH_EFFECT_WT_OFFSET + 8, .msft_ID = 0x100A, .effectName = "Error", .length_ms = 0},
 };
+
+//Forward declaration
+static int bsp_cs40l5x_get_wt_waveform_length_us(const struct device *dev, uint32_t idx, uint32_t* len);
+
+static int bsp_cs40l5x_get_pcm_length_us(const struct device *dev, uint32_t idx, uint32_t* len)
+{
+    struct cs40l5x_config *config = (struct cs40l5x_config *)dev->config;
+    uint32_t ret, feature_bitmap, wf_word_len, wt_read_addr, fs;
+    uint32_t pcm_len_us = 0;
+
+    wt_read_addr = VIBEGEN_WAVE_XM_TABLE + (idx * OWT_HEADER_SIZE * CS40L5X_DSP_BYTES_PER_WORD);
+
+    //Get effect header info (feature_bitmap for sample rate and length of wf in data words) about wf at idx
+    ret = regmap_read(&config->i2c, wt_read_addr, &feature_bitmap);
+    if (ret) {
+        return ret;
+    }
+    ret = regmap_read(&config->i2c, wt_read_addr + (CS40L5X_DSP_BYTES_PER_WORD * 2), &wf_word_len);
+    if (ret) {
+        return ret;
+    }
+
+    uint32_t sample_rate_sel = (feature_bitmap & CS40L5X_PCM_SAMPLE_RATE_BITMASK) >> CS40L5X_PCM_SAMPLE_RATE_OFFSET;
+    if(sample_rate_sel == CS40L5X_OWT_SAMPLE_RATE_8K)
+    {
+        fs = 8000;
+    }
+    else if(sample_rate_sel == CS40L5X_OWT_SAMPLE_RATE_4K)
+    {
+        fs = 4000;
+    }
+    else if(sample_rate_sel == CS40L5X_OWT_SAMPLE_RATE_24K)
+    {
+        fs = 24000;
+    }
+    else
+    {
+        fs = 48000;
+    }
+    //Each PCM word is 3 samples
+    pcm_len_us = (wf_word_len * 3) * 1e6 / fs;
+
+    *len = pcm_len_us;
+    return BSP_STATUS_OK;
+}
+
+static int bsp_cs40l5x_get_pwle_length_us(const struct device *dev, uint32_t idx, uint32_t* len)
+{
+    struct cs40l5x_config *config = (struct cs40l5x_config *)dev->config;
+    uint32_t ret, offset, wf_word_len, wt_read_addr;
+
+    wt_read_addr = VIBEGEN_WAVE_XM_TABLE + (idx * OWT_HEADER_SIZE * CS40L5X_DSP_BYTES_PER_WORD);
+
+    //Get effect header info (offset from wavetable start and length of wf in data words) about wf at idx
+    ret = regmap_read(&config->i2c, wt_read_addr + (CS40L5X_DSP_BYTES_PER_WORD), &offset);
+    if (ret) {
+        return ret;
+    }
+    ret = regmap_read(&config->i2c, wt_read_addr + (CS40L5X_DSP_BYTES_PER_WORD * 2), &wf_word_len);
+    if (ret) {
+        return ret;
+    }
+
+    cs40l5x_owt_pwle_header_t pwle_header;
+    cs40l5x_owt_pwle_section_t pwle_section;
+    uint32_t pwle_len_us = 0;
+
+    wt_read_addr = VIBEGEN_WAVE_XM_TABLE + (offset * CS40L5X_DSP_BYTES_PER_WORD);
+    //Collect Header info
+    for(int i = 0; i < PWLE_HEADER_SIZE; i++)
+    {
+        ret = regmap_read(&config->i2c, wt_read_addr + (i * CS40L5X_DSP_BYTES_PER_WORD), (uint32_t*)&pwle_header.words[i]);
+        if (ret) {
+            return ret;
+        }
+    }
+    pwle_len_us += ((pwle_header.word2.wait_time * 1000) / 4) * pwle_header.word2.repeats;
+
+    //Collect Section length info from every section in PWLE
+    for(int i = PWLE_HEADER_SIZE; i < wf_word_len; i+=2)
+    {
+        //First word of PWLE section contains time field
+        ret = regmap_read(&config->i2c, wt_read_addr + (i * CS40L5X_DSP_BYTES_PER_WORD), (uint32_t*)&pwle_section.word1);
+        if (ret) {
+            return ret;
+        }
+
+        ret = regmap_read(&config->i2c, wt_read_addr + ((i + 1) * CS40L5X_DSP_BYTES_PER_WORD), (uint32_t*)&pwle_section.word2);
+        if (ret) {
+            return ret;
+        }
+
+        if(!pwle_section.word2.half_cycle_def)
+        {
+            pwle_len_us += (pwle_section.word1.time * 1000) / 4;
+        }
+        else //Length is determined by half cycles
+        {
+            if(pwle_section.word2.ext_frequency) //Frequency range from 0.25 Hz - 1023.75 Hz
+            {
+                uint32_t freq = pwle_section.word2.frequency / 4;
+                pwle_len_us += (pwle_section.word1.time * 1e6) / (freq * 2);
+            }
+            else //Frequency range from 50.125 Hz - 561.875 Hz
+            {
+                uint32_t freq = (pwle_section.word2.frequency / 8) + 50;
+                pwle_len_us += (pwle_section.word1.time * 1e6) / (freq * 2);
+            }
+        }
+    }
+
+    *len = pwle_len_us;
+    return BSP_STATUS_OK;
+}
+
+static int bsp_cs40l5x_get_composite_length_us(const struct device *dev, uint32_t idx, uint32_t* len)
+{
+    struct cs40l5x_config *config = (struct cs40l5x_config *)dev->config;
+    uint32_t ret, offset, wf_word_len, wt_read_addr;
+
+    wt_read_addr = VIBEGEN_WAVE_XM_TABLE + (idx * OWT_HEADER_SIZE * CS40L5X_DSP_BYTES_PER_WORD);
+
+    //Get OWT header info (offset from OWT start and length of wf in data words) about wf at idx
+    ret = regmap_read(&config->i2c, wt_read_addr + (CS40L5X_DSP_BYTES_PER_WORD), &offset);
+    if (ret) {
+        return ret;
+    }
+    ret = regmap_read(&config->i2c, wt_read_addr + (CS40L5X_DSP_BYTES_PER_WORD * 2), &wf_word_len);
+    if (ret) {
+        return ret;
+    }
+
+    cs40l5x_owt_composite_header_t composite_header;
+    cs40l5x_owt_composite_section_t composite_section;
+    uint32_t composite_len_us = 0;
+
+    wt_read_addr = VIBEGEN_WAVE_XM_TABLE + (offset * CS40L5X_DSP_BYTES_PER_WORD);
+    //Collect Header info
+    for(int i = 0; i < COMPOSITE_HEADER_SIZE; i++)
+    {
+        ret = regmap_read(&config->i2c, wt_read_addr + (i * CS40L5X_DSP_BYTES_PER_WORD), (uint32_t*)&composite_header.words[i]);
+        if (ret) {
+            return ret;
+        }
+    }
+    //Case where waveform length is not explicitly in composite header (length is combined size of subwaveforms)
+    if((composite_header.word1.waveform_length & WF_LENGTH_DEFAULT) == WF_LENGTH_DEFAULT)
+    {
+        wt_read_addr += (COMPOSITE_HEADER_SIZE * CS40L5X_DSP_BYTES_PER_WORD);
+        //Read data of each subwaveform in composite (1st subwaveform data begins at currently wf offset + length of composite header)
+        for(int i = 0; i < composite_header.word2.num_waveforms; i++)
+        {
+
+            for(int j = 0; j < COMPOSITE_SECTION_SIZE; j++)
+            {
+                ret = regmap_read(&config->i2c, wt_read_addr + (j * CS40L5X_DSP_BYTES_PER_WORD), (uint32_t*)&composite_section.words[j]);
+                if (ret) {
+                    return ret;
+                }
+                //Composite subwaveform only contains 2 data words IF duration field is not present, else 3
+                if(j == 1 && !composite_section.word2.duration_present)
+                {
+                    wt_read_addr += ((COMPOSITE_SECTION_SIZE - 1) * CS40L5X_DSP_BYTES_PER_WORD);
+                    break;
+                }
+                if(j == 2)
+                {
+                    wt_read_addr += ((COMPOSITE_SECTION_SIZE) * CS40L5X_DSP_BYTES_PER_WORD);
+                }
+            }
+
+            uint32_t subwaveform_len_us;
+            ret = bsp_cs40l5x_get_wt_waveform_length_us(dev, composite_section.word1.waveform_idx, &subwaveform_len_us);
+            if(ret)
+            {
+                return ret;
+            }
+            //Accout for nested repeats + delay between subwaveforms
+            subwaveform_len_us = subwaveform_len_us * (composite_section.word1.nested_repeats + 1) + (composite_section.word2.delay * 1e3);
+
+            //Duration will truncate waveform if present and less than total playtime
+            if(composite_section.word2.duration_present && (composite_section.word3.duration * COMPOSITE_DURATION_TO_US_RATIO) < subwaveform_len_us)
+            {
+                subwaveform_len_us = composite_section.word3.duration * COMPOSITE_DURATION_TO_US_RATIO;
+            }
+            composite_len_us += subwaveform_len_us;
+        }
+        //Account for overall composite repeats
+        composite_len_us = composite_len_us * (composite_header.word2.repeats + 1);
+    }
+    //Waveform length is known in samples at 8kHz
+    else
+    {
+        uint32_t len_samples = composite_header.word1.waveform_length & WF_LENGTH_DEFAULT;
+        composite_len_us += (len_samples * 1e6) / 8000;
+    }
+
+    *len = composite_len_us;
+    return BSP_STATUS_OK;
+}
+
+static int bsp_cs40l5x_get_wt_waveform_length_us(const struct device *dev, uint32_t idx, uint32_t* len)
+{
+    struct cs40l5x_config *config = (struct cs40l5x_config *)dev->config;
+    uint32_t ret, wt_read_addr, wf_type;
+
+    uint32_t wt_num_waveforms;
+    ret = regmap_read(&config->i2c, VIBEGEN_NUM_OF_WAVES, &wt_num_waveforms);
+    if (ret) {
+        return ret;
+    }
+    if(idx >= wt_num_waveforms)
+    {
+        LOG_ERR("bsp_cs40l5x_get_effect_length: Invalid wavetable index");
+        return BSP_STATUS_FAIL;
+    }
+
+    wt_read_addr = VIBEGEN_WAVE_XM_TABLE + (idx * OWT_HEADER_SIZE * CS40L5X_DSP_BYTES_PER_WORD);
+    ret = regmap_read(&config->i2c, wt_read_addr, &wf_type);
+    if (ret) {
+        return ret;
+    }
+
+    if((wf_type & CS40L5X_RTH_TYPE_MASK) == CS40L5X_RTH_TYPE_PCM)
+    {
+        ret = bsp_cs40l5x_get_pcm_length_us(dev, idx, len);
+        if(ret)
+        {
+            return ret;
+        }
+    }
+    else if((wf_type & CS40L5X_RTH_TYPE_MASK) == CS40L5X_RTH_TYPE_PWLE)
+    {
+        ret = bsp_cs40l5x_get_pwle_length_us(dev, idx, len);
+        if(ret)
+        {
+            return ret;
+        }
+    }
+    else if((wf_type & CS40L5X_RTH_TYPE_MASK) == CS40L5X_RTH_TYPE_COMPOSITE)
+    {
+        ret = bsp_cs40l5x_get_composite_length_us(dev, idx, len);
+        if(ret)
+        {
+            return ret;
+        }
+    }
+    else
+    {
+        LOG_ERR("bsp_cs40l5x_get_effect_length: Invalid waveform type");
+        return BSP_STATUS_FAIL;
+    }
+    return BSP_STATUS_OK;
+}
+
+/***************************************************
+** FUNCTIONS TO SUPPORT HIH EFFECT DATA STRUCTURE **
+****************************************************/
 
 int cs40l5x_i2c_write_reg_dt(const struct i2c_dt_spec *spec, const uint32_t reg_addr,
                  const uint32_t value)
@@ -266,16 +524,15 @@ static int bsp_cs40l5x_get_host_initiated_effect_lengths(const struct device *de
         }
         uint32_t length_svc_ms = length_svc_us / 1000;
         uint32_t length_svc_ms_dec = (length_svc_us % 1000) / 10;
-        uint32_t length_pwle_ms;
-        ret = bsp_cs40l5x_get_pwle_length(dev, hih_effect_metadata[i].wt_idx, &length_pwle_ms);
+        uint32_t length_HIH_effect_us;
+        ret = bsp_cs40l5x_get_wt_waveform_length_us(dev, hih_effect_metadata[i].wt_idx, &length_HIH_effect_us);
         if(ret)
         {
             return ret;
         }
 
-        uint32_t length_ms = (length_pwle_ms >> 2) + length_svc_ms;
-        uint32_t length_ms_dec =
-            ((length_pwle_ms & 0x3) * 100) / 4 + length_svc_ms_dec;
+        uint32_t length_ms = length_HIH_effect_us / 1000 + length_svc_ms;
+        uint32_t length_ms_dec = ((length_HIH_effect_us % 1000) / 10) + length_svc_ms_dec;
         length_ms += length_ms_dec / 100;
         length_ms_dec %= 100;
         if (length_ms_dec > 50) // Round to nearest ms
@@ -558,7 +815,8 @@ int bsp_cs40l5x_trigger_owt(const struct device *dev, int owt_idx)
     cs40l5x_t *drv = &data->priv;
     uint32_t ret;
 
-    ret = cs40l5x_trigger_owt(drv, owt_idx);
+    //Bypass SOURCE_ATTENUATION for owt triggers
+    ret = cs40l5x_trigger_owt(drv, owt_idx, true);
     if (ret) {
         LOG_ERR("Error playing out owt waveform");
         return ret;
@@ -696,10 +954,11 @@ int bsp_cs40l5x_get_SVC_tone_length(const struct device *dev, uint32_t *length)
     return BSP_STATUS_OK;
 }
 
-static uint32_t bsp_cs40l5x_convert_effect_name(char *effect_name, uint32_t *idx)
+static uint32_t bsp_cs40l5x_convert_effect_name(char *effect_name, uint32_t *idx, HIH_effect_metadata *effect)
 {
     for (int i = 0; i < ARRAY_SIZE(hih_effect_metadata); i++) {
         if (strcasecmp(effect_name, hih_effect_metadata[i].effectName) == 0) {
+            *effect = hih_effect_metadata[i];
             *idx = hih_effect_metadata[i].wt_idx;
             return BSP_STATUS_OK;
         }
@@ -707,10 +966,11 @@ static uint32_t bsp_cs40l5x_convert_effect_name(char *effect_name, uint32_t *idx
     return BSP_STATUS_FAIL;
 }
 
-static uint32_t bsp_cs40l5x_convert_msft_id(uint32_t msft_id, uint32_t *idx)
+static uint32_t bsp_cs40l5x_convert_msft_id(uint32_t msft_id, uint32_t *idx, HIH_effect_metadata *effect)
 {
     for (int i = 0; i < ARRAY_SIZE(hih_effect_metadata); i++) {
         if (msft_id == hih_effect_metadata[i].msft_ID) {
+            *effect = hih_effect_metadata[i];
             *idx = hih_effect_metadata[i].wt_idx;
             return BSP_STATUS_OK;
         }
@@ -736,17 +996,17 @@ int bsp_cs40l5x_host_initiated_trigger(const struct device *dev, HIH_effect effe
         }
     }
 
+    HIH_effect_metadata currEffect = {0};
     // Get effect OWT index from string name or microsoft ID
     if (effect.label == EFFECT_NAME) {
-        ret = bsp_cs40l5x_convert_effect_name(effect.HIH_effect_identifier.effectName,
-                              &idx);
+        ret = bsp_cs40l5x_convert_effect_name(effect.HIH_effect_identifier.effectName, &idx, &currEffect);
         if (ret) {
             LOG_ERR("Error: Effect named %s not found",
                 effect.HIH_effect_identifier.effectName);
             return ret;
         }
     } else if (effect.label == EFFECT_MSFT_ID) {
-        ret = bsp_cs40l5x_convert_msft_id(effect.HIH_effect_identifier.msft_ID, &idx);
+        ret = bsp_cs40l5x_convert_msft_id(effect.HIH_effect_identifier.msft_ID, &idx, &currEffect);
         if (ret) {
             LOG_ERR("Error: Effect ID 0x%x not found",
                 effect.HIH_effect_identifier.msft_ID);
@@ -756,14 +1016,28 @@ int bsp_cs40l5x_host_initiated_trigger(const struct device *dev, HIH_effect effe
         idx = effect.HIH_effect_identifier.owtIdx;
     }
 
+    //Retrigger period starts from the beginning of each effect
+    uint32_t delay = 0;
+    uint32_t duration = 0;
+    uint32_t duration_present = 0;
+    if(retrigger_period > currEffect.length_ms)
+    {
+        delay = retrigger_period - currEffect.length_ms;
+    }
+    else //Retrigger period is LESS than length of current waveform, truncate waveform between repeats
+    {
+        duration_present = 1;
+        duration = retrigger_period * 4;
+    }
+
     struct cs40l5x_owt_section_params section = {.nested_repeats = repeats,
                              .waveform_idx = idx,
                              .amplitude = intensity,
-                             .delay = retrigger_period,
+                             .delay = delay,
                              .owt_subwave = 0,
                              .rom_subwave = 0,
-                             .duration_present = 0,
-                             .duration = 0};
+                             .duration_present = duration_present,
+                             .duration = duration};
 
     ret = bsp_cs40l5x_write_owt_composite_one_section(dev, section);
     if (ret) {
@@ -806,108 +1080,6 @@ int bsp_cs40l5x_get_num_owt_wf(const struct device *dev, uint32_t *num)
 {
     struct cs40l5x_config *config = (struct cs40l5x_config *)dev->config;
     return regmap_read(&config->i2c, VIBEGEN_OWT_NUM_OF_WAVES_XM, num);
-}
-
-int bsp_cs40l5x_dump_regs(const struct device *dev, uint32_t addr, uint32_t num_words)
-{
-    struct cs40l5x_config *config = (struct cs40l5x_config *)dev->config;
-    uint32_t reg_addr = addr;
-    uint32_t reg_val;
-    uint32_t i;
-    int ret;
-
-    for (i = 0; i < num_words; i++) {
-        ret = regmap_read(&config->i2c, reg_addr, &reg_val);
-        if (ret) {
-            LOG_ERR("Error reading reg 0x%06x", reg_addr);
-            return ret;
-        }
-
-        printk("0x%06x: 0x%06x\n", reg_addr, reg_val);
-
-        if (i < num_words) {
-            if (reg_addr > (UINT32_MAX - sizeof(uint32_t))) {
-                LOG_ERR("Register address overflow from 0x%08x", reg_addr);
-                return -EINVAL;
-            }
-
-            reg_addr += sizeof(uint32_t);
-        }
-    }
-
-    return BSP_STATUS_OK;
-}
-
-int bsp_cs40l5x_get_pwle_length(const struct device *dev, uint32_t idx, uint32_t* len)
-{
-    struct cs40l5x_config *config = (struct cs40l5x_config *)dev->config;
-    uint32_t ret, offset, wf_word_len, wt_read_addr;
-
-    uint32_t wt_num_waveforms;
-    ret = regmap_read(&config->i2c, VIBEGEN_NUM_OF_WAVES, &wt_num_waveforms);
-    if (ret) {
-        return ret;
-    }
-    if(idx >= wt_num_waveforms)
-    {
-        LOG_ERR("bsp_cs40l5x_get_pwle_length: Invalid wavetable index");
-        return BSP_STATUS_FAIL;
-    }
-
-    uint32_t wf_type;
-
-    wt_read_addr = VIBEGEN_WAVE_XM_TABLE + (idx * OWT_HEADER_SIZE * CS40L5X_DSP_BYTES_PER_WORD);
-    ret = regmap_read(&config->i2c, wt_read_addr, &wf_type);
-    if (ret) {
-        return ret;
-    }
-    if((wf_type & CS40L5X_RTH_TYPE_PWLE) != CS40L5X_RTH_TYPE_PWLE)
-    {
-        LOG_ERR("bsp_cs40l5x_get_pwle_length: wavetable index is not PWLE");
-        return BSP_STATUS_FAIL;
-    }
-
-    //Get OWT header info (offset from OWT start and length of wf in data words) about wf at idx
-    ret = regmap_read(&config->i2c, wt_read_addr + (CS40L5X_DSP_BYTES_PER_WORD), &offset);
-    if (ret) {
-        return ret;
-    }
-    ret = regmap_read(&config->i2c, wt_read_addr + (CS40L5X_DSP_BYTES_PER_WORD * 2), &wf_word_len);
-    if (ret) {
-        return ret;
-    }
-
-
-    cs40l5x_owt_pwle_header_t pwle_header;
-    cs40l5x_owt_pwle_section_t pwle_section;
-    uint32_t pwle_len_us = 0;
-
-    wt_read_addr = VIBEGEN_WAVE_XM_TABLE + (offset * CS40L5X_DSP_BYTES_PER_WORD);
-    //Collect Header info
-    for(int i = 0; i < PWLE_HEADER_SIZE; i++)
-    {
-        ret = regmap_read(&config->i2c, wt_read_addr + (i * CS40L5X_DSP_BYTES_PER_WORD), (uint32_t*)&pwle_header.words[i]);
-        if (ret) {
-            return ret;
-        }
-    }
-    pwle_len_us += ((pwle_header.word2.wait_time * 1000) / 4) * pwle_header.word2.repeats;
-
-    //Collect Section length info from every section in PWLE
-    for(int i = PWLE_HEADER_SIZE; i < wf_word_len; i+=2)
-    {
-        //First word of PWLE section contains time field, this is all we need to calculate length
-        ret = regmap_read(&config->i2c, wt_read_addr + (i * CS40L5X_DSP_BYTES_PER_WORD), (uint32_t*)&pwle_section.word1);
-        if (ret) {
-            return ret;
-        }
-        pwle_len_us += (pwle_section.word1.time * 1000) / 4;
-    }
-
-    //Calculate PWLE length in ms with .25 ms resolution, Q30.2 unsigned fixed-point
-    *len = (pwle_len_us / 1000) << 2;
-    *len |= (pwle_len_us / 10) & 0x3;
-    return BSP_STATUS_OK;
 }
 
 #define CS40L5X_INIT(inst)                                                                         \

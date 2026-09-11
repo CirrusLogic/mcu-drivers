@@ -184,6 +184,7 @@ extern "C" {
 #define ROM_SUBWAVE_DEFAULT            (0)
 #define DURATION_PRESENT_DEFAULT       (0)
 #define DURATION_DEFAULT               (0)
+#define COMPOSITE_DURATION_TO_US_RATIO (250)
 
 #define PWLE_API_ENABLE                (0)
 
@@ -198,8 +199,13 @@ extern "C" {
 #define CS40L5X_RTH_TYPE_PCM           (0x8)
 #define CS40L5X_RTH_TYPE_COMPOSITE     (0xa)
 #define CS40L5X_RTH_TYPE_PWLE          (0xc)
+#define CS40L5X_RTH_TYPE_MASK          (0b1110)
+
 #define CS40L5X_OWT_NO_METADATA_OFFSET (0x3)
 #define CS40L5X_OWT_METADATA_HEADER_END (0xFFFFFF)
+
+#define CS40L5X_PCM_SAMPLE_RATE_OFFSET (29)
+#define CS40L5X_PCM_SAMPLE_RATE_BITMASK (0x3 << CS40L5X_PCM_SAMPLE_RATE_OFFSET)
 
 #define CS40L5X_OWT_SAMPLE_RATE_8K     (0x0)
 #define CS40L5X_OWT_SAMPLE_RATE_4K     (0x1)
@@ -687,7 +693,7 @@ typedef union
     {
         cs40l5x_owt_pwle_section_word1_t word1;
         cs40l5x_owt_pwle_section_word2_t word2;
-        cs40l5x_owt_pwle_section_word3_t word3; //Optional final word is present if half_cycle_def is set
+        cs40l5x_owt_pwle_section_word3_t word3; //Optional final word is present if amplitude regulation is set
     };
 } cs40l5x_owt_pwle_section_t;
 
@@ -1090,7 +1096,7 @@ uint32_t cs40l5x_set_broadcast_enable(cs40l5x_t *driver, bool enable);
 uint32_t cs40l5x_trigger_pwle(cs40l5x_t *driver, const rth_pwle_section_t **s);
 uint32_t cs40l5x_trigger_pwle_advanced(cs40l5x_t *driver, const rth_pwle_section_t **s, uint8_t repeat, uint8_t num_sections);
 uint32_t cs40l5x_trigger_pcm(cs40l5x_t *driver, uint8_t *s, uint32_t num_sections, uint16_t buffer_size_samples, uint16_t f0, uint16_t redc);
-uint32_t cs40l5x_trigger_owt(cs40l5x_t *driver, uint32_t idx);
+uint32_t cs40l5x_trigger_owt(cs40l5x_t *driver, uint32_t idx, bool bypass_src_atten);
 uint32_t cs40l5x_delete_owt(cs40l5x_t *driver, uint32_t idx);
 uint32_t cs40l5x_set_dynamic_f0(cs40l5x_t *driver, bool enable);
 uint32_t cs40l5x_get_dynamic_f0(cs40l5x_t *driver, cs40l5x_df0_table_entry_t *f0_entry);

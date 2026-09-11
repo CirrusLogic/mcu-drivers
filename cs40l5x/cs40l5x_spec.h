@@ -231,6 +231,7 @@ extern const struct cs40l5x_diagnostic_flag_encoding cs40l5x_diag_flags[NUM_DIAG
 #define  CS40L5X_OWT_PUSH                                                   (0x03000008)
 #define  CS40L5X_TRIGGER_RTH                                                (0x01400000)
 #define  CS40L5X_DELETE_OWT                                                 (0x0D000000)
+#define  CS40L5X_BYPASS_SOURCE_ATTEN_MASK                                   (0x1) << 17
 #define  CS40L5X_MAX_PWLE_SECTIONS                                          (126)
 #define  CS40L5X_SLOT0_MAX_PWLE_SECTIONS                                    (61)
 #define  CS40l5X_SLOT1_MAX_PWLE_SECTIONS                                    (65)
