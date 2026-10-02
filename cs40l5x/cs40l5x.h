@@ -140,6 +140,7 @@ extern "C" {
 #define COMPOSITE_ONE_SECTION_DATA_LENGTH         (6)
 #define PWLE_HEADER_SIZE                          (2)
 #define PWLE_SECTION_SIZE                         (3)
+#define MAX_NCW_SUBWAVEFORMS                      (255)
 
 /* New Default Vals */
 #define PW_LIN_SECTIONS_DEFAULT        (0)
@@ -201,16 +202,24 @@ extern "C" {
 #define CS40L5X_RTH_TYPE_PWLE          (0xc)
 #define CS40L5X_RTH_TYPE_MASK          (0b1110)
 
-#define CS40L5X_OWT_NO_METADATA_OFFSET (0x3)
-#define CS40L5X_OWT_METADATA_HEADER_END (0xFFFFFF)
+#define CS40L5X_OWT_NO_METADATA_OFFSET      (0x3)
+#define CS40L5X_OWT_METADATA_HEADER_END     (0xFFFFFF)
 
-#define CS40L5X_PCM_SAMPLE_RATE_OFFSET (29)
-#define CS40L5X_PCM_SAMPLE_RATE_BITMASK (0x3 << CS40L5X_PCM_SAMPLE_RATE_OFFSET)
+#define CS40L5X_PCM_SAMPLE_RATE_OFFSET      (21)
+#define CS40L5X_PCM_SAMPLE_RATE_BITMASK     (0x3 << CS40L5X_PCM_SAMPLE_RATE_OFFSET)
 
-#define CS40L5X_OWT_SAMPLE_RATE_8K     (0x0)
-#define CS40L5X_OWT_SAMPLE_RATE_4K     (0x1)
-#define CS40L5X_OWT_SAMPLE_RATE_24K    (0x2)
-#define CS40L5X_OWT_SAMPLE_RATE_48K    (0x3)
+#define CS40L5X_METADATA_OFFSET             (18)
+#define CS40L5X_METADATA_BITMASK            (0x1 << CS40L5X_METADATA_OFFSET)
+
+#define CS40L5X_SVC_METADATA_ID_OFFSET      (16)
+#define CS40L5X_SVC_METADATA_ID_BITMASK     (0x1 << CS40L5X_SVC_METADATA_ID_OFFSET)
+#define CS40L5X_SVC_METADATA_LEN_OFFSET     (8)
+#define CS40L5X_SVC_METADATA_LEN_BITMASK    (0x1 << CS40L5X_SVC_METADATA_LEN_OFFSET)
+
+#define CS40L5X_OWT_SAMPLE_RATE_8K          (0x0)
+#define CS40L5X_OWT_SAMPLE_RATE_4K          (0x1)
+#define CS40L5X_OWT_SAMPLE_RATE_24K         (0x2)
+#define CS40L5X_OWT_SAMPLE_RATE_48K         (0x3)
 
 /**
  * @defgroup CS40L5X_EVENT_FLAG_
@@ -1215,6 +1224,38 @@ uint32_t cs40l5x_write_owt_composite_one_section(cs40l5x_t *driver,
                                                  uint8_t owt_subwave,
                                                  uint8_t rom_subwave);
 
+
+/**
+ * Function to support writing a single nested composite waveform from the wavetable to the OWT
+ *
+ * This function writes the data from a composite waveform in the wavetable as a new nested composite waveform
+ * (NCW) in the OWT. The subwaveforms and parameters are captured by copying the existing subwaveforms of the
+ * wavetable composite into a new composite in the OWT, and repeating these in this new OWT composite depending
+ * on the given parameters. This approach has a hard limit of 255 subwaveforms to be created in the new nested
+ * composite waveform due to limitations of the OWT. The number of subwaveforms is determined by the original
+ * number of waveforms in the composite to be referenced * number of repeats, I.E. 3 subwaves with 10 repeats = 30 subwaveforms in new OWT.
+ *
+ * @param [in] driver               Pointer to the driver state
+ * @param [in] nested_repeats       Number of repeats of this subwave in the composite waveform
+ * @param [in] waveform_idx         Index of the subwave in its respective wavetable (ROM, RAM, or OWT)
+ * @param [in] amplitude            Amplitude of the subwave as a percentage (100 being no scaling)
+ * @param [in] delay                Delay in milliseconds before the next subwave begins
+ * @param [in] owt_subwave          1 if subwave is in OWT, 0 otherwise
+ * @param [in] rom_subwave          1 if subwave is in ROM, 0 otherwise
+ *
+ * @return
+ * - CS40L5X_STATUS_FAIL        if any control port transaction fails
+ * - CS40L5X_STATUS_OK          otherwise
+ *
+ */
+
+uint32_t cs40l5x_write_owt_ncw(cs40l5x_t *driver,
+                                uint8_t nested_repeats,
+                                uint8_t waveform_idx,
+                                uint8_t amplitude,
+                                uint16_t delay,
+                                uint8_t owt_subwave,
+                                uint8_t rom_subwave);
 /**
  * Write PWLE Waveform header to Open Wave Table
  *

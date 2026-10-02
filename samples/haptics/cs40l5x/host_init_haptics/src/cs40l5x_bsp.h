@@ -87,6 +87,11 @@
  */
 #define HIH_EFFECT_WT_OFFSET 5 //9 HIH effects should be in order, with this offset from index 0 in the wavetable
 
+/**
+ * @brief Optional parameter to bypass source_attenuation on OWT triggers
+ *
+ */
+#define OWT_BYPASS_SOURCE_ATTEN 0
 
 /**
  * @defgroup BSP_STATUS_
@@ -522,6 +527,7 @@ typedef struct {
     uint32_t msft_ID;
     char effectName[MAX_HIH_EFFECT_NAME_SIZE];
     uint32_t length_ms; //effect length in ms in q30.2 format
+    uint32_t wf_type; //Type of waveform in RAM WT (PCM, PWLE, or Composite)
 } HIH_effect_metadata;
 
 

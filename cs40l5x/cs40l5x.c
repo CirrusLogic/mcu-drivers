@@ -2016,6 +2016,92 @@ uint32_t cs40l5x_write_owt_composite_one_section(cs40l5x_t *driver,
     return CS40L5X_STATUS_OK;
 }
 
+uint32_t cs40l5x_write_owt_ncw(cs40l5x_t *driver,
+                                uint8_t nested_repeats,
+                                uint8_t waveform_idx,
+                                uint8_t amplitude,
+                                uint16_t delay,
+                                uint8_t owt_subwave,
+                                uint8_t rom_subwave)
+{
+    //First calculate required subwaveforms in nested composite waveform
+    regmap_cp_config_t *cp = REGMAP_GET_CP(driver);
+    uint32_t ret, offset, wt_read_addr;
+
+    wt_read_addr = CS40L5X_OWT_WAVE_XM_TABLE + (waveform_idx * OWT_HEADER_SIZE * CS40L5X_DSP_BYTES_PER_WORD);
+    ret = regmap_read(cp, wt_read_addr + (CS40L5X_DSP_BYTES_PER_WORD), &offset);
+    if (ret)
+    {
+        return ret;
+    }
+
+    cs40l5x_owt_composite_header_t composite_header;
+    wt_read_addr = CS40L5X_OWT_WAVE_XM_TABLE + (offset * CS40L5X_DSP_BYTES_PER_WORD);
+    for(int i = 0; i < COMPOSITE_HEADER_SIZE; i++)
+    {
+        ret = regmap_read(cp, wt_read_addr + (i * CS40L5X_DSP_BYTES_PER_WORD), (uint32_t*)&composite_header.words[i]);
+        if (ret) {
+            return ret;
+        }
+    }
+
+    if(composite_header.word2.num_waveforms * (nested_repeats + 1) > MAX_NCW_SUBWAVEFORMS)
+    {
+        return CS40L5X_STATUS_FAIL;
+    }
+    ret = cs40l5x_write_owt_composite_header(driver, composite_header.word2.num_waveforms * (nested_repeats + 1), 0);
+    if(ret)
+    {
+        return ret;
+    }
+    wt_read_addr += COMPOSITE_HEADER_SIZE * CS40L5X_DSP_BYTES_PER_WORD;
+    uint32_t wt_composite_wf_addr = wt_read_addr;
+
+    for(int i = 0; i < (nested_repeats + 1); i++)
+    {
+        wt_read_addr = wt_composite_wf_addr;
+        cs40l5x_owt_composite_section_t composite_section;
+        for(int j = 0; j < composite_header.word2.num_waveforms; j++)
+        {
+            for(int k = 0; k < COMPOSITE_SECTION_SIZE; k++)
+            {
+                ret = regmap_read(cp, wt_read_addr + (k * CS40L5X_DSP_BYTES_PER_WORD), (uint32_t*)&composite_section.words[k]);
+                if (ret) {
+                    return ret;
+                }
+                //Composite subwaveform only contains 2 data words IF duration field is not present, else 3
+                if(k == 1 && !composite_section.word2.duration_present)
+                {
+                    wt_read_addr += ((COMPOSITE_SECTION_SIZE - 1) * CS40L5X_DSP_BYTES_PER_WORD);
+                    break;
+                }
+                if(k == 2)
+                {
+                    wt_read_addr += ((COMPOSITE_SECTION_SIZE) * CS40L5X_DSP_BYTES_PER_WORD);
+                }
+            }
+
+            //The last subwave in each nested composite waveform needs to add the delay between the nested composite repeats to its original delay value
+            uint32_t subwave_delay = composite_section.word2.delay;
+            if(j+1 == composite_header.word2.num_waveforms)
+            {
+                subwave_delay += delay;
+            }
+            ret = cs40l5x_write_owt_composite_section(driver,
+                                                    composite_section.word1.nested_repeats,
+                                                    composite_section.word1.waveform_idx,
+                                                    composite_section.word1.amplitude,
+                                                    subwave_delay,
+                                                    composite_section.word2.owt_subwave,
+                                                    composite_section.word2.rom_subwave,
+                                                    composite_section.word2.duration_present,
+                                                    composite_section.word3.duration);
+        }
+    }
+    ret = cs40l5x_push_owt_composite(driver);
+    return ret;
+}
+
 /**
  * Write the header section of a PWLE waveform to the OWT
  *

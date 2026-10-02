@@ -49,7 +49,7 @@ extern "C" {
 #define CS40L26_PLL_REFCLK_FREQ_MASK      (0x3F << CS40L26_PLL_REFCLK_FREQ_SHIFT)
 #define CS40L26_PLL_REFCLK_FREQ           (0x21)
 
-#define CS40L26_BCLK_FREQ_MASK            (0x1F)
+#define CS40L26_BCLK_FREQ_MASK            (0x3F)
 #define CS40L26_BCLK_FREQ                 (0x21)
 
 #define CS40L26_REFCLK_PLL_LOOP_SHIFT     (11)

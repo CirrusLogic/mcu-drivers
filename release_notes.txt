@@ -3,6 +3,26 @@ Release Notes
 
 =============================================================================
 Summary:
+This is the release of Alt-OS Driver SDK v4.30.8
+Date: 2026/10/02
+
+Architectures/Compilers Used:
+GNU Arm Embedded Toolchain: arm-none-eabi-gcc -mcpu=cortex-m4
+
+New Features/Changes:
+
+CS40L5X: Add Nested Composite OWT support
+CS40L5X: Add SOURCE_ATTENUATION Bypass config parameter to HIH project
+
+Fixed Bugs:
+
+CS40L5X: Fix effect length calculation in HIH sample app to account for SVC brake time
+CS40L5X: Fix bug in PCM sample rate mask
+CS40L26: Fix bug in BCLK frequency mask
+
+=============================================================================
+=============================================================================
+Summary:
 This is the release of Alt-OS Driver SDK v4.30.7
 Date: 2026/09/11
 
