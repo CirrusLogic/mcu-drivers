@@ -3,6 +3,20 @@ Release Notes
 
 =============================================================================
 Summary:
+This is the release of Alt-OS Driver SDK v4.31.1
+Date: 2026/10/24
+
+Architectures/Compilers Used:
+GNU Arm Embedded Toolchain: arm-none-eabi-gcc -mcpu=cortex-m4
+
+New Features/Changes:
+Reorganized samples for cs35l56, cs40l50, and cs40l5x
+Add a diagnostic sample application for CS40l5X
+Add CS40L50 PC firmware
+
+=============================================================================
+=============================================================================
+Summary:
 This is the release of Alt-OS Driver SDK v4.30.8
 Date: 2026/10/02
 

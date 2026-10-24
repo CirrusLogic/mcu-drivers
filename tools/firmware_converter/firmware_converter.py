@@ -63,6 +63,7 @@ supported_part_numbers = ['cs35l41',
                           'cs40l51',
                           'cs40l52',
                           'cs40l53',
+                          'cs40l50_pc',
                           'cs47l24_dsp2',
                           'cs47l24_dsp3']
 
@@ -85,7 +86,8 @@ supported_mem_maps = {
             'cs40l50',
             'cs40l51',
             'cs40l52',
-            'cs40l53'
+            'cs40l53',
+            'cs40l50_pc'
         ],
         'xm': {
             'u24': (0x2800000, 0x2bfffff),

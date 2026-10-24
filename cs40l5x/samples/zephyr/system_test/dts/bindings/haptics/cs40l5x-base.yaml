@@ -1,0 +1,11 @@
+description: CS40L5X Haptic Driver
+
+compatible: "cirrus,cs40l5x_alt_os"
+
+include: ["i2c-device.yaml"]
+
+properties:
+  reset-gpios:
+    type: phandle-array
+    required: true
+    description: Host GPIO pin mapped to CS40L5X reset pin.

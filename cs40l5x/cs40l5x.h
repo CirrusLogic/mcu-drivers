@@ -57,8 +57,8 @@ extern "C" {
  *
  * @{
  */
-#define CS40L5X_STATUS_OK                               (0)
-#define CS40L5X_STATUS_FAIL                             (1)
+#define CS40L5X_STATUS_OK   (0)
+#define CS40L5X_STATUS_FAIL (1)
 /** @} */
 
 /**
@@ -69,9 +69,9 @@ extern "C" {
  *
  * @{
  */
-#define CS40L5X_POWER_STATE_WAKE                    (0)
-#define CS40L5X_POWER_STATE_HIBERNATE               (1)
-#define CS40L5X_POWER_STATE_SHUTDOWN                (2)
+#define CS40L5X_POWER_STATE_WAKE      (0)
+#define CS40L5X_POWER_STATE_HIBERNATE (1)
+#define CS40L5X_POWER_STATE_SHUTDOWN  (2)
 /** @} */
 
 /**
@@ -82,8 +82,8 @@ extern "C" {
  *
  * @{
  */
-#define CS40L5X_MODE_HANDLING_CONTROLS                  (0)
-#define CS40L5X_MODE_HANDLING_EVENTS                    (1)
+#define CS40L5X_MODE_HANDLING_CONTROLS (0)
+#define CS40L5X_MODE_HANDLING_EVENTS   (1)
 /** @} */
 
 /**
@@ -94,10 +94,10 @@ extern "C" {
  *
  * @{
  */
-#define CS40L5X_POWER_UP                                (0)
-#define CS40L5X_POWER_DOWN                              (1)
-#define CS40L5X_POWER_HIBERNATE                         (2)
-#define CS40L5X_POWER_WAKE                              (3)
+#define CS40L5X_POWER_UP        (0)
+#define CS40L5X_POWER_DOWN      (1)
+#define CS40L5X_POWER_HIBERNATE (2)
+#define CS40L5X_POWER_WAKE      (3)
 /** @} */
 
 /**
@@ -108,7 +108,7 @@ extern "C" {
  *
  * @{
  */
-#define CS40L5X_EVENT_FLAG_DSP_ERROR                    (1 << 31)
+#define CS40L5X_EVENT_FLAG_DSP_ERROR (1 << 31)
 /** @} */
 
 /**
@@ -117,65 +117,65 @@ extern "C" {
  *
  * @{
  */
-#define CS40L5X_POLL_ACK_CTRL_MS                (1)     ///< Delay in ms between polling for ACKed memory writes
-#define CS40L5X_POLL_ACK_CTRL_MAX               (100)   ///< Maximum number of times to poll for ACKed memory writes
+#define CS40L5X_POLL_ACK_CTRL_MS  (1)   ///< Delay in ms between polling for ACKed memory writes
+#define CS40L5X_POLL_ACK_CTRL_MAX (100) ///< Maximum number of times to poll for ACKed memory writes
 #define CS40L5X_BOOT_TIMEMOUT_MS                                                                   \
-    (10) ///< Maximum delay in ms between attempts reading back successful DSP boot
+	(10) ///< Maximum delay in ms between attempts reading back successful DSP boot
 /** @} */
 
 /**
  *  Minimum firmware version that will be accepted by the boot function
  */
-#define CS40L5X_MIN_FW_VERSION     (0x30405)
-#define CS40L5X_WT_ONLY            (0x12345)
+#define CS40L5X_MIN_FW_VERSION (0x30405)
+#define CS40L5X_WT_ONLY        (0x12345)
 
 /**
  * Default values for different open wavetable fields
  */
-#define OWT_HEADER_SIZE                           (3)
-#define PCM_HEADER_SIZE                           (2)
-#define PCM_SECTION_SIZE                          (1)
-#define COMPOSITE_HEADER_SIZE                     (2)
-#define COMPOSITE_SECTION_SIZE                    (3)
-#define COMPOSITE_ONE_SECTION_DATA_LENGTH         (6)
-#define PWLE_HEADER_SIZE                          (2)
-#define PWLE_SECTION_SIZE                         (3)
-#define MAX_NCW_SUBWAVEFORMS                      (255)
+#define OWT_HEADER_SIZE                   (3)
+#define PCM_HEADER_SIZE                   (2)
+#define PCM_SECTION_SIZE                  (1)
+#define COMPOSITE_HEADER_SIZE             (2)
+#define COMPOSITE_SECTION_SIZE            (3)
+#define COMPOSITE_ONE_SECTION_DATA_LENGTH (6)
+#define PWLE_HEADER_SIZE                  (2)
+#define PWLE_SECTION_SIZE                 (3)
+#define MAX_NCW_SUBWAVEFORMS              (255)
 
 /* New Default Vals */
-#define PW_LIN_SECTIONS_DEFAULT        (0)
+#define PW_LIN_SECTIONS_DEFAULT (0)
 
-#define BUZZ_OR_CLICK_DEFAULT          (0)
-#define FS_DEFAULT                     (0)
-#define DYNAMIC_F0_DEFAULT             (0)
-#define METADATA_DEFAULT               (0)
-#define DVL_DEFAULT                    (0)
-#define LF0T_DEFAULT                   (0)
-#define WAVEFORM_TYPE_DEFAULT          (0x8)
-#define OFFSET_DEFAULT                 (0x4)
-#define DATA_LENGTH_DEFAULT            (0x5)
+#define BUZZ_OR_CLICK_DEFAULT (0)
+#define FS_DEFAULT            (0)
+#define DYNAMIC_F0_DEFAULT    (0)
+#define METADATA_DEFAULT      (0)
+#define DVL_DEFAULT           (0)
+#define LF0T_DEFAULT          (0)
+#define WAVEFORM_TYPE_DEFAULT (0x8)
+#define OFFSET_DEFAULT        (0x4)
+#define DATA_LENGTH_DEFAULT   (0x5)
 
-#define WF_LENGTH_DEFAULT              (0x3FFFFF)
-#define PWLS_MS4                       (0)
-#define WAIT_TIME_DEFAULT              (1600)
-#define REPEAT_DEFAULT                 (0)
-#define LEVEL_MS4                      (0)
-#define TIME_DEFAULT                   (0)
-#define PWLS_LS4                       (0)
-#define EXT_FREQ_DEFAULT               (1)
-#define AMP_REG_DEFAULT                (0)
-#define BRAKING_DEFAULT                (0)
-#define HALF_CYCLE_DEFAULT BRAKING_DEFAULT
-#define CHIRP_DEFAULT                  (0)
-#define FREQ_DEFAULT                   (0)
-#define LEVEL_LS8                      (0)
-#define VB_TAR_MS12                    (0)
-#define VB_TAR_LS4                     (0)
-#define LEVEL_DEFAULT                  (0)
-#define LEVEL_MS8_DEFAULT              (0)
-#define LEVEL_LS4_DEFAULT              (0)
-#define REPEATS_DEFAULT                (0)
-#define NUM_WAVEFORMS_DEFAULT          (0)
+#define WF_LENGTH_DEFAULT     (0x3FFFFF)
+#define PWLS_MS4              (0)
+#define WAIT_TIME_DEFAULT     (1600)
+#define REPEAT_DEFAULT        (0)
+#define LEVEL_MS4             (0)
+#define TIME_DEFAULT          (0)
+#define PWLS_LS4              (0)
+#define EXT_FREQ_DEFAULT      (1)
+#define AMP_REG_DEFAULT       (0)
+#define BRAKING_DEFAULT       (0)
+#define HALF_CYCLE_DEFAULT    BRAKING_DEFAULT
+#define CHIRP_DEFAULT         (0)
+#define FREQ_DEFAULT          (0)
+#define LEVEL_LS8             (0)
+#define VB_TAR_MS12           (0)
+#define VB_TAR_LS4            (0)
+#define LEVEL_DEFAULT         (0)
+#define LEVEL_MS8_DEFAULT     (0)
+#define LEVEL_LS4_DEFAULT     (0)
+#define REPEATS_DEFAULT       (0)
+#define NUM_WAVEFORMS_DEFAULT (0)
 
 #define NESTED_REPEAT_DEFAULT          (0)
 #define WAVEFORM_IDX_DEFAULT           (0)
@@ -187,39 +187,39 @@ extern "C" {
 #define DURATION_DEFAULT               (0)
 #define COMPOSITE_DURATION_TO_US_RATIO (250)
 
-#define PWLE_API_ENABLE                (0)
+#define PWLE_API_ENABLE (0)
 
-#define WAV_LENGTH_DEFAULT             (0)
-#define F0_DEFAULT                     (0)
-#define SCALED_REDC_DEFAULT            (0)
-#define F0_RELATIVE_FREQ_DEFAULT       (0)
-#define PHASE_OFFSET_DEFAULT           (0)
+#define WAV_LENGTH_DEFAULT       (0)
+#define F0_DEFAULT               (0)
+#define SCALED_REDC_DEFAULT      (0)
+#define F0_RELATIVE_FREQ_DEFAULT (0)
+#define PHASE_OFFSET_DEFAULT     (0)
 
-#define CS40L5X_PLAY_RTH               (0)
+#define CS40L5X_PLAY_RTH (0)
 
-#define CS40L5X_RTH_TYPE_PCM           (0x8)
-#define CS40L5X_RTH_TYPE_COMPOSITE     (0xa)
-#define CS40L5X_RTH_TYPE_PWLE          (0xc)
-#define CS40L5X_RTH_TYPE_MASK          (0b1110)
+#define CS40L5X_RTH_TYPE_PCM       (0x8)
+#define CS40L5X_RTH_TYPE_COMPOSITE (0xa)
+#define CS40L5X_RTH_TYPE_PWLE      (0xc)
+#define CS40L5X_RTH_TYPE_MASK      (0b1110)
 
-#define CS40L5X_OWT_NO_METADATA_OFFSET      (0x3)
-#define CS40L5X_OWT_METADATA_HEADER_END     (0xFFFFFF)
+#define CS40L5X_OWT_NO_METADATA_OFFSET  (0x3)
+#define CS40L5X_OWT_METADATA_HEADER_END (0xFFFFFF)
 
-#define CS40L5X_PCM_SAMPLE_RATE_OFFSET      (21)
-#define CS40L5X_PCM_SAMPLE_RATE_BITMASK     (0x3 << CS40L5X_PCM_SAMPLE_RATE_OFFSET)
+#define CS40L5X_PCM_SAMPLE_RATE_OFFSET  (21)
+#define CS40L5X_PCM_SAMPLE_RATE_BITMASK (0x3 << CS40L5X_PCM_SAMPLE_RATE_OFFSET)
 
-#define CS40L5X_METADATA_OFFSET             (18)
-#define CS40L5X_METADATA_BITMASK            (0x1 << CS40L5X_METADATA_OFFSET)
+#define CS40L5X_METADATA_OFFSET  (18)
+#define CS40L5X_METADATA_BITMASK (0x1 << CS40L5X_METADATA_OFFSET)
 
-#define CS40L5X_SVC_METADATA_ID_OFFSET      (16)
-#define CS40L5X_SVC_METADATA_ID_BITMASK     (0x1 << CS40L5X_SVC_METADATA_ID_OFFSET)
-#define CS40L5X_SVC_METADATA_LEN_OFFSET     (8)
-#define CS40L5X_SVC_METADATA_LEN_BITMASK    (0x1 << CS40L5X_SVC_METADATA_LEN_OFFSET)
+#define CS40L5X_SVC_METADATA_ID_OFFSET   (16)
+#define CS40L5X_SVC_METADATA_ID_BITMASK  (0x1 << CS40L5X_SVC_METADATA_ID_OFFSET)
+#define CS40L5X_SVC_METADATA_LEN_OFFSET  (8)
+#define CS40L5X_SVC_METADATA_LEN_BITMASK (0x1 << CS40L5X_SVC_METADATA_LEN_OFFSET)
 
-#define CS40L5X_OWT_SAMPLE_RATE_8K          (0x0)
-#define CS40L5X_OWT_SAMPLE_RATE_4K          (0x1)
-#define CS40L5X_OWT_SAMPLE_RATE_24K         (0x2)
-#define CS40L5X_OWT_SAMPLE_RATE_48K         (0x3)
+#define CS40L5X_OWT_SAMPLE_RATE_8K  (0x0)
+#define CS40L5X_OWT_SAMPLE_RATE_4K  (0x1)
+#define CS40L5X_OWT_SAMPLE_RATE_24K (0x2)
+#define CS40L5X_OWT_SAMPLE_RATE_48K (0x3)
 
 /**
  * @defgroup CS40L5X_EVENT_FLAG_
@@ -229,29 +229,29 @@ extern "C" {
  *
  * @{
  */
-#define CS40L5X_EVENT_FLAG_DSP_ERROR                    (1 << 31)
-#define CS40L5X_EVENT_FLAG_STATE_ERROR                  (1 << 30)
-#define CS40L5X_EVENT_FLAG_RUNTIME_SHORT_DETECTED       (1 << 23)
-#define CS40L5X_EVENT_FLAG_PERMANENT_SHORT_DETECTED     (1 << 22)
-#define CS40L5X_EVENT_FLAG_AWAKE                        (1 << 21)
-#define CS40L5X_EVENT_FLAG_INIT_COMPLETE                (1 << 20)
-#define CS40L5X_EVENT_FLAG_HAPTIC_COMPLETE_GPIO         (1 << 19)
-#define CS40L5X_EVENT_FLAG_HAPTIC_TRIGGER_GPIO          (1 << 18)
-#define CS40L5X_EVENT_FLAG_HAPTIC_COMPLETE_MBOX         (1 << 17)
-#define CS40L5X_EVENT_FLAG_HAPTIC_TRIGGER_MBOX          (1 << 16)
-#define CS40L5X_EVENT_FLAG_HAPTIC_COMPLETE_I2S          (1 << 15)
-#define CS40L5X_EVENT_FLAG_HAPTIC_TRIGGER_I2S           (1 << 14)
-#define CS40L5X_EVENT_FLAG_IF_ERROR                     (1 << 4)
-#define CS40L5X_EVENT_FLAG_OTP_BOOT_DONE                (1 << 3)
-#define CS40L5X_EVENT_FLAG_AMP_ERROR                    (1 << 2)
-#define CS40L5X_EVENT_FLAG_TEMP_ERROR                   (1 << 1)
-#define CS40L5X_EVENT_FLAG_BST_ERROR                    (1 << 0)
+#define CS40L5X_EVENT_FLAG_DSP_ERROR                (1 << 31)
+#define CS40L5X_EVENT_FLAG_STATE_ERROR              (1 << 30)
+#define CS40L5X_EVENT_FLAG_RUNTIME_SHORT_DETECTED   (1 << 23)
+#define CS40L5X_EVENT_FLAG_PERMANENT_SHORT_DETECTED (1 << 22)
+#define CS40L5X_EVENT_FLAG_AWAKE                    (1 << 21)
+#define CS40L5X_EVENT_FLAG_INIT_COMPLETE            (1 << 20)
+#define CS40L5X_EVENT_FLAG_HAPTIC_COMPLETE_GPIO     (1 << 19)
+#define CS40L5X_EVENT_FLAG_HAPTIC_TRIGGER_GPIO      (1 << 18)
+#define CS40L5X_EVENT_FLAG_HAPTIC_COMPLETE_MBOX     (1 << 17)
+#define CS40L5X_EVENT_FLAG_HAPTIC_TRIGGER_MBOX      (1 << 16)
+#define CS40L5X_EVENT_FLAG_HAPTIC_COMPLETE_I2S      (1 << 15)
+#define CS40L5X_EVENT_FLAG_HAPTIC_TRIGGER_I2S       (1 << 14)
+#define CS40L5X_EVENT_FLAG_IF_ERROR                 (1 << 4)
+#define CS40L5X_EVENT_FLAG_OTP_BOOT_DONE            (1 << 3)
+#define CS40L5X_EVENT_FLAG_AMP_ERROR                (1 << 2)
+#define CS40L5X_EVENT_FLAG_TEMP_ERROR               (1 << 1)
+#define CS40L5X_EVENT_FLAG_BST_ERROR                (1 << 0)
 /** @} */
 
 /**
  * Default value of Dynamic F0 table entry
  */
-#define CS40L5X_DYNAMIC_F0_TABLE_ENTRY_DEFAULT          (0x007FE000)
+#define CS40L5X_DYNAMIC_F0_TABLE_ENTRY_DEFAULT (0x007FE000)
 
 /***********************************************************************************************************************
  * MACROS
@@ -266,10 +266,9 @@ extern "C" {
  * @see cs40l5x_trigger
  *
  */
-typedef enum
-{
-    ROM_BANK      = 0,
-    RAM_BANK      = 1
+typedef enum {
+	ROM_BANK = 0,
+	RAM_BANK = 1
 } cs40l5x_wavetable_bank_t;
 
 /**
@@ -278,32 +277,31 @@ typedef enum
  * @see cs40l5x_configure_gpio_trigger
  *
  */
-typedef enum
-{
-    GPIO3_RISE,
-    GPIO3_FALL,
-    GPIO4_RISE,
-    GPIO4_FALL,
-    GPIO5_RISE,
-    GPIO5_FALL,
-    GPIO6_RISE,
-    GPIO6_FALL,
-    GPIO10_RISE,
-    GPIO10_FALL,
-    GPIO11_RISE,
-    GPIO11_FALL,
-    GPIO12_RISE,
-    GPIO12_FALL,
-    GPIO13_RISE,
-    GPIO13_FALL
+typedef enum {
+	GPIO3_RISE,
+	GPIO3_FALL,
+	GPIO4_RISE,
+	GPIO4_FALL,
+	GPIO5_RISE,
+	GPIO5_FALL,
+	GPIO6_RISE,
+	GPIO6_FALL,
+	GPIO10_RISE,
+	GPIO10_FALL,
+	GPIO11_RISE,
+	GPIO11_FALL,
+	GPIO12_RISE,
+	GPIO12_FALL,
+	GPIO13_RISE,
+	GPIO13_FALL
 } cs40l5x_gpio_bank_t;
 
 /**
  * Function pointer to Notification Callback
  *
  * @details
- * This callback will be registered at driver configuration.  This callback is called whenever the driver has detected
- * a significant event has occurred, such as an over-temperature condition.
+ * This callback will be registered at driver configuration.  This callback is called whenever the
+ * driver has detected a significant event has occurred, such as an over-temperature condition.
  *
  * @see cs40l5x_configure
  *
@@ -315,35 +313,62 @@ typedef enum
 typedef void (*cs40l5x_notification_callback_t)(uint32_t event_flags, void *arg);
 
 /**
+ * State of HALO FW Diagnostics
+ *
+ */
+typedef struct {
+	bool is_valid;               ///< (True) Diagnostics state is valid
+	uint32_t diagnostics_config; ///< Diagnostics configuration controlling which tests are run
+				     ///< in procedure
+	uint32_t VDD_AMP; ///< Encoded VDD_AMP value determined by Diagnostics procedure ([0:4514],
+			  ///< Volts / 0.005)
+	uint32_t VDD_B;   ///< Encoded VDD_B value determined by Diagnostics procedure ([0:4514],
+			  ///< Volts / 0.005)
+	uint32_t REDC; ///< Encoded ReDC value determined by Diagnostics procedure ([0:256], s8.15,
+		       ///< Ohms)
+	uint32_t LE;   ///< Encoded LE value determined by Diagnostics procedure ([0:1], s0.23,
+		       ///< Henrys])
+	uint32_t F0; ///< Encoded F0 value determined by Diagnostics procedure ([0:512], s9.14, Hz])
+	uint32_t Q;  ///< Encoded Q value determined by Diagnostics procedure ([0:128], s7.16])
+	uint32_t BEMF; ///< Encoded BEMF value determined by Diagnostics procedure ([0:1], s0.23,
+		       ///< Volt / 24])
+	uint32_t ZRES; ///< Encoded ZRES value determined by Diagnostics procedure ([0:256], s8.15,
+		       ///< Ohms])
+} cs40l5x_diagnostics_t;
+
+/**
  * State of HALO FW Calibration
  *
  */
-typedef struct
-{
-    bool is_valid;   ///< (True) Calibration state is valid
-    uint32_t f0;        ///< Encoded resonant frequency (f0) determined by Calibration procedure.
-    uint32_t redc;      ///< Encoded DC resistance (ReDC) determined by Calibration procedure.
+typedef struct {
+	bool is_valid; ///< (True) Calibration state is valid
+	uint32_t f0;   ///< Encoded resonant frequency (f0) determined by Calibration procedure.
+	uint32_t redc; ///< Encoded DC resistance (ReDC) determined by Calibration procedure.
 } cs40l5x_calibration_t;
 
 /**
  * Configuration parameters required for calls to BSP-Driver Interface
  */
-typedef struct
-{
-    uint32_t owt_addr;                                  ///< Used to preserve OWT write address in composite writes with multiple sections
-    uint32_t owt_data_len;                              ///< Used to increment OWT data size (in words)in composite writes with multiple sections
+typedef struct {
+	uint32_t owt_addr; ///< Used to preserve OWT write address in composite writes with multiple
+			   ///< sections
+	uint32_t owt_data_len; ///< Used to increment OWT data size (in words)in composite writes
+			       ///< with multiple sections
 #ifdef CIRRUS_ZEPHYR_SAMPLE
-    struct i2c_dt_spec *i2c;
-    const struct gpio_dt_spec *reset_gpio_id;           ///< Used to interact with CS40L5X Reset pin in zephyr bsp
-    const struct gpio_dt_spec *int_gpio_id;             ///< Used to interact with CS40L5X INT pin in zephyr bsp
+	struct i2c_dt_spec *i2c;
+	const struct gpio_dt_spec
+		*reset_gpio_id; ///< Used to interact with CS40L5X Reset pin in zephyr bsp
+	const struct gpio_dt_spec
+		*int_gpio_id; ///< Used to interact with CS40L5X INT pin in zephyr bsp
 #else
-    uint32_t reset_gpio_id;                             ///< Used to ID CS40L5X Reset pin in bsp_driver_if calls
-    uint32_t int_gpio_id;                               ///< Used to ID CS40L5X INT pin in bsp_driver_if calls
+	uint32_t reset_gpio_id; ///< Used to ID CS40L5X Reset pin in bsp_driver_if calls
+	uint32_t int_gpio_id;   ///< Used to ID CS40L5X INT pin in bsp_driver_if calls
 #endif
-    cs40l5x_notification_callback_t notification_cb;    ///< Notification callback registered for detected events
-    void *notification_cb_arg;                          ///< Notification callback argument
+	cs40l5x_notification_callback_t
+		notification_cb;   ///< Notification callback registered for detected events
+	void *notification_cb_arg; ///< Notification callback argument
 #ifdef CIRRUS_SDK
-    regmap_cp_config_t cp_config;
+	regmap_cp_config_t cp_config;
 #endif
 } cs40l5x_bsp_config_t;
 
@@ -352,524 +377,438 @@ typedef struct
  *
  * @see cs40l5x_configure
  */
-typedef struct
-{
-    cs40l5x_bsp_config_t bsp_config;    ///< BSP Configuration
-    uint32_t *syscfg_regs;              ///< Pointer to array of configuration register/value pairs
-    uint32_t syscfg_regs_total;         ///< Total pairs in syscfg_regs[]
-    cs40l5x_calibration_t cal_data;     ///< Calibration data from previous calibration sequence
-    bool is_ext_bst;                    ///< Indicates whether the device is internal or external boost
-    bool enable_mbox_irq;               ///< Enable IRQ for MBOX after device reset
-    bool enable_dsp_err_irq;            ///< Enable IRQ for DSP error states (IRQ1_18)
-    uint32_t dynamic_f0_threshold;      ///< imonRingPPThreshold
-    bool broadcast;                     ///< Broadcast I2C data and triggers
+typedef struct {
+	cs40l5x_bsp_config_t bsp_config; ///< BSP Configuration
+	uint32_t *syscfg_regs;           ///< Pointer to array of configuration register/value pairs
+	uint32_t syscfg_regs_total;      ///< Total pairs in syscfg_regs[]
+	cs40l5x_calibration_t cal_data;  ///< Calibration data from previous calibration sequence
+	cs40l5x_diagnostics_t diag_data; ///< Diagnostics data from last run diagnostics sequence
+	bool is_ext_bst;         ///< Indicates whether the device is internal or external boost
+	bool enable_mbox_irq;    ///< Enable IRQ for MBOX after device reset
+	bool enable_dsp_err_irq; ///< Enable IRQ for DSP error states (IRQ1_18)
+	uint32_t dynamic_f0_threshold; ///< imonRingPPThreshold
+	bool broadcast;                ///< Broadcast I2C data and triggers
 } cs40l5x_config_t;
 
 /**
  * Driver state data structure
  *
- * This is the type used for the handle to the driver for all driver public API calls.  This structure must be
- * instantiated outside the scope of the driver source and initialized by the cs40l5x_initialize public API.
+ * This is the type used for the handle to the driver for all driver public API calls.  This
+ * structure must be instantiated outside the scope of the driver source and initialized by the
+ * cs40l5x_initialize public API.
  */
-typedef struct
-{
-    uint32_t fw_state;                          ///< Firmware driver state - @see CS40L5X_FW_STATE_
-    uint32_t power_state;                       ///< Power driver state - @see CS40L5X_POWER_STATE_
-    uint32_t mode;                              ///< General driver mode - @see CS40L5X_MODE_
-    // Driver configuration fields - see cs40l5x_config_t
-    cs40l5x_config_t config;                    ///< Driver configuration fields - see cs40l5x_config_t
+typedef struct {
+	uint32_t fw_state;    ///< Firmware driver state - @see CS40L5X_FW_STATE_
+	uint32_t power_state; ///< Power driver state - @see CS40L5X_POWER_STATE_
+	uint32_t mode;        ///< General driver mode - @see CS40L5X_MODE_
+	// Driver configuration fields - see cs40l5x_config_t
+	cs40l5x_config_t config; ///< Driver configuration fields - see cs40l5x_config_t
 
-    // Extra state material used by reset and boot
-    uint32_t devid;                             ///< CS40L5X DEVID of current device
-    uint32_t revid;                             ///< CS40L5X REVID of current device
-    fw_img_info_t *fw_info;                     ///< Current HALO FW/Coefficient boot configuration
+	// Extra state material used by reset and boot
+	uint32_t devid;         ///< CS40L5X DEVID of current device
+	uint32_t revid;         ///< CS40L5X REVID of current device
+	fw_img_info_t *fw_info; ///< Current HALO FW/Coefficient boot configuration
 
-    uint32_t event_flags;                       ///< Most recent event_flags reported to BSP Notification callback
+	uint32_t event_flags; ///< Most recent event_flags reported to BSP Notification callback
 } cs40l5x_t;
 
 /**
  * OWT Data Structures
  *
- * This section contains structs to map out data format required for loading PCM, PWLE, and Composite Waveforms in the OWT.
- * All entries regardless of waveform type use a 3 word OWT Header loaded into the OWT preceding the waveform specific header and data.
+ * This section contains structs to map out data format required for loading PCM, PWLE, and
+ * Composite Waveforms in the OWT. All entries regardless of waveform type use a 3 word OWT Header
+ * loaded into the OWT preceding the waveform specific header and data.
  *
  */
 
- typedef union
-{
-    uint32_t word1;
-    struct
-    {
-        uint8_t waveform_type               : 8;
-        uint8_t unused0                     : 8;
-        uint8_t LF0T                        : 1;
-        uint8_t DVL                         : 1;
-        uint8_t metadata                    : 1;
-        uint8_t unused1                     : 1;
-        uint8_t dynamic_f0                  : 1;
-        uint8_t fs                          : 2;
-        uint8_t buzz_or_click               : 1;
-        uint8_t reserved                    : 8;
-    };
+typedef union {
+	uint32_t word1;
+	struct {
+		uint8_t waveform_type: 8;
+		uint8_t unused0: 8;
+		uint8_t LF0T: 1;
+		uint8_t DVL: 1;
+		uint8_t metadata: 1;
+		uint8_t unused1: 1;
+		uint8_t dynamic_f0: 1;
+		uint8_t fs: 2;
+		uint8_t buzz_or_click: 1;
+		uint8_t reserved: 8;
+	};
 } cs40l5x_owt_header_word1_t;
 
-typedef union
-{
-    uint32_t word2;
-    struct
-    {
-        uint32_t offset                     : 24;
-        uint8_t reserved                    : 8;
-    };
+typedef union {
+	uint32_t word2;
+	struct {
+		uint32_t offset: 24;
+		uint8_t reserved: 8;
+	};
 } cs40l5x_owt_header_word2_t;
 
-typedef union
-{
-    uint32_t word3;
-    struct
-    {
-        uint32_t data_length                : 24;
-        uint8_t reserved                    : 8;
-    };
+typedef union {
+	uint32_t word3;
+	struct {
+		uint32_t data_length: 24;
+		uint8_t reserved: 8;
+	};
 } cs40l5x_owt_header_word3_t;
 
-typedef union
-{
-    uint32_t words[OWT_HEADER_SIZE];
-    struct
-    {
-        cs40l5x_owt_header_word1_t word1;
-        cs40l5x_owt_header_word2_t word2;
-        cs40l5x_owt_header_word3_t word3;
-    };
+typedef union {
+	uint32_t words[OWT_HEADER_SIZE];
+	struct {
+		cs40l5x_owt_header_word1_t word1;
+		cs40l5x_owt_header_word2_t word2;
+		cs40l5x_owt_header_word3_t word3;
+	};
 } cs40l5x_owt_header_t;
 
 /** PCM OWT Data Structure **/
 
-typedef struct
-{
-    union
-    {
-        uint32_t word;
-        struct
-        {
-            uint32_t waveform_length            : 24;
-            uint8_t reserved                    : 8;
-        };
-    };
+typedef struct {
+	union {
+		uint32_t word;
+		struct {
+			uint32_t waveform_length: 24;
+			uint8_t reserved: 8;
+		};
+	};
 } cs40l5x_owt_pcm_header_word1_t;
 
-typedef struct
-{
-    union
-    {
-        uint32_t word;
-        struct
-        {
-            uint16_t f0                         : 12;
-            uint16_t scaled_redc                : 12;
-            uint16_t reserved                    : 8;
-        };
-    };
+typedef struct {
+	union {
+		uint32_t word;
+		struct {
+			uint16_t f0: 12;
+			uint16_t scaled_redc: 12;
+			uint16_t reserved: 8;
+		};
+	};
 } cs40l5x_owt_pcm_header_word2_t;
 
-typedef union
-{
-    uint32_t words[PCM_HEADER_SIZE];
-    struct
-    {
-        cs40l5x_owt_pcm_header_word1_t word1;
-        cs40l5x_owt_pcm_header_word2_t word2;
-    };
+typedef union {
+	uint32_t words[PCM_HEADER_SIZE];
+	struct {
+		cs40l5x_owt_pcm_header_word1_t word1;
+		cs40l5x_owt_pcm_header_word2_t word2;
+	};
 } cs40l5x_owt_pcm_header_t;
 
-
-typedef struct
-{
-    union
-    {
-        uint32_t word;
-        struct
-        {
-            uint8_t sample2                     : 8;
-            uint8_t sample1                     : 8;
-            uint8_t sample0                     : 8;
-            uint8_t reserved                    : 8;
-        };
-    };
+typedef struct {
+	union {
+		uint32_t word;
+		struct {
+			uint8_t sample2: 8;
+			uint8_t sample1: 8;
+			uint8_t sample0: 8;
+			uint8_t reserved: 8;
+		};
+	};
 } cs40l5x_owt_pcm_section_word1_t;
 
-typedef union
-{
-    uint32_t words[PCM_SECTION_SIZE];
-    struct
-    {
-        cs40l5x_owt_pcm_section_word1_t word1;
-    };
+typedef union {
+	uint32_t words[PCM_SECTION_SIZE];
+	struct {
+		cs40l5x_owt_pcm_section_word1_t word1;
+	};
 } cs40l5x_owt_pcm_section_t;
 
 /** Composite OWT Data Structure **/
-typedef struct
-{
-    union
-    {
-        uint32_t word;
-        struct
-        {
-            uint32_t waveform_length            : 24;
-            uint8_t reserved                    : 8;
-        };
-    };
+typedef struct {
+	union {
+		uint32_t word;
+		struct {
+			uint32_t waveform_length: 24;
+			uint8_t reserved: 8;
+		};
+	};
 } cs40l5x_owt_composite_header_word1_t;
 
-typedef struct
-{
-    union
-    {
-        uint32_t word;
-        struct
-        {
-            uint8_t repeats                     : 8;
-            uint8_t num_waveforms               : 8;
-            uint8_t not_used                    : 8;
-            uint8_t reserved                    : 8;
-        };
-    };
+typedef struct {
+	union {
+		uint32_t word;
+		struct {
+			uint8_t repeats: 8;
+			uint8_t num_waveforms: 8;
+			uint8_t not_used: 8;
+			uint8_t reserved: 8;
+		};
+	};
 } cs40l5x_owt_composite_header_word2_t;
 
-typedef union
-{
-    uint32_t words[COMPOSITE_HEADER_SIZE];
-    struct
-    {
-        cs40l5x_owt_composite_header_word1_t word1;
-        cs40l5x_owt_composite_header_word2_t word2;
-    };
+typedef union {
+	uint32_t words[COMPOSITE_HEADER_SIZE];
+	struct {
+		cs40l5x_owt_composite_header_word1_t word1;
+		cs40l5x_owt_composite_header_word2_t word2;
+	};
 } cs40l5x_owt_composite_header_t;
 
-
-typedef struct
-{
-    union
-    {
-        uint32_t word;
-        struct
-        {
-            uint8_t nested_repeats              : 8;
-            uint8_t waveform_idx                : 8;
-            uint8_t amplitude                   : 8;
-            uint8_t reserved                    : 8;
-        };
-    };
+typedef struct {
+	union {
+		uint32_t word;
+		struct {
+			uint8_t nested_repeats: 8;
+			uint8_t waveform_idx: 8;
+			uint8_t amplitude: 8;
+			uint8_t reserved: 8;
+		};
+	};
 } cs40l5x_owt_composite_section_word1_t;
 
-typedef struct
-{
-    union
-    {
-        uint32_t word;
-        struct
-        {
-            uint16_t delay                      : 16;
-            uint8_t not_used                    : 5;
-            uint8_t owt_subwave                 : 1;
-            uint8_t rom_subwave                 : 1;
-            uint8_t duration_present            : 1;
-            uint8_t reserved                    : 8;
-        };
-    };
+typedef struct {
+	union {
+		uint32_t word;
+		struct {
+			uint16_t delay: 16;
+			uint8_t not_used: 5;
+			uint8_t owt_subwave: 1;
+			uint8_t rom_subwave: 1;
+			uint8_t duration_present: 1;
+			uint8_t reserved: 8;
+		};
+	};
 } cs40l5x_owt_composite_section_word2_t;
 
-typedef struct
-{
-    union
-    {
-        uint32_t word;
-        struct
-        {
-            uint32_t duration                   : 24;
-            uint8_t reserved                    : 8;
-        };
-    };
+typedef struct {
+	union {
+		uint32_t word;
+		struct {
+			uint32_t duration: 24;
+			uint8_t reserved: 8;
+		};
+	};
 } cs40l5x_owt_composite_section_word3_t;
 
-typedef union
-{
-    uint32_t words[COMPOSITE_SECTION_SIZE];
-    struct
-    {
-        cs40l5x_owt_composite_section_word1_t word1;
-        cs40l5x_owt_composite_section_word2_t word2;
-        cs40l5x_owt_composite_section_word3_t word3;
-    };
+typedef union {
+	uint32_t words[COMPOSITE_SECTION_SIZE];
+	struct {
+		cs40l5x_owt_composite_section_word1_t word1;
+		cs40l5x_owt_composite_section_word2_t word2;
+		cs40l5x_owt_composite_section_word3_t word3;
+	};
 } cs40l5x_owt_composite_section_t;
 
 /** PWLE OWT Data Structure **/
 
-typedef struct
-{
-    union
-    {
-        uint32_t word;
-        struct
-        {
-            uint32_t waveform_length            : 24;
-            uint8_t reserved                    : 8;
-        };
-    };
+typedef struct {
+	union {
+		uint32_t word;
+		struct {
+			uint32_t waveform_length: 24;
+			uint8_t reserved: 8;
+		};
+	};
 } cs40l5x_owt_pwle_header_word1_t;
 
-typedef struct
-{
-    union
-    {
-        uint32_t word;
-        struct
-        {
-            uint16_t num_pw_lin_sections_ms4     : 4;
-            uint16_t wait_time                   : 12;
-            uint16_t repeats                     : 8;
-            uint16_t reserved                    : 8;
-        };
-    };
+typedef struct {
+	union {
+		uint32_t word;
+		struct {
+			uint16_t num_pw_lin_sections_ms4: 4;
+			uint16_t wait_time: 12;
+			uint16_t repeats: 8;
+			uint16_t reserved: 8;
+		};
+	};
 } cs40l5x_owt_pwle_header_word2_t;
 
-typedef union
-{
-    uint32_t words[PWLE_HEADER_SIZE];
-    struct
-    {
-        cs40l5x_owt_pwle_header_word1_t word1;
-        cs40l5x_owt_pwle_header_word2_t word2;
-    };
+typedef union {
+	uint32_t words[PWLE_HEADER_SIZE];
+	struct {
+		cs40l5x_owt_pwle_header_word1_t word1;
+		cs40l5x_owt_pwle_header_word2_t word2;
+	};
 } cs40l5x_owt_pwle_header_t;
 
-
-typedef struct
-{
-    union
-    {
-        uint32_t word;
-        struct
-        {
-            uint32_t level_ms4                   : 4;
-            uint32_t time                       : 16;
-            uint32_t first_byte                  : 4; //This byte is variable, and will contain the lower byte of the number of PW linear functions in the first section
-            //When not in the first section, it will contain the prior section's F0_relative frequency (1 bit), phase offset (1 bit), and 2 unused bits, OR the 4 LSBs of Vb target
-            uint32_t reserved                    : 8;
-        };
-    };
+typedef struct {
+	union {
+		uint32_t word;
+		struct {
+			uint32_t level_ms4: 4;
+			uint32_t time: 16;
+			uint32_t first_byte
+				: 4; // This byte is variable, and will contain the lower byte of
+				     // the number of PW linear functions in the first section
+			// When not in the first section, it will contain the prior section's
+			// F0_relative frequency (1 bit), phase offset (1 bit), and 2 unused bits,
+			// OR the 4 LSBs of Vb target
+			uint32_t reserved: 8;
+		};
+	};
 } cs40l5x_owt_pwle_section_word1_t;
 
-typedef struct
-{
-    union
-    {
-        uint32_t word;
-        struct
-        {
-            uint32_t ext_frequency               : 1;
-            uint32_t half_cycle_def              : 1;
-            uint32_t unused                      : 1;
-            uint32_t chirp_mode                  : 1;
-            uint32_t frequency                  : 12;
-            uint32_t level_ls8                   : 8;
-            uint32_t reserved                    : 8;
-        };
-    };
+typedef struct {
+	union {
+		uint32_t word;
+		struct {
+			uint32_t ext_frequency: 1;
+			uint32_t half_cycle_def: 1;
+			uint32_t unused: 1;
+			uint32_t chirp_mode: 1;
+			uint32_t frequency: 12;
+			uint32_t level_ls8: 8;
+			uint32_t reserved: 8;
+		};
+	};
 } cs40l5x_owt_pwle_section_word2_t;
 
-typedef struct
-{
-    union
-    {
-        uint32_t word;
-        struct
-        {
-            uint32_t Vb_target_ms20             : 20;
-            uint32_t unused                      : 2;
-            uint32_t phase_offset                : 1;
-            uint32_t F0_relative_freq            : 1;
-            uint32_t reserved                    : 8;
-        };
-    };
+typedef struct {
+	union {
+		uint32_t word;
+		struct {
+			uint32_t Vb_target_ms20: 20;
+			uint32_t unused: 2;
+			uint32_t phase_offset: 1;
+			uint32_t F0_relative_freq: 1;
+			uint32_t reserved: 8;
+		};
+	};
 } cs40l5x_owt_pwle_section_word3_t;
 
-typedef union
-{
-    uint32_t words[PWLE_SECTION_SIZE];
-    struct
-    {
-        cs40l5x_owt_pwle_section_word1_t word1;
-        cs40l5x_owt_pwle_section_word2_t word2;
-        cs40l5x_owt_pwle_section_word3_t word3; //Optional final word is present if amplitude regulation is set
-    };
+typedef union {
+	uint32_t words[PWLE_SECTION_SIZE];
+	struct {
+		cs40l5x_owt_pwle_section_word1_t word1;
+		cs40l5x_owt_pwle_section_word2_t word2;
+		cs40l5x_owt_pwle_section_word3_t
+			word3; // Optional final word is present if amplitude regulation is set
+	};
 } cs40l5x_owt_pwle_section_t;
 
 /* OLD PWLE entry types */
 
-typedef struct
-{
-    union
-    {
-        uint32_t word;
-        struct
-        {
-            uint32_t wf_length                  : 24;
-            uint32_t reserved                   : 8;
-        };
-    };
+typedef struct {
+	union {
+		uint32_t word;
+		struct {
+			uint32_t wf_length: 24;
+			uint32_t reserved: 8;
+		};
+	};
 } cs40l5x_pwle_word1_entry_t;
 
-typedef struct
-{
-    union
-    {
-        uint32_t word;
-        struct
-        {
-            uint32_t pwls_ms4                    : 4;
-            uint32_t wait_time                   : 12;
-            uint32_t repeat                      : 8;
-            uint32_t reserved                    : 8;
-        };
-    };
+typedef struct {
+	union {
+		uint32_t word;
+		struct {
+			uint32_t pwls_ms4: 4;
+			uint32_t wait_time: 12;
+			uint32_t repeat: 8;
+			uint32_t reserved: 8;
+		};
+	};
 } cs40l5x_pwle_word2_entry_t;
 
-typedef struct
-{
-    union
-    {
-        uint32_t word;
-        struct
-        {
-            uint32_t level_ms4                   : 4;
-            uint32_t time                        : 16;
-            uint32_t pwls_ls4                    : 4;
-            uint32_t reserved                    : 8;
-        };
-    };
+typedef struct {
+	union {
+		uint32_t word;
+		struct {
+			uint32_t level_ms4: 4;
+			uint32_t time: 16;
+			uint32_t pwls_ls4: 4;
+			uint32_t reserved: 8;
+		};
+	};
 } cs40l5x_pwle_word3_entry_t;
 
-typedef struct
-{
-    union
-    {
-        uint32_t word;
-        struct
-        {
-            uint32_t ext_freq                      : 1;
-            uint32_t amp_reg                       : 1;
-            uint32_t braking                       : 1;
-            uint32_t chirp                         : 1;
-            uint32_t freq                          : 12;
-            uint32_t level_ls8                     : 8;
-            uint32_t reserved                      : 8;
-        };
-    };
+typedef struct {
+	union {
+		uint32_t word;
+		struct {
+			uint32_t ext_freq: 1;
+			uint32_t amp_reg: 1;
+			uint32_t braking: 1;
+			uint32_t chirp: 1;
+			uint32_t freq: 12;
+			uint32_t level_ls8: 8;
+			uint32_t reserved: 8;
+		};
+	};
 } cs40l5x_pwle_word4_entry_t;
 
-typedef struct
-{
-    union
-    {
-      uint32_t word;
-      struct
-      {
-          uint32_t level_ms4                     : 4;
-          uint32_t time                          : 16;
-          uint32_t reserved                      : 12;
-      };
-    };
+typedef struct {
+	union {
+		uint32_t word;
+		struct {
+			uint32_t level_ms4: 4;
+			uint32_t time: 16;
+			uint32_t reserved: 12;
+		};
+	};
 } cs40l5x_pwle_word5_entry_t;
 
-typedef struct
-{
-    union
-    {
-        uint32_t word;
-        struct
-        {
-            uint32_t ext_freq                      : 1;
-            uint32_t amp_reg                       : 1;
-            uint32_t braking                       : 1;
-            uint32_t chirp                         : 1;
-            uint32_t freq                          : 12;
-            uint32_t level_ls8                     : 8;
-            uint32_t reserved                      : 8;
-        };
-    };
+typedef struct {
+	union {
+		uint32_t word;
+		struct {
+			uint32_t ext_freq: 1;
+			uint32_t amp_reg: 1;
+			uint32_t braking: 1;
+			uint32_t chirp: 1;
+			uint32_t freq: 12;
+			uint32_t level_ls8: 8;
+			uint32_t reserved: 8;
+		};
+	};
 } cs40l5x_pwle_word6_entry_t;
 
-
-typedef union
-{
-    uint32_t words[6];
-    struct
-    {
-        cs40l5x_pwle_word1_entry_t word1;
-        cs40l5x_pwle_word2_entry_t word2;
-        cs40l5x_pwle_word3_entry_t word3;
-        cs40l5x_pwle_word4_entry_t word4;
-        cs40l5x_pwle_word5_entry_t word5;
-        cs40l5x_pwle_word6_entry_t word6;
-    };
+typedef union {
+	uint32_t words[6];
+	struct {
+		cs40l5x_pwle_word1_entry_t word1;
+		cs40l5x_pwle_word2_entry_t word2;
+		cs40l5x_pwle_word3_entry_t word3;
+		cs40l5x_pwle_word4_entry_t word4;
+		cs40l5x_pwle_word5_entry_t word5;
+		cs40l5x_pwle_word6_entry_t word6;
+	};
 } cs40l5x_pwle_t;
 
-typedef union
-{
-    uint32_t word1;
-    struct
-    {
-        uint32_t level_ms8                   : 8;
-        uint32_t time                        : 16;
-        uint32_t reserved                    : 8;
-    };
+typedef union {
+	uint32_t word1;
+	struct {
+		uint32_t level_ms8: 8;
+		uint32_t time: 16;
+		uint32_t reserved: 8;
+	};
 } cs40l5x_pwle_short_word1_entry_t;
 
-typedef union
-{
-    uint32_t word2;
-    struct
-    {
-        uint32_t reserved_0                  : 4;
-        uint32_t ext_freq                    : 1;
-        uint32_t amp_reg                     : 1;
-        uint32_t braking                     : 1;
-        uint32_t chirp                       : 1;
-        uint32_t freq                        : 12;
-        uint32_t level_ls4                   : 4;
-        uint32_t reserved_1                  : 8;
-    };
+typedef union {
+	uint32_t word2;
+	struct {
+		uint32_t reserved_0: 4;
+		uint32_t ext_freq: 1;
+		uint32_t amp_reg: 1;
+		uint32_t braking: 1;
+		uint32_t chirp: 1;
+		uint32_t freq: 12;
+		uint32_t level_ls4: 4;
+		uint32_t reserved_1: 8;
+	};
 } cs40l5x_pwle_short_word2_entry_t;
 
-typedef union
-{
-    uint32_t words[2];
-    struct
-    {
-        cs40l5x_pwle_short_word1_entry_t word1;
-        cs40l5x_pwle_short_word2_entry_t word2;
-    };
+typedef union {
+	uint32_t words[2];
+	struct {
+		cs40l5x_pwle_short_word1_entry_t word1;
+		cs40l5x_pwle_short_word2_entry_t word2;
+	};
 } cs40l5x_pwle_short_section_t;
 
 /**
  * Dynamic F0 table1 entry type
  */
-typedef struct
-{
-    union
-    {
-        uint32_t word;
-        struct
-        {
-            uint32_t f0                         : 13;   ///< F0 in Q10.3 format
-            uint32_t index                      : 8;    ///< Index in Wave Table
-            uint32_t wave_in_owt                : 1;    ///< Waveform is OWT Entry
-            uint32_t wave_in_rom                : 1;    ///< Waveform is ROM Entry
-            uint32_t reserved                   : 9;
-        };
-    };
+typedef struct {
+	union {
+		uint32_t word;
+		struct {
+			uint32_t f0: 13;         ///< F0 in Q10.3 format
+			uint32_t index: 8;       ///< Index in Wave Table
+			uint32_t wave_in_owt: 1; ///< Waveform is OWT Entry
+			uint32_t wave_in_rom: 1; ///< Waveform is ROM Entry
+			uint32_t reserved: 9;
+		};
+	};
 } cs40l5x_df0_table1_entry_t;
 
 /**
@@ -877,31 +816,28 @@ typedef struct
  *
  * Table holding design F0 and design ReDC values for each dyn_f0_table1 entry
  */
-typedef struct
-{
-    union
-    {
-        uint32_t word;
-        struct
-        {
-            uint32_t design_redc_stored         : 12;   ///< (ReDC / VImon ratio) * 128; VImon ratio = 8.276; ReDC = (0, 31.989 Ohms)
-            uint32_t design_f0_stored           : 12;   ///< F0 Stored value = (frequency - 50) * 8
-            uint32_t reserved                   : 8;
-        };
-    };
+typedef struct {
+	union {
+		uint32_t word;
+		struct {
+			uint32_t design_redc_stored: 12; ///< (ReDC / VImon ratio) * 128; VImon
+							 ///< ratio = 8.276; ReDC = (0, 31.989 Ohms)
+			uint32_t design_f0_stored: 12;   ///< F0 Stored value = (frequency - 50) * 8
+			uint32_t reserved: 8;
+		};
+	};
 } cs40l5x_df0_table2_entry_t;
 
 /**
  * Dynamic F0 table entry type
  */
-typedef struct
-{
-    struct
-    {
-        cs40l5x_df0_table1_entry_t table1;
-        cs40l5x_df0_table2_entry_t table2;
-        uint32_t table3;                    ///< Table holding attenuation factors for each dyn_f0_table1 entry. (1, 100)
-    };
+typedef struct {
+	struct {
+		cs40l5x_df0_table1_entry_t table1;
+		cs40l5x_df0_table2_entry_t table2;
+		uint32_t table3; ///< Table holding attenuation factors for each dyn_f0_table1
+				 ///< entry. (1, 100)
+	};
 } cs40l5x_df0_table_entry_t;
 
 /***********************************************************************************************************************
@@ -963,8 +899,8 @@ uint32_t cs40l5x_process(cs40l5x_t *driver);
 /**
  * Reset the CS40L5X
  *
- * This call performs all necessary reset of the CS40L5X from power-on-reset to being able to process haptics in
- * Basic Haptics Mode (BHM).
+ * This call performs all necessary reset of the CS40L5X from power-on-reset to being able to
+ * process haptics in Basic Haptics Mode (BHM).
  * - toggling RESET line
  * - verifying entry to BHM is successful
  *
@@ -983,8 +919,8 @@ uint32_t cs40l5x_reset(cs40l5x_t *driver);
 /**
  * Finish booting the CS40L5X
  *
- * While cs40l5x_write_block loads the actual FW/COEFF data into HALO RAM, cs40l5x_boot will finish the boot process
- * by:
+ * While cs40l5x_write_block loads the actual FW/COEFF data into HALO RAM, cs40l5x_boot will finish
+ * the boot process by:
  * - loading the fw_img_info_t fw_info member of the driver handle
  * - Performing any post-boot configuration writes
  * - Loading Calibration data (if valid)
@@ -1005,20 +941,22 @@ uint32_t cs40l5x_boot(cs40l5x_t *driver, fw_img_info_t *fw_info);
 /**
  * Change the power state
  *
- * Based on the current driver state, this call will change the driver state and call the appropriate power up/down
- * function.  This can result in the part exiting/entering any of the following power states:  Power Up, Standby,
- * Hibernate, Wake.
+ * Based on the current driver state, this call will change the driver state and call the
+ * appropriate power up/down function.  This can result in the part exiting/entering any of the
+ * following power states:  Power Up, Standby, Hibernate, Wake.
  *
  * @see CS40L5X_POWER_
  *
  * @param [in] driver           Pointer to the driver state
  * @param [in] power_state      New power state
  *
- * @warning CS40L5X_POWER_DOWN should only be used when exiting BHM mode or switching between firmware or coefficient
- * files.  For low power mode while running firmware, CS40L5X_POWER_HIBERNATE should be used.
+ * @warning CS40L5X_POWER_DOWN should only be used when exiting BHM mode or switching between
+ * firmware or coefficient files.  For low power mode while running firmware,
+ * CS40L5X_POWER_HIBERNATE should be used.
  *
  * @return
- * - CS40L5X_STATUS_FAIL        if requested power_state is invalid, or if the call to change power state fails
+ * - CS40L5X_STATUS_FAIL        if requested power_state is invalid, or if the call to change power
+ * state fails
  * - CS40L5X_STATUS_OK          otherwise
  *
  */
@@ -1039,29 +977,68 @@ uint32_t cs40l5x_timeout_ticks_set(cs40l5x_t *driver, uint32_t ms);
 /**
  * Calibrate the HALO Core DSP Protection Algorithm
  *
- * This performs the calibration procedure for Prince Haptic Control firmwares.
+ * This performs the calibration procedure for Jamerson Haptic Control firmware.
  * This calibration information (cs40l5x_calibration_t) will be saved in the driver state
- * and applied during subsequent boots of the part.  This calibration information will be available to the driver
- * until the driver is re-initialized.
+ * and applied during subsequent boots of the part.  This calibration information will be available
+ * to the driver until the driver is re-initialized.
  *
  * @param [in] driver               Pointer to the driver state
  * @param [in] calib_type           The calibration type to be performed
  *
  * @return
- * - CS40L5X_STATUS_FAIL        if driver in invalid state for calibration, or any control port activity fails
+ * - CS40L5X_STATUS_FAIL        if driver in invalid state for calibration, or any control port
+ * activity fails
  * - CS40L5X_STATUS_OK          otherwise
  *
  * @see cs40l5x_calibration_t
  *
  */
 uint32_t cs40l5x_calibrate(cs40l5x_t *driver);
+
+/**
+ * Set the diagnostics algorithm configuration settings.
+ *
+ * This sets the diagnostic settings to control which diagnostic tests are run.
+ * This configuration setting is store as a bitmap within cs40l5x_calibration_t (diagnostics_config)
+ * and is saved in the driver state
+ *
+ * @param [in] driver               Pointer to the driver state
+ *
+ * @return
+ * - CS40L5X_STATUS_FAIL        if diagnostic configuration fails to set
+ * - CS40L5X_STATUS_OK          otherwise
+ *
+ * @see cs40l5x_calibration_t
+ *
+ */
+uint32_t cs40l5x_set_diagnostic_config(cs40l5x_t *driver);
+
+/**
+ * Perform the diagnostics Algorithm in the HALO core DSP
+ *
+ * This performs the diagnostic procedure for Jamerson Haptic firmware.
+ * These diagnostic test results (cs40l5x_diagnostic_t) will be saved in the driver state
+ * This diagnostic information will be available to the driver until the driver is re-initialized
+ * or diagnostics is rerun.
+ *
+ * @param [in] driver               Pointer to the driver state
+ *
+ * @return
+ * - CS40L5X_STATUS_FAIL        if driver in invalid state for diagnostics, or any control port
+ * activity fails
+ * - CS40L5X_STATUS_OK          otherwise
+ *
+ * @see cs40l5x_diagnostics_t
+ *
+ */
 uint32_t cs40l5x_diagnostics(cs40l5x_t *driver);
 
 /**
  * Sets a given ReDC value to the REDC_OTP_STORED register
  *
  * @param [in] driver               Pointer to the driver state
- * @param [in] redc                 Value of ReDC to be written. In Q7.17 format and in units Ohm * 2.9/24
+ * @param [in] redc                 Value of ReDC to be written. In Q7.17 format and in units Ohm
+ * * 2.9/24
  *
  * @return
  * - CS40L5X_STATUS_FAIL        if writing the value fails
@@ -1098,13 +1075,15 @@ uint32_t cs40l5x_set_f0(cs40l5x_t *driver, uint32_t f0);
 uint32_t cs40l5x_trigger(cs40l5x_t *driver, uint32_t index, cs40l5x_wavetable_bank_t bank);
 
 uint32_t cs40l5x_configure_gpio_trigger(cs40l5x_t *driver, cs40l5x_gpio_bank_t gpio, bool rth,
-                                        uint8_t attenuation, bool ram, uint8_t plybck_index);
+					uint8_t attenuation, bool ram, uint8_t plybck_index);
 
 uint32_t cs40l5x_set_click_compensation_enable(cs40l5x_t *driver, bool f0_enable, bool redc_enable);
 uint32_t cs40l5x_set_broadcast_enable(cs40l5x_t *driver, bool enable);
 uint32_t cs40l5x_trigger_pwle(cs40l5x_t *driver, const rth_pwle_section_t **s);
-uint32_t cs40l5x_trigger_pwle_advanced(cs40l5x_t *driver, const rth_pwle_section_t **s, uint8_t repeat, uint8_t num_sections);
-uint32_t cs40l5x_trigger_pcm(cs40l5x_t *driver, uint8_t *s, uint32_t num_sections, uint16_t buffer_size_samples, uint16_t f0, uint16_t redc);
+uint32_t cs40l5x_trigger_pwle_advanced(cs40l5x_t *driver, const rth_pwle_section_t **s,
+				       uint8_t repeat, uint8_t num_sections);
+uint32_t cs40l5x_trigger_pcm(cs40l5x_t *driver, uint8_t *s, uint32_t num_sections,
+			     uint16_t buffer_size_samples, uint16_t f0, uint16_t redc);
 uint32_t cs40l5x_trigger_owt(cs40l5x_t *driver, uint32_t idx, bool bypass_src_atten);
 uint32_t cs40l5x_delete_owt(cs40l5x_t *driver, uint32_t idx);
 uint32_t cs40l5x_set_dynamic_f0(cs40l5x_t *driver, bool enable);
@@ -1130,14 +1109,15 @@ uint32_t cs40l5x_check_error(cs40l5x_t *driver);
  * - CS40L5X_STATUS_OK          otherwise
  *
  */
-uint32_t cs40l5x_write_owt_pcm(cs40l5x_t *driver, uint8_t sample_rate, const uint8_t* buffer, uint32_t buffer_size);
+uint32_t cs40l5x_write_owt_pcm(cs40l5x_t *driver, uint8_t sample_rate, const uint8_t *buffer,
+			       uint32_t buffer_size);
 
 /**
  * Write Composite Waveform header to Open Wave Table
  *
- * This will construct and write composite waveform header basic on the required parameter as input arguments.
- * This header will be written to the next available index within the OWT, then update bsp_config.owt_addr with
- * the written address.
+ * This will construct and write composite waveform header basic on the required parameter as input
+ * arguments. This header will be written to the next available index within the OWT, then update
+ * bsp_config.owt_addr with the written address.
  *
  * @param [in] driver               Pointer to the driver state
  * @param [in] num_waveforms        Number of subwaveforms contained within the composite waveform
@@ -1148,45 +1128,46 @@ uint32_t cs40l5x_write_owt_pcm(cs40l5x_t *driver, uint8_t sample_rate, const uin
  * - CS40L5X_STATUS_OK          otherwise
  *
  */
-uint32_t cs40l5x_write_owt_composite_header(cs40l5x_t *driver, uint8_t num_waveforms, uint8_t repeats);
+uint32_t cs40l5x_write_owt_composite_header(cs40l5x_t *driver, uint8_t num_waveforms,
+					    uint8_t repeats);
 
 /**
  * Write Composite Waveform section to Open Wave Table
  *
  * This will construct and write a single composite subwaveform based on the given input parameters.
- * This single composite section will be written at bsp_config.owt_addr, then bsp_config.owt_addr will
- * be incremented  by the size of the section to allow for multiple section writes within a single composite waveform.
+ * This single composite section will be written at bsp_config.owt_addr, then bsp_config.owt_addr
+ * will be incremented  by the size of the section to allow for multiple section writes within a
+ * single composite waveform.
  *
  * @param [in] driver               Pointer to the driver state
  * @param [in] nested_repeats       Number of repeats of this subwave in the composite waveform
- * @param [in] waveform_idx         Index of the subwave in its respective wavetable (ROM, RAM, or OWT)
+ * @param [in] waveform_idx         Index of the subwave in its respective wavetable (ROM, RAM, or
+ * OWT)
  * @param [in] amplitude            Amplitude of the subwave as a percentage (100 being no scaling)
  * @param [in] delay                Delay in milliseconds before the next subwave begins
  * @param [in] owt_subwave          1 if subwave is in OWT, 0 otherwise
  * @param [in] rom_subwave          1 if subwave is in ROM, 0 otherwise
  * @param [in] duration_present     1 if duration field is present, 0 otherwise
- * @param [in] duration             Duration of the subwaveform, if this field is not present the subwaveform plays until it's natural termination
+ * @param [in] duration             Duration of the subwaveform, if this field is not present the
+ * subwaveform plays until it's natural termination
  *
  * @return
  * - CS40L5X_STATUS_FAIL        if any control port transaction fails
  * - CS40L5X_STATUS_OK          otherwise
  *
  */
-uint32_t cs40l5x_write_owt_composite_section(cs40l5x_t *driver,
-                                             uint8_t nested_repeats,
-                                             uint8_t waveform_idx,
-                                             uint8_t amplitude,
-                                             uint16_t delay,
-                                             uint8_t owt_subwave,
-                                             uint8_t rom_subwave,
-                                             uint8_t duration_present,
-                                             uint32_t duration);
+uint32_t cs40l5x_write_owt_composite_section(cs40l5x_t *driver, uint8_t nested_repeats,
+					     uint8_t waveform_idx, uint8_t amplitude,
+					     uint16_t delay, uint8_t owt_subwave,
+					     uint8_t rom_subwave, uint8_t duration_present,
+					     uint32_t duration);
 
 /**
  * Push Composite Waveform to Open Wave Table
  *
- * This writes the composite waveform size to the composite's header based on how many sections were written to OWT for this composite,
- * then pushes the complete composite waveform to the OWT using the corresponding mailbox command.
+ * This writes the composite waveform size to the composite's header based on how many sections were
+ * written to OWT for this composite, then pushes the complete composite waveform to the OWT using
+ * the corresponding mailbox command.
  *
  * @param [in] driver               Pointer to the driver state
  *
@@ -1204,7 +1185,8 @@ uint32_t cs40l5x_push_owt_composite(cs40l5x_t *driver);
  *
  * @param [in] driver               Pointer to the driver state
  * @param [in] nested_repeats       Number of repeats of this subwave in the composite waveform
- * @param [in] waveform_idx         Index of the subwave in its respective wavetable (ROM, RAM, or OWT)
+ * @param [in] waveform_idx         Index of the subwave in its respective wavetable (ROM, RAM, or
+ * OWT)
  * @param [in] amplitude            Amplitude of the subwave as a percentage (100 being no scaling)
  * @param [in] delay                Delay in milliseconds before the next subwave begins
  * @param [in] owt_subwave          1 if subwave is in OWT, 0 otherwise
@@ -1216,28 +1198,27 @@ uint32_t cs40l5x_push_owt_composite(cs40l5x_t *driver);
  *
  */
 
-uint32_t cs40l5x_write_owt_composite_one_section(cs40l5x_t *driver,
-                                                 uint8_t nested_repeats,
-                                                 uint8_t waveform_idx,
-                                                 uint8_t amplitude,
-                                                 uint16_t delay,
-                                                 uint8_t owt_subwave,
-                                                 uint8_t rom_subwave);
-
+uint32_t cs40l5x_write_owt_composite_one_section(cs40l5x_t *driver, uint8_t nested_repeats,
+						 uint8_t waveform_idx, uint8_t amplitude,
+						 uint16_t delay, uint8_t owt_subwave,
+						 uint8_t rom_subwave);
 
 /**
  * Function to support writing a single nested composite waveform from the wavetable to the OWT
  *
- * This function writes the data from a composite waveform in the wavetable as a new nested composite waveform
- * (NCW) in the OWT. The subwaveforms and parameters are captured by copying the existing subwaveforms of the
- * wavetable composite into a new composite in the OWT, and repeating these in this new OWT composite depending
- * on the given parameters. This approach has a hard limit of 255 subwaveforms to be created in the new nested
- * composite waveform due to limitations of the OWT. The number of subwaveforms is determined by the original
- * number of waveforms in the composite to be referenced * number of repeats, I.E. 3 subwaves with 10 repeats = 30 subwaveforms in new OWT.
+ * This function writes the data from a composite waveform in the wavetable as a new nested
+ * composite waveform (NCW) in the OWT. The subwaveforms and parameters are captured by copying the
+ * existing subwaveforms of the wavetable composite into a new composite in the OWT, and repeating
+ * these in this new OWT composite depending on the given parameters. This approach has a hard limit
+ * of 255 subwaveforms to be created in the new nested composite waveform due to limitations of the
+ * OWT. The number of subwaveforms is determined by the original number of waveforms in the
+ * composite to be referenced * number of repeats, I.E. 3 subwaves with 10 repeats = 30 subwaveforms
+ * in new OWT.
  *
  * @param [in] driver               Pointer to the driver state
  * @param [in] nested_repeats       Number of repeats of this subwave in the composite waveform
- * @param [in] waveform_idx         Index of the subwave in its respective wavetable (ROM, RAM, or OWT)
+ * @param [in] waveform_idx         Index of the subwave in its respective wavetable (ROM, RAM, or
+ * OWT)
  * @param [in] amplitude            Amplitude of the subwave as a percentage (100 being no scaling)
  * @param [in] delay                Delay in milliseconds before the next subwave begins
  * @param [in] owt_subwave          1 if subwave is in OWT, 0 otherwise
@@ -1249,13 +1230,9 @@ uint32_t cs40l5x_write_owt_composite_one_section(cs40l5x_t *driver,
  *
  */
 
-uint32_t cs40l5x_write_owt_ncw(cs40l5x_t *driver,
-                                uint8_t nested_repeats,
-                                uint8_t waveform_idx,
-                                uint8_t amplitude,
-                                uint16_t delay,
-                                uint8_t owt_subwave,
-                                uint8_t rom_subwave);
+uint32_t cs40l5x_write_owt_ncw(cs40l5x_t *driver, uint8_t nested_repeats, uint8_t waveform_idx,
+			       uint8_t amplitude, uint16_t delay, uint8_t owt_subwave,
+			       uint8_t rom_subwave);
 /**
  * Write PWLE Waveform header to Open Wave Table
  *
@@ -1274,12 +1251,9 @@ uint32_t cs40l5x_write_owt_ncw(cs40l5x_t *driver,
  * - CS40L5X_STATUS_OK          otherwise
  *
  */
-uint32_t cs40l5x_write_owt_pwle_header(cs40l5x_t *driver,
-                                       uint8_t *next_first_byte,
-                                       uint32_t wf_length,
-                                       uint8_t repeats,
-                                       uint16_t wait_time,
-                                       uint8_t num_lin_sections);
+uint32_t cs40l5x_write_owt_pwle_header(cs40l5x_t *driver, uint8_t *next_first_byte,
+				       uint32_t wf_length, uint8_t repeats, uint16_t wait_time,
+				       uint8_t num_lin_sections);
 
 /**
  * Write PWLE Waveform section to Open Wave Table
@@ -1306,18 +1280,12 @@ uint32_t cs40l5x_write_owt_pwle_header(cs40l5x_t *driver,
  * - CS40L5X_STATUS_OK          otherwise
  *
  */
-uint32_t cs40l5x_write_owt_pwle_section(cs40l5x_t *driver,
-                                             bool first_section,
-                                             uint8_t *next_first_byte,
-                                             uint16_t time,
-                                             uint16_t level,
-                                             uint16_t frequency,
-                                             uint8_t chirp_mode,
-                                             uint8_t half_cycle_def,
-                                             uint8_t ext_frequency,
-                                             uint8_t F0_relative_freq,
-                                             uint8_t phase_offset,
-                                             uint32_t Vb_target);
+uint32_t cs40l5x_write_owt_pwle_section(cs40l5x_t *driver, bool first_section,
+					uint8_t *next_first_byte, uint16_t time, uint16_t level,
+					uint16_t frequency, uint8_t chirp_mode,
+					uint8_t half_cycle_def, uint8_t ext_frequency,
+					uint8_t F0_relative_freq, uint8_t phase_offset,
+					uint32_t Vb_target);
 
 /**
  * Push PWLE Waveform to Open Wave Table

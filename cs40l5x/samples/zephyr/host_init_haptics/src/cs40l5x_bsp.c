@@ -1,0 +1,1264 @@
+/*
+ * Copyright (c) Cirrus Logic 2026 All Rights Reserved, http://www.cirrus.com/
+ *
+ * Licensed under the Apache License, Version 2.0 (the License); you may
+ * not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an AS IS BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ */
+
+#include "cs40l5x_bsp.h"
+#include "cs40l5x.h"
+#include <zephyr/kernel.h>
+#include <zephyr/logging/log.h>
+#include <zephyr/drivers/i2c.h>
+#include <strings.h>
+
+LOG_MODULE_REGISTER(cirrus_cs40l5x);
+
+struct cs40l5x_config {
+	struct i2c_dt_spec i2c;
+	struct gpio_dt_spec reset_gpio;
+	void (*irq_cfg_func)(void);
+	void (*irq_enable_func)(void);
+	void (*irq_disable_func)(void);
+};
+
+/***************************************************
+** FUNCTIONS TO SUPPORT HIH EFFECT DATA STRUCTURE **
+****************************************************/
+
+static HIH_effect_metadata hih_effect_metadata[] = {
+	{.wt_idx = HIH_EFFECT_WT_OFFSET + 0,
+	 .msft_ID = 0x1008,
+	 .effectName = "Hover",
+	 .length_ms = 0,
+	 .wf_type = CS40L5X_RTH_TYPE_PWLE},
+	{.wt_idx = HIH_EFFECT_WT_OFFSET + 1,
+	 .msft_ID = 0x1012,
+	 .effectName = "Collide",
+	 .length_ms = 0,
+	 .wf_type = CS40L5X_RTH_TYPE_PWLE},
+	{.wt_idx = HIH_EFFECT_WT_OFFSET + 2,
+	 .msft_ID = 0x1013,
+	 .effectName = "Align",
+	 .length_ms = 0,
+	 .wf_type = CS40L5X_RTH_TYPE_PWLE},
+	{.wt_idx = HIH_EFFECT_WT_OFFSET + 3,
+	 .msft_ID = 0x1014,
+	 .effectName = "Step",
+	 .length_ms = 0,
+	 .wf_type = CS40L5X_RTH_TYPE_PWLE},
+	{.wt_idx = HIH_EFFECT_WT_OFFSET + 4,
+	 .msft_ID = 0x1015,
+	 .effectName = "Grow",
+	 .length_ms = 0,
+	 .wf_type = CS40L5X_RTH_TYPE_PWLE},
+	{.wt_idx = HIH_EFFECT_WT_OFFSET + 5,
+	 .msft_ID = 0x1006,
+	 .effectName = "Press",
+	 .length_ms = 0,
+	 .wf_type = CS40L5X_RTH_TYPE_PWLE},
+	{.wt_idx = HIH_EFFECT_WT_OFFSET + 6,
+	 .msft_ID = 0x1007,
+	 .effectName = "Release",
+	 .length_ms = 0,
+	 .wf_type = CS40L5X_RTH_TYPE_PWLE},
+	{.wt_idx = HIH_EFFECT_WT_OFFSET + 7,
+	 .msft_ID = 0x1009,
+	 .effectName = "Success",
+	 .length_ms = 0,
+	 .wf_type = CS40L5X_RTH_TYPE_PWLE},
+	{.wt_idx = HIH_EFFECT_WT_OFFSET + 8,
+	 .msft_ID = 0x100A,
+	 .effectName = "Error",
+	 .length_ms = 0,
+	 .wf_type = CS40L5X_RTH_TYPE_PWLE},
+};
+
+// Forward declaration
+static int bsp_cs40l5x_get_wt_waveform_length_us(const struct device *dev, uint32_t idx,
+						 uint32_t *len);
+
+// Helper function to check for presence of SVC braking and add to total effect length
+static int bsp_cs40l5x_add_svc_braking_length_us(const struct device *dev, uint32_t offset,
+						 uint32_t data_len, uint32_t *len_us)
+{
+	struct cs40l5x_config *config = (struct cs40l5x_config *)dev->config;
+	uint32_t wt_read_addr, svc_header, braking_period, ret;
+
+	wt_read_addr = VIBEGEN_WAVE_XM_TABLE + (offset * CS40L5X_DSP_BYTES_PER_WORD) +
+		       (data_len * CS40L5X_DSP_BYTES_PER_WORD);
+	ret = regmap_read(&config->i2c, wt_read_addr, &svc_header);
+	if (ret) {
+		return ret;
+	}
+	// Check if SVC metadata is present
+	if ((CS40L5X_SVC_METADATA_ID_BITMASK & svc_header) &&
+	    (CS40L5X_SVC_METADATA_LEN_BITMASK & svc_header)) {
+		wt_read_addr += CS40L5X_DSP_BYTES_PER_WORD;
+		ret = regmap_read(&config->i2c, wt_read_addr,
+				  &braking_period); // Braking period stored as ms*8
+		if (ret) {
+			return ret;
+		}
+		*len_us += (braking_period * 1000) / 8;
+	}
+	return BSP_STATUS_OK;
+}
+
+static int bsp_cs40l5x_get_pcm_length_us(const struct device *dev, uint32_t idx, uint32_t *len)
+{
+	struct cs40l5x_config *config = (struct cs40l5x_config *)dev->config;
+	uint32_t ret, feature_bitmap, wf_word_offset, wf_word_len, wt_read_addr, fs;
+	uint32_t pcm_len_us = 0;
+
+	wt_read_addr = VIBEGEN_WAVE_XM_TABLE + (idx * OWT_HEADER_SIZE * CS40L5X_DSP_BYTES_PER_WORD);
+
+	// Get effect header info (feature_bitmap for sample rate and length of wf in data words)
+	// about wf at idx
+	ret = regmap_read(&config->i2c, wt_read_addr, &feature_bitmap);
+	if (ret) {
+		return ret;
+	}
+	ret = regmap_read(&config->i2c, wt_read_addr + (CS40L5X_DSP_BYTES_PER_WORD),
+			  &wf_word_offset);
+	if (ret) {
+		return ret;
+	}
+	ret = regmap_read(&config->i2c, wt_read_addr + (CS40L5X_DSP_BYTES_PER_WORD * 2),
+			  &wf_word_len);
+	if (ret) {
+		return ret;
+	}
+
+	uint32_t sample_rate_sel = (feature_bitmap & CS40L5X_PCM_SAMPLE_RATE_BITMASK) >>
+				   CS40L5X_PCM_SAMPLE_RATE_OFFSET;
+	uint32_t metadata_present =
+		(feature_bitmap & CS40L5X_METADATA_BITMASK) >> CS40L5X_METADATA_OFFSET;
+	if (sample_rate_sel == CS40L5X_OWT_SAMPLE_RATE_8K) {
+		fs = 8000;
+	} else if (sample_rate_sel == CS40L5X_OWT_SAMPLE_RATE_4K) {
+		fs = 4000;
+	} else if (sample_rate_sel == CS40L5X_OWT_SAMPLE_RATE_24K) {
+		fs = 24000;
+	} else {
+		fs = 48000;
+	}
+	// Each PCM word is 3 samples
+	pcm_len_us = (wf_word_len * 3) * 1e6 / fs;
+
+	if (metadata_present) {
+		ret = bsp_cs40l5x_add_svc_braking_length_us(dev, wf_word_offset, wf_word_len,
+							    &pcm_len_us);
+		if (ret) {
+			return ret;
+		}
+	}
+
+	*len = pcm_len_us;
+	return BSP_STATUS_OK;
+}
+
+static int bsp_cs40l5x_get_pwle_length_us(const struct device *dev, uint32_t idx, uint32_t *len)
+{
+	struct cs40l5x_config *config = (struct cs40l5x_config *)dev->config;
+	uint32_t ret, feature_bitmap, wf_word_offset, wf_word_len, wt_read_addr;
+
+	wt_read_addr = VIBEGEN_WAVE_XM_TABLE + (idx * OWT_HEADER_SIZE * CS40L5X_DSP_BYTES_PER_WORD);
+
+	// Get effect header info (feature_bitmap for metadata present bit) about wf at idx
+	ret = regmap_read(&config->i2c, wt_read_addr, &feature_bitmap);
+	if (ret) {
+		return ret;
+	}
+	// Get effect header info (offset from wavetable start and length of wf in data words) about
+	// wf at idx
+	ret = regmap_read(&config->i2c, wt_read_addr + (CS40L5X_DSP_BYTES_PER_WORD),
+			  &wf_word_offset);
+	if (ret) {
+		return ret;
+	}
+	ret = regmap_read(&config->i2c, wt_read_addr + (CS40L5X_DSP_BYTES_PER_WORD * 2),
+			  &wf_word_len);
+	if (ret) {
+		return ret;
+	}
+
+	uint32_t metadata_present =
+		(feature_bitmap & CS40L5X_METADATA_BITMASK) >> CS40L5X_METADATA_OFFSET;
+	cs40l5x_owt_pwle_header_t pwle_header;
+	cs40l5x_owt_pwle_section_t pwle_section;
+	uint32_t pwle_len_us = 0;
+
+	wt_read_addr = VIBEGEN_WAVE_XM_TABLE + (wf_word_offset * CS40L5X_DSP_BYTES_PER_WORD);
+	// Collect Header info
+	for (int i = 0; i < PWLE_HEADER_SIZE; i++) {
+		ret = regmap_read(&config->i2c, wt_read_addr + (i * CS40L5X_DSP_BYTES_PER_WORD),
+				  (uint32_t *)&pwle_header.words[i]);
+		if (ret) {
+			return ret;
+		}
+	}
+	pwle_len_us += ((pwle_header.word2.wait_time * 1000) / 4) * pwle_header.word2.repeats;
+
+	// Collect Section length info from every section in PWLE
+	for (int i = PWLE_HEADER_SIZE; i < wf_word_len; i += 2) {
+		// First word of PWLE section contains time field
+		ret = regmap_read(&config->i2c, wt_read_addr + (i * CS40L5X_DSP_BYTES_PER_WORD),
+				  (uint32_t *)&pwle_section.word1);
+		if (ret) {
+			return ret;
+		}
+
+		ret = regmap_read(&config->i2c,
+				  wt_read_addr + ((i + 1) * CS40L5X_DSP_BYTES_PER_WORD),
+				  (uint32_t *)&pwle_section.word2);
+		if (ret) {
+			return ret;
+		}
+
+		if (!pwle_section.word2.half_cycle_def) {
+			pwle_len_us += (pwle_section.word1.time * 1000) / 4;
+		} else // Length is determined by half cycles
+		{
+			if (pwle_section.word2
+				    .ext_frequency) // Frequency range from 0.25 Hz - 1023.75 Hz
+			{
+				uint32_t freq = pwle_section.word2.frequency / 4;
+				pwle_len_us += (pwle_section.word1.time * 1e6) / (freq * 2);
+			} else // Frequency range from 50.125 Hz - 561.875 Hz
+			{
+				uint32_t freq = (pwle_section.word2.frequency / 8) + 50;
+				pwle_len_us += (pwle_section.word1.time * 1e6) / (freq * 2);
+			}
+		}
+	}
+
+	if (metadata_present) {
+		ret = bsp_cs40l5x_add_svc_braking_length_us(dev, wf_word_offset, wf_word_len,
+							    &pwle_len_us);
+		if (ret) {
+			return ret;
+		}
+	}
+
+	*len = pwle_len_us;
+	return BSP_STATUS_OK;
+}
+
+static int bsp_cs40l5x_get_composite_length_us(const struct device *dev, uint32_t idx,
+					       uint32_t *len)
+{
+	struct cs40l5x_config *config = (struct cs40l5x_config *)dev->config;
+	uint32_t ret, offset, wf_word_len, wt_read_addr;
+
+	wt_read_addr = VIBEGEN_WAVE_XM_TABLE + (idx * OWT_HEADER_SIZE * CS40L5X_DSP_BYTES_PER_WORD);
+
+	// Get OWT header info (offset from OWT start and length of wf in data words) about wf at
+	// idx
+	ret = regmap_read(&config->i2c, wt_read_addr + (CS40L5X_DSP_BYTES_PER_WORD), &offset);
+	if (ret) {
+		return ret;
+	}
+	ret = regmap_read(&config->i2c, wt_read_addr + (CS40L5X_DSP_BYTES_PER_WORD * 2),
+			  &wf_word_len);
+	if (ret) {
+		return ret;
+	}
+
+	cs40l5x_owt_composite_header_t composite_header;
+	cs40l5x_owt_composite_section_t composite_section;
+	uint32_t composite_len_us = 0;
+
+	wt_read_addr = VIBEGEN_WAVE_XM_TABLE + (offset * CS40L5X_DSP_BYTES_PER_WORD);
+	// Collect Header info
+	for (int i = 0; i < COMPOSITE_HEADER_SIZE; i++) {
+		ret = regmap_read(&config->i2c, wt_read_addr + (i * CS40L5X_DSP_BYTES_PER_WORD),
+				  (uint32_t *)&composite_header.words[i]);
+		if (ret) {
+			return ret;
+		}
+	}
+	// Case where waveform length is not explicitly in composite header (length is combined size
+	// of subwaveforms)
+	if ((composite_header.word1.waveform_length & WF_LENGTH_DEFAULT) == WF_LENGTH_DEFAULT) {
+		wt_read_addr += (COMPOSITE_HEADER_SIZE * CS40L5X_DSP_BYTES_PER_WORD);
+		// Read data of each subwaveform in composite (1st subwaveform data begins at
+		// currently wf offset + length of composite header)
+		for (int i = 0; i < composite_header.word2.num_waveforms; i++) {
+
+			for (int j = 0; j < COMPOSITE_SECTION_SIZE; j++) {
+				ret = regmap_read(&config->i2c,
+						  wt_read_addr + (j * CS40L5X_DSP_BYTES_PER_WORD),
+						  (uint32_t *)&composite_section.words[j]);
+				if (ret) {
+					return ret;
+				}
+				// Composite subwaveform only contains 2 data words IF duration
+				// field is not present, else 3
+				if (j == 1 && !composite_section.word2.duration_present) {
+					wt_read_addr += ((COMPOSITE_SECTION_SIZE - 1) *
+							 CS40L5X_DSP_BYTES_PER_WORD);
+					break;
+				}
+				if (j == 2) {
+					wt_read_addr += ((
+						COMPOSITE_SECTION_SIZE)*CS40L5X_DSP_BYTES_PER_WORD);
+				}
+			}
+
+			uint32_t subwaveform_len_us;
+			ret = bsp_cs40l5x_get_wt_waveform_length_us(
+				dev, composite_section.word1.waveform_idx, &subwaveform_len_us);
+			if (ret) {
+				return ret;
+			}
+			// Accout for nested repeats + delay between subwaveforms
+			subwaveform_len_us =
+				subwaveform_len_us * (composite_section.word1.nested_repeats + 1) +
+				(composite_section.word2.delay * 1e3);
+
+			// Duration will truncate waveform if present and less than total playtime
+			if (composite_section.word2.duration_present &&
+			    (composite_section.word3.duration * COMPOSITE_DURATION_TO_US_RATIO) <
+				    subwaveform_len_us) {
+				subwaveform_len_us = composite_section.word3.duration *
+						     COMPOSITE_DURATION_TO_US_RATIO;
+			}
+			composite_len_us += subwaveform_len_us;
+		}
+		// Account for overall composite repeats
+		composite_len_us = composite_len_us * (composite_header.word2.repeats + 1);
+	}
+	// Waveform length is known in samples at 8kHz
+	else {
+		uint32_t len_samples = composite_header.word1.waveform_length & WF_LENGTH_DEFAULT;
+		composite_len_us += (len_samples * 1e6) / 8000;
+	}
+
+	*len = composite_len_us;
+	return BSP_STATUS_OK;
+}
+
+static int bsp_cs40l5x_get_wt_waveform_length_us(const struct device *dev, uint32_t idx,
+						 uint32_t *len)
+{
+	struct cs40l5x_config *config = (struct cs40l5x_config *)dev->config;
+	uint32_t ret, wt_read_addr, wf_type;
+
+	uint32_t wt_num_waveforms;
+	ret = regmap_read(&config->i2c, VIBEGEN_NUM_OF_WAVES, &wt_num_waveforms);
+	if (ret) {
+		return ret;
+	}
+	if (idx >= wt_num_waveforms) {
+		LOG_ERR("bsp_cs40l5x_get_effect_length: Invalid wavetable index");
+		return BSP_STATUS_FAIL;
+	}
+
+	wt_read_addr = VIBEGEN_WAVE_XM_TABLE + (idx * OWT_HEADER_SIZE * CS40L5X_DSP_BYTES_PER_WORD);
+	ret = regmap_read(&config->i2c, wt_read_addr, &wf_type);
+	if (ret) {
+		return ret;
+	}
+
+	if ((wf_type & CS40L5X_RTH_TYPE_MASK) == CS40L5X_RTH_TYPE_PCM) {
+		ret = bsp_cs40l5x_get_pcm_length_us(dev, idx, len);
+		if (ret) {
+			return ret;
+		}
+	} else if ((wf_type & CS40L5X_RTH_TYPE_MASK) == CS40L5X_RTH_TYPE_PWLE) {
+		ret = bsp_cs40l5x_get_pwle_length_us(dev, idx, len);
+		if (ret) {
+			return ret;
+		}
+	} else if ((wf_type & CS40L5X_RTH_TYPE_MASK) == CS40L5X_RTH_TYPE_COMPOSITE) {
+		ret = bsp_cs40l5x_get_composite_length_us(dev, idx, len);
+		if (ret) {
+			return ret;
+		}
+	} else {
+		LOG_ERR("bsp_cs40l5x_get_effect_length: Invalid waveform type");
+		return BSP_STATUS_FAIL;
+	}
+	return BSP_STATUS_OK;
+}
+
+static int bsp_cs40l5x_get_wt_waveform_type(const struct device *dev, uint32_t idx,
+					    uint32_t *waveform_type)
+{
+	struct cs40l5x_config *config = (struct cs40l5x_config *)dev->config;
+	uint32_t ret, wt_read_addr, wf_type;
+
+	uint32_t wt_num_waveforms;
+	ret = regmap_read(&config->i2c, VIBEGEN_NUM_OF_WAVES, &wt_num_waveforms);
+	if (ret) {
+		return ret;
+	}
+	if (idx >= wt_num_waveforms) {
+		LOG_ERR("bsp_cs40l5x_get_wt_waveform_type: Invalid wavetable index: %d, num wfs = "
+			"%d",
+			idx, wt_num_waveforms);
+		return BSP_STATUS_FAIL;
+	}
+
+	wt_read_addr = VIBEGEN_WAVE_XM_TABLE + (idx * OWT_HEADER_SIZE * CS40L5X_DSP_BYTES_PER_WORD);
+	ret = regmap_read(&config->i2c, wt_read_addr, &wf_type);
+	if (ret) {
+		return ret;
+	}
+	*waveform_type = (wf_type & CS40L5X_RTH_TYPE_MASK);
+	return BSP_STATUS_OK;
+}
+
+/***************************************************
+** FUNCTIONS TO SUPPORT HIH EFFECT DATA STRUCTURE **
+****************************************************/
+
+int cs40l5x_i2c_write_reg_dt(const struct i2c_dt_spec *spec, const uint32_t reg_addr,
+			     const uint32_t value)
+{
+	uint8_t addr_buf[4], data_buf[4], msg_buf[8];
+	int i, j = 4;
+
+	sys_put_be32(reg_addr, addr_buf);
+	sys_put_be32(value, data_buf);
+
+	for (i = 0; i < ARRAY_SIZE(addr_buf); i++) {
+		msg_buf[i] = addr_buf[i];
+		msg_buf[j] = data_buf[i];
+		j++;
+	}
+
+	return i2c_write_dt(spec, msg_buf, sizeof(msg_buf));
+}
+
+int cs40l5x_i2c_read_reg_dt(const struct i2c_dt_spec *spec, const uint32_t reg_addr,
+			    uint32_t *value)
+{
+	uint8_t write_buf[4], read_buf[4];
+	int ret;
+
+	sys_put_be32(reg_addr, write_buf);
+
+	ret = i2c_write_read_dt(spec, write_buf, sizeof(write_buf), read_buf, sizeof(read_buf));
+	if (ret < 0) {
+		LOG_INF("cs40l5x_i2c_read_reg_dt error\n");
+		return ret;
+	}
+
+	*value = sys_get_be32(read_buf);
+
+	return 0;
+}
+
+int cs40l5x_update_reg_dt(const struct i2c_dt_spec *spec, const uint32_t reg_addr,
+			  const uint32_t mask, const uint32_t value)
+{
+	uint32_t old_value, new_value;
+	int ret;
+
+	ret = cs40l5x_i2c_read_reg_dt(spec, reg_addr, &old_value);
+	if (ret < 0) {
+		return ret;
+	}
+
+	new_value = (old_value & ~mask) | (value & mask);
+	if (new_value == old_value) {
+		return 0;
+	}
+
+	return cs40l5x_i2c_write_reg_dt(spec, reg_addr, new_value);
+}
+
+/* write addr/word pairs */
+int cs40l5x_write_array_dt(const struct i2c_dt_spec *spec, const uint32_t *array, uint32_t words)
+{
+	int i, ret;
+
+	for (i = 0; i < words; i += 2) {
+		ret = cs40l5x_i2c_write_reg_dt(spec, array[i], array[i + 1]);
+		if (ret < 0) {
+			return ret;
+		}
+	}
+	return 0;
+}
+
+/**
+ * Reads a register for a specific value for a specified amount of tries while waiting between
+ * reads.
+ *
+ */
+int cs40l5x_poll_reg_dt(const struct i2c_dt_spec *spec, const uint32_t reg_addr, uint32_t value,
+			uint32_t tries, uint32_t delay)
+{
+	uint32_t tmp;
+	int i, ret;
+
+	for (i = 0; i < tries; i++) {
+		ret = cs40l5x_i2c_read_reg_dt(spec, reg_addr, &tmp);
+		if (ret < 0) {
+			return ret;
+		}
+
+		if (tmp == value) {
+			return 0;
+		}
+
+		k_msleep(delay);
+	}
+	return 0;
+}
+
+int cs40l5x_write_acked_reg_dt(const struct i2c_dt_spec *spec, const uint32_t reg_addr,
+			       uint32_t val, uint32_t acked_val, uint8_t tries, uint32_t delay)
+{
+	int i, ret;
+
+	ret = cs40l5x_i2c_write_reg_dt(spec, reg_addr, val);
+	if (ret < 0) {
+		return ret;
+	}
+
+	for (i = 0; i < tries; i++) {
+		uint32_t temp_reg_val;
+
+		k_msleep(delay);
+
+		cs40l5x_i2c_read_reg_dt(spec, reg_addr, &temp_reg_val);
+
+		if (temp_reg_val == acked_val) {
+			return 0;
+		}
+	}
+
+	return -1;
+}
+
+int cs40l5x_i2c_write_bulk_bus(const struct i2c_dt_spec *spec, const uint32_t reg_addr,
+			       const uint8_t *buf, unsigned int num_bytes, uint16_t bus_addr)
+{
+	uint8_t addr_buf[4], *msg_buf;
+	int i = 4, ret = 0;
+
+	LOG_INF("cs40l5x_i2c_write_bulk_bus: reg=%x size=%d\n", reg_addr, num_bytes);
+
+	msg_buf = k_malloc(num_bytes + 4);
+	if (!msg_buf) {
+		return -ENOMEM;
+	}
+
+	sys_put_be32(reg_addr, addr_buf);
+
+	for (i = 0; i < ARRAY_SIZE(addr_buf); i++) {
+		msg_buf[i] = addr_buf[i];
+	}
+
+	bytecpy(msg_buf + 4, buf, num_bytes);
+
+	ret = i2c_write(spec->bus, msg_buf, 4 + num_bytes, bus_addr);
+
+	k_free(msg_buf);
+	return ret;
+}
+
+int cs40l5x_i2c_write_bus(const struct i2c_dt_spec *spec, const uint32_t reg_addr, uint32_t val,
+			  uint16_t bus_addr)
+{
+	uint8_t addr_buf[4], data_buf[4], *msg_buf;
+	int ret = 0;
+
+	LOG_INF("cs40l5x_i2c_write_bus: reg=%x\n", reg_addr);
+
+	msg_buf = k_malloc(8);
+	if (!msg_buf) {
+		return -ENOMEM;
+	}
+
+	sys_put_be32(reg_addr, addr_buf);
+	sys_put_be32(val, data_buf);
+
+	bytecpy(msg_buf, addr_buf, 4);
+	bytecpy(msg_buf + 4, data_buf, 4);
+
+	ret = i2c_write(spec->bus, msg_buf, 8, bus_addr);
+
+	k_free(msg_buf);
+	return ret;
+}
+
+int cs40l5x_i2c_write_bulk_dt(const struct i2c_dt_spec *spec, const uint32_t reg_addr,
+			      const uint8_t *buf, unsigned int num_bytes)
+{
+	uint8_t addr_buf[4], *msg_buf;
+	int i = 4, ret = 0;
+
+	LOG_INF("cs40l5x_i2c_write_bulk_dt: reg=%x size=%d\n", reg_addr, num_bytes);
+
+	msg_buf = k_malloc(num_bytes + 4);
+	if (!msg_buf) {
+		return -ENOMEM;
+	}
+
+	sys_put_be32(reg_addr, addr_buf);
+
+	for (i = 0; i < ARRAY_SIZE(addr_buf); i++) {
+		msg_buf[i] = addr_buf[i];
+	}
+
+	bytecpy(msg_buf + 4, buf, num_bytes);
+
+	ret = i2c_write_dt(spec, msg_buf, sizeof(msg_buf) + num_bytes);
+
+	k_free(msg_buf);
+	return ret;
+}
+
+int cs40l5x_set_haptic_cfg(const struct device *dev, struct cs40l5x_haptic_source_config *hap_cfg)
+{
+	struct cs40l5x_bsp *data = dev->data;
+	data->hap_cfg = *hap_cfg;
+	return 0;
+}
+
+static int bsp_cs40l5x_get_host_intiated_effect_types(const struct device *dev)
+{
+	uint32_t ret;
+	for (int i = 0; i < ARRAY_SIZE(hih_effect_metadata); i++) {
+		uint32_t wf_type;
+		ret = bsp_cs40l5x_get_wt_waveform_type(dev, hih_effect_metadata[i].wt_idx,
+						       &wf_type);
+		if (ret) {
+			return ret;
+		}
+		hih_effect_metadata[i].wf_type = wf_type;
+	}
+	return BSP_STATUS_OK;
+}
+
+static int bsp_cs40l5x_get_host_initiated_effect_lengths(const struct device *dev)
+{
+	uint32_t ret;
+	for (int i = 0; i < ARRAY_SIZE(hih_effect_metadata); i++) {
+		uint32_t length_svc_us = 0;
+		ret = bsp_cs40l5x_get_SVC_tone_length(dev, &length_svc_us);
+		if (ret) {
+			return ret;
+		}
+		uint32_t length_svc_ms = length_svc_us / 1000;
+		uint32_t length_svc_ms_dec = (length_svc_us % 1000) / 10;
+		uint32_t length_HIH_effect_us;
+		ret = bsp_cs40l5x_get_wt_waveform_length_us(dev, hih_effect_metadata[i].wt_idx,
+							    &length_HIH_effect_us);
+
+		if (ret) {
+			return ret;
+		}
+
+		uint32_t length_ms = length_HIH_effect_us / 1000 + length_svc_ms;
+		uint32_t length_ms_dec = ((length_HIH_effect_us % 1000) / 10) + length_svc_ms_dec;
+		length_ms += length_ms_dec / 100;
+		length_ms_dec %= 100;
+		if (length_ms_dec > 50) // Round to nearest ms
+		{
+			length_ms += 1;
+		}
+		hih_effect_metadata[i].length_ms = length_ms;
+		printf("Name : \"%s\", Duration : %d ms, Waveform Type : 0x%X\n",
+		       hih_effect_metadata[i].effectName, hih_effect_metadata[i].length_ms,
+		       hih_effect_metadata[i].wf_type);
+	}
+	return BSP_STATUS_OK;
+}
+
+static int cs40l5x_write_fw_blocks(struct i2c_dt_spec *i2c, halo_boot_block_t *blocks,
+				   int num_blocks)
+{
+	int i, ret;
+	halo_boot_block_t block;
+	uint32_t bytes, address;
+	uint8_t *buffer;
+
+	for (i = 0; i < num_blocks; i++) {
+		block = blocks[i];
+		bytes = block.block_size;
+		address = block.address;
+		buffer = (uint8_t *)block.bytes;
+		ret = cs40l5x_i2c_write_bulk_dt(i2c, address, buffer, bytes);
+		if (ret != 0) {
+			return ret;
+		}
+		k_msleep(5);
+	}
+
+	return 0;
+}
+
+static int cs40l5x_gpi_get_level(cs40l5x_t *drv, unsigned int gpio)
+{
+	uint32_t gpio_status;
+	struct i2c_dt_spec *i2c = drv->config.bsp_config.i2c;
+
+	if (gpio > 13) {
+		return -1;
+	}
+
+	regmap_read(i2c, CS40L5X_GPIO_STATUS1, &gpio_status);
+
+	return ((gpio_status & (1 << (gpio - 1))) != 0);
+}
+
+enum cs40l5x_tuning_set {
+	CS40L5X_TUNING_SET_A,
+	CS40L5X_TUNING_SET_B,
+};
+
+static unsigned int get_tuning_set(cs40l5x_t *drv)
+{
+	// struct i2c_dt_spec *i2c = drv->config.bsp_config.i2c;
+	int gpi_level;
+
+	gpi_level = cs40l5x_gpi_get_level(drv, 1);
+	return gpi_level;
+}
+
+/* NOTE: Example tunings and wavetable are not designed for general-purpose applications and should
+ * be used for verification purposes only. Please contact your Cirrus Logic representative for
+ * application specific waveforms and tunings
+ */
+static int cs40l5x_firmware_load(cs40l5x_t *drv)
+{
+	int num_blocks, ret;
+	halo_boot_block_t *blocks;
+	struct i2c_dt_spec *i2c = drv->config.bsp_config.i2c;
+	uint32_t tuning_set;
+
+	tuning_set = get_tuning_set(drv);
+
+	num_blocks = cs40l5x_total_fw_blocks;
+	blocks = (halo_boot_block_t *)cs40l5x_fw_blocks;
+	ret = cs40l5x_write_fw_blocks(i2c, blocks, num_blocks);
+	if (ret != 0) {
+		return ret;
+	}
+
+	num_blocks = cs40l5x_total_coeff_blocks_0;
+	blocks = (halo_boot_block_t *)cs40l5x_coeff_0_blocks;
+	ret = cs40l5x_write_fw_blocks(i2c, blocks, num_blocks);
+	if (ret != 0) {
+		return ret;
+	}
+
+	num_blocks = cs40l5x_total_coeff_blocks_1;
+	blocks = (halo_boot_block_t *)cs40l5x_coeff_1_blocks;
+	ret = cs40l5x_write_fw_blocks(i2c, blocks, num_blocks);
+	if (ret != 0) {
+		return ret;
+	}
+
+	LOG_INF("Loaded wavetable");
+	return 0;
+}
+
+static int cs40l5x_clear_gpio_triggers(cs40l5x_t *drv)
+{
+	int i;
+	struct i2c_dt_spec *i2c = drv->config.bsp_config.i2c;
+
+	for (i = 0; i < 16; i++) {
+		regmap_write(i2c, CS40L5X_GPIO_HANDLERS_BASE + i * 4, 0x1FF);
+	}
+
+	return 0;
+}
+
+static int cs40l5x_setup_gpi(cs40l5x_t *drv, unsigned int gpio)
+{
+	struct i2c_dt_spec *i2c = drv->config.bsp_config.i2c;
+
+	if (gpio > 13) {
+		return -1;
+	}
+
+	regmap_write(i2c, CS40L5X_GPIO_CTRL1 + (4 * (gpio - 1)),
+		     CS40L5X_GPIO_CTRL_DIR_BITMASK | CS40L5X_GPIO_CTRL_FN_INPUT_OUTPUT);
+	return 0;
+}
+
+static uint32_t cs40l5x_set_timer(uint32_t duration_ms, bsp_callback_t cb, void *cb_arg)
+{
+	k_msleep(duration_ms);
+	return 0;
+}
+
+static uint32_t cs40l5x_register_gpio_cb(const struct gpio_dt_spec *gpio_id, bsp_callback_t cb,
+					 void *cb_arg)
+{
+	// TODO
+	return 0;
+}
+
+static uint32_t cs40l5x_set_gpio(const struct gpio_dt_spec *gpio_id, uint8_t gpio_state)
+{
+	// TODO
+	return 0;
+}
+
+bsp_driver_if_t cs40l5x_bsp_driver_if = {.set_timer = cs40l5x_set_timer,
+					 .register_gpio_cb = cs40l5x_register_gpio_cb,
+					 .set_gpio = cs40l5x_set_gpio};
+
+bsp_driver_if_t *bsp_driver_if_g = &cs40l5x_bsp_driver_if;
+
+/* ===================================================================================== */
+static int cs40l5x_reset_owt(cs40l5x_t *drv)
+{
+	uint32_t ret;
+	struct i2c_dt_spec *i2c = drv->config.bsp_config.i2c;
+	ret = regmap_write(i2c, CS40L5X_DSP_VIRTUAL1_MBOX_1, CS40L5X_DSP_MBOX_OWT_RESET);
+	if (ret) {
+		return ret;
+	}
+	return BSP_STATUS_OK;
+}
+
+static int cs40l5x_init(const struct device *dev)
+{
+	struct cs40l5x_config *config = (struct cs40l5x_config *)dev->config;
+	struct cs40l5x_bsp *data = dev->data;
+	cs40l5x_t *drv = &data->priv;
+	uint32_t val;
+	int ret;
+	LOG_INF("cs40l5x_init\n");
+
+	drv->config.bsp_config.i2c = &config->i2c;
+	drv->config.syscfg_regs = cs40l5x_syscfg_regs;
+	drv->config.syscfg_regs_total = CS40L5X_SYSCFG_REGS_TOTAL;
+	drv->config.is_ext_bst = true;
+
+	static const struct gpio_dt_spec reset =
+		GPIO_DT_SPEC_GET(DT_NODELABEL(haptic1), reset_gpios);
+
+	if (!gpio_is_ready_dt(&reset)) {
+		LOG_INF("cs40l5x reset pin GPIO port is not ready.\n");
+		return 0;
+	}
+
+	ret = gpio_pin_configure_dt(&reset, GPIO_OUTPUT_INACTIVE);
+	if (ret != 0) {
+		LOG_INF("cs40l5x configuring reset pin failed: %d\n", ret);
+		return 0;
+	}
+
+	drv->config.bsp_config.reset_gpio_id = &reset;
+	// Activate RESET for at least T_RLPW (1ms)
+	gpio_pin_set_dt(&reset, BSP_GPIO_ACTIVE);
+	k_msleep(2);
+	// Wait for Lochnagar to boot
+	gpio_pin_set_dt(&reset, BSP_GPIO_INACTIVE);
+	k_msleep(2500);
+
+	if (!i2c_is_ready_dt(&config->i2c)) {
+		LOG_INF("cs40l5x no I2C\n");
+		return -ENODEV;
+	}
+
+	ret = cs40l5x_reset(drv);
+	if (ret < 0) {
+		return ret;
+	}
+
+	regmap_read(&config->i2c, FIRMWARE_CS40L5X_HALO_STATE, &val);
+	LOG_INF("cs40l5x_init: HALO_STATE = %x\n", val);
+
+	LOG_INF("cs40l5x_calibrate\n");
+	ret = cs40l5x_calibrate(drv);
+	if (ret < 0) {
+		LOG_INF("cs40l5x_calibrate error\n");
+		return ret;
+	}
+
+	ret = cs40l5x_boot(drv, NULL);
+	if (ret < 0) {
+		LOG_INF("cs40l5x_boot error\n");
+		return ret;
+	}
+
+	cs40l5x_setup_gpi(drv, 1);
+
+	LOG_INF("cs40l5x_firmware_load\n");
+	ret = cs40l5x_firmware_load(drv);
+	if (ret < 0) {
+		LOG_INF("cs40l5x_firmware_load error\n");
+		return ret;
+	}
+
+	ret = regmap_write(&config->i2c, CS40L5X_DSP1_CCM_CORE_CONTROL, 0x00000281);
+	if (ret < 0) {
+		LOG_INF("cs40l5x_boot error\n");
+		return ret;
+	}
+
+	cs40l5x_clear_gpio_triggers(drv);
+	cs40l5x_reset_owt(drv);
+
+	cs40l5x_timeout_ticks_set(drv, 1);
+
+	k_msleep(1000);
+
+	bsp_cs40l5x_get_host_intiated_effect_types(dev);
+	bsp_cs40l5x_get_host_initiated_effect_lengths(dev);
+	LOG_INF("cs40l5x_init: get host inititated effect lengths\n");
+
+	/* to-do */
+	regmap_read(&config->i2c, FIRMWARE_CS40L5X_HALO_STATE, &val);
+	LOG_INF("cs40l5x_init: HALO_STATE = %x\n", val);
+
+	//    config->irq_cfg_func();
+	//    config->irq_enable_func();
+
+	return 0;
+}
+
+static int haptics_cs40l5x_stop_output(const struct device *dev)
+{
+	return 0;
+}
+
+static int haptics_cs40l5x_start_output(const struct device *dev)
+{
+	struct cs40l5x_bsp *data = (struct cs40l5x_bsp *)dev->data;
+	LOG_INF("haptics_cs40l5x_start_output, bank=%x, index=%x\n", data->hap_cfg.bank,
+		data->hap_cfg.index);
+
+	cs40l5x_trigger(&data->priv, data->hap_cfg.index, data->hap_cfg.bank);
+
+	return 0;
+}
+
+int bsp_cs40l5x_trigger_owt(const struct device *dev, int owt_idx)
+{
+	struct cs40l5x_bsp *data = dev->data;
+	cs40l5x_t *drv = &data->priv;
+	uint32_t ret;
+
+	// Bypass SOURCE_ATTENUATION for owt triggers
+	ret = cs40l5x_trigger_owt(drv, owt_idx, OWT_BYPASS_SOURCE_ATTEN);
+	if (ret) {
+		LOG_ERR("Error playing out owt waveform");
+		return ret;
+	}
+	return BSP_STATUS_OK;
+}
+
+int bsp_cs40l5x_delete_owt(const struct device *dev, int owt_idx)
+{
+	struct cs40l5x_bsp *data = dev->data;
+	cs40l5x_t *drv = &data->priv;
+	struct cs40l5x_config *config = (struct cs40l5x_config *)dev->config;
+	uint32_t ret, state;
+
+	ret = regmap_read(&config->i2c, PM_PM_CUR_STATE, &state);
+	if (ret) {
+		return ret;
+	}
+
+	if (state == CS40L5X_DSP_STATE_ACTIVE) {
+		ret = regmap_write(&config->i2c, CS40L5X_DSP_VIRTUAL1_MBOX_1,
+				   CS40L5X_DSP_MBOX_STOP_PLAYBACK);
+		if (ret) {
+			return ret;
+		}
+		ret = regmap_poll_reg(&config->i2c, PM_PM_CUR_STATE, CS40L5X_DSP_STATE_STANDBY, 10,
+				      10);
+		if (ret) {
+			return ret; // If unable to stop playback don't send delete command
+		}
+	}
+
+	ret = cs40l5x_delete_owt(drv, owt_idx);
+	if (ret) {
+		LOG_ERR("Error deleting owt waveform");
+		return ret;
+	}
+	return BSP_STATUS_OK;
+}
+
+int bsp_cs40l5x_write_owt_header(const struct device *dev, uint8_t num_waveforms, uint8_t repeats)
+{
+	struct cs40l5x_bsp *data = dev->data;
+	cs40l5x_t *drv = &data->priv;
+	uint32_t ret;
+
+	ret = cs40l5x_write_owt_composite_header(drv, num_waveforms, repeats);
+	if (ret) {
+		LOG_ERR("Error writing owt header");
+		return ret;
+	}
+	return BSP_STATUS_OK;
+}
+
+int bsp_cs40l5x_write_owt_section(const struct device *dev,
+				  struct cs40l5x_owt_section_params section)
+{
+	struct cs40l5x_bsp *data = dev->data;
+	cs40l5x_t *drv = &data->priv;
+	uint32_t ret;
+
+	ret = cs40l5x_write_owt_composite_section(drv, section.nested_repeats, section.waveform_idx,
+						  section.amplitude, section.delay,
+						  section.owt_subwave, section.rom_subwave,
+						  section.duration_present, section.duration);
+	if (ret) {
+		LOG_ERR("Error writing owt section");
+		return ret;
+	}
+	return BSP_STATUS_OK;
+}
+
+int bsp_cs40l5x_push_owt(const struct device *dev)
+{
+	struct cs40l5x_bsp *data = dev->data;
+	cs40l5x_t *drv = &data->priv;
+	uint32_t ret;
+
+	ret = cs40l5x_push_owt_composite(drv);
+	if (ret) {
+		LOG_ERR("Error pushing owt waveform");
+		return ret;
+	}
+	return BSP_STATUS_OK;
+}
+
+int bsp_cs40l5x_write_owt_composite_one_section(const struct device *dev,
+						struct cs40l5x_owt_section_params section)
+{
+	uint32_t ret;
+	struct cs40l5x_bsp *data = dev->data;
+	cs40l5x_t *drv = &data->priv;
+
+	ret = cs40l5x_write_owt_composite_one_section(
+		drv, section.nested_repeats, section.waveform_idx, section.amplitude, section.delay,
+		section.owt_subwave, section.rom_subwave);
+	if (ret) {
+		LOG_ERR("Error writing owt waveform");
+		return ret;
+	}
+	return ret;
+}
+
+int bsp_cs40l5x_write_owt_ncw(const struct device *dev, struct cs40l5x_owt_section_params section)
+{
+	uint32_t ret;
+	struct cs40l5x_bsp *data = dev->data;
+	cs40l5x_t *drv = &data->priv;
+
+	ret = cs40l5x_write_owt_ncw(drv, section.nested_repeats, section.waveform_idx,
+				    section.amplitude, section.delay, section.owt_subwave,
+				    section.rom_subwave);
+	if (ret) {
+		LOG_ERR("Error writing NCW OWT waveform");
+		return ret;
+	}
+	return ret;
+}
+
+int bsp_cs40l5x_get_SVC_tone_length(const struct device *dev, uint32_t *length)
+{
+	struct cs40l5x_config *config = (struct cs40l5x_config *)dev->config;
+	uint32_t val, ret;
+	uint32_t length_samples = 0;
+	ret = regmap_read(&config->i2c, SVC_INIT_PH_PILOT_HI_START_SMP, &val);
+	if (ret) {
+		return ret;
+	}
+	length_samples += val;
+
+	ret = regmap_read(&config->i2c, SVC_INIT_PH_OFST_CAL_START_SMP, &val);
+	if (ret) {
+		return ret;
+	}
+	length_samples += val;
+
+	ret = regmap_read(&config->i2c, SVC_INIT_PH_OFST_CAL_NSMP, &val);
+	if (ret) {
+		return ret;
+	}
+	length_samples += val;
+
+	ret = regmap_read(&config->i2c, SVC_INIT_PH_OFST_STL_NSMP, &val);
+	if (ret) {
+		return ret;
+	}
+	length_samples += val;
+
+	// Ouput tone length in us
+	*length = (length_samples * 1000) / (CS40L5X_SVC_FS / 1000);
+	return BSP_STATUS_OK;
+}
+
+static uint32_t bsp_cs40l5x_convert_effect_name(char *effect_name, uint32_t *idx,
+						HIH_effect_metadata *effect)
+{
+	for (int i = 0; i < ARRAY_SIZE(hih_effect_metadata); i++) {
+		if (strcasecmp(effect_name, hih_effect_metadata[i].effectName) == 0) {
+			*effect = hih_effect_metadata[i];
+			*idx = hih_effect_metadata[i].wt_idx;
+			return BSP_STATUS_OK;
+		}
+	}
+	return BSP_STATUS_FAIL;
+}
+
+static uint32_t bsp_cs40l5x_convert_msft_id(uint32_t msft_id, uint32_t *idx,
+					    HIH_effect_metadata *effect)
+{
+	for (int i = 0; i < ARRAY_SIZE(hih_effect_metadata); i++) {
+		if (msft_id == hih_effect_metadata[i].msft_ID) {
+			*effect = hih_effect_metadata[i];
+			*idx = hih_effect_metadata[i].wt_idx;
+			return BSP_STATUS_OK;
+		}
+	}
+	return BSP_STATUS_FAIL;
+}
+
+int bsp_cs40l5x_host_initiated_trigger(const struct device *dev, HIH_effect effect,
+				       uint32_t intensity, uint32_t repeats,
+				       uint32_t retrigger_period, uint32_t cutoff_time)
+{
+	uint32_t ret, idx;
+	struct cs40l5x_config *config = (struct cs40l5x_config *)dev->config;
+
+	ret = bsp_cs40l5x_get_num_owt_wf(dev, &idx);
+	if (ret) {
+		return ret;
+	}
+	if (idx > 0) {
+		ret = bsp_cs40l5x_delete_owt(dev, idx - 1);
+		if (ret) {
+			return ret;
+		}
+	}
+
+	HIH_effect_metadata currEffect = {0};
+	// Get effect OWT index from string name or microsoft ID
+	if (effect.label == EFFECT_NAME) {
+		ret = bsp_cs40l5x_convert_effect_name(effect.HIH_effect_identifier.effectName, &idx,
+						      &currEffect);
+		if (ret) {
+			LOG_ERR("Error: Effect named %s not found",
+				effect.HIH_effect_identifier.effectName);
+			return ret;
+		}
+	} else if (effect.label == EFFECT_MSFT_ID) {
+		ret = bsp_cs40l5x_convert_msft_id(effect.HIH_effect_identifier.msft_ID, &idx,
+						  &currEffect);
+		if (ret) {
+			LOG_ERR("Error: Effect ID 0x%x not found",
+				effect.HIH_effect_identifier.msft_ID);
+			return ret;
+		}
+	} else {
+		idx = effect.HIH_effect_identifier.owtIdx;
+	}
+
+	// Retrigger period starts from the beginning of each effect
+	uint32_t delay = 0;
+	uint32_t duration = 0;
+	uint32_t duration_present = 0;
+	if (retrigger_period > currEffect.length_ms) {
+		delay = retrigger_period - currEffect.length_ms;
+	} else // Retrigger period is LESS than length of current waveform, truncate waveform
+	       // between repeats
+	{
+		duration_present = 1;
+		duration = retrigger_period * 4;
+	}
+
+	struct cs40l5x_owt_section_params section = {.nested_repeats = repeats,
+						     .waveform_idx = idx,
+						     .amplitude = intensity,
+						     .delay = delay,
+						     .owt_subwave = 0,
+						     .rom_subwave = 0,
+						     .duration_present = duration_present,
+						     .duration = duration};
+	if (currEffect.wf_type == CS40L5X_RTH_TYPE_COMPOSITE) {
+		ret = bsp_cs40l5x_write_owt_ncw(dev, section);
+		if (ret) {
+			return ret;
+		}
+	} else {
+		ret = bsp_cs40l5x_write_owt_composite_one_section(dev, section);
+		if (ret) {
+			return ret;
+		}
+	}
+	ret = regmap_write(&config->i2c, VIBEGEN_TIMEOUT_MS, cutoff_time);
+	if (ret) {
+		return ret;
+	}
+
+	ret = bsp_cs40l5x_get_num_owt_wf(dev, &idx);
+	if (ret) {
+		return ret;
+	}
+
+	ret = bsp_cs40l5x_trigger_owt(dev, idx - 1);
+	if (ret) {
+		return ret;
+	}
+	return BSP_STATUS_OK;
+}
+
+int bsp_cs40l5x_list_host_initiated_effects(const struct device *dev)
+{
+	printf("\n---Wavetable Waveform List---\n");
+	for (int i = 0; i < ARRAY_SIZE(hih_effect_metadata); i++) {
+		printf("Name : \"%s\", Duration : %d ms\n", hih_effect_metadata[i].effectName,
+		       hih_effect_metadata[i].length_ms);
+	}
+	return BSP_STATUS_OK;
+}
+
+static const struct haptics_driver_api cs40l5x_driver_api = {
+	.start_output = &haptics_cs40l5x_start_output,
+	.stop_output = &haptics_cs40l5x_stop_output,
+};
+
+int bsp_cs40l5x_get_num_owt_wf(const struct device *dev, uint32_t *num)
+{
+	struct cs40l5x_config *config = (struct cs40l5x_config *)dev->config;
+	return regmap_read(&config->i2c, VIBEGEN_OWT_NUM_OF_WAVES_XM, num);
+}
+
+#define CS40L5X_INIT(inst)                                                                         \
+                                                                                                   \
+	static const struct cs40l5x_config cs40l5x_config_##inst = {                               \
+		.i2c = I2C_DT_SPEC_INST_GET(inst),                                                 \
+	};                                                                                         \
+                                                                                                   \
+	static struct cs40l5x_bsp cs40l5x_bsp_data_##inst = {                                      \
+                                                                                                   \
+	};                                                                                         \
+                                                                                                   \
+	PM_DEVICE_DT_INST_DEFINE(inst, cs40l5x_pm_action);                                         \
+                                                                                                   \
+	DEVICE_DT_INST_DEFINE(inst, &cs40l5x_init, NULL, &cs40l5x_bsp_data_##inst,                 \
+			      &cs40l5x_config_##inst, POST_KERNEL, CONFIG_HAPTICS_INIT_PRIORITY,   \
+			      &cs40l5x_driver_api);
+
+DT_INST_FOREACH_STATUS_OKAY(CS40L5X_INIT)
+
+/* ===================================================================================== */

@@ -900,7 +900,7 @@ class wmfw_rom(wmfw_parser):
         self.fw_id_block = halo_firmware_id_block(None)
         if (self.part_number == 'cs40l26' or self.part_number == 'cs40l26m'):
             self.update_fw_id_block_cs40l26()
-        elif (self.part_number == 'cs40l50' or self.part_number == 'cs40l51' or self.part_number == 'cs40l52' or self.part_number == 'cs40l53'):
+        elif (self.part_number == 'cs40l50' or self.part_number == 'cs40l51' or self.part_number == 'cs40l52' or self.part_number == 'cs40l53' or self.part_number == 'cs40l50_pc'):
             self.update_fw_id_block_cs40l50()
         else:
             error_exit('Unsupported ROM: ' + self.part_number)
